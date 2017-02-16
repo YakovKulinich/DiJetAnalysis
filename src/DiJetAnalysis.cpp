@@ -43,7 +43,7 @@ PlotExistingHistos( int isData,
 
 void DiJetAnalysis::loadTriggers(){
   TEnv config;
-  config.ReadFile( "configJetsFwd_pPb.cfg", EEnvLevel(0));
+  config.ReadFile( "config/configJetsFwd_pPb.cfg", EEnvLevel(0));
 
   std::string triggerMenu = config.GetValue("triggerMenu","");
   v_triggers =
@@ -318,7 +318,7 @@ void DiJetAnalysis::applyCleaning( std::vector<TLorentzVector>& v_jets,
 
 void DiJetAnalysis::loadFinalTriggers(){
   TEnv config;
-  config.ReadFile( "configJetsFwd_pPb.cfg", EEnvLevel(0));
+  config.ReadFile( "config/configJetsFwd_pPb.cfg", EEnvLevel(0));
 
   std::string triggerMenu = config.GetValue("triggerMenu","");
   v_triggers =

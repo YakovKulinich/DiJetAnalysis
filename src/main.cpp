@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
   TApplication* rootapp = new TApplication("JetAnalysis",&argc, argv);
   SetAtlasStyle();
  
-  std::string fNameIn = "/scratch/atlas2/atlas80/kulinich/data/output/output.01.31.17.pPb/pPb.root";
+  std::string fNameIn = "/home/yakov/Projects/atlas/data/pPb.root";
   
   DiJetAnalysis* analysis = new DiJetAnalysis();
   if( mode ){ 
