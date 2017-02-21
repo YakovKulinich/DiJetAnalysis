@@ -13,18 +13,21 @@
 class DiJetAnalysis{
  public:
   DiJetAnalysis();
+  DiJetAnalysis( bool, bool );
   ~DiJetAnalysis();
+
+  void Initialize();
   
   //---------------------------
   //       Fill Tree
   //---------------------------
-  void RunOverTreeFillHistos( int, int, int, std::string&, std::string& );
+  void RunOverTreeFillHistos( int, int );
 
   void loadTriggers();
 
-  void setupHistograms();
+  void setupHistogramsData();
 
-  void processEventsInData( int, int, std::string&, std::string& );  
+  void processEventsInData( int, int );  
 
   void processEfficiencies( std::vector< TLorentzVector >&,
 			    std::vector< TLorentzVector >&,
@@ -38,21 +41,32 @@ class DiJetAnalysis{
   //---------------------------
   //       Plotting 
   //---------------------------
-  void PlotExistingHistos( int, std::string&, std::string& );
+  void PlotExistingHistos();
 
+  // ========= Data ========
   void loadFinalTriggers();
 
-  void loadHistograms( std::string& );
+  void loadHistogramsData();
 
-  void plotSpectra( std::string& );
+  void plotSpectraData();
 
-  void plotEfficiencies( std::string& );
+  void plotEfficiencies();
 
-  void plotEtaPhi( std::string& );
+  void plotEtaPhiData();
 
-  void plotPtEta( std::string& );
+  void plotPtEtaData();
 
+  // ========= MC ========
+  
  private:
+  //========== settings ===========
+  bool m_isData;
+  bool m_is_pPb;
+
+  std::string m_labelOut;
+  std::string m_fNameOut;
+  
+  //============ data =============
   std::vector< std::string > v_triggers;
 
   std::map< std::string, TH1* > m_triggerSpect;

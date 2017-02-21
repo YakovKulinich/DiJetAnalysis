@@ -71,11 +71,12 @@ std::vector<std::string> vectorise(TString str, TString sep);
 void DrawRightLatex( double x, double y , const char* s, float scale, int color);
 void DrawLeftLatex( double x, double y , const char* s, float scale, int color);
 void DrawCenterLatex( double x, double y , const char* s, float scale, int color);
-void DrawAtlasInternalDataRight_pPb( double x0, double y0, double scale );
-void DrawAtlasInternalDataLeft_pPb( double x0, double y0, double scale );
-void DrawAtlasInternalDataRight_pp( double x0, double y0, double scale );
-void DrawAtlasInternalDataLeft_pp( double x0, double y0, double scale );
-void DrawAtlasInternalMC( bool isReco, double scale );
+void DrawAtlasInternalDataRight( double x0, double y0,
+				 double scale, bool is_pPb);
+void DrawAtlasInternalDataLeft( double x0, double y0,
+				double scale, bool is_pPb );
+void DrawAtlasInternalMC( double x0, double y0,
+			  bool isReco, double scale );
 void SetCustomMarkerStyle( TH1* his , int iflag );
 void SetHStyle( TH1* his, int iflag, float scale);
 void SetHStyle( TF1* his, int iflag);

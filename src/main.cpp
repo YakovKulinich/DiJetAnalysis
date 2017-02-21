@@ -11,8 +11,9 @@ int main(int argc, char *argv[])
   int mode             = 1;
   int nEvents          = -1;
   int startEvent       = 0;
-  std::string labelOut = "";
-  std::string fNameOut = "myOut.root";
+  bool isData          = true;
+  bool is_pPb          = true;
+
 
   if(argc == 2){
     mode       = atoi( argv[1] );
@@ -27,27 +28,33 @@ int main(int argc, char *argv[])
     mode       = atoi( argv[1] );
     nEvents    = atoi( argv[2] );
     startEvent = atoi( argv[3] );
-    labelOut   = argv[4];
+    isData     = atoi( argv[4] );
+  } else if(argc == 6){
+    mode       = atoi( argv[1] );
+    nEvents    = atoi( argv[2] );
+    startEvent = atoi( argv[3] );
+    isData     = atoi( argv[4] );
+    is_pPb     = atoi( argv[5] );
   }
 
   std::cerr << "argc: " << argc
 	    << "    mode: " << mode
 	    << "    nEvents: " << nEvents 
 	    << "    startEvent: " << startEvent
-	    << "    labelOut: " << labelOut 
+	    << "    isData: " << isData
+	    << "    is_pPb: " << is_pPb
 	    << std::endl;
 
   TApplication* rootapp = new TApplication("JetAnalysis",&argc, argv);
   SetAtlasStyle();
- 
-  std::string fNameIn = "/home/yakov/Projects/atlas/data/pPb.root";
   
-  DiJetAnalysis* analysis = new DiJetAnalysis();
-  if( mode ){ 
-      analysis->RunOverTreeFillHistos( 1, nEvents, startEvent, fNameIn, fNameOut ); 
+  DiJetAnalysis* analysis = new DiJetAnalysis( isData, is_pPb );
+  analysis->Initialize();
+  if( mode ){
+    analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
       return 0;
   } else if( !mode ) { 
-    analysis->PlotExistingHistos( 1, labelOut, fNameOut ); 
+    analysis->PlotExistingHistos(); 
   }
   
   rootapp->Run();

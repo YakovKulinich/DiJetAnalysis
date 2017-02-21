@@ -11,34 +11,47 @@
 
 #include "DiJetAnalysis.h"
 
-DiJetAnalysis::DiJetAnalysis(){}
+DiJetAnalysis::DiJetAnalysis()
+  : m_isData(true), m_is_pPb( true )
+{}
+
+DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
+  : m_isData( isData ), m_is_pPb( is_pPb )
+{}
 
 DiJetAnalysis::~DiJetAnalysis(){}
 
-void DiJetAnalysis::
-RunOverTreeFillHistos(int isData,
-		      int nEvents, 
-		      int startEvent,
-		      std::string& fNameIn, 
-		      std::string& fNameOut){
-  loadTriggers();
-  setupHistograms();
+void DiJetAnalysis::Initialize(){
+  m_labelOut = m_isData ? "_data" : "_mc" ;
+  m_labelOut = m_is_pPb ? m_labelOut + "_pPb" : m_labelOut + "_pp";
   
-  // Process Events
-  processEventsInData( nEvents, startEvent, fNameIn, fNameOut );
+  m_fNameOut = "output/myOut" + m_labelOut + ".root";
+  
+  std::cout << "fNameOut: " << m_fNameOut << std::endl;
 }
 
-void DiJetAnalysis::
-PlotExistingHistos( int isData,
-		    std::string& labelOut, 
-		    std::string& fNameOut){
-  loadFinalTriggers();
-  loadHistograms( fNameOut );
+void DiJetAnalysis::RunOverTreeFillHistos( int nEvents, 
+					   int startEvent ){  
+  // Process Events
+  if( m_isData ){
+    loadTriggers();
+    setupHistogramsData();
+    processEventsInData( nEvents, startEvent );
+  } else {
+
+  } 
+}
+
+void DiJetAnalysis::PlotExistingHistos(){
+  if( m_isData ){
+    loadFinalTriggers();
+    loadHistogramsData();
     
-  plotSpectra( labelOut );
-  plotEfficiencies( labelOut );
-  plotEtaPhi( labelOut );
-  plotPtEta( labelOut );
+    plotSpectraData();
+    plotEfficiencies();
+    plotEtaPhiData();
+    plotPtEtaData();
+  }
 }
 
 void DiJetAnalysis::loadTriggers(){
@@ -84,7 +97,7 @@ void DiJetAnalysis::loadTriggers(){
   }
 }
 
-void DiJetAnalysis::setupHistograms(){
+void DiJetAnalysis::setupHistogramsData(){
   // Triggers and Spectra
   int    nPtSpectBins = 100; 
   double ptSpectMin   = 0; double ptSpectMax  = nPtSpectBins;
@@ -147,9 +160,11 @@ void DiJetAnalysis::setupHistograms(){
   }
 }
 
-void DiJetAnalysis::processEventsInData( int nEvents, int startEvent, 
-			  std::string& fNameIn, std::string& fNameOut ){
-
+void DiJetAnalysis::processEventsInData( int nEvents, int startEvent ){
+  std::string fNameIn = m_is_pPb ?
+    "/home/yakov/Projects/atlas/data/pPb.root" :
+    "/home/yakov/Projects/atlas/data/pp.root"  ;
+  
   // collections and variables
   std::vector< TLorentzVector >    vTrig_jets;
   std::vector< TLorentzVector >* p_vTrig_jets = &vTrig_jets;
@@ -240,7 +255,7 @@ void DiJetAnalysis::processEventsInData( int nEvents, int startEvent,
   //----------------------------------------
   fin->Close();
   
-  TFile* fout = new TFile( fNameOut.c_str(),"RECREATE");
+  TFile* fout = new TFile( m_fNameOut.c_str(),"RECREATE");
   for( auto& h : v_hists  ) { h->Write(); }
 
   fout->Close();
@@ -332,8 +347,8 @@ void DiJetAnalysis::loadFinalTriggers(){
   }
 }
 
-void DiJetAnalysis::loadHistograms( std::string& fNameOut ){
-  TFile* fin = TFile::Open( fNameOut.c_str() ); 
+void DiJetAnalysis::loadHistogramsData(){
+  TFile* fin = TFile::Open( m_fNameOut.c_str() ); 
 
   for( auto& trigger : v_triggers ){
     m_triggerSpect [ trigger ] = (TH1D*)fin->Get( Form("h_spect_%s", trigger.c_str() ) );
@@ -344,7 +359,7 @@ void DiJetAnalysis::loadHistograms( std::string& fNameOut ){
 }
 
 
-void DiJetAnalysis::plotSpectra( std::string& label ){
+void DiJetAnalysis::plotSpectraData(){
   c_spect = new TCanvas("c_spect","c_spect",800,600);
   c_spect->SetLogy();
 
@@ -373,12 +388,12 @@ void DiJetAnalysis::plotSpectra( std::string& label ){
 
   l_spect->Draw();
 
-  DrawAtlasInternalDataRight_pPb( 0, 0, 0.6 ); 
+  DrawAtlasInternalDataRight( 0, 0, 0.6, true ); // pPb
 
-  c_spect->SaveAs( Form("output/spectra_%s.pdf", label.c_str() ) );
+  c_spect->SaveAs( Form("output/spectra%s.pdf", m_labelOut.c_str() ) );
 }
 
-void DiJetAnalysis::plotEfficiencies( std::string& label ){
+void DiJetAnalysis::plotEfficiencies(){
   c_eff = new TCanvas("c_eff","c_eff",800,600);
 
   l_eff = new TLegend(0.38, 0.28, 0.61, 0.41);
@@ -405,33 +420,33 @@ void DiJetAnalysis::plotEfficiencies( std::string& label ){
   line = new TLine( 0, 1, m_triggerEff[ mbTrigger ]->GetXaxis()->GetXmax(), 1);
   line->Draw();
 
-  DrawAtlasInternalDataLeft_pPb( 0, 0,  0.6 ); 
+  DrawAtlasInternalDataLeft( 0, 0,  0.6, true ); // pPb
 
-  c_eff->SaveAs( Form("output/efficiencies_%s.pdf", label.c_str() ) );
+  c_eff->SaveAs( Form("output/efficiencies%s.pdf", m_labelOut.c_str() ) );
 }
 
 
-void DiJetAnalysis::plotEtaPhi( std::string& label ){
+void DiJetAnalysis::plotEtaPhiData(){
   c_etaPhi = new TCanvas("c_etaPhi","c_etaPhi",800,600);
 
   for( auto& sh : m_triggerEtaPhi ){
     SetHStyle( sh.second, 0, 0.6);
     sh.second->Draw("col");
-    DrawAtlasInternalDataRight_pPb( 0, -0.55, 0.6 ); 
-    c_etaPhi->SaveAs( Form("output/etaPhi_%s_%s.pdf", 
-			   label.c_str(), sh.first.c_str() ) );
+    DrawAtlasInternalDataRight( 0, -0.55, 0.6, true ); // pPb 
+    c_etaPhi->SaveAs( Form("output/etaPhi%s_%s.pdf", 
+			   m_labelOut.c_str(), sh.first.c_str() ) );
     std::cout << sh.first << std::endl;
   }
 }
 
-void DiJetAnalysis::plotPtEta( std::string& label ){
+void DiJetAnalysis::plotPtEtaData(){
   c_ptEta = new TCanvas("c_ptEta","c_ptEta",800,600);
 
   for( auto& sh : m_triggerPtEta ){
     SetHStyle( sh.second, 0, 0.6);
     sh.second->Draw("col");
-    DrawAtlasInternalDataRight_pPb( 0, -0.55, 0.6 ); 
-    c_ptEta->SaveAs( Form("output/ptEta_%s_%s.pdf", 
-			  label.c_str(), sh.first.c_str() ) );
+    DrawAtlasInternalDataRight( 0, -0.55, 0.6, true ); //pPb 
+    c_ptEta->SaveAs( Form("output/ptEta%s_%s.pdf", 
+			  m_labelOut.c_str(), sh.first.c_str() ) );
   }
 }
