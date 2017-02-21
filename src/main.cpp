@@ -14,7 +14,6 @@ int main(int argc, char *argv[])
   bool isData          = true;
   bool is_pPb          = true;
 
-
   if(argc == 2){
     mode       = atoi( argv[1] );
   } else if(argc == 3){

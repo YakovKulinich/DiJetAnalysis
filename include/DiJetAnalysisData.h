@@ -38,7 +38,6 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   void PlotExistingHistos();
 
-  // =========  ========
   void loadFinalTriggers();
 
   void loadHistograms();

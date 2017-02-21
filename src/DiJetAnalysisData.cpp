@@ -339,7 +339,7 @@ void DiJetAnalysisData::plotSpectra(){
 
   l_spect->Draw();
 
-  DrawAtlasInternalDataRight( 0, 0, 0.6, true ); // pPb
+  DrawAtlasInternalDataRight( 0, 0, 0.6, m_is_pPb ); 
 
   c_spect->SaveAs( Form("output/spectra%s.pdf", m_labelOut.c_str() ) );
 }
@@ -371,7 +371,7 @@ void DiJetAnalysisData::plotEfficiencies(){
   TLine* line = new TLine( 0, 1, m_triggerEff[ mbTrigger ]->GetXaxis()->GetXmax(), 1);
   line->Draw();
 
-  DrawAtlasInternalDataLeft( 0, 0,  0.6, true ); // pPb
+  DrawAtlasInternalDataLeft( 0, 0,  0.6, m_is_pPb ); 
 
   c_eff->SaveAs( Form("output/efficiencies%s.pdf", m_labelOut.c_str() ) );
 }
@@ -383,7 +383,7 @@ void DiJetAnalysisData::plotEtaPhi(){
   for( auto& sh : m_triggerEtaPhi ){
     SetHStyle( sh.second, 0, 0.6);
     sh.second->Draw("col");
-    DrawAtlasInternalDataRight( 0, -0.55, 0.6, true ); // pPb 
+    DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
     c_etaPhi->SaveAs( Form("output/etaPhi%s_%s.pdf", 
 			   m_labelOut.c_str(), sh.first.c_str() ) );
     std::cout << sh.first << std::endl;
@@ -396,7 +396,7 @@ void DiJetAnalysisData::plotPtEta(){
   for( auto& sh : m_triggerPtEta ){
     SetHStyle( sh.second, 0, 0.6);
     sh.second->Draw("col");
-    DrawAtlasInternalDataRight( 0, -0.55, 0.6, true ); //pPb 
+    DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
     c_ptEta->SaveAs( Form("output/ptEta%s_%s.pdf", 
 			  m_labelOut.c_str(), sh.first.c_str() ) );
   }
