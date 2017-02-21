@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "AtlasStyle.h"
-#include "DiJetAnalysis.h"
+#include "DiJetAnalysisData.h"
 
 int main(int argc, char *argv[])
 { 
@@ -45,20 +45,19 @@ int main(int argc, char *argv[])
 	    << "    is_pPb: " << is_pPb
 	    << std::endl;
 
-  TApplication* rootapp = new TApplication("JetAnalysis",&argc, argv);
+  TApplication* rootapp = NULL;
   SetAtlasStyle();
   
-  DiJetAnalysis* analysis = new DiJetAnalysis( isData, is_pPb );
+  DiJetAnalysis* analysis = new DiJetAnalysisData( isData, is_pPb );
   analysis->Initialize();
   if( mode ){
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
-      return 0;
-  } else if( !mode ) { 
+  } else if( !mode ) {
+    rootapp = new TApplication("JetAnalysis",&argc, argv);
     analysis->PlotExistingHistos(); 
+    rootapp->Run();
   }
   
-  rootapp->Run();
-
   delete analysis;
   return 0;
 }

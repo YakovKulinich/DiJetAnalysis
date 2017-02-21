@@ -14,24 +14,18 @@ class DiJetAnalysis{
  public:
   DiJetAnalysis();
   DiJetAnalysis( bool, bool );
-  ~DiJetAnalysis();
+  virtual ~DiJetAnalysis();
 
   void Initialize();
   
   //---------------------------
   //       Fill Tree
   //---------------------------
-  void RunOverTreeFillHistos( int, int );
+  virtual void RunOverTreeFillHistos( int, int ) = 0;
 
-  void loadTriggers();
+  virtual void setupHistograms() = 0;
 
-  void setupHistogramsData();
-
-  void processEventsInData( int, int );  
-
-  void processEfficiencies( std::vector< TLorentzVector >&,
-			    std::vector< TLorentzVector >&,
-			    std::map< std::string, bool >&);
+  virtual void processEvents( int, int ) = 0;  
 
   bool applyIsolation( double, std::vector<TLorentzVector>& );
     
@@ -41,24 +35,17 @@ class DiJetAnalysis{
   //---------------------------
   //       Plotting 
   //---------------------------
-  void PlotExistingHistos();
+  virtual void PlotExistingHistos() = 0;
 
-  // ========= Data ========
-  void loadFinalTriggers();
+  virtual void loadHistograms() = 0;
 
-  void loadHistogramsData();
+  virtual void plotSpectra() = 0;
 
-  void plotSpectraData();
+  virtual void plotEtaPhi() = 0;
 
-  void plotEfficiencies();
-
-  void plotEtaPhiData();
-
-  void plotPtEtaData();
-
-  // ========= MC ========
+  virtual void plotPtEta() = 0;
   
- private:
+ protected:
   //========== settings ===========
   bool m_isData;
   bool m_is_pPb;
@@ -67,30 +54,10 @@ class DiJetAnalysis{
   std::string m_fNameOut;
   
   //============ data =============
-  std::vector< std::string > v_triggers;
-
-  std::map< std::string, TH1* > m_triggerSpect;
-  std::map< std::string, TH1* > m_triggerEff;
-  std::map< std::string, TH1* > m_triggerRunPrescale;
-
-  std::map< std::string, TH1* > m_triggerEtaPhi;
-  std::map< std::string, TH1* > m_triggerPtEta;
-
   std::vector< TH1* > v_hists; // for writing
-
-  std::vector< int > v_tJetPt;
-  std::multimap< int , std::string > m_tJetPtTrigger;
-
-  std::string  mbTrigger;
-
-  TH1* h_EtaPhi;
 
   TCanvas* c_spect = NULL;
   TLegend* l_spect = NULL;
-
-  TCanvas* c_eff = NULL;
-  TLegend* l_eff = NULL;
-  TLine*   line  = NULL;
 
   TCanvas* c_etaPhi = NULL;
   TCanvas* c_ptEta  = NULL;

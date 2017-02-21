@@ -8,7 +8,7 @@ LIBDIRS     = -L.
 LIBS        = -lMyLib
 
 OBJ         = analysis
-SOURCES     = DiJetAnalysis.cpp AtlasStyle.C MyRoot.C main.cpp
+SOURCES     = DiJetAnalysis.cpp DiJetAnalysisData.cpp AtlasStyle.C MyRoot.C main.cpp
 INCLUDES    = DiJetAnalysis.h
 
 DSOURCES   = src/
