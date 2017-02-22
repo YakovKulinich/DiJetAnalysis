@@ -240,7 +240,7 @@ private:
   int _fill_axis_ibin[MAXDIMENSION];        //! _naxis size
   float _fill_axis_cont[MAXDIMENSION];      //! _naxis size
   
-  ClassDef(THmulf, 3) // Multi-DIMENSIONAL Histogram Class
+  //  ClassDef(THmulf, 3) // Multi-DIMENSIONAL Histogram Class
     
 };
 

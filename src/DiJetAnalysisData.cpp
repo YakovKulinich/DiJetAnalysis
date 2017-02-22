@@ -23,13 +23,15 @@ DiJetAnalysisData::~DiJetAnalysisData(){}
 
 void DiJetAnalysisData::RunOverTreeFillHistos( int nEvents, 
 					   int startEvent ){  
-    loadTriggers();
-    setupHistograms();
-    processEvents( nEvents, startEvent );
+  bool onlyPlot = false;
+  loadTriggers( onlyPlot );
+  setupHistograms();
+  processEvents( nEvents, startEvent );
  }
 
 void DiJetAnalysisData::PlotExistingHistos(){
-  loadFinalTriggers();
+  bool onlyPlot = true;
+  loadTriggers( onlyPlot );
   loadHistograms();
     
   plotSpectra();
@@ -38,9 +40,17 @@ void DiJetAnalysisData::PlotExistingHistos(){
   plotPtEta();
 }
 
-void DiJetAnalysisData::loadTriggers(){
+//---------------------------------
+//            Read Data
+//---------------------------------
+
+void DiJetAnalysisData::loadTriggers( bool onlyPlot ){
+  std::string configName   = "config/configJetsFwd";
+  std::string configSuffix = m_is_pPb ? "_pPb.cfg" : "_pp.cfg";
+  configName += configSuffix;
+  
   TEnv config;
-  config.ReadFile( "config/configJetsFwd_pPb.cfg", EEnvLevel(0));
+  config.ReadFile( configName.c_str(), EEnvLevel(0));
 
   std::string triggerMenu = config.GetValue("triggerMenu","");
   v_triggers =
@@ -53,6 +63,8 @@ void DiJetAnalysisData::loadTriggers(){
     }
   }
 
+  if( onlyPlot ){ return; }
+  
   v_tJetPt.push_back(10);
   v_tJetPt.push_back(15);
   v_tJetPt.push_back(25);
@@ -96,6 +108,14 @@ void DiJetAnalysisData::setupHistograms(){
   int    nPhiBins = 64; 
   double phiMin   = -constants::PI; double phiMax  = constants::PI; 
 
+  int    nPtBins  = 100;
+  double ptMin    = 10;
+  double ptMax    = static_cast<double>(nPtBins)/2;
+
+  int    nEtaForwardBins = 12;
+  double etaForwardMin   = -constants::FETAMAX;
+  double etaForwardMax   = -constants::FETAMIN;
+  
   for( auto& trigger : v_triggers ){
     std::cout << "Making - " << trigger << " histograms " << std::endl;
     m_triggerSpect[ trigger ] = 
@@ -135,8 +155,8 @@ void DiJetAnalysisData::setupHistograms(){
     m_triggerPtEta[ trigger ] = 
       new TH2D( Form("h_ptEta_%s", trigger.c_str() ), 
 		Form("h_%s;#it{p}_{T};#eta", trigger.c_str() ),
-		120, 0, 60,
-		12, -constants::FETAMAX, -constants::FETAMIN ) ;
+		nPtBins, ptMin, ptMax,
+		nEtaForwardBins, etaForwardMin, etaForwardMax ) ;
     m_triggerPtEta[ trigger ]->Sumw2();
     m_triggerPtEta[ trigger ]->GetXaxis()->SetNdivisions(505);  
     m_triggerPtEta[ trigger ]->GetYaxis()->SetNdivisions(505);  
@@ -148,6 +168,8 @@ void DiJetAnalysisData::processEvents( int nEvents, int startEvent ){
   std::string fNameIn = m_is_pPb ?
     "/home/yakov/Projects/atlas/data/pPb.root" :
     "/home/yakov/Projects/atlas/data/pp.root"  ;
+
+  std::cout << "fNameIn: " << fNameIn << std::endl;
   
   // collections and variables
   std::vector< TLorentzVector >    vTrig_jets;
@@ -283,21 +305,9 @@ void DiJetAnalysisData::processEfficiencies( std::vector< TLorentzVector >& vTri
   } // end loop over triggers 
 }
 
-void DiJetAnalysisData::loadFinalTriggers(){
-  TEnv config;
-  config.ReadFile( "config/configJetsFwd_pPb.cfg", EEnvLevel(0));
-
-  std::string triggerMenu = config.GetValue("triggerMenu","");
-  v_triggers =
-    vectorise( config.GetValue( Form("triggers.%s", triggerMenu.c_str() ),"") , " " );
-
-  for( auto& trigger : v_triggers ){
-    if( trigger.find("_mb_") != std::string::npos ){ 
-      mbTrigger = trigger; 
-      std::cout << "Found Min Bias trigger " << mbTrigger << std::endl;
-    }
-  }
-}
+//---------------------------------
+//            Plot Data
+//---------------------------------
 
 void DiJetAnalysisData::loadHistograms(){
   TFile* fin = TFile::Open( m_fNameOut.c_str() ); 

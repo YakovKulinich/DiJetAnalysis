@@ -15,22 +15,9 @@
 #include <TStopwatch.h>
 #include <TROOT.h>
 
-ClassImp(THmulf);
+// ClassImp(THmulf);
 
 using namespace std;
-
-namespace
-{
-  void printhisto(const char* msg, const TH1& h)
-  {
-    printf("------------------\n");
-    for ( int i = 1; i <= h.GetXaxis()->GetNbins(); ++i ) 
-      {
-	printf("%s: i=%4d cont=%e error=%e\n",msg,
-	       i,h.GetBinContent(i),h.GetBinError(i));
-      }
-  }
-}
 
 //=============================================================================
 THmulf::THmulf() :

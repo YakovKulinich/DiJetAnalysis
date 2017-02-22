@@ -23,7 +23,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   void RunOverTreeFillHistos( int, int );
 
-  void loadTriggers();
+  void loadTriggers( bool );
 
   void setupHistograms();
 
@@ -37,8 +37,6 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //       Plotting 
   //---------------------------
   void PlotExistingHistos();
-
-  void loadFinalTriggers();
 
   void loadHistograms();
 

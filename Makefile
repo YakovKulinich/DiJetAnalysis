@@ -5,10 +5,11 @@ LDFLAGS = -Wall `root-config --glibs` -Wl,-rpath=.
 INCLUDEDIRS = -I./include
 
 LIBDIRS     = -L.
-LIBS        = -lMyLib
+LIBS        = -lMyLib -lTreePlayer
 
 OBJ         = analysis
-SOURCES     = DiJetAnalysis.cpp DiJetAnalysisData.cpp AtlasStyle.C MyRoot.C main.cpp
+SOURCES     = DiJetAnalysis.cpp DiJetAnalysisData.cpp DiJetAnalysisMC.cpp \
+	THmulf.cxx AtlasStyle.C MyRoot.C main.cpp
 INCLUDES    = DiJetAnalysis.h
 
 DSOURCES   = src/

@@ -5,6 +5,7 @@
 
 #include "AtlasStyle.h"
 #include "DiJetAnalysisData.h"
+#include "DiJetAnalysisMC.h"
 
 int main(int argc, char *argv[])
 { 
@@ -47,7 +48,12 @@ int main(int argc, char *argv[])
   TApplication* rootapp = NULL;
   SetAtlasStyle();
   
-  DiJetAnalysis* analysis = new DiJetAnalysisData( isData, is_pPb );
+  DiJetAnalysis* analysis = isData ?
+    static_cast< DiJetAnalysis* >
+    ( new DiJetAnalysisData( isData, is_pPb ) ) :
+    static_cast< DiJetAnalysis* >
+    ( new DiJetAnalysisMC  ( isData, is_pPb ) );
+
   analysis->Initialize();
   if( mode ){
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
