@@ -2,8 +2,6 @@
 #define DIJETANALYSIS_H
 
 #include <TLorentzVector.h>
-#include <TLine.h>
-#include <TLegend.h>
 #include <TH1.h>
 
 #include <string>
@@ -55,12 +53,6 @@ class DiJetAnalysis{
   
   //============ data =============
   std::vector< TH1* > v_hists; // for writing
-
-  TCanvas* c_spect = NULL;
-  TLegend* l_spect = NULL;
-
-  TCanvas* c_etaPhi = NULL;
-  TCanvas* c_ptEta  = NULL;
 };
 
 #endif

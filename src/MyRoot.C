@@ -126,7 +126,7 @@ void DrawAtlasInternalDataRight( double x0, double y0,
 			pPbLumi2016), scale);
   } else {
     DrawRightLatex(0.875 + x0, 0.88 + y0, 
-		   Form("#it{pp} 2016, %i pb^{-1}",
+		   Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale);
   }
   DrawRightLatex(0.875 + x0, 0.81 + y0, 
@@ -143,7 +143,7 @@ void DrawAtlasInternalDataLeft( double x0, double y0,
 			pPbLumi2016), scale);
   } else {
     DrawRightLatex(0.875 + x0, 0.88 + y0, 
-		   Form("#it{pp} 2016, %i pb^{-1}",
+		   Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale);
   }
   DrawLeftLatex(0.18 + x0, 0.81 + y0, 

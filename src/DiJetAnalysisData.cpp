@@ -1,6 +1,7 @@
 #include <TFile.h>
 #include <TTree.h>
-#include <TLorentzVector.h>
+#include <TLine.h>
+#include <TLegend.h>
 #include <TROOT.h>
 #include <TEnv.h>
 #include <TCanvas.h>
@@ -321,10 +322,10 @@ void DiJetAnalysisData::loadHistograms(){
 }
 
 void DiJetAnalysisData::plotSpectra(){
-  c_spect = new TCanvas("c_spect","c_spect",800,600);
+  TCanvas* c_spect = new TCanvas("c_spect","c_spect",800,600);
   c_spect->SetLogy();
 
-  l_spect = new TLegend(0.23, 0.23, 0.54, 0.36);
+  TLegend* l_spect = new TLegend(0.23, 0.23, 0.54, 0.36);
   SetLegendStyle( l_spect, 0.5 );
   l_spect->SetFillStyle(0);
 
@@ -355,9 +356,9 @@ void DiJetAnalysisData::plotSpectra(){
 }
 
 void DiJetAnalysisData::plotEfficiencies(){
-  c_eff = new TCanvas("c_eff","c_eff",800,600);
+  TCanvas* c_eff = new TCanvas("c_eff","c_eff",800,600);
 
-  l_eff = new TLegend(0.38, 0.28, 0.61, 0.41);
+  TLegend* l_eff = new TLegend(0.38, 0.28, 0.61, 0.41);
   SetLegendStyle( l_eff, 0.45 );
   l_eff->SetFillStyle(0);
 
@@ -388,7 +389,7 @@ void DiJetAnalysisData::plotEfficiencies(){
 
 
 void DiJetAnalysisData::plotEtaPhi(){
-  c_etaPhi = new TCanvas("c_etaPhi","c_etaPhi",800,600);
+  TCanvas* c_etaPhi = new TCanvas("c_etaPhi","c_etaPhi",800,600);
 
   for( auto& sh : m_triggerEtaPhi ){
     SetHStyle( sh.second, 0, 0.6);
@@ -401,7 +402,7 @@ void DiJetAnalysisData::plotEtaPhi(){
 }
 
 void DiJetAnalysisData::plotPtEta(){
-  c_ptEta = new TCanvas("c_ptEta","c_ptEta",800,600);
+  TCanvas* c_ptEta = new TCanvas("c_ptEta","c_ptEta",800,600);
 
   for( auto& sh : m_triggerPtEta ){
     SetHStyle( sh.second, 0, 0.6);

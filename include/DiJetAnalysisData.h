@@ -1,16 +1,7 @@
 #ifndef DIJETANALYSISDATA_H
 #define DIJETANALYSISDATA_H
 
-#include <TLorentzVector.h>
-#include <TLine.h>
-#include <TLegend.h>
-#include <TH1.h>
-
 #include "DiJetAnalysis.h"
-
-#include <string>
-#include <vector>
-#include <map>
 
 class DiJetAnalysisData : public DiJetAnalysis{
  public:
@@ -63,9 +54,6 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::multimap< int , std::string > m_tJetPtTrigger;
 
   std::string  mbTrigger;
-
-  TCanvas* c_eff = NULL;
-  TLegend* l_eff = NULL;
 };
 
 #endif
