@@ -3,6 +3,8 @@
 
 #include <TLorentzVector.h>
 #include <TH1.h>
+#include <TF1.h>
+#include <TGraphAsymmErrors.h>
 
 #include <string>
 #include <vector>
@@ -52,7 +54,9 @@ class DiJetAnalysis{
   std::string m_fNameOut;
   
   //============ data =============
-  std::vector< TH1* > v_hists; // for writing
+  std::vector< TH1*    > v_hists;  // for writing
+  std::vector< TF1*    > v_functs; // for writing
+  std::vector< TGraphAsymmErrors* > v_graphs; // for writing
 };
 
 #endif

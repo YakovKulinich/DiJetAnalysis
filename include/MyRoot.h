@@ -77,12 +77,12 @@ void DrawAtlasInternalDataLeft( double x0, double y0,
 				double scale, bool is_pPb );
 void DrawAtlasInternalMC( double x0, double y0,
 			  bool isReco, double scale );
+
+// Histogram/Graph/Function styles
 void SetCustomMarkerStyle( TH1* his , int iflag );
-void SetHStyle( TH1* his, int iflag, float scale);
-void SetHStyle( TF1* his, int iflag);
-void SetHStyle_open( TH1* his, int iflag);
-void SetHStyle_graph( TGraphErrors* his, int iflag);
-void SetHStyle_TF1( TF1* his, int iflag);
-void SetHStyle_graph( TGraphAsymmErrors* his, int iflag);
-void SetHStyle_graph_open( TGraphErrors* his, int iflag);
+void SetCustomMarkerStyle( TGraph* his , int iflag );
+void SetHStyle( TH1*    his, int iflag, float scale);
+void SetHStyle( TGraph* his, int iflag, float scale);
+
+// Legend Style
 void SetLegendStyle(TLegend * legend, float scale);

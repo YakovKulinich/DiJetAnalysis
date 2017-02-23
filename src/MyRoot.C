@@ -138,11 +138,11 @@ void DrawAtlasInternalDataLeft( double x0, double y0,
   DrawRightLatex(0.875 + x0, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
-    DrawRightLatex(0.875 + x0, 0.88 + y0, 
+    DrawLeftLatex(0.18 + x0, 0.88 + y0, 
 		   Form("#it{p}+Pb 2016, %i #mub^{-1}",
 			pPbLumi2016), scale);
   } else {
-    DrawRightLatex(0.875 + x0, 0.88 + y0, 
+    DrawLeftLatex(0.18 + x0, 0.88 + y0, 
 		   Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale);
   }
@@ -161,33 +161,31 @@ void DrawAtlasInternalMC( double x0, double y0, bool isReco, double scale ){
 			       "Truth Level", scale);
 }
 
-void SetCustomMarkerStyle( TH1* his , int iflag ){
-  	
+// ======= Styles for Stuff ======
+
+void SetCustomMarkerStyle( TH1* his , int iflag ){	
   //Set Color
+  his->SetLineWidth(2);
   if( iflag == 0 ){
     his->SetLineColor(kBlack);
-    his->SetLineWidth(2);
     his->SetMarkerColor(kBlack);
     his->SetMarkerStyle(20);
     his->SetMarkerSize(1.2);
   } 
   else if(iflag == 1 ){
     his->SetLineColor(kRed);
-    his->SetLineWidth(2);
     his->SetMarkerColor(kRed);
     his->SetMarkerStyle(21);
     his->SetMarkerSize(1.1);
   }
   else if(iflag == 2 ){
     his->SetLineColor(kAzure-3);
-    his->SetLineWidth(2);
     his->SetMarkerColor(kAzure-3);
     his->SetMarkerStyle(33);
     his->SetMarkerSize(1.8);
   }
   else if(iflag == 3 ){
     his->SetLineColor(kSpring-6);
-    his->SetLineWidth(2);
     his->SetMarkerColor(kSpring-6);
     his->SetMarkerStyle(34);
     his->SetMarkerSize(1.5);
@@ -201,33 +199,88 @@ void SetCustomMarkerStyle( TH1* his , int iflag ){
   }
   else if(iflag == 5 ){
     his->SetLineColor(kViolet);
-    his->SetLineWidth(2);
     his->SetMarkerColor(kViolet);
     his->SetMarkerStyle(22);
     his->SetMarkerSize(1.6);
   }
   else if(iflag == 6 ){
     his->SetLineColor(kCyan+1);
-    his->SetLineWidth(2);
     his->SetMarkerColor(kCyan+1);
     his->SetMarkerStyle(23);
     his->SetMarkerSize(1.6);
   }
   else if(iflag == 7 ){
     his->SetLineColor(46);
-    his->SetLineWidth(2);
     his->SetMarkerColor(46);
     his->SetMarkerStyle(21);
     his->SetMarkerSize(1.4);
   }
   else if(iflag == 8 ){
     his->SetLineColor(kRed+3);
-    his->SetLineWidth(2);
     his->SetMarkerColor(kRed+3);
     his->SetMarkerStyle(25);
     his->SetMarkerSize(1.4);
   } 
+}
 
+void SetCustomMarkerStyle( TGraph* graph , int iflag ){
+  //Set Color
+  graph->SetFillColor(0);
+  graph->SetLineWidth(2);
+  if( iflag == 0 ){
+    graph->SetLineColor(kBlack);
+    graph->SetMarkerColor(kBlack);
+    graph->SetMarkerStyle(20);
+    graph->SetMarkerSize(1.2);
+  } 
+  else if(iflag == 1 ){
+    graph->SetLineColor(kRed);
+    graph->SetMarkerColor(kRed);
+    graph->SetMarkerStyle(21);
+    graph->SetMarkerSize(1.1);
+  }
+  else if(iflag == 2 ){
+    graph->SetLineColor(kAzure-3);
+    graph->SetMarkerColor(kAzure-3);
+    graph->SetMarkerStyle(33);
+    graph->SetMarkerSize(1.8);
+  }
+  else if(iflag == 3 ){
+    graph->SetLineColor(kSpring-6);
+    graph->SetMarkerColor(kSpring-6);
+    graph->SetMarkerStyle(34);
+    graph->SetMarkerSize(1.5);
+  }
+  else if(iflag == 4 ){
+    graph->SetLineColor(kOrange+1);
+    graph->SetMarkerColor(kOrange+1);
+    graph->SetMarkerStyle(29);
+    graph->SetMarkerSize(1.6);
+  }
+  else if(iflag == 5 ){
+    graph->SetLineColor(kViolet);
+    graph->SetMarkerColor(kViolet);
+    graph->SetMarkerStyle(22);
+    graph->SetMarkerSize(1.6);
+  }
+  else if(iflag == 6 ){
+    graph->SetLineColor(kCyan+1);
+    graph->SetMarkerColor(kCyan+1);
+    graph->SetMarkerStyle(23);
+    graph->SetMarkerSize(1.6);
+  }
+  else if(iflag == 7 ){
+    graph->SetLineColor(46);
+    graph->SetMarkerColor(46);
+    graph->SetMarkerStyle(21);
+    graph->SetMarkerSize(1.4);
+  }
+  else if(iflag == 8 ){
+    graph->SetLineColor(kRed+3);
+    graph->SetMarkerColor(kRed+3);
+    graph->SetMarkerStyle(25);
+    graph->SetMarkerSize(1.4);
+  }  
 }
 
 void SetHStyle( TH1* his, int iflag, float scale)
@@ -238,277 +291,36 @@ void SetHStyle( TH1* his, int iflag, float scale)
   his->SetTitleFont( 43, "t");
   his->SetTitleSize( (int)(32 * scale), "t"); 
 
-  his->SetLabelFont( 43, "xyz");
-  his->SetLabelSize( (int)(30 * scale), "xyz");
   his->SetTitleFont( 43, "xyz");
   his->SetTitleSize( (int)(32 * scale), "xyz");
-  his->SetTitleOffset(1.2, "xy");
+  his->SetTitleOffset(1.2, "xyz");
+  
+  his->SetLabelFont( 43, "xyz");
+  his->SetLabelSize( (int)(30 * scale), "xyz");
   
   SetCustomMarkerStyle( his, iflag );  
 }
 
-void SetHStyle( TF1* his, int iflag)
+void SetHStyle( TGraph* graph, int iflag, float scale)
 {
-  his->SetLineWidth(1);
-  his->GetXaxis()->SetLabelFont(43);
-  his->GetXaxis()->SetLabelSize(30);
-  his->GetXaxis()->SetTitleSize(32);
-  his->GetXaxis()->SetTitleOffset(1.2);
-  his->GetXaxis()->SetTitleFont(43);
-  his->GetYaxis()->SetLabelFont(43);
-  his->GetYaxis()->SetLabelSize(30);
-  his->GetYaxis()->SetTitleSize(32);
-  his->GetYaxis()->SetTitleOffset(1.2);
-  his->GetYaxis()->SetTitleFont(43);
+  graph->SetLineWidth(2);
+
+  graph->GetXaxis()->SetTitleFont( 43 );
+  graph->GetXaxis()->SetTitleSize( (int)(32 * scale) );  
+  graph->GetXaxis()->SetTitleOffset(1.2);
+
+  graph->GetXaxis()->SetLabelFont( 43 );
+  graph->GetXaxis()->SetLabelSize( (int)(30 * scale) );
+
+  graph->GetYaxis()->SetTitleFont( 43 );
+  graph->GetYaxis()->SetTitleSize( (int)(32 * scale) );
+  graph->GetYaxis()->SetTitleOffset(1.2);
+
+  graph->GetYaxis()->SetLabelFont( 43 );
+  graph->GetYaxis()->SetLabelSize( (int)(30 * scale) );
   
-  // SetCustomMarkerStyle( his, iflag ); 
+  SetCustomMarkerStyle( graph, iflag );
 }
-
-
-void SetHStyle_open( TH1* his, int iflag)
-{
-  his->SetLineWidth(2);
-  his->SetStats(0);
-  his->GetXaxis()->SetLabelFont(43);
-  his->GetXaxis()->SetLabelSize(30);
-  his->GetXaxis()->SetTitleSize(32);
-  his->GetXaxis()->SetTitleOffset(1.2);
-  his->GetXaxis()->SetTitleFont(43);
-  his->GetYaxis()->SetLabelFont(43);
-  his->GetYaxis()->SetLabelSize(30);
-  his->GetYaxis()->SetTitleSize(32);
-  his->GetYaxis()->SetTitleOffset(1.2);
-  his->GetYaxis()->SetTitleFont(43);
-	
-  SetCustomMarkerStyle( his, iflag );
-}
-
-void SetHStyle_graph( TGraphErrors* his, int iflag)
-{
-  his->SetLineWidth(2);
-  //his->SetStats(0);
-  his->GetXaxis()->SetLabelFont(43);
-  his->GetXaxis()->SetLabelSize(30);
-  his->GetXaxis()->SetTitleSize(32);
-  his->GetXaxis()->SetTitleOffset(1.2);
-  his->GetXaxis()->SetTitleFont(43);
-  his->GetYaxis()->SetLabelFont(43);
-  his->GetYaxis()->SetLabelSize(30);
-  his->GetYaxis()->SetTitleSize(32);
-  his->GetYaxis()->SetTitleOffset(1.2);
-  his->GetYaxis()->SetTitleFont(43);
-	
-  //  SetCustomMarkerStyle( his, iflag );
-}
-
-void SetHStyle_TF1( TF1* his, int iflag)
-{	
-  //Set Color
-  if( iflag == 0 ){
-    his->SetLineColor(kBlack);
-    his->SetLineWidth(2);
-  } 
-  else if(iflag == 1 ){
-    his->SetLineColor(kRed+1);
-    his->SetLineWidth(2);
-  }
-  else if(iflag == 2 ){
-    his->SetLineColor(kBlue+1);
-  }
-  else if(iflag == 3 ){
-    his->SetLineColor(kGreen+2);
-    his->SetLineWidth(2);
-
-  }
-  else if(iflag == 4 ){
-    his->SetLineColor(kOrange+1);
-    his->SetLineWidth(2);
-  }
-  else if(iflag == 5 ){
-    his->SetLineColor(kViolet);
-  }
-  else if(iflag == 6 ){
-    his->SetLineColor(kCyan+1);
-    his->SetLineWidth(2);
-  }
-  else if(iflag == 7 ){
-    his->SetLineColor(46);
-    his->SetLineWidth(2);
-  }
-  else if(iflag == 8 ){
-    his->SetLineColor(kRed+3);
-    his->SetLineWidth(2);
-  } 
- 
-  
-}
-
-void SetHStyle_graph( TGraphAsymmErrors* his, int iflag)
-{
-  his->SetLineWidth(2);
-  //his->SetStats(0);
-  his->GetXaxis()->SetLabelFont(43);
-  his->GetXaxis()->SetLabelSize(30);
-  his->GetXaxis()->SetTitleSize(32);
-  his->GetXaxis()->SetTitleOffset(1.2);
-  his->GetXaxis()->SetTitleFont(43);
-  his->GetYaxis()->SetLabelFont(43);
-  his->GetYaxis()->SetLabelSize(30);
-  his->GetYaxis()->SetTitleSize(32);
-  his->GetYaxis()->SetTitleOffset(1.2);
-  his->GetYaxis()->SetTitleFont(43);
-	
-  //Set Color
-  if( iflag == 0 ){
-    his->SetLineColor(kBlack);
-    his->SetFillColor(kGray);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kBlack);
-    his->SetMarkerStyle(20);
-    his->SetMarkerSize(1.2);
-    //his->SetFillStyle(3002);
-  } 
-  else if(iflag == 1 ){
-    his->SetLineColor(kRed+1);
-    his->SetFillColor(kRed-10);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kRed+1);
-    his->SetMarkerStyle(21);
-    his->SetMarkerSize(1.2);
-    //his->SetFillStyle(3002);
-  }
-  else if(iflag == 2 ){
-    his->SetLineColor(kAzure-3);
-    his->SetFillColor(kAzure-9);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kAzure-3);
-    his->SetMarkerStyle(33);
-    his->SetMarkerSize(1.5);
-    //his->SetFillStyle(3002);
-  }
-  else if(iflag == 3 ){
-    his->SetLineColor(kSpring-6);
-    //his->SetFillColor(kSpring+1);
-    his->SetFillColor(kGreen-10);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kSpring-6);
-    his->SetMarkerStyle(34);
-    his->SetMarkerSize(1.5);
-    //his->SetFillStyle(3002);
-  }
-  else if(iflag == 4 ){
-    his->SetLineColor(kOrange+1);
-    his->SetFillColor(kOrange+1);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kOrange+1);
-    his->SetMarkerStyle(29);
-    his->SetMarkerSize(1.6);
-    his->SetFillStyle(3002);
-  }
-  else if(iflag == 5 ){
-    his->SetLineColor(kViolet);
-    his->SetFillColor(kViolet);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kViolet);
-    his->SetMarkerStyle(22);
-    his->SetMarkerSize(1.6);
-    his->SetFillStyle(3002);
-  }
-  else if(iflag == 6 ){
-    his->SetLineColor(kCyan+1);
-    his->SetFillColor(kCyan+1);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kCyan+1);
-    his->SetMarkerStyle(23);
-    his->SetMarkerSize(1.6);
-    his->SetFillStyle(3002);
-  }
-  else if(iflag == 7 ){
-    his->SetLineColor(46);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(46);
-    his->SetMarkerStyle(21);
-    his->SetMarkerSize(1.4);
-  }
-  else if(iflag == 8 ){
-    his->SetLineColor(kRed+3);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kRed+3);
-    his->SetMarkerStyle(25);
-    his->SetMarkerSize(1.4);
-  }  
- 
-  
-}
-
-void SetHStyle_graph_open( TGraphErrors* his, int iflag)
-{
-  his->SetLineWidth(2);
-  //his->SetStats(0);
-  his->GetXaxis()->SetLabelFont(43);
-  his->GetXaxis()->SetLabelSize(30);
-  his->GetXaxis()->SetTitleSize(32);
-  his->GetXaxis()->SetTitleOffset(1.2);
-  his->GetXaxis()->SetTitleFont(43);
-  his->GetYaxis()->SetLabelFont(43);
-  his->GetYaxis()->SetLabelSize(30);
-  his->GetYaxis()->SetTitleSize(32);
-  his->GetYaxis()->SetTitleOffset(1.2);
-  his->GetYaxis()->SetTitleFont(43);
-	
-  //Set Color
-  if( iflag == 0 ){
-    his->SetLineColor(kBlack);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kBlack);
-    his->SetMarkerStyle(24);
-    his->SetMarkerSize(1.2);
-  } 
-  else if(iflag == 1 ){
-    his->SetLineColor(kRed+1);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kRed+1);
-    his->SetMarkerStyle(25);
-    his->SetMarkerSize(1.2);
-  }
-  else if(iflag == 2 ){
-    his->SetLineColor(kBlue+1);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kBlue+1);
-    his->SetMarkerStyle(26);
-    his->SetMarkerSize(1.5);
-  }
-  else if(iflag == 3 ){
-    his->SetLineColor(kGreen+2);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kGreen+2);
-    his->SetMarkerStyle(32);
-    his->SetMarkerSize(1.5);
-  }
-  else if(iflag == 4 ){
-    his->SetLineColor(kOrange+1);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kOrange+1);
-    his->SetMarkerStyle(30);
-    his->SetMarkerSize(1.6);
-  }
-  else if(iflag == 5 ){
-    his->SetLineColor(kViolet);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kViolet);
-    his->SetMarkerStyle(27);
-    his->SetMarkerSize(1.6);
-  }
-  else if(iflag == 6 ){
-    his->SetLineColor(kCyan+1);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kCyan+1);
-    his->SetMarkerStyle(28);
-    his->SetMarkerSize(1.6);
-  }
-  
-}
-
 
 void SetLegendStyle(TLegend * legend, float scale)
 {

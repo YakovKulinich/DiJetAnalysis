@@ -5,6 +5,8 @@
 #include <TROOT.h>
 #include <TEnv.h>
 #include <TCanvas.h>
+#include <TEfficiency.h>
+#include <TGraphAsymmErrors.h>
 
 #include <iostream>
 
@@ -116,6 +118,8 @@ void DiJetAnalysisData::setupHistograms(){
   int    nEtaForwardBins = 12;
   double etaForwardMin   = -constants::FETAMAX;
   double etaForwardMax   = -constants::FETAMIN;
+
+  int style = 0; double scale = 0.6;
   
   for( auto& trigger : v_triggers ){
     std::cout << "Making - " << trigger << " histograms " << std::endl;
@@ -125,14 +129,16 @@ void DiJetAnalysisData::setupHistograms(){
 		nPtSpectBins, ptSpectMin, ptSpectMax ) ;
     m_triggerSpect[ trigger ]->Sumw2();
     v_hists.push_back( m_triggerSpect[ trigger ] );
- 
+    SetHStyle( m_triggerSpect[ trigger ], style, scale );
+     
     m_triggerEff[ trigger ] = 
       new TH1D( Form("h_eff_%s", trigger.c_str() ), 
 		Form("h_%s;#it{p}_{T} [GeV];#it{#varepsilon}_{Trigger}", trigger.c_str() ),
 		nPtEffBins, ptEffMin, ptEffMax ) ;
     m_triggerEff[ trigger ]->Sumw2();
     v_hists.push_back( m_triggerEff[ trigger ] );
- 
+    SetHStyle( m_triggerEff[ trigger ], style, scale );
+    
     m_triggerRunPrescale[ trigger ] = 
       new TH2D( Form("h_runPrescale_%s", trigger.c_str() ), 
 		Form("h_%s;Run No;Prescale", trigger.c_str() ),
@@ -141,7 +147,7 @@ void DiJetAnalysisData::setupHistograms(){
     m_triggerRunPrescale[ trigger ]->GetXaxis()->SetNdivisions(505);  
     m_triggerRunPrescale[ trigger ]->GetYaxis()->SetNdivisions(505);  
     v_hists.push_back( m_triggerRunPrescale[ trigger ] );
- 
+    
     m_triggerEtaPhi[ trigger ] = 
       new TH2D( Form("h_etaPhi_%s", trigger.c_str() ), 
 		Form("h_%s;#eta;#phi", trigger.c_str() ),
@@ -151,7 +157,8 @@ void DiJetAnalysisData::setupHistograms(){
     m_triggerEtaPhi[ trigger ]->GetXaxis()->SetNdivisions(505);  
     m_triggerEtaPhi[ trigger ]->GetYaxis()->SetNdivisions(505);  
     v_hists.push_back( m_triggerEtaPhi[ trigger ] );
-
+    SetHStyle( m_triggerEtaPhi[ trigger ], 0, scale );
+  
     // FIX THIS!!!
     m_triggerPtEta[ trigger ] = 
       new TH2D( Form("h_ptEta_%s", trigger.c_str() ), 
@@ -162,6 +169,9 @@ void DiJetAnalysisData::setupHistograms(){
     m_triggerPtEta[ trigger ]->GetXaxis()->SetNdivisions(505);  
     m_triggerPtEta[ trigger ]->GetYaxis()->SetNdivisions(505);  
     v_hists.push_back( m_triggerPtEta[ trigger ] );
+    SetHStyle( m_triggerPtEta[ trigger ], 0, scale );
+
+    style++;
   }
 }
 
@@ -262,8 +272,11 @@ void DiJetAnalysisData::processEvents( int nEvents, int startEvent ){
   fin->Close();
   std::cout << "fNameOut: " << m_fNameOut << std::endl;
   TFile* fout = new TFile( m_fNameOut.c_str(),"RECREATE");
-  for( auto& h : v_hists  ) { h->Write(); }
+  for( auto& h  : v_hists  ) { h-> Write(); }
+  for( auto& f  : v_functs ) { f-> Write(); }
+  for( auto& gr : v_graphs ) { gr->Write(); }
 
+  
   fout->Close();
 }
 
@@ -314,10 +327,10 @@ void DiJetAnalysisData::loadHistograms(){
   TFile* fin = TFile::Open( m_fNameOut.c_str() ); 
 
   for( auto& trigger : v_triggers ){
-    m_triggerSpect [ trigger ] = (TH1D*)fin->Get( Form("h_spect_%s", trigger.c_str() ) );
-    m_triggerEff   [ trigger ] = (TH1D*)fin->Get( Form("h_eff_%s", trigger.c_str() ) );
+    m_triggerSpect [ trigger ] = (TH1D*)fin->Get( Form("h_spect_%s" , trigger.c_str() ) );
+    m_triggerEff   [ trigger ] = (TH1D*)fin->Get( Form("h_eff_%s"   , trigger.c_str() ) );
     m_triggerEtaPhi[ trigger ] = (TH1D*)fin->Get( Form("h_etaPhi_%s", trigger.c_str() ) );
-    m_triggerPtEta [ trigger ] = (TH1D*)fin->Get( Form("h_ptEta_%s", trigger.c_str() ) );
+    m_triggerPtEta [ trigger ] = (TH1D*)fin->Get( Form("h_ptEta_%s" , trigger.c_str() ) );
   }
 }
 
@@ -326,7 +339,7 @@ void DiJetAnalysisData::plotSpectra(){
   c_spect->SetLogy();
 
   TLegend* l_spect = new TLegend(0.23, 0.23, 0.54, 0.36);
-  SetLegendStyle( l_spect, 0.5 );
+  SetLegendStyle( l_spect, 0.55 );
   l_spect->SetFillStyle(0);
 
   int style = 0;
@@ -334,9 +347,9 @@ void DiJetAnalysisData::plotSpectra(){
   double max = -1;
 
   for( auto& sh : m_triggerSpect ){
-    SetHStyle( sh.second, style++, 0.6);
     l_spect->AddEntry( sh.second, sh.first.c_str() );
     sh.second->Draw("epsame");
+    SetHStyle( sh.second, style++, 0.6);
     if( max < sh.second->GetMaximum() ){ max = sh.second->GetMaximum(); }
   }
 
@@ -359,41 +372,49 @@ void DiJetAnalysisData::plotEfficiencies(){
   TCanvas* c_eff = new TCanvas("c_eff","c_eff",800,600);
 
   TLegend* l_eff = new TLegend(0.38, 0.28, 0.61, 0.41);
-  SetLegendStyle( l_eff, 0.45 );
+  SetLegendStyle( l_eff, 0.55 );
   l_eff->SetFillStyle(0);
 
   int style = 0;
   
   TH1* h_mbTrig = m_triggerEff[ mbTrigger ];
-
-  for( auto& sh : m_triggerEff ){
+  
+  for( auto& trigger : v_triggers ){
+    m_triggerEffGrf[ trigger ] = new TGraphAsymmErrors();
+    TGraphAsymmErrors* tG = m_triggerEffGrf[ trigger ];
+    tG->SetName ( Form("gr_eff_%s", trigger.c_str() ) );
+    tG->SetTitle( Form("gr_%s;#it{p}_{T} [GeV];#it{#varepsilon}_{Trigger}",
+			     trigger.c_str() ) );
     // dont draw the MB efficiencies, its just 1
     // dont add mb efficiencies to legend
-    if( !sh.first.compare(mbTrigger) ) continue;
-    SetHStyle( sh.second, style++, 0.6);
-    l_eff->AddEntry( sh.second, sh.first.c_str() );
-    sh.second->Divide( h_mbTrig );
-    sh.second->SetMaximum( 1.5 );
-    sh.second->SetMinimum( 0. );
-    sh.second->Draw("epsame");
+    if( !trigger.compare(mbTrigger) ) continue;
+    l_eff->AddEntry( tG, trigger.c_str() );
+    tG->Divide( m_triggerEff[ trigger ],
+		       h_mbTrig, "cl=0.683 b(1,1) mode" );
+    tG->SetMaximum( 1.3 );
+    tG->SetMinimum( 0. );
+    if( !style ) { tG->Draw("apl"); } // first one
+    else         { tG->Draw("pl same");  } // others
+    SetHStyle( tG, style, 0.6);
+    style++;
   }
+  
   l_eff->Draw();
 
   TLine* line = new TLine( 0, 1, m_triggerEff[ mbTrigger ]->GetXaxis()->GetXmax(), 1);
   line->Draw();
 
-  DrawAtlasInternalDataLeft( 0, 0,  0.6, m_is_pPb ); 
+  DrawAtlasInternalDataRight( 0, 0,  0.6, m_is_pPb ); 
 
   c_eff->SaveAs( Form("output/efficiencies%s.pdf", m_labelOut.c_str() ) );
 }
-
 
 void DiJetAnalysisData::plotEtaPhi(){
   TCanvas* c_etaPhi = new TCanvas("c_etaPhi","c_etaPhi",800,600);
 
   for( auto& sh : m_triggerEtaPhi ){
-    SetHStyle( sh.second, 0, 0.6);
     sh.second->Draw("col");
+    SetHStyle( sh.second, 0, 0.6);
     DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
     c_etaPhi->SaveAs( Form("output/etaPhi%s_%s.pdf", 
 			   m_labelOut.c_str(), sh.first.c_str() ) );
@@ -405,8 +426,8 @@ void DiJetAnalysisData::plotPtEta(){
   TCanvas* c_ptEta = new TCanvas("c_ptEta","c_ptEta",800,600);
 
   for( auto& sh : m_triggerPtEta ){
-    SetHStyle( sh.second, 0, 0.6);
     sh.second->Draw("col");
+    SetHStyle( sh.second, 0, 0.6);
     DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
     c_ptEta->SaveAs( Form("output/ptEta%s_%s.pdf", 
 			  m_labelOut.c_str(), sh.first.c_str() ) );

@@ -45,8 +45,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   std::map< std::string, TH1* > m_triggerSpect;
   std::map< std::string, TH1* > m_triggerEff;
-  std::map< std::string, TH1* > m_triggerRunPrescale;
+  std::map< std::string, TGraphAsymmErrors* > m_triggerEffGrf;
 
+  std::map< std::string, TH1* > m_triggerRunPrescale;
   std::map< std::string, TH1* > m_triggerEtaPhi;
   std::map< std::string, TH1* > m_triggerPtEta;
 
