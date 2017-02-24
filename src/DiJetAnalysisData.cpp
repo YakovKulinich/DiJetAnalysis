@@ -391,34 +391,6 @@ void DiJetAnalysisData::plotSpectra(){
 
   c_spect->SaveAs( Form("output/spectra%s.pdf", m_labelOut.c_str() ) );
 
-  /*
-  int nEtaBinsCoarse = m_triggerSpectEta[ mbTrigger ]->GetNbinsX();
-  for( int etaBin = 1; etaBin <= nEtaBinsCoarse; etaBin++) {
-  int style = 0;
-  
-  double max = -1;
-
-  for( auto& sh : m_triggerSpect ){
-    sh.second->Draw("epsame");
-    SetHStyle( sh.second, style++, 0.6);
-    if( max < sh.second->GetMaximum() ){ max = sh.second->GetMaximum(); }
-  }
-
-  double power = log10(max);
-  power = std::ceil(power);
-  max = pow( 10, power );
-  for( auto& sh : m_triggerSpect ){
-    sh.second->SetMaximum( max );
-    sh.second->SetMinimum( 1 );
-  }
-
-  l_spect->Draw();
-
-  DrawAtlasInternalDataRight( 0, 0, 0.6, m_is_pPb ); 
-
-  c_spect->SaveAs( Form("output/spectra%s.pdf", m_labelOut.c_str() ) );
-  }
-  */
 }
 
 void DiJetAnalysisData::plotEfficiencies(){
