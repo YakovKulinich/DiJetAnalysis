@@ -31,10 +31,15 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void plotEtaPhi();
 
-  void plotPtEta();
+  void plotEtaPt();
   
  private:
+  const int nJZNmax;
+  
   //============ data =============
+  std::vector< std::string > m_jznFname;
+  std::vector< TH1* > m_etaPhi;
+  std::vector< TH1* > m_ptEta;
 };
 
 #endif

@@ -30,8 +30,8 @@
 
 namespace constants{
   const double CETAMAX = 2.8;
-  const double FETAMAX = 4.4;
   const double FETAMIN = 3.2;
+  const double FETAMAX = 4.4;
 
   // trigger bounds
   const double TETAMIN = 3.2;

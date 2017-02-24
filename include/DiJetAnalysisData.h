@@ -14,7 +14,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   void RunOverTreeFillHistos( int, int );
 
-  void loadTriggers( bool );
+  void loadTriggers();
 
   void setupHistograms();
 
@@ -37,22 +37,23 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void plotEtaPhi();
 
-  void plotPtEta();
+  void plotEtaPt();
   
  private:
   //============ data =============
   std::vector< std::string > v_triggers;
 
   std::map< std::string, TH1* > m_triggerSpect;
+  std::map< std::string, TH1* > m_triggerSpectEta;
   std::map< std::string, TH1* > m_triggerEff;
-  std::map< std::string, TGraphAsymmErrors* > m_triggerEffGrf;
-
+  std::map< std::string, TH1* > m_triggerEffEta;
+  
   std::map< std::string, TH1* > m_triggerRunPrescale;
   std::map< std::string, TH1* > m_triggerEtaPhi;
-  std::map< std::string, TH1* > m_triggerPtEta;
+  std::map< std::string, TH1* > m_triggerEtaPt;
 
   std::vector< int > v_tJetPt;
-  std::multimap< int , std::string > m_tJetPtTrigger;
+  std::map   < int , std::string > m_tJetPtTrigger;
 
   std::string  mbTrigger;
 };

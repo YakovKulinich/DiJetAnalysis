@@ -13,11 +13,11 @@
 #include "DiJetAnalysisMC.h"
 
 DiJetAnalysisMC::DiJetAnalysisMC()
-  : DiJetAnalysis( true, true )
+  : DiJetAnalysis( true, true ) , nJZNmax(3)
 {}
 
 DiJetAnalysisMC::DiJetAnalysisMC( bool isData, bool is_pPb )
-  : DiJetAnalysis( isData, is_pPb)
+  : DiJetAnalysis( isData, is_pPb) , nJZNmax(3)
 {}
 
 DiJetAnalysisMC::~DiJetAnalysisMC(){}
@@ -33,7 +33,7 @@ void DiJetAnalysisMC::PlotExistingHistos(){
     
   plotSpectra();
   plotEtaPhi();
-  plotPtEta();
+  plotEtaPt();
 }
 
 void DiJetAnalysisMC::setupHistograms(){
@@ -61,6 +61,8 @@ void DiJetAnalysisMC::setupHistograms(){
   
   fout->Close();
   */  
+
+  
 }
 
 void DiJetAnalysisMC::processEvents( int nEvents, int startEvent ){}
@@ -71,4 +73,4 @@ void DiJetAnalysisMC::plotSpectra(){}
 
 void DiJetAnalysisMC::plotEtaPhi(){}
 
-void DiJetAnalysisMC::plotPtEta(){}
+void DiJetAnalysisMC::plotEtaPt(){}

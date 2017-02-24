@@ -43,7 +43,7 @@ class DiJetAnalysis{
 
   virtual void plotEtaPhi() = 0;
 
-  virtual void plotPtEta() = 0;
+  virtual void plotEtaPt() = 0;
   
  protected:
   //========== settings ===========
