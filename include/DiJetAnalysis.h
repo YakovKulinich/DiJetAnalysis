@@ -38,12 +38,6 @@ class DiJetAnalysis{
   virtual void PlotExistingHistos() = 0;
 
   virtual void loadHistograms() = 0;
-
-  virtual void plotSpectra() = 0;
-
-  virtual void plotEtaPhi() = 0;
-
-  virtual void plotEtaPt() = 0;
   
  protected:
   //========== settings ===========

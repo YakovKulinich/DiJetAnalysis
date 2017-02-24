@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
   } else if( !mode ) {
     rootapp = new TApplication("JetAnalysis",&argc, argv);
+    gROOT->SetBatch(kTRUE);
     analysis->PlotExistingHistos(); 
     rootapp->Run();
   }

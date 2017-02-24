@@ -9,6 +9,7 @@
 #include <TGraphAsymmErrors.h>
 
 #include <iostream>
+#include <cmath>
 
 #include "MyRoot.h"
 
@@ -34,9 +35,23 @@ void DiJetAnalysisData::RunOverTreeFillHistos( int nEvents,
 void DiJetAnalysisData::PlotExistingHistos(){
   loadTriggers();
   loadHistograms();
-    
-  plotSpectra();
-  plotEfficiencies();
+
+  int etaBinMax;
+
+  etaBinMax =
+    m_triggerSpectEta[ mbTrigger ]->GetNbinsX();
+  for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
+    plotSpectra( etaBin, etaBin );
+  }
+  plotSpectra( 1, etaBinMax );
+  
+  etaBinMax =
+    m_triggerEffEta[ mbTrigger ]->GetNbinsX();
+  for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
+    plotEfficiencies( etaBin, etaBin );
+  }
+  plotEfficiencies( 1, etaBinMax );
+  
   plotEtaPhi();
   plotEtaPt();
 }
@@ -120,16 +135,7 @@ void DiJetAnalysisData::setupHistograms(){
   
   for( auto& trigger : v_triggers ){
     std::cout << "Making - " << trigger << " histograms " << std::endl;
-    m_triggerSpect[ trigger ] = 
-      new TH1D( Form("h_spect_%s", trigger.c_str() ), 
-		Form("h_%s;#it{p}_{T} [GeV];d#it{N}/d#it{p}_{T}",
-		     trigger.c_str() ),
-		nPtSpectBins, ptSpectMin, ptSpectMax ) ;
-    m_triggerSpect[ trigger ]->Sumw2();
-    v_hists.push_back( m_triggerSpect[ trigger ] );
-    SetHStyle( m_triggerSpect[ trigger ], style, scale );
-
-   m_triggerSpectEta[ trigger ] = 
+    m_triggerSpectEta[ trigger ] = 
       new TH2D( Form("h_spectEta_%s", trigger.c_str() ), 
 		Form("h_%s;#eta;#it{p}_{T} [GeV]",
 		     trigger.c_str() ),
@@ -139,16 +145,6 @@ void DiJetAnalysisData::setupHistograms(){
     v_hists.push_back( m_triggerSpectEta[ trigger ] );
     SetHStyle( m_triggerSpectEta[ trigger ], style, scale );
  
-    
-    m_triggerEff[ trigger ] = 
-      new TH1D( Form("h_eff_%s", trigger.c_str() ), 
-		Form("h_%s;#it{p}_{T} [GeV];#it{#varepsilon}_{Trigger}",
-		     trigger.c_str() ),
-		nPtEffBins, ptEffMin, ptEffMax ) ;
-    m_triggerEff[ trigger ]->Sumw2();
-    v_hists.push_back( m_triggerEff[ trigger ] );
-    SetHStyle( m_triggerEff[ trigger ], style, scale );
-
     m_triggerEffEta[ trigger ] = 
       new TH2D( Form("h_effEta_%s", trigger.c_str() ), 
 		Form("h_%s;#eta;#it{p}_{T} [GeV]",
@@ -271,12 +267,10 @@ void DiJetAnalysisData::processEvents( int nEvents, int startEvent ){
 	// eta cut
 	if( jet.Eta() > -constants::FETAMIN ) continue;
 	double jetPt = jet.Pt()/1000.;
-	m_triggerSpect   [ trigger ]->Fill( jetPt );
 	m_triggerSpectEta[ trigger ]->Fill( jetEta, jetPt );
 	m_triggerEtaPt   [ trigger ]->Fill( jetEta, jetPt ); 
 	// fill mb efficiency histo also
 	if( !trigger.compare(mbTrigger) ){
-	  m_triggerEff   [mbTrigger]->Fill( jetPt );
 	  m_triggerEffEta[mbTrigger]->Fill( jetEta, jetPt );
 	}
       } // end loop over triggers
@@ -334,8 +328,6 @@ void DiJetAnalysisData::processEfficiencies( std::vector< TLorentzVector >& vTri
       for( auto& jet : vR_jets ){
 	// eta cut
 	if( jet.Eta() > -constants::FETAMIN ) continue;
-	m_triggerEff   [ ptTrig.second ]->
-	  Fill( jet.Pt()/1000. );
 	m_triggerEffEta[ ptTrig.second ]->
 	  Fill( jet.Eta(), jet.Pt()/1000. );
       } // end loop over jets
@@ -351,62 +343,109 @@ void DiJetAnalysisData::loadHistograms(){
   TFile* fin = TFile::Open( m_fNameOut.c_str() ); 
 
   for( auto& trigger : v_triggers ){
-    m_triggerSpect [ trigger ] = (TH1D*)fin->Get( Form("h_spect_%s" , trigger.c_str() ) );
-    m_triggerEff   [ trigger ] = (TH1D*)fin->Get( Form("h_eff_%s"   , trigger.c_str() ) );
-    m_triggerEtaPhi[ trigger ] = (TH1D*)fin->Get( Form("h_etaPhi_%s", trigger.c_str() ) );
-    m_triggerEtaPt [ trigger ] = (TH1D*)fin->Get( Form("h_etaPt_%s" , trigger.c_str() ) );
+    m_triggerSpectEta [ trigger ] =
+      (TH2D*)fin->Get( Form("h_spectEta_%s" , trigger.c_str() ) );
+    m_triggerEffEta    [ trigger ] =
+      (TH2D*)fin->Get( Form("h_effEta_%s"   , trigger.c_str() ) );
+    m_triggerEtaPhi   [ trigger ] =
+      (TH2D*)fin->Get( Form("h_etaPhi_%s", trigger.c_str() ) );
+    m_triggerEtaPt    [ trigger ] =
+      (TH2D*)fin->Get( Form("h_etaPt_%s" , trigger.c_str() ) );
   }
 }
 
-void DiJetAnalysisData::plotSpectra(){
-  TCanvas* c_spect = new TCanvas("c_spect","c_spect",800,600);
-  c_spect->SetLogy();
+void DiJetAnalysisData::plotSpectra( int etaBinLow, int etaBinUp ){
+  TCanvas c_spect("c_spect","c_spect",800,600);
+  c_spect.SetLogy();
 
-  TLegend* l_spect = new TLegend(0.23, 0.23, 0.54, 0.36);
-  SetLegendStyle( l_spect, 0.55 );
-  l_spect->SetFillStyle(0);
+  TLegend l_spect(0.23, 0.23, 0.54, 0.36);
+  SetLegendStyle( &l_spect, 0.55 );
+  l_spect.SetFillStyle(0);
 
   int style = 0;
-  
   double max = -1;
 
-  for( auto& sh : m_triggerSpect ){
-    l_spect->AddEntry( sh.second, sh.first.c_str() );
-    sh.second->Draw("epsame");
-    SetHStyle( sh.second, style++, 0.6);
-    if( max < sh.second->GetMaximum() ){ max = sh.second->GetMaximum(); }
+  std::vector< TH1* > v_triggerSpect;
+
+  double etaMin = m_triggerSpectEta[ mbTrigger ]->
+    GetXaxis()->GetBinLowEdge( etaBinLow );
+  double etaMax = m_triggerSpectEta[ mbTrigger ]->
+    GetXaxis()->GetBinUpEdge( etaBinUp );
+
+  
+  for( auto& sh : m_triggerSpectEta ){
+    TH1* hs =
+      sh.second->
+      ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
+			10*std::abs(etaMin),
+			10*std::abs(etaMax),
+			sh.first.c_str() ),
+		   etaBinLow, etaBinUp );
+    v_triggerSpect.push_back( hs ); 
+    
+    l_spect.AddEntry(  hs, sh.first.c_str() );
+    SetHStyle( hs, style++, 0.6);
+    hs->Draw("epsame");
+    if( max < hs->GetMaximum() ){ max = hs->GetMaximum(); }
   }
 
   double power = log10(max);
   power = std::ceil(power);
   max = pow( 10, power );
-  for( auto& sh : m_triggerSpect ){
-    sh.second->SetMaximum( max );
-    sh.second->SetMinimum( 1 );
+  for( auto& h : v_triggerSpect ){
+    h->SetMaximum( max );
+    h->SetMinimum( 1 );
   }
-
-  l_spect->Draw();
-
+  
+  l_spect.Draw();
   DrawAtlasInternalDataRight( 0, 0, 0.6, m_is_pPb ); 
-
-  c_spect->SaveAs( Form("output/spectra%s.pdf", m_labelOut.c_str() ) );
-
+  DrawLeftLatex( 0.5, 0.81,
+		 Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+		 0.6, 1 );
+  
+  c_spect.SaveAs( Form("output/spectra_%2.0f.Eta.%2.0f%s.pdf",
+		       std::abs(etaMin)*10,
+		       std::abs(etaMax)*10,
+		       m_labelOut.c_str() ) );
 }
 
-void DiJetAnalysisData::plotEfficiencies(){
-  TCanvas* c_eff = new TCanvas("c_eff","c_eff",800,600);
+void DiJetAnalysisData::plotEfficiencies( int etaBinLow, int etaBinUp ){
+  TCanvas c_eff("c_eff","c_eff",800,600);
 
-  TLegend* l_eff = new TLegend(0.38, 0.28, 0.61, 0.41);
-  SetLegendStyle( l_eff, 0.55 );
-  l_eff->SetFillStyle(0);
+  TLegend l_eff(0.38, 0.28, 0.61, 0.41);
+  SetLegendStyle( &l_eff, 0.55 );
+  l_eff.SetFillStyle(0);
 
   int style = 0; bool haveDrawn = false;
   double xMin = 0; double xMax = 0;
-  
-  TH1* h_mbTrig = m_triggerEff[ mbTrigger ];
 
+  double etaMin = m_triggerSpectEta[ mbTrigger ]->
+    GetXaxis()->GetBinLowEdge( etaBinLow );
+  double etaMax = m_triggerSpectEta[ mbTrigger ]->
+    GetXaxis()->GetBinUpEdge( etaBinUp );
+    
   std::map< std::string, TGraphAsymmErrors* > m_triggerEffGrf;
   std::map< std::string, TGraphAsymmErrors* > m_triggerEffGrfEta;
+
+  std::map< std::string, TH1* > m_triggerEff;
+
+  TH1* h_mbTrig =
+    m_triggerEffEta[ mbTrigger ]->
+    ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
+		      10*std::abs(etaMin),
+		      10*std::abs(etaMax),
+		      mbTrigger.c_str() ),
+		 etaBinLow, etaBinUp);
+  
+  for( auto& trigger : v_triggers ){
+    m_triggerEff[ trigger ] =
+      m_triggerEffEta[ trigger ]->
+      ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
+			10*std::abs(etaMin),
+			10*std::abs(etaMax),
+			trigger.c_str() ),
+		   etaBinLow, etaBinUp);
+  }
   
   for( auto& trigger : v_triggers ){
     m_triggerEffGrf[ trigger ] = new TGraphAsymmErrors();
@@ -417,10 +456,10 @@ void DiJetAnalysisData::plotEfficiencies(){
     // dont draw the MB efficiencies, its just 1
     // dont add mb efficiencies to legend
     if( !trigger.compare(mbTrigger) ) continue;
-    l_eff->AddEntry( tG, trigger.c_str() );
+    l_eff.AddEntry( tG, trigger.c_str() );
 
     TH1*            denom = h_mbTrig;
-    std::string denomName = "";
+    std::string denomName = mbTrigger;
     
     //-------------------- pp ---------------------
     // in pp we have heavily prescaled triggers
@@ -457,37 +496,43 @@ void DiJetAnalysisData::plotEfficiencies(){
     } else { tG->Draw("p same"); } // others
   }
   
-  l_eff->Draw();
+  l_eff.Draw();
 
-  TLine* line = new TLine( xMin, 1, xMax, 1);
-  line->Draw();
+  TLine line( xMin, 1, xMax, 1);
+  line.Draw();
 
   DrawAtlasInternalDataRight( 0, 0,  0.6, m_is_pPb ); 
+  DrawLeftLatex( 0.5, 0.81,
+		 Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+		 0.6, 1 );
 
-  c_eff->SaveAs( Form("output/efficiencies%s.pdf", m_labelOut.c_str() ) );
+  c_eff.SaveAs( Form("output/efficiencies_%2.0f.Eta.%2.0f%s.pdf",
+		     std::abs(etaMin)*10,
+		     std::abs(etaMax)*10,
+		     m_labelOut.c_str() ) );
 }
 
 void DiJetAnalysisData::plotEtaPhi(){
-  TCanvas* c_etaPhi = new TCanvas("c_etaPhi","c_etaPhi",800,600);
+  TCanvas c_etaPhi("c_etaPhi","c_etaPhi",800,600);
 
   for( auto& sh : m_triggerEtaPhi ){
     sh.second->Draw("col");
     SetHStyle( sh.second, 0, 0.6);
     DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
-    c_etaPhi->SaveAs( Form("output/etaPhi%s_%s.pdf", 
-			   m_labelOut.c_str(), sh.first.c_str() ) );
-    std::cout << sh.first << std::endl;
+    c_etaPhi.SaveAs( Form("output/etaPhi%s_%s.pdf", 
+			  m_labelOut.c_str(), sh.first.c_str() ) );
   }
 }
 
 void DiJetAnalysisData::plotEtaPt(){
-  TCanvas* c_ptEta = new TCanvas("c_ptEta","c_ptEta",800,600);
+  TCanvas c_ptEta("c_ptEta","c_ptEta",800,600);
 
   for( auto& sh : m_triggerEtaPt ){
     sh.second->Draw("col");
     SetHStyle( sh.second, 0, 0.6);
     DrawAtlasInternalDataLeft( 0, 0, 0.6, m_is_pPb );  
-    c_ptEta->SaveAs( Form("output/ptEta%s_%s.pdf", 
-			  m_labelOut.c_str(), sh.first.c_str() ) );
+    c_ptEta.SaveAs( Form("output/ptEta%s_%s.pdf", 
+			 m_labelOut.c_str(), sh.first.c_str() ) );
   }
 }
+

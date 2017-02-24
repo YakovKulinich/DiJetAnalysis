@@ -1,6 +1,8 @@
 #ifndef DIJETANALYSISDATA_H
 #define DIJETANALYSISDATA_H
 
+#include <TH2.h>
+
 #include "DiJetAnalysis.h"
 
 class DiJetAnalysisData : public DiJetAnalysis{
@@ -31,9 +33,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void loadHistograms();
 
-  void plotSpectra();
+  void plotSpectra( int, int );
 
-  void plotEfficiencies();
+  void plotEfficiencies( int, int );
 
   void plotEtaPhi();
 
@@ -43,14 +45,12 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //============ data =============
   std::vector< std::string > v_triggers;
 
-  std::map< std::string, TH1* > m_triggerSpect;
-  std::map< std::string, TH1* > m_triggerSpectEta;
-  std::map< std::string, TH1* > m_triggerEff;
-  std::map< std::string, TH1* > m_triggerEffEta;
+  std::map< std::string, TH2* > m_triggerSpectEta;
+  std::map< std::string, TH2* > m_triggerEffEta;
   
-  std::map< std::string, TH1* > m_triggerRunPrescale;
-  std::map< std::string, TH1* > m_triggerEtaPhi;
-  std::map< std::string, TH1* > m_triggerEtaPt;
+  std::map< std::string, TH2* > m_triggerRunPrescale;
+  std::map< std::string, TH2* > m_triggerEtaPhi;
+  std::map< std::string, TH2* > m_triggerEtaPt;
 
   std::vector< int > v_tJetPt;
   std::map   < int , std::string > m_tJetPtTrigger;
