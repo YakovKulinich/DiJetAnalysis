@@ -5,6 +5,8 @@
 
 #include "DiJetAnalysis.h"
 
+class JetPair;
+
 class DiJetAnalysisMC : public DiJetAnalysis{
  public:
   DiJetAnalysisMC();
@@ -16,30 +18,41 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   void RunOverTreeFillHistos( int, int );
 
-  void setupHistograms();
+  void SetupHistograms();
 
-  void processEvents( int, int );  
+  void ProcessEvents( int, int );  
 
+  void PairJets( std::vector< TLorentzVector >&,
+		 std::vector< TLorentzVector >&,
+		 std::vector< JetPair >&,
+		 std::vector< double >& );
+  
   //---------------------------
   //       Plotting 
   //---------------------------
-  void PlotExistingHistos();
+  void ProcessPlotHistos();
 
-  void loadHistograms();
+  void LoadHistograms();
 
-  void plotSpectra();
+  void PlotSpectra();
 
-  void plotEtaPhi();
+  void PlotEtaPhi();
 
-  void plotEtaPt();
+  void PlotEtaPt();
   
  private:
-  const int nJZNmax;
-  
   //============ data =============
-  std::vector< std::string > m_jznFname;
-  std::vector< TH1* > m_etaPhi;
-  std::vector< TH1* > m_ptEta;
+  std::map< int, std::string > m_jznFname;
+  std::map< int, double >      m_jznSigma;
+  std::map< int, double >      m_jznEff;
+
+  std::map< int, TH1* > m_jznRPt;
+  std::map< int, TH1* > m_jznDeta;
+  std::map< int, TH1* > m_jznDphi;
+
+  // eta-phi or eta-pt maps of inclusive jets
+  std::map< int, TH1* > m_jznEtaPhi;
+  std::map< int, TH1* > m_jznEtaPt;
 };
 
 #endif

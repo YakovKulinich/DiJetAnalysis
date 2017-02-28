@@ -1,6 +1,6 @@
 CXX = g++ 
 CXXFLAGS = -Wall `root-config --cflags` -g -o2
-LDFLAGS = -Wall `root-config --glibs` -Wl,-rpath=.
+LDFLAGS = -Wall `root-config --glibs` -lboost_system -lboost_filesystem -Wl,-rpath=.
 
 INCLUDEDIRS = -I./include
 
@@ -9,7 +9,7 @@ LIBS        = -lMyLib -lTHmulf
 
 OBJ         = analysis
 SOURCES     = DiJetAnalysis.cpp DiJetAnalysisData.cpp DiJetAnalysisMC.cpp \
-	      AtlasStyle.C MyRoot.C main.cpp
+	      JetPair.cpp AtlasStyle.C MyRoot.C main.cpp
 INCLUDES    = DiJetAnalysis.h
 
 DSOURCES   = src/

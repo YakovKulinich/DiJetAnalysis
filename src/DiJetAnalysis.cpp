@@ -6,17 +6,20 @@
 #include <TCanvas.h>
 
 #include <iostream>
+#include <boost/filesystem.hpp>
 
 #include "MyRoot.h"
 
 #include "DiJetAnalysis.h"
 
 DiJetAnalysis::DiJetAnalysis()
-  : m_isData(true), m_is_pPb( true )
+  : m_isData(true), m_is_pPb( true ),
+    m_fIn(NULL), m_fOut(NULL), m_tree(NULL)
 {}
 
 DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
-  : m_isData( isData ), m_is_pPb( is_pPb )
+  : m_isData( isData ), m_is_pPb( is_pPb ),
+    m_fIn(NULL), m_fOut(NULL), m_tree(NULL)
 {}
 
 DiJetAnalysis::~DiJetAnalysis(){}
@@ -24,13 +27,35 @@ DiJetAnalysis::~DiJetAnalysis(){}
 void DiJetAnalysis::Initialize(){
   m_labelOut = m_isData ? "_data" : "_mc" ;
   m_labelOut = m_is_pPb ? m_labelOut + "_pPb" : m_labelOut + "_pp";
+
+  auto checkWriteDir = []( const char* c_dirOut ){
+    boost::filesystem::path dir( c_dirOut );  
+    if(!(boost::filesystem::exists(dir))){
+      std::cout<< c_dirOut << " doesn't Exist."<<std::endl;
+      if (boost::filesystem::create_directory(dir))
+	std::cout << "....Successfully Created !" << std::endl;
+    }
+  };
+
+  // Check if the directories exist.
+  // If they don't, create them
+  m_dirOut   = "output";
+  checkWriteDir( m_dirOut.c_str() );
+  m_dirOut   += "/output" + m_labelOut;
+  checkWriteDir( m_dirOut.c_str() );
+
+  // fNameOut will be used for writing output file
+  // after processing tree.
+  // fNameIn will be used for reading that file.
+  // and fNameOut will be renamed to have a c_ at
+  // beginning to signify canvas are saved there.
+  m_fNameOut = m_dirOut + "/myOut" + m_labelOut + ".root";
+  m_fNameIn  = m_fNameOut; 
   
-  m_fNameOut = "output/myOut" + m_labelOut + ".root";
-  
-  std::cout << "fNameOut: " << m_fNameOut << std::endl;
+  std::cout << "fNameIn/Out: " << m_fNameOut << std::endl;
 }
 
-bool DiJetAnalysis::applyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
+bool DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
   
   std::vector<bool> isIsolated;
 
@@ -54,9 +79,22 @@ bool DiJetAnalysis::applyIsolation( double Rmin, std::vector<TLorentzVector>& v_
   return true;
 }
 
-void DiJetAnalysis::applyCleaning( std::vector<TLorentzVector>& v_jets, 
+void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets, 
 		    std::vector<bool>& v_isCleanJet){
   for( unsigned int jn = 0; jn < v_jets.size() ; jn++ ){
     if( !v_isCleanJet.at(jn) ) v_jets.at(jn).SetPxPyPzE(0,0,0,-1 );
   }
+}
+
+void DiJetAnalysis::SaveOutputs(){
+  //----------------------------------------
+  //  Close the input file, 
+  //  write histos to output
+  //----------------------------------------
+  std::cout << "fNameOut: " << m_fNameOut << std::endl;
+  TFile* m_fOut = new TFile( m_fNameOut.c_str(),"RECREATE");
+  for( auto& h  : v_hists  ) { h-> Write(); }
+  for( auto& f  : v_functs ) { f-> Write(); }
+  for( auto& gr : v_graphs ) { gr->Write(); }
+  m_fOut->Close();
 }

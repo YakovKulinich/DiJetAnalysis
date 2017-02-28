@@ -45,9 +45,6 @@ int main(int argc, char *argv[])
 	    << "    is_pPb: " << is_pPb
 	    << std::endl;
 
-  TApplication* rootapp = NULL;
-  SetAtlasStyle();
-  
   DiJetAnalysis* analysis = isData ?
     static_cast< DiJetAnalysis* >
     ( new DiJetAnalysisData( isData, is_pPb ) ) :
@@ -55,13 +52,12 @@ int main(int argc, char *argv[])
     ( new DiJetAnalysisMC  ( isData, is_pPb ) );
 
   analysis->Initialize();
+
   if( mode ){
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
   } else if( !mode ) {
-    rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
-    analysis->PlotExistingHistos(); 
-    rootapp->Run();
+    analysis->ProcessPlotHistos(); 
   }
   
   delete analysis;

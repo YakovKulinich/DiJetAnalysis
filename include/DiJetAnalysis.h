@@ -5,6 +5,8 @@
 #include <TH1.h>
 #include <TF1.h>
 #include <TGraphAsymmErrors.h>
+#include <TFile.h>
+#include <TTree.h>
 
 #include <string>
 #include <vector>
@@ -23,21 +25,23 @@ class DiJetAnalysis{
   //---------------------------
   virtual void RunOverTreeFillHistos( int, int ) = 0;
 
-  virtual void setupHistograms() = 0;
+  virtual void SetupHistograms() = 0;
 
-  virtual void processEvents( int, int ) = 0;  
+  virtual void ProcessEvents( int, int ) = 0;  
 
-  bool applyIsolation( double, std::vector<TLorentzVector>& );
+  virtual bool ApplyIsolation( double, std::vector<TLorentzVector>& );
     
-  void applyCleaning( std::vector<TLorentzVector>&, 
-		      std::vector<bool>& );
+  virtual void ApplyCleaning( std::vector<TLorentzVector>&, 
+			      std::vector<bool>& );
       
   //---------------------------
   //       Plotting 
   //---------------------------
-  virtual void PlotExistingHistos() = 0;
+  virtual void ProcessPlotHistos() = 0;
 
-  virtual void loadHistograms() = 0;
+  virtual void LoadHistograms() = 0;
+
+  virtual void SaveOutputs();
   
  protected:
   //========== settings ===========
@@ -45,7 +49,14 @@ class DiJetAnalysis{
   bool m_is_pPb;
 
   std::string m_labelOut;
+  std::string m_dirOut;
   std::string m_fNameOut;
+  std::string m_fNameIn;
+
+  //============ files =============
+  TFile* m_fIn;
+  TFile* m_fOut;
+  TTree* m_tree;
   
   //============ data =============
   std::vector< TH1*    > v_hists;  // for writing

@@ -16,30 +16,30 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   void RunOverTreeFillHistos( int, int );
 
-  void loadTriggers();
+  void LoadTriggers();
 
-  void setupHistograms();
+  void SetupHistograms();
 
-  void processEvents( int, int );  
+  void ProcessEvents( int, int );  
 
-  void processEfficiencies( std::vector< TLorentzVector >&,
+  void ProcessEfficiencies( std::vector< TLorentzVector >&,
 			    std::vector< TLorentzVector >&,
 			    std::map< std::string, bool >&);
 
   //---------------------------
   //       Plotting 
   //---------------------------
-  void PlotExistingHistos();
+  void ProcessPlotHistos();
 
-  void loadHistograms();
+  void LoadHistograms();
 
-  void plotSpectra( int, int );
+  void PlotSpectra( int, int );
 
-  void plotEfficiencies( int, int );
+  void PlotEfficiencies( int, int );
 
-  void plotEtaPhi();
+  void PlotEtaPhi();
 
-  void plotEtaPt();
+  void PlotEtaPt();
   
  private:
   //============ data =============
