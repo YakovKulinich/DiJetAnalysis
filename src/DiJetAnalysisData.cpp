@@ -66,8 +66,8 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   }
   PlotEfficiencies( 1, etaBinMax );
   
-  PlotEtaPhi();
-  PlotEtaPt();
+  PlotEtaPhiPtMap( m_triggerEtaPhi );
+  PlotEtaPhiPtMap( m_triggerEtaPt  );
   
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -524,45 +524,24 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
 		    m_labelOut.c_str() ) );
 }
 
-void DiJetAnalysisData::PlotEtaPhi(){
-  TCanvas c_etaPhi("c_etaPhi","c_etaPhi",800,600);
+void DiJetAnalysisData::PlotEtaPhiPtMap( std::map< std::string, TH2* >&
+					 m_triggerH ){
+  TCanvas c_map("c_map","c_map",800,600);
 
-  for( auto& tH : m_triggerEtaPhi ){
+  for( auto& tH : m_triggerH ){
     tH.second->Draw("col");
     SetHStyle( tH.second, 0, 0.6);
     DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
-    c_etaPhi.SaveAs( Form("%s/etaPhi%s_%s.pdf", 
-			  m_dirOut.c_str(),
-			  m_labelOut.c_str(),
-			  tH.first.c_str() ) );
-    c_etaPhi.SaveAs( Form("%s/etaPhi%s_%s.png", 
-			  m_dirOut.c_str(),
-			  m_labelOut.c_str(),
-			  tH.first.c_str() ) );
-    c_etaPhi.Write( Form("c_etaPhi%s_%s", 
-			 m_labelOut.c_str(),
-			 tH.first.c_str() ) );
+    c_map.SaveAs( Form("%s/%s%s.pdf", 
+		       m_dirOut.c_str(),
+		       tH.second->GetName(),
+		       m_labelOut.c_str() ) );
+    c_map.SaveAs( Form("%s/%s%s.png", 
+		       m_dirOut.c_str(),
+		       tH.second->GetName(),
+		       m_labelOut.c_str() ) );
+    c_map.Write( Form("c_%s%s",
+		      tH.second->GetName(),
+		      m_labelOut.c_str() ) );
   }
 }
-
-void DiJetAnalysisData::PlotEtaPt(){
-  TCanvas c_ptEta("c_ptEta","c_ptEta",800,600);
-
-  for( auto& tH : m_triggerEtaPt ){
-    tH.second->Draw("col");
-    SetHStyle( tH.second, 0, 0.6);
-    DrawAtlasInternalDataLeft( 0, 0, 0.6, m_is_pPb );  
-    c_ptEta.SaveAs( Form("%s/etaPt%s_%s.pdf", 
-			 m_dirOut.c_str(),
-			 m_labelOut.c_str(),
-			 tH.first.c_str() ) );
-    c_ptEta.SaveAs( Form("%s/etaPt%s_%s.png", 
-			 m_dirOut.c_str(),
-			 m_labelOut.c_str(),
-			 tH.first.c_str() ) );
-    c_ptEta.Write( Form("c_etaPt%s_%s", 
-			m_labelOut.c_str(),
-			tH.first.c_str() ) );
-  }
-}
-

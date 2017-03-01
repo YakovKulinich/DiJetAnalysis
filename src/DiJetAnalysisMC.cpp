@@ -30,7 +30,12 @@ void DiJetAnalysisMC::Initialize(){
   v_usedJZN.push_back( 1 );
   m_jznFnameIn[ v_usedJZN.back() ] = "/home/yakov/Projects/atlas/data/jz1.root";
   m_jznSigma  [ v_usedJZN.back() ] = 6.7890E+07;
-  m_jznEff    [ v_usedJZN.back() ]   = 2.8289E-03;
+  m_jznEff    [ v_usedJZN.back() ] = 2.8289E-03;
+
+  v_usedJZN.push_back( 2 );
+  m_jznFnameIn[ v_usedJZN.back() ] = "/home/yakov/Projects/atlas/data/jz2.root";
+  m_jznSigma  [ v_usedJZN.back() ] = 6.3997E+05;
+  m_jznEff    [ v_usedJZN.back() ] = 4.2714E-03;
 }
 
 //---------------------------------
@@ -63,8 +68,8 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   }
   PlotSpectra( 1, etaBinMax );
   
-  PlotEtaPhi();
-  PlotEtaPt();
+  PlotEtaPhiPtMap( m_jznEtaPhi );
+  PlotEtaPhiPtMap( m_jznEtaPt  );
 
   // check if we have one
   if( !m_jznRPt.size() ){ return; }
@@ -415,50 +420,31 @@ void DiJetAnalysisMC::PlotSpectra( int etaBinLow, int etaBinUp ){
   } // end loop over JZN
 }
 
-void DiJetAnalysisMC::PlotEtaPhi(){
-  TCanvas c_etaPhi("c_etaPhi","c_etaPhi",800,600);
+void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< int, TH2* >& m_jznH ){
+  TCanvas c_map("c_map","c_map",800,600);
 
-  for( auto& jznH : m_jznEtaPhi ){
+  for( auto& jznH : m_jznH ){
     jznH.second->Draw("col");
     SetHStyle( jznH.second, 0, 0.6);
     DrawAtlasInternalMCLeft( 0, -0.55, 0.6, true );  
-    c_etaPhi.SaveAs( Form("%s/%s_%s.pdf", 
-			  m_dirOut.c_str(),
-			  jznH.second->GetName(),
-			  m_labelOut.c_str() ) );
-    c_etaPhi.SaveAs( Form("%s/%s_%s.png", 
-			  m_dirOut.c_str(),
-			  jznH.second->GetName(),
-			  m_labelOut.c_str() ) );
+    c_map.SaveAs( Form("%s/%s%s.pdf", 
+		       m_dirOut.c_str(),
+		       jznH.second->GetName(),
+		       m_labelOut.c_str() ) );
+    c_map.SaveAs( Form("%s/%s%s.png", 
+		       m_dirOut.c_str(),
+		       jznH.second->GetName(),
+		       m_labelOut.c_str() ) );
   }
 }
-
-void DiJetAnalysisMC::PlotEtaPt(){
-  TCanvas c_ptEta("c_etaPt","c_etaPt",800,600);
-
-  for( auto& jznH : m_jznEtaPt ){
-    jznH.second->Draw("col");
-    SetHStyle( jznH.second, 0, 0.6);
-    DrawAtlasInternalMCLeft( 0, 0, 0.6, true );  
-    c_ptEta.SaveAs( Form("%s/%s_%s.pdf",
-			 m_dirOut.c_str(),
-			 jznH.second->GetName(),
-			 m_labelOut.c_str() ) );
-    c_ptEta.SaveAs( Form("%s/%s_%s.png",
-			 m_dirOut.c_str(),
-			 jznH.second->GetName(),
-			 m_labelOut.c_str() ) );
-  }
-}
-
 
 void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
-				   std::map< int, TH3* >& m_jzn,
+				   std::map< int, TH3* >& m_jznH,
 				   int type ){
   TCanvas c_Mean("c_Mean","c_Mean",800,600);
   TCanvas c_Sigma("c_Sigma","c_Sigma",800,600);
   
-  TLegend l_jes(0.23, 0.23, 0.54, 0.36);
+  TLegend l_jes(0.68, 0.64, 0.99, 0.77);
   SetLegendStyle( &l_jes, 0.55 );
   l_jes.SetFillStyle(0);
 
@@ -468,16 +454,16 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
   std::vector< TH1* > v_jznJer;
 
   // check if we have one
-  if( !m_jznRPt.size() ){ return; }
+  if( !m_jznH.size() ){ return; }
   // should all be the same
-  double etaMin = m_jznRPt.begin()->second->
+  double etaMin = m_jznH.begin()->second->
     GetXaxis()->GetBinLowEdge( etaBinLow );
-  double etaMax = m_jznRPt.begin()->second->
+  double etaMax = m_jznH.begin()->second->
     GetXaxis()->GetBinUpEdge( etaBinUp );
   
-  int  nPtBins = m_jznRPt.begin()->second->GetNbinsY();
-  double ptMin = m_jznRPt.begin()->second->GetYaxis()->GetXmin();
-  double ptMax = m_jznRPt.begin()->second->GetYaxis()->GetXmax();
+  int  nPtBins = m_jznH.begin()->second->GetNbinsY();
+  double ptMin = m_jznH.begin()->second->GetYaxis()->GetXmin();
+  double ptMax = m_jznH.begin()->second->GetYaxis()->GetXmax();
 
   std::string yTitleMean;
   std::string yTitleSigma;
@@ -493,7 +479,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
     yTitleSigma = "#sigma#Delta#phi";
   } 
   
-  for( auto& jznH : m_jzn ){   // loop over JZN
+  for( auto& jznH : m_jznH ){   // loop over JZN
     int jzn = jznH.first;
     
     TH1* hJes = new TH1D( Form("%s_mean_%2.0f.Eta.%2.0f",
@@ -581,6 +567,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
       hJer->SetMinimum(0.);
       hJer->SetMaximum(0.1);
     }
+    
     l_jes.Draw();
     DrawAtlasInternalMCRight( 0, 0, 0.6, true ); 
     DrawLeftLatex( 0.5, 0.81,
@@ -618,7 +605,7 @@ void DiJetAnalysisMC::ProjectEtaPtAndFit( TH3* h3,
   double etaMin = h3->GetXaxis()->GetBinLowEdge( etaBinLow );
   double etaMax = h3->GetXaxis()->GetBinUpEdge( etaBinUp );
 
-  int  nPtBins = m_jznRPt.begin()->second->GetNbinsY();
+  int  nPtBins  = h3->GetNbinsY();
 
   std::vector< TH1* > v_hProj;
   std::vector< TF1* > v_fit;

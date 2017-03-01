@@ -37,9 +37,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void PlotEfficiencies( int, int );
 
-  void PlotEtaPhi();
-
-  void PlotEtaPt();
+  void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
   
  private:
   //============ settings =============

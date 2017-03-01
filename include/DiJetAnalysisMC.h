@@ -37,9 +37,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void PlotSpectra( int, int );
   
-  void PlotEtaPhi();
-
-  void PlotEtaPt();
+  void PlotEtaPhiPtMap( std::map< int, TH2* >& );
 
   void PlotVsEtaPt( int, int, std::map< int, TH3* >&, int );
   
