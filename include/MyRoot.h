@@ -71,6 +71,7 @@ bool sortByDecendingPt( const TLorentzVector& jet1, const TLorentzVector& jet2 )
 bool TruncateHistoBins( TH3* h3 );
 bool DoPrint( int ev );
 std::vector<std::string> vectorise(TString str, TString sep);
+void FitGaussian( TH1* hProj, TF1* fit );
 
 //===================================
 //          DRAWING STUFF

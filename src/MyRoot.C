@@ -85,6 +85,29 @@ std::vector<std::string> vectorise(TString str, TString sep) {
   delete strings; return result;
 }   
 
+
+void FitGaussian( TH1* hProj, TF1* fit ){
+  // fit once 
+  double mean   = hProj->GetMean();
+  double rms    = hProj->GetRMS();
+
+  double fitmin = mean - 2.0 * rms;
+  double fitmax = mean + 2.0 * rms;
+      
+  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
+
+  // fit second time with better parameters
+  mean   = fit->GetParameter(1);
+  rms    = fit->GetParameter(2);
+
+  fitmin = mean - 2.0 * rms;
+  fitmax = mean + 2.0 * rms;
+
+  fit->SetRange( fitmin, fitmax );
+  
+  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
+}
+
 //===================================
 //          DRAWING STUFF
 //===================================

@@ -391,33 +391,30 @@ void DiJetAnalysisMC::PlotSpectra( int etaBinLow, int etaBinUp ){
       h->SetMaximum( max );
       h->SetMinimum( 1 );
     }
+  } // end loop over JZN
+
+  l_spect.Draw();
+  DrawAtlasInternalMCRight( 0, 0, 0.6, m_is_pPb ); 
+  DrawLeftLatex( 0.5, 0.81,
+		 Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+		 0.6, 1 );
   
-    l_spect.Draw();
-    DrawAtlasInternalMCRight( 0, 0, 0.6, m_is_pPb ); 
-    DrawLeftLatex( 0.5, 0.81,
-		   Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
-		   0.6, 1 );
-  
-    c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s_jz%i.pdf",
-			 m_dirOut.c_str(),
-			 std::abs(etaMin)*10,
-			 std::abs(etaMax)*10,
-			 m_labelOut.c_str(),
-			 jzn ) );
-    c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s_jz%i.png",
-			 m_dirOut.c_str(),
-			 std::abs(etaMin)*10,
-			 std::abs(etaMax)*10,
-			 m_labelOut.c_str(),
-			 jzn ) );
+  c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s.pdf",
+		       m_dirOut.c_str(),
+		       std::abs(etaMin)*10,
+		       std::abs(etaMax)*10,
+		       m_labelOut.c_str() ) );
+  c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s.png",
+		       m_dirOut.c_str(),
+		       std::abs(etaMin)*10,
+		       std::abs(etaMax)*10,
+		       m_labelOut.c_str() ) );
 
     
-    c_spect.Write( Form("c_spectra_%2.0f.Eta.%2.0f%s_jz%i",
-			std::abs(etaMin)*10,
-			std::abs(etaMax)*10,
-			m_labelOut.c_str(),
-			jzn ) );
-  } // end loop over JZN
+  c_spect.Write( Form("c_spectra_%2.0f.Eta.%2.0f%s",
+		      std::abs(etaMin)*10,
+		      std::abs(etaMax)*10,
+		      m_labelOut.c_str() ) );
 }
 
 void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< int, TH2* >& m_jznH ){
@@ -444,9 +441,9 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
   TCanvas c_Mean("c_Mean","c_Mean",800,600);
   TCanvas c_Sigma("c_Sigma","c_Sigma",800,600);
   
-  TLegend l_jes(0.68, 0.64, 0.99, 0.77);
-  SetLegendStyle( &l_jes, 0.55 );
-  l_jes.SetFillStyle(0);
+  TLegend leg(0.68, 0.64, 0.99, 0.77);
+  SetLegendStyle( &leg, 0.55 );
+  leg.SetFillStyle(0);
 
   int style = 0;
 
@@ -505,9 +502,8 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
     ProjectEtaPtAndFit( jznH.second, hJes, hJer, etaBinLow, etaBinUp );
 
     // Draw on JES canvas
-    c_Sigma.cd();
-    
-    l_jes.AddEntry(  hJes, Form("JZ%i", jzn) );
+    c_Mean.cd();
+    leg.AddEntry(  hJes, Form("JZ%i", jzn) );
     hJes->Draw("epsame");
 
     if( type == 0 ){ // JES JER
@@ -517,84 +513,35 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
       hJes->SetMinimum(-0.2);
       hJes->SetMaximum(0.2);      
     }
-    
-    l_jes.Draw();
-    DrawAtlasInternalMCRight( 0, 0, 0.6, true ); 
-    DrawLeftLatex( 0.5, 0.81,
-		   Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
-		   0.6, 1 );
-
-    double y0;
-
-    if( type == 0 ){ // JES JER
-      y0 = 1;
-      y0 = 1;
-    } else if( type == 1 || type == 2 ) { // ANGLES
-      y0 = 0;
-      y0 = 0;
-    }
-        
-    TLine line( ptMin, y0, ptMax, y0);
-    line.Draw();
-    
-    c_Sigma.SaveAs( Form("%s/%s_mean_%2.0f.Eta.%2.0f%s.pdf",
-			 m_dirOut.c_str(),
-			 jznH.second->GetName(),
-			 std::abs(etaMin)*10,
-			 std::abs(etaMax)*10,
-			 m_labelOut.c_str() ) );
-    c_Sigma.SaveAs( Form("%s/%s_mean_%2.0f.Eta.%2.0f%s.png",
-			 m_dirOut.c_str(),
-			 jznH.second->GetName(),
-			 std::abs(etaMin)*10,
-			 std::abs(etaMax)*10,
-			 m_labelOut.c_str() ) );
-
-    c_Sigma.Write( Form("c_%s_mean_%2.0f.Eta.%2.0f%s",
-			jznH.second->GetName(),
-			std::abs(etaMin)*10,
-			std::abs(etaMax)*10,
-			m_labelOut.c_str()) );
 
     // Draw on JER canvas
-    c_Mean.cd();
-
+    c_Sigma.cd();
     hJer->Draw("epsame");
+
     if( type == 0 ){
       hJer->SetMinimum(0.);
-      hJer->SetMaximum(0.25);
+      hJer->SetMaximum(0.30);
     } else if ( type == 1 || type == 2 ){
       hJer->SetMinimum(0.);
-      hJer->SetMaximum(0.1);
+      hJer->SetMaximum(0.125);
     }
-    
-    l_jes.Draw();
-    DrawAtlasInternalMCRight( 0, 0, 0.6, true ); 
-    DrawLeftLatex( 0.5, 0.81,
-		   Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
-		   0.6, 1 );
-  
-    c_Mean.SaveAs( Form("%s/%s_sigma_%2.0f.Eta.%2.0f%s.pdf",
-			m_dirOut.c_str(),
-			jznH.second->GetName(),
-			std::abs(etaMin)*10,
-			std::abs(etaMax)*10,
-			m_labelOut.c_str() ) );
-    c_Mean.SaveAs( Form("%s/%s_sigma_%2.0f.Eta.%2.0f%s.png",
-			m_dirOut.c_str(),
-			jznH.second->GetName(),
-			std::abs(etaMin)*10,
-			std::abs(etaMax)*10,
-			m_labelOut.c_str() ) );
 
-    c_Mean.Write( Form("c_%s_sigma_%2.0f.Eta.%2.0f%s",
-		       jznH.second->GetName(),
-		       std::abs(etaMin)*10,
-		       std::abs(etaMax)*10,
-		       m_labelOut.c_str() ) );
-
+    // increment style
     style++;
+    
   } // end loop over JZN
+
+  bool isMean;
+
+  DrawCanvas(  m_jznH ,
+	       c_Mean , leg,
+	       etaMin , etaMax,
+	       type   , isMean = true ); 
+
+  DrawCanvas(  m_jznH  ,
+	       c_Sigma , leg,
+	       etaMin  , etaMax,
+	       type    , isMean = false ); 
 }
 
 void DiJetAnalysisMC::ProjectEtaPtAndFit( TH3* h3,
@@ -635,7 +582,7 @@ void DiJetAnalysisMC::ProjectEtaPtAndFit( TH3* h3,
     SetHStyle( fit, 0, 0.6);
     v_fit.push_back( fit );
 
-    if( hProj->GetEntries() < 3 ){ continue; }
+    if( hProj->GetEntries() < 5 ){ continue; }
     
     FitGaussian( hProj, fit );
         
@@ -665,55 +612,60 @@ void DiJetAnalysisMC::ProjectEtaPtAndFit( TH3* h3,
   } // end loop over ptBins
 }
 
-void DiJetAnalysisMC::FitGaussian( TH1* hProj, TF1* fit ){
-  // fit once 
-  double mean   = hProj->GetMean();
-  double rms    = hProj->GetRMS();
+//---------------------------
+//          Tools 
+//---------------------------
 
-  double fitmin = mean - 2.0 * rms;
-  double fitmax = mean + 2.0 * rms;
-      
-  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
 
-  // fit second time with better parameters
-  mean   = fit->GetParameter(1);
-  rms    = fit->GetParameter(2);
-
-  fitmin = mean - 2.0 * rms;
-  fitmax = mean + 2.0 * rms;
-
-  fit->SetRange( fitmin, fitmax );
+void DiJetAnalysisMC::DrawCanvas( std::map< int, TH3* >& m_jznH,
+				  TCanvas& c, TLegend& leg,
+				  double etaMin, double etaMax,
+				  int type, bool isMean ){
+  // Draw on JES canvas
+  c.cd();
+  leg.Draw();
+  DrawAtlasInternalMCRight( 0, 0, 0.6, true ); 
+  DrawLeftLatex( 0.5, 0.81,
+		 Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+		 0.6, 1 );
   
-  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
-}
+  double y0;
 
-/*
-  int    nJESbins   = 40;
-  double jesMin     = 0; double jesMax = 2;
-
-  int    nJERbins   = 40;
-  double jerMin     = 0; double jerMax = 2;
-
-  THmulf* hm = new THmulf( "test","test" );
-  hm->AddAxis( "pt1"  , "p_{T}^{1}", 50, 10, 60);
-  hm->AddAxis( "pt2"  , "p_{T}^{1}", 50, 10, 60);
-  hm->AddAxis( "pt3"  , "p_{T}^{1}", 50, 10, 60);
-  hm->AddAxis( "pt4"  , "p_{T}^{1}", 50, 10, 60);
-  hm->Sumw2();
+  std::string meanOrSigma = isMean ? "mean" : "sigma";
   
-  TRandom r;
-  
-  for( int i = 0; i < 10000; i++ ){
-  hm->Fill( 1,
-  r.Gaus(35,15), r.Gaus(35,15),
-  r.Gaus(35,15), r.Gaus(35,15));
+  if( type == 0 ){ // JES JER
+    y0 = 1;
+    y0 = 1;
+  } else if( type == 1 || type == 2 ) { // ANGLES
+    y0 = 0;
+    y0 = 0;
   }
 
-  TH1* h = hm->Projection( "h", "pt1" );
-    
-  std::cout << "fNameOut: " << m_fNameOut << std::endl;
-  TFile* fout = new TFile( m_fNameOut.c_str(),"RECREATE");
-  h->Write();
+  double ptMin = m_jznH.begin()->second->GetYaxis()->GetXmin();
+  double ptMax = m_jznH.begin()->second->GetYaxis()->GetXmax();
   
-  fout->Close();
-*/   
+  TLine line( ptMin, y0, ptMax, y0);
+  line.Draw();
+    
+  c.SaveAs( Form("%s/%s_%s_%2.0f.Eta.%2.0f%s.pdf",
+		 m_dirOut.c_str(),
+		 m_jznH.begin()->second->GetName(),
+		 meanOrSigma.c_str(),
+		 std::abs(etaMin)*10,
+		 std::abs(etaMax)*10,
+		 m_labelOut.c_str() ) );
+  c.SaveAs( Form("%s/%s_%s_%2.0f.Eta.%2.0f%s.png",
+		 m_dirOut.c_str(),
+		 m_jznH.begin()->second->GetName(),
+		 meanOrSigma.c_str(),
+		 std::abs(etaMin)*10,
+		 std::abs(etaMax)*10,
+		 m_labelOut.c_str() ) );
+
+  c.Write( Form("c_%s_%s_%2.0f.Eta.%2.0f%s",
+		m_jznH.begin()->second->GetName(),
+		meanOrSigma.c_str(),
+		std::abs(etaMin)*10,
+		std::abs(etaMax)*10,
+		m_labelOut.c_str()) );  
+}

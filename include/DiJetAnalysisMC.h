@@ -6,6 +6,7 @@
 #include "DiJetAnalysis.h"
 
 class JetPair;
+class TLegend;
 
 class DiJetAnalysisMC : public DiJetAnalysis{
  public:
@@ -42,11 +43,17 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void PlotVsEtaPt( int, int, std::map< int, TH3* >&, int );
   
   void ProjectEtaPtAndFit( TH3*, TH1*, TH1*, int, int );
-  
-  void FitGaussian( TH1*, TF1* );
+
+  //---------------------------
+  //          Tools 
+  //---------------------------
+  void DrawCanvas( std::map< int, TH3* >&,
+		   TCanvas&, TLegend&,
+		   double, double,
+		   int, bool );
   
  private:
-  //============   cuts   =============
+  //============== cuts ===============
   double m_dRmax;
   
   //============ settings =============
