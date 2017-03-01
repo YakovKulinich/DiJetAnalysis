@@ -6,29 +6,28 @@ const int ppLumi2015  = 26;  // pb
 //===================================
 //         COMMON FUNCTIONS
 //===================================
-
-bool isForward( const double& eta ){
+bool AnalysisTools::isForward( const double& eta ){
   return ( TMath::Abs(eta) < constants::FETAMAX && 
 	   TMath::Abs(eta) > constants::FETAMIN );
 }
 
-bool isCentral( const double& eta ){
+bool AnalysisTools::isCentral( const double& eta ){
   return ( TMath::Abs(eta) < constants::CETAMAX );
 }
 
 
-bool isInTriggerEtaRange( const double& eta ){
+bool AnalysisTools::isInTriggerEtaRange( const double& eta ){
   return ( TMath::Abs(eta) < constants::TETAMAX && 
 	   TMath::Abs(eta) > constants::TETAMIN );
 }
 
 
-bool EpsilonEqual( double a, double b ){
+bool AnalysisTools::EpsilonEqual( double a, double b ){
   return fabs( a - b ) < constants::EPSILON;
 }
 
 // returns dphi in range 0<dphi<2pi
-double DPhiFC( double phi1, double phi2 ){
+double AnalysisTools::DPhiFC( double phi1, double phi2 ){
   double deltaPhi = phi1 - phi2;
 
   while( deltaPhi < 0 ) deltaPhi += 2*constants::PI;
@@ -36,7 +35,8 @@ double DPhiFC( double phi1, double phi2 ){
   return deltaPhi;
 }
 
-double DeltaPhi( double phi1, double phi2 ){
+double AnalysisTools::DeltaPhi
+( double phi1, double phi2 ){
   double deltaPhi = TMath::Abs(phi1 - phi2);
 
   if( deltaPhi > constants::PI ){ deltaPhi = 2*constants::PI - deltaPhi; };
@@ -44,7 +44,8 @@ double DeltaPhi( double phi1, double phi2 ){
   return deltaPhi;
 }
 
-double DeltaR(  const TLorentzVector& jet1, const TLorentzVector& jet2 ){  
+double AnalysisTools::DeltaR
+(  const TLorentzVector& jet1, const TLorentzVector& jet2 ){  
   double deltaEta = jet1.Eta() - jet2.Eta();
   double deltaPhi = TMath::Abs( jet1.Phi() - jet2.Phi() );
   if(deltaPhi > TMath::Pi())
@@ -52,11 +53,12 @@ double DeltaR(  const TLorentzVector& jet1, const TLorentzVector& jet2 ){
   return TMath::Sqrt( deltaEta*deltaEta + deltaPhi*deltaPhi );
 }
 
-bool sortByDecendingPt( const TLorentzVector& jet1, const TLorentzVector& jet2 ){
+bool AnalysisTools::sortByDecendingPt
+( const TLorentzVector& jet1, const TLorentzVector& jet2 ){
   return ( jet1.Pt() > jet2.Pt() );
 }
 
-bool TruncateHistoBins( TH3* h3 ){
+bool AnalysisTools::TruncateHistoBins( TH3* h3 ){
   for( int z = 1; z <= h3->GetZaxis()->GetNbins(); z++ ){
     for( int y = 1; y <= h3->GetYaxis()->GetNbins(); y++ ){    
       for( int x = 1; x <= h3->GetXaxis()->GetNbins(); x++ ){
@@ -67,7 +69,7 @@ bool TruncateHistoBins( TH3* h3 ){
   return true;
 }
 
-bool DoPrint( int ev ) {
+bool AnalysisTools::DoPrint( int ev ) {
   int statSize=1;
   if( ev != 0){
     double power=std::floor(log10(ev));
@@ -77,7 +79,7 @@ bool DoPrint( int ev ) {
   return false;
 }
 
-std::vector<std::string> vectorise(TString str, TString sep) {
+std::vector<std::string> AnalysisTools::vectorise(TString str, TString sep) {
   std::vector<std::string> result; TObjArray *strings = str.Tokenize(sep.Data());
   if (strings->GetEntries()==0) { delete strings; return result; }
   TIter istr(strings);
@@ -86,7 +88,7 @@ std::vector<std::string> vectorise(TString str, TString sep) {
 }   
 
 
-void FitGaussian( TH1* hProj, TF1* fit ){
+void AnalysisTools::FitGaussian( TH1* hProj, TF1* fit ){
   // fit once 
   double mean   = hProj->GetMean();
   double rms    = hProj->GetRMS();
@@ -113,7 +115,8 @@ void FitGaussian( TH1* hProj, TF1* fit ){
 //===================================
 
 
-void DrawRightLatex( double x, double y , const char* s, float scale = 1, int color = 1){
+void DrawTools::DrawRightLatex
+( double x, double y , const char* s, float scale = 1, int color = 1){
   TLatex tltx; 
   tltx.SetTextFont(43); tltx.SetTextSize((int)(32*scale)); tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
@@ -121,7 +124,8 @@ void DrawRightLatex( double x, double y , const char* s, float scale = 1, int co
   tltx.DrawLatex( x, y, s );
 }
 
-void DrawLeftLatex( double x, double y , const char* s, float scale = 1, int color = 1){
+void DrawTools::DrawLeftLatex
+( double x, double y , const char* s, float scale = 1, int color = 1){
   TLatex tltx; 
   tltx.SetTextFont(43); tltx.SetTextSize((int)(32*scale)); tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
@@ -129,7 +133,8 @@ void DrawLeftLatex( double x, double y , const char* s, float scale = 1, int col
   tltx.DrawLatex( x, y, s );
 }
 
-void DrawCenterLatex( double x, double y , const char* s, float scale = 1, int color = 1){
+void DrawTools::DrawCenterLatex
+( double x, double y , const char* s, float scale = 1, int color = 1){
   TLatex tltx; 
   tltx.SetTextFont(43); tltx.SetTextSize((int)(32*scale)); tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
@@ -139,8 +144,8 @@ void DrawCenterLatex( double x, double y , const char* s, float scale = 1, int c
 
 // ============ DATA ================
 
-void DrawAtlasInternalDataRight( double x0, double y0,
-				 double scale, bool is_pPb ){
+void DrawTools::DrawAtlasInternalDataRight
+( double x0, double y0, double scale, bool is_pPb ){
   DrawRightLatex(0.875 + x0, 0.95,
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
@@ -156,8 +161,8 @@ void DrawAtlasInternalDataRight( double x0, double y0,
 		 "#sqrt{s_{NN}}=5.02 TeV", scale);
 }
 
-void DrawAtlasInternalDataLeft( double x0, double y0,
-				double scale, bool is_pPb ){
+void DrawTools::DrawAtlasInternalDataLeft
+( double x0, double y0, double scale, bool is_pPb ){
   DrawRightLatex(0.875, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
@@ -175,7 +180,8 @@ void DrawAtlasInternalDataLeft( double x0, double y0,
 
 // ============ MC ================
 
-void DrawAtlasInternalMCRight( double x0, double y0, double scale, bool isReco ){ 
+void DrawTools::DrawAtlasInternalMCRight
+( double x0, double y0, double scale, bool isReco ){ 
   DrawRightLatex(0.875, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
   if( isReco  ) DrawRightLatex(0.875 + x0, 0.815,
@@ -185,7 +191,8 @@ void DrawAtlasInternalMCRight( double x0, double y0, double scale, bool isReco )
 }
 
 
-void DrawAtlasInternalMCLeft( double x0, double y0, double scale, bool isReco ){ 
+void DrawTools::DrawAtlasInternalMCLeft
+( double x0, double y0, double scale, bool isReco ){ 
   DrawRightLatex(0.875, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
   if( isReco  ) DrawLeftLatex(0.18 + x0, 0.815,
@@ -196,7 +203,7 @@ void DrawAtlasInternalMCLeft( double x0, double y0, double scale, bool isReco ){
 
 // ======= Styles for Stuff ======
 
-void SetCustomMarkerStyle( TH1* his , int iflag ){	
+void StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){	
   //Set Color
   his->SetLineWidth(2);
   if( iflag == 0 ){
@@ -256,7 +263,7 @@ void SetCustomMarkerStyle( TH1* his , int iflag ){
   } 
 }
 
-void SetCustomMarkerStyle( TGraph* graph , int iflag ){
+void StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
   //Set Color
   graph->SetFillColor(0);
   graph->SetLineWidth(2);
@@ -316,7 +323,7 @@ void SetCustomMarkerStyle( TGraph* graph , int iflag ){
   }  
 }
 
-void SetHStyle( TH1* his, int iflag, float scale)
+void StyleTools::SetHStyle( TH1* his, int iflag, float scale)
 {
   his->SetLineWidth(2);
   his->SetStats(0);
@@ -334,7 +341,7 @@ void SetHStyle( TH1* his, int iflag, float scale)
   SetCustomMarkerStyle( his, iflag );  
 }
 
-void SetHStyle( TGraph* graph, int iflag, float scale)
+void StyleTools::SetHStyle( TGraph* graph, int iflag, float scale)
 {
   graph->SetLineWidth(2);
 
@@ -356,7 +363,7 @@ void SetHStyle( TGraph* graph, int iflag, float scale)
 }
 
 
-void SetHStyle( TF1* funct, int iflag, float scale)
+void StyleTools::SetHStyle( TF1* funct, int iflag, float scale)
 {
   funct->SetLineWidth(2);
 
@@ -377,7 +384,7 @@ void SetHStyle( TF1* funct, int iflag, float scale)
   // SetCustomMarkerStyle( funct, iflag );
 }
 
-void SetLegendStyle(TLegend * legend, float scale)
+void StyleTools::SetLegendStyle(TLegend * legend, float scale)
 {
   legend->SetBorderSize(0);
   legend->SetTextFont(43);

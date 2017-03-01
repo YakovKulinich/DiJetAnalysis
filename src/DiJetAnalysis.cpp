@@ -57,7 +57,8 @@ bool DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_
     for(unsigned int iSecondJet = 0; iSecondJet < v_jets.size(); iSecondJet++){   
       if( iSecondJet == iTestJet ) continue;
 
-      if( DeltaR( v_jets.at(iTestJet), v_jets.at(iSecondJet)) < Rmin &&
+      if( AnalysisTools::DeltaR( v_jets.at(iTestJet),
+				 v_jets.at(iSecondJet)) < Rmin &&
 	  v_jets.at(iSecondJet).Pt() > v_jets.at(iTestJet).Pt() * 0.5 ){       
 	isIsolated.push_back(false);
 	continue;
@@ -98,5 +99,5 @@ void DiJetAnalysis::AddHistogram( TH1* h ){
   h->Sumw2();
   h->GetXaxis()->SetNdivisions(505);  
   h->GetYaxis()->SetNdivisions(505);  
-  SetHStyle( h, 0, 0.6 );
+  StyleTools::SetHStyle( h, 0, 0.6 );
 }

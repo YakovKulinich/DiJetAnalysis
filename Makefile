@@ -9,7 +9,7 @@ LIBS        = -lMyLib -lTHmulf
 
 OBJ         = analysis
 SOURCES     = DiJetAnalysis.cpp DiJetAnalysisData.cpp DiJetAnalysisMC.cpp \
-	      JetPair.cpp AtlasStyle.C MyRoot.C main.cpp
+	      JetPair.cpp AtlasStyle.C MyRoot.cpp main.cpp
 INCLUDES    = DiJetAnalysis.h
 
 DSOURCES   = src/

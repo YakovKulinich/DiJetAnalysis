@@ -88,8 +88,11 @@ void DiJetAnalysisData::LoadTriggers(){
 
   std::string triggerMenu = config.GetValue("triggerMenu","");
   v_triggers =
-    vectorise( config.GetValue( Form("triggers.%s", triggerMenu.c_str() ),"") , " " );
-
+    AnalysisTools::vectorise( config.
+			      GetValue( Form("triggers.%s",
+					     triggerMenu.c_str() )
+					,"") , " " );
+  
   for( auto& trigger : v_triggers ){
     if( trigger.find("_mb_") != std::string::npos ){ 
       mbTrigger = trigger; 
@@ -239,7 +242,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     ApplyCleaning ( vR_jets, v_isCleanJet );
     ApplyIsolation( 1.0, vR_jets );
 
-    if( DoPrint(ev) ) {
+    if( AnalysisTools::DoPrint(ev) ) {
       std::cout << "\nEvent : " << ev << "    runN : " << runNumber
 		<< "    has : " << vR_jets.size() << " jets" 
 		<< std::endl; 
@@ -277,8 +280,8 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 }
 
 void DiJetAnalysisData::ProcessEfficiencies( std::vector< TLorentzVector >& vTrig_jets,
-			  std::vector< TLorentzVector >& vR_jets,
-			  std::map< std::string, bool >& m_triggerFired){
+					     std::vector< TLorentzVector >& vR_jets,
+					     std::map< std::string, bool >& m_triggerFired){
   // only do if had min bias trigger
   bool haveMinBiasTrigger = m_triggerFired[ mbTrigger ] ? true : false;
   
@@ -287,7 +290,8 @@ void DiJetAnalysisData::ProcessEfficiencies( std::vector< TLorentzVector >& vTri
   if( vTrig_jets.empty()  ) return;
 
   // sort trigger jets
-  std::sort( vTrig_jets.begin(), vTrig_jets.end(), sortByDecendingPt );
+  std::sort( vTrig_jets.begin(), vTrig_jets.end(),
+	     AnalysisTools::sortByDecendingPt );
 
   // take highest pt trigger jet in forward eta range
   TLorentzVector* tJet = NULL;
@@ -346,7 +350,7 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
   c_spect.SetLogy();
 
   TLegend l_spect(0.23, 0.23, 0.54, 0.36);
-  SetLegendStyle( &l_spect, 0.55 );
+  StyleTools::SetLegendStyle( &l_spect, 0.55 );
   l_spect.SetFillStyle(0);
 
   int style = 0;
@@ -358,7 +362,7 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
   if( !m_triggerEtaSpect[ mbTrigger ] ){ return; }  
   // should all be the same
   double etaMin = m_triggerEtaSpect[ mbTrigger ]->
-    GetXaxis()->GetBinLowEdge( etaBinLow );
+			    GetXaxis()->GetBinLowEdge( etaBinLow );
   double etaMax = m_triggerEtaSpect[ mbTrigger ]->
     GetXaxis()->GetBinUpEdge( etaBinUp );
 
@@ -374,7 +378,7 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
     v_triggerSpect.push_back( hs ); 
     
     l_spect.AddEntry(  hs, tH.first.c_str() );
-    SetHStyle( hs, style++, 0.6);
+    StyleTools::SetHStyle( hs, style++, 0.6);
     hs->Draw("epsame");
     if( max < hs->GetMaximum() ){ max = hs->GetMaximum(); }
   }
@@ -388,10 +392,10 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
   }
   
   l_spect.Draw();
-  DrawAtlasInternalDataRight( 0, 0, 0.6, m_is_pPb ); 
-  DrawLeftLatex( 0.5, 0.81,
-		 Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
-		 0.6, 1 );
+  DrawTools::DrawAtlasInternalDataRight( 0, 0, 0.6, m_is_pPb ); 
+  DrawTools::DrawLeftLatex( 0.5, 0.81,
+			    Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+			    0.6, 1 );
   
   c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s.pdf",
 		       m_dirOut.c_str(),
@@ -413,7 +417,7 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
   TCanvas c_eff("c_eff","c_eff",800,600);
 
   TLegend l_eff(0.38, 0.28, 0.61, 0.41);
-  SetLegendStyle( &l_eff, 0.55 );
+  StyleTools::SetLegendStyle( &l_eff, 0.55 );
   l_eff.SetFillStyle(0);
 
   int style = 0; bool haveDrawn = false;
@@ -488,7 +492,7 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
 		"cl=0.683 b(1,1) mode" );
     tG->SetMaximum( 1.3 );
     tG->SetMinimum( 0. );
-    SetHStyle( tG, style++, 0.6);
+    StyleTools::SetHStyle( tG, style++, 0.6);
 
     if( !haveDrawn ) {
       tG->Draw("ap"); // first one
@@ -503,10 +507,10 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
   TLine line( xMin, 1, xMax, 1);
   line.Draw();
 
-  DrawAtlasInternalDataRight( 0, 0,  0.6, m_is_pPb ); 
-  DrawLeftLatex( 0.5, 0.81,
-		 Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
-		 0.6, 1 );
+  DrawTools::DrawAtlasInternalDataRight( 0, 0,  0.6, m_is_pPb ); 
+  DrawTools::DrawLeftLatex( 0.5, 0.81,
+			    Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+			    0.6, 1 );
 
   c_eff.SaveAs( Form("%s/efficiencies_%2.0f.Eta.%2.0f%s.pdf",
 		     m_dirOut.c_str(),
@@ -530,8 +534,8 @@ void DiJetAnalysisData::PlotEtaPhiPtMap( std::map< std::string, TH2* >&
 
   for( auto& tH : m_triggerH ){
     tH.second->Draw("col");
-    SetHStyle( tH.second, 0, 0.6);
-    DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
+    StyleTools::SetHStyle( tH.second, 0, 0.6);
+    DrawTools::DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
     c_map.SaveAs( Form("%s/%s%s.pdf", 
 		       m_dirOut.c_str(),
 		       tH.second->GetName(),
