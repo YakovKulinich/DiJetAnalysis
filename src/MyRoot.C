@@ -332,6 +332,28 @@ void SetHStyle( TGraph* graph, int iflag, float scale)
   SetCustomMarkerStyle( graph, iflag );
 }
 
+
+void SetHStyle( TF1* funct, int iflag, float scale)
+{
+  funct->SetLineWidth(2);
+
+  funct->GetXaxis()->SetTitleFont( 43 );
+  funct->GetXaxis()->SetTitleSize( (int)(32 * scale) );  
+  funct->GetXaxis()->SetTitleOffset(1.2);
+
+  funct->GetXaxis()->SetLabelFont( 43 );
+  funct->GetXaxis()->SetLabelSize( (int)(30 * scale) );
+
+  funct->GetYaxis()->SetTitleFont( 43 );
+  funct->GetYaxis()->SetTitleSize( (int)(32 * scale) );
+  funct->GetYaxis()->SetTitleOffset(1.2);
+
+  funct->GetYaxis()->SetLabelFont( 43 );
+  funct->GetYaxis()->SetLabelSize( (int)(30 * scale) );
+  
+  // SetCustomMarkerStyle( funct, iflag );
+}
+
 void SetLegendStyle(TLegend * legend, float scale)
 {
   legend->SetBorderSize(0);

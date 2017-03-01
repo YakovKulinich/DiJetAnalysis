@@ -95,6 +95,7 @@ void SetCustomMarkerStyle( TH1* his , int iflag );
 void SetCustomMarkerStyle( TGraph* his , int iflag );
 void SetHStyle( TH1*    his, int iflag, float scale);
 void SetHStyle( TGraph* his, int iflag, float scale);
+void SetHStyle( TF1*    his, int iflag, float scale);
 
 // Legend Style
 void SetLegendStyle(TLegend * legend, float scale);

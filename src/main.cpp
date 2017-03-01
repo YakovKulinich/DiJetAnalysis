@@ -45,6 +45,8 @@ int main(int argc, char *argv[])
 	    << "    is_pPb: " << is_pPb
 	    << std::endl;
 
+  TApplication* rootapp = NULL;
+  
   DiJetAnalysis* analysis = isData ?
     static_cast< DiJetAnalysis* >
     ( new DiJetAnalysisData( isData, is_pPb ) ) :
@@ -56,8 +58,10 @@ int main(int argc, char *argv[])
   if( mode ){
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
   } else if( !mode ) {
+    rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
-    analysis->ProcessPlotHistos(); 
+    analysis->ProcessPlotHistos();
+    rootapp->Run();
   }
   
   delete analysis;

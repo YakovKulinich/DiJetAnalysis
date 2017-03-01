@@ -68,8 +68,10 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   
   PlotEtaPhi();
   PlotEtaPt();
-
+  
+  std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
+  std::cout << "......Closed  " << cfNameOut << std::endl;
 }
 
 //---------------------------------
@@ -396,6 +398,11 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
 		       std::abs(etaMin)*10,
 		       std::abs(etaMax)*10,
 		       m_labelOut.c_str() ) );
+  c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s.png",
+		       m_dirOut.c_str(),
+		       std::abs(etaMin)*10,
+		       std::abs(etaMax)*10,
+		       m_labelOut.c_str() ) );
   c_spect.Write( Form("c_spectra_%2.0f.Eta.%2.0f%s",
 		      std::abs(etaMin)*10,
 		      std::abs(etaMax)*10,
@@ -506,6 +513,11 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
 		     std::abs(etaMin)*10,
 		     std::abs(etaMax)*10,
 		     m_labelOut.c_str() ) );
+  c_eff.SaveAs( Form("%s/efficiencies_%2.0f.Eta.%2.0f%s.png",
+		     m_dirOut.c_str(),
+		     std::abs(etaMin)*10,
+		     std::abs(etaMax)*10,
+		     m_labelOut.c_str() ) );
   c_eff.Write( Form("c_efficiencies_%2.0f.Eta.%2.0f%s",
 		    std::abs(etaMin)*10,
 		    std::abs(etaMax)*10,
@@ -523,6 +535,10 @@ void DiJetAnalysisData::PlotEtaPhi(){
 			  m_dirOut.c_str(),
 			  m_labelOut.c_str(),
 			  tH.first.c_str() ) );
+    c_etaPhi.SaveAs( Form("%s/etaPhi%s_%s.png", 
+			  m_dirOut.c_str(),
+			  m_labelOut.c_str(),
+			  tH.first.c_str() ) );
     c_etaPhi.Write( Form("c_etaPhi%s_%s", 
 			 m_labelOut.c_str(),
 			 tH.first.c_str() ) );
@@ -537,6 +553,10 @@ void DiJetAnalysisData::PlotEtaPt(){
     SetHStyle( tH.second, 0, 0.6);
     DrawAtlasInternalDataLeft( 0, 0, 0.6, m_is_pPb );  
     c_ptEta.SaveAs( Form("%s/etaPt%s_%s.pdf", 
+			 m_dirOut.c_str(),
+			 m_labelOut.c_str(),
+			 tH.first.c_str() ) );
+    c_ptEta.SaveAs( Form("%s/etaPt%s_%s.png", 
 			 m_dirOut.c_str(),
 			 m_labelOut.c_str(),
 			 tH.first.c_str() ) );

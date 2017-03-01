@@ -41,9 +41,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void PlotEtaPt();
 
-  void PlotJESJER( int, int );
-
-  void ProjectEtaPtAndFit( TH3*, TH1*, std::string&, int, int, int );
+  void PlotVsEtaPt( int, int, std::map< int, TH3* >&, int );
+  
+  void ProjectEtaPtAndFit( TH3*, TH1*, TH1*, int, int );
   
   void FitGaussian( TH1*, TF1* );
   
