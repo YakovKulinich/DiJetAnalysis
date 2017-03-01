@@ -36,10 +36,16 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void LoadHistograms();
 
   void PlotSpectra( int, int );
-
+  
   void PlotEtaPhi();
 
   void PlotEtaPt();
+
+  void PlotJESJER( int, int );
+
+  void ProjectEtaPtAndFit( TH3*, TH1*, std::string&, int, int, int );
+  
+  void FitGaussian( TH1*, TF1* );
   
  private:
   //============   cuts   =============

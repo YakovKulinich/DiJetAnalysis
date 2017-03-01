@@ -62,9 +62,18 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
     PlotSpectra( etaBin, etaBin );
   }
   PlotSpectra( 1, etaBinMax );
-
+  
   PlotEtaPhi();
   PlotEtaPt();
+
+  // check if we have one
+  if( !m_jznRPt.size() ){ return; }
+  // make some spectra in various eta bins
+  etaBinMax = m_jznRPt.begin()->second->GetNbinsX();
+  for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
+    PlotJESJER( etaBin, etaBin );
+  }
+  PlotJESJER( 1, etaBinMax );
 }
 
 //---------------------------------
@@ -295,6 +304,10 @@ void DiJetAnalysisMC::LoadHistograms(){
     m_jznEtaPt    [ jzn ] =
       (TH2D*)m_fIn->Get( Form("h_etaPt_jz%i"    , jzn ) );
     m_jznEtaPt    [ jzn ]->SetDirectory(0);
+
+    m_jznRPt    [ jzn ] =
+      (TH3D*)m_fIn->Get( Form("h_rPt_jz%i"    , jzn ) );
+    m_jznRPt    [ jzn ]->SetDirectory(0);
   }
   m_fIn->Close();
 }
@@ -320,45 +333,50 @@ void DiJetAnalysisMC::PlotSpectra( int etaBinLow, int etaBinUp ){
   double etaMax = m_jznEtaSpect.begin()->second->
       GetXaxis()->GetBinUpEdge( etaBinUp );
   
-  for( auto& jznH : m_jznEtaSpect ){    
+  for( auto& jznH : m_jznEtaSpect ){ // loop over JZN
+    int jzn = jznH.first;
+    
     TH1* hs =
       jznH.second->
       ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_jz%i",
 			10*std::abs(etaMin),
 			10*std::abs(etaMax),
-			jznH.first ),
+			jzn ),
 		   etaBinLow, etaBinUp );
     v_jznSpect.push_back( hs ); 
     
-    l_spect.AddEntry(  hs, Form("JZ%i", jznH.first) );
+    l_spect.AddEntry(  hs, Form("JZ%i", jzn) );
     SetHStyle( hs, style++, 0.6);
     hs->Draw("epsame");
     if( max < hs->GetMaximum() ){ max = hs->GetMaximum(); }
-  }
 
-  double power = log10(max);
-  power = std::ceil(power);
-  max = pow( 10, power );
-  for( auto& h : v_jznSpect ){
-    h->SetMaximum( max );
-    h->SetMinimum( 1 );
-  }
+    double power = log10(max);
+    power = std::ceil(power);
+    max = pow( 10, power );
+    for( auto& h : v_jznSpect ){
+      h->SetMaximum( max );
+      h->SetMinimum( 1 );
+    }
   
-  l_spect.Draw();
-  DrawAtlasInternalDataRight( 0, 0, 0.6, m_is_pPb ); 
-  DrawLeftLatex( 0.5, 0.81,
-		 Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
-		 0.6, 1 );
+    l_spect.Draw();
+    DrawAtlasInternalMCRight( 0, 0, 0.6, m_is_pPb ); 
+    DrawLeftLatex( 0.5, 0.81,
+		   Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+		   0.6, 1 );
   
-  c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s.pdf",
-		       m_dirOut.c_str(),
-		       std::abs(etaMin)*10,
-		       std::abs(etaMax)*10,
-		       m_labelOut.c_str() ) );
-  c_spect.Write( Form("c_spectra_%2.0f.Eta.%2.0f%s.pdf",
-		      std::abs(etaMin)*10,
-		      std::abs(etaMax)*10,
-		      m_labelOut.c_str()) );
+    c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s_jz%i.pdf",
+			 m_dirOut.c_str(),
+			 std::abs(etaMin)*10,
+			 std::abs(etaMax)*10,
+			 m_labelOut.c_str(),
+			 jzn ) );
+
+    c_spect.Write( Form("c_spectra_%2.0f.Eta.%2.0f%s_jz%i",
+			std::abs(etaMin)*10,
+			std::abs(etaMax)*10,
+			m_labelOut.c_str(),
+			jzn ) );
+  } // end loop over JZN
 }
 
 void DiJetAnalysisMC::PlotEtaPhi(){
@@ -387,6 +405,154 @@ void DiJetAnalysisMC::PlotEtaPt(){
 			 m_labelOut.c_str(),
 			 jznH.first ) );
   }
+}
+
+
+void DiJetAnalysisMC::PlotJESJER( int etaBinLow, int etaBinUp ){
+  TCanvas c_jes("c_jes","c_jes",800,600);
+  
+  TLegend l_jes(0.23, 0.23, 0.54, 0.36);
+  SetLegendStyle( &l_jes, 0.55 );
+  l_jes.SetFillStyle(0);
+
+  int style = 0;
+
+  std::vector< TH1* > v_jznJes;
+
+  // check if we have one
+  if( !m_jznRPt.size() ){ return; }
+  // should all be the same
+  double etaMin = m_jznRPt.begin()->second->
+    GetXaxis()->GetBinLowEdge( etaBinLow );
+  double etaMax = m_jznRPt.begin()->second->
+    GetXaxis()->GetBinUpEdge( etaBinUp );
+  
+  int  nPtBins = m_jznRPt.begin()->second->GetNbinsY();
+  double ptMin = m_jznRPt.begin()->second->GetYaxis()->GetXmin();
+  double ptMax = m_jznRPt.begin()->second->GetYaxis()->GetXmax();
+  
+  for( auto& jznH : m_jznRPt ){   // loop over JZN
+    int jzn = jznH.first;
+    
+    TH1* hJes = new TH1D( Form("h_jes_%2.0f.Eta.%2.0f_jz%i",
+			     10*std::abs(etaMin),
+			     10*std::abs(etaMax),
+			     jzn ),
+			";#it{p}_{T}^{Truth};JES",
+			nPtBins, ptMin, ptMax );    
+    v_jznJes.push_back( hJes ); 
+
+    std::string label = "jes";
+    ProjectEtaPtAndFit( jznH.second, hJes, label, jzn, etaBinLow, etaBinUp );
+    
+    l_jes.AddEntry(  hJes, Form("JZ%i", jzn) );
+    SetHStyle( hJes, style++, 0.6);
+    hJes->Draw("epsame");
+    hJes->SetMinimum(0.75);
+    hJes->SetMaximum(1.25);
+
+    l_jes.Draw();
+    DrawAtlasInternalMCRight( 0, 0, 0.6, true ); 
+    DrawLeftLatex( 0.5, 0.81,
+		   Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+		   0.6, 1 );
+    
+    TLine line( ptMin, 1, ptMax, 1);
+    line.Draw();
+    
+    c_jes.SaveAs( Form("%s/jes_%2.0f.Eta.%2.0f%s_jz%i.pdf",
+		       m_dirOut.c_str(),
+		       std::abs(etaMin)*10,
+		       std::abs(etaMax)*10,
+		       m_labelOut.c_str(),
+		       jzn ) );
+    c_jes.Write( Form("c_jes_%2.0f.Eta.%2.0f%s_jz%i",
+		      std::abs(etaMin)*10,
+		      std::abs(etaMax)*10,
+		      m_labelOut.c_str(),
+		      jzn ) );
+
+  } // end loop over JZN
+}
+
+void DiJetAnalysisMC::ProjectEtaPtAndFit( TH3* h3, TH1* hJes,
+					  std::string& hType, int jzn, 
+					  int etaBinLow, int etaBinUp ){
+  TCanvas c_proj("c_proj","c_proj",800,600);
+
+  double etaMin = h3->GetXaxis()->GetBinLowEdge( etaBinLow );
+  double etaMax = h3->GetXaxis()->GetBinUpEdge( etaBinUp );
+
+  int  nPtBins = m_jznRPt.begin()->second->GetNbinsY();
+  
+  // loop over ptBins
+  for( int ptBin = 1; ptBin <= nPtBins; ptBin++ ){
+    double ptMin = h3->GetYaxis()->GetBinLowEdge(ptBin);
+    double ptMax = h3->GetYaxis()->GetBinUpEdge(ptBin);
+      
+    TH1* hProj = h3->
+      ProjectionZ( Form("h_%s_%2.0f.Eta.%2.0f_%3.0f.Pt.%3.0f_jz%i",
+			hType.c_str(),
+			10*std::abs(etaMin),
+			10*std::abs(etaMax),
+			ptMin, ptMax,
+			jzn ),
+		   etaBinLow, etaBinUp, ptBin, ptBin );
+    SetHStyle( hProj, 0, 0.6);
+            
+    TF1* fit  = new TF1( Form("f_%s_%2.0f.Eta.%2.0f_%3.0f.Pt.%3.0f_jz%i",
+			      hType.c_str(),
+			      10*std::abs(etaMin),
+			      10*std::abs(etaMax),
+			      ptMin, ptMax,
+			      jzn ),
+			 "gaus(0)", ptMin, ptMax );
+
+    FitGaussian( hProj, fit );
+
+    hJes->SetBinContent( ptBin, fit->GetParameter(1) );
+    hJes->SetBinError  ( ptBin, fit->GetParError (1) );
+
+    hProj->Draw();
+    fit->Draw("same");
+
+    DrawAtlasInternalMCRight( 0, 0, 0.6, true ); 
+    DrawLeftLatex( 0.5, 0.81,
+		   Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+		   0.6, 1 );
+    DrawLeftLatex( 0.5, 0.74,
+		   Form("%3.0f<#it{p}_{T}^{Truth}<%3.1f", ptMin, ptMax ),
+		   0.6, 1 );
+
+    /*    
+    c_proj.Write( Form("c_jes_%2.0f.Eta.%2.0f_%3.0f.Pt.%3.0f%s_jz%i",
+		       std::abs(etaMin)*10,
+		       std::abs(etaMax)*10,
+		       ptMin, ptMax,
+		       m_labelOut.c_str(),
+		       jzn ) ); 
+    */
+  } // end loop over ptBins
+}
+
+void DiJetAnalysisMC::FitGaussian( TH1* hProj, TF1* fit ){
+  // fit once 
+  double mean   = hProj->GetMean();
+  double rms    = hProj->GetRMS();
+
+  double fitmin = mean - 2.0 * rms;
+  double fitmax = mean + 2.0 * rms;
+      
+  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
+
+  // fit second time with better parameters
+  mean   = fit->GetParameter(1);
+  rms    = fit->GetParameter(2);
+
+  fitmin = mean - 2.0 * rms;
+  fitmax = mean + 2.0 * rms;
+
+  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
 }
 
 /*

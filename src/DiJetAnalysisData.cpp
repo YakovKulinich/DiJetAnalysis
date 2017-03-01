@@ -396,7 +396,7 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
 		       std::abs(etaMin)*10,
 		       std::abs(etaMax)*10,
 		       m_labelOut.c_str() ) );
-  c_spect.Write( Form("c_spectra_%2.0f.Eta.%2.0f%s.pdf",
+  c_spect.Write( Form("c_spectra_%2.0f.Eta.%2.0f%s",
 		      std::abs(etaMin)*10,
 		      std::abs(etaMax)*10,
 		      m_labelOut.c_str()) );
@@ -506,10 +506,10 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
 		     std::abs(etaMin)*10,
 		     std::abs(etaMax)*10,
 		     m_labelOut.c_str() ) );
-  c_eff.Write( Form("c_efficiencies_%2.0f.Eta.%2.0f%s.pdf",
-		      std::abs(etaMin)*10,
-		      std::abs(etaMax)*10,
-		      m_labelOut.c_str()) );
+  c_eff.Write( Form("c_efficiencies_%2.0f.Eta.%2.0f%s",
+		    std::abs(etaMin)*10,
+		    std::abs(etaMax)*10,
+		    m_labelOut.c_str() ) );
 }
 
 void DiJetAnalysisData::PlotEtaPhi(){
@@ -523,9 +523,9 @@ void DiJetAnalysisData::PlotEtaPhi(){
 			  m_dirOut.c_str(),
 			  m_labelOut.c_str(),
 			  tH.first.c_str() ) );
-    c_etaPhi.SaveAs( Form("c_etaPhi%s_%s.pdf", 
-			  m_labelOut.c_str(),
-			  tH.first.c_str() ) );
+    c_etaPhi.Write( Form("c_etaPhi%s_%s", 
+			 m_labelOut.c_str(),
+			 tH.first.c_str() ) );
   }
 }
 
@@ -540,9 +540,9 @@ void DiJetAnalysisData::PlotEtaPt(){
 			 m_dirOut.c_str(),
 			 m_labelOut.c_str(),
 			 tH.first.c_str() ) );
-    c_ptEta.SaveAs( Form("c_etaPt%s_%s.pdf", 
-			 m_labelOut.c_str(),
-			 tH.first.c_str() ) );
+    c_ptEta.Write( Form("c_etaPt%s_%s", 
+			m_labelOut.c_str(),
+			tH.first.c_str() ) );
   }
 }
 
