@@ -11,9 +11,9 @@ class JetPair{
 
   TLorentzVector* RecoJet() { return m_recoJet; }
   TLorentzVector* TruthJet(){ return m_truthJet; }
+  double DeltaR(){ return m_deltaR; }
   
- private:
-  
+ private:  
   TLorentzVector* m_recoJet;
   TLorentzVector* m_truthJet;
   double          m_deltaR;

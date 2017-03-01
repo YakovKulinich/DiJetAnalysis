@@ -44,15 +44,9 @@ void DiJetAnalysis::Initialize(){
   m_dirOut   += "/output" + m_labelOut;
   checkWriteDir( m_dirOut.c_str() );
 
-  // fNameOut will be used for writing output file
-  // after processing tree.
-  // fNameIn will be used for reading that file.
-  // and fNameOut will be renamed to have a c_ at
-  // beginning to signify canvas are saved there.
-  m_fNameOut = m_dirOut + "/myOut" + m_labelOut + ".root";
-  m_fNameIn  = m_fNameOut; 
+  m_rootFname = m_dirOut + "/myOut" + m_labelOut + ".root";
   
-  std::cout << "fNameIn/Out: " << m_fNameOut << std::endl;
+  std::cout << "fNameIn/Out: " << m_rootFname << std::endl;
 }
 
 bool DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
@@ -91,10 +85,18 @@ void DiJetAnalysis::SaveOutputs(){
   //  Close the input file, 
   //  write histos to output
   //----------------------------------------
-  std::cout << "fNameOut: " << m_fNameOut << std::endl;
-  TFile* m_fOut = new TFile( m_fNameOut.c_str(),"RECREATE");
+  std::cout << "fNameOut: " << m_rootFname << std::endl;
+  TFile* m_fOut = new TFile( m_rootFname.c_str(),"RECREATE");
   for( auto& h  : v_hists  ) { h-> Write(); }
   for( auto& f  : v_functs ) { f-> Write(); }
   for( auto& gr : v_graphs ) { gr->Write(); }
   m_fOut->Close();
+}
+
+void DiJetAnalysis::AddHistogram( TH1* h ){
+  v_hists.push_back( h );
+  h->Sumw2();
+  h->GetXaxis()->SetNdivisions(505);  
+  h->GetYaxis()->SetNdivisions(505);  
+  SetHStyle( h, 0, 0.6 );
 }

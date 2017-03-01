@@ -12,6 +12,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   DiJetAnalysisMC();
   DiJetAnalysisMC( bool, bool );
   ~DiJetAnalysisMC();
+
+  void Initialize();
   
   //---------------------------
   //       Fill Tree
@@ -24,8 +26,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void PairJets( std::vector< TLorentzVector >&,
 		 std::vector< TLorentzVector >&,
-		 std::vector< JetPair >&,
-		 std::vector< double >& );
+		 std::vector< JetPair >& );
   
   //---------------------------
   //       Plotting 
@@ -41,18 +42,21 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void PlotEtaPt();
   
  private:
-  //============ data =============
-  std::map< int, std::string > m_jznFname;
+  //============ settings =============
+  std::vector< int > v_usedJZN;
+  std::map< int, std::string > m_jznFnameIn;
   std::map< int, double >      m_jznSigma;
   std::map< int, double >      m_jznEff;
 
-  std::map< int, TH1* > m_jznRPt;
-  std::map< int, TH1* > m_jznDeta;
-  std::map< int, TH1* > m_jznDphi;
+  //============ data =============
+  std::map< int, TH2* > m_jznEtaSpect;
+  std::map< int, TH2* > m_jznEtaPhi;
+  std::map< int, TH2* > m_jznEtaPt;
 
-  // eta-phi or eta-pt maps of inclusive jets
-  std::map< int, TH1* > m_jznEtaPhi;
-  std::map< int, TH1* > m_jznEtaPt;
+  std::map< int, TH3* > m_jznRPt;
+  std::map< int, TH3* > m_jznDeta;
+  std::map< int, TH3* > m_jznDphi;
+
 };
 
 #endif

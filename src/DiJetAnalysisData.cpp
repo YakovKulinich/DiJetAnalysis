@@ -23,6 +23,14 @@ DiJetAnalysisData::DiJetAnalysisData( bool isData,
 
 DiJetAnalysisData::~DiJetAnalysisData(){}
 
+void DiJetAnalysisData::Initialize(){
+  DiJetAnalysis::Initialize();
+  
+  m_fNameIn = m_is_pPb ?
+    "/home/yakov/Projects/atlas/data/pPb.root" :
+    "/home/yakov/Projects/atlas/data/pp.root"  ;
+}
+
 //---------------------------------
 //            Read Data
 //---------------------------------
@@ -41,20 +49,20 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   LoadTriggers();
   LoadHistograms();
 
-  m_fNameOut = m_dirOut + "/c_myOut" + m_labelOut + ".root";
-  m_fOut = new TFile( m_fNameOut.c_str(),"RECREATE");
+  std::string cfNameOut = m_dirOut + "/c_myOut" + m_labelOut + ".root";
+  m_fOut = new TFile( cfNameOut.c_str(),"RECREATE");
   
   int etaBinMax;
 
   etaBinMax =
-    m_triggerSpectEta[ mbTrigger ]->GetNbinsX();
+    m_triggerEtaSpect[ mbTrigger ]->GetNbinsX();
   for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
     PlotSpectra( etaBin, etaBin );
   }
   PlotSpectra( 1, etaBinMax );
   
   etaBinMax =
-    m_triggerEffEta[ mbTrigger ]->GetNbinsX();
+    m_triggerEtaEff[ mbTrigger ]->GetNbinsX();
   for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
     PlotEfficiencies( etaBin, etaBin );
   }
@@ -127,74 +135,56 @@ void DiJetAnalysisData::SetupHistograms(){
   
   // Eta-Phi Maps
   int    nEtaBins = 100; 
-  double etaMin   = -5; double etaMax  = 5;
+  double etaMin   = constants::ETAMIN; double etaMax  = constants::ETAMAX;
 
   int    nPhiBins = 64; 
   double phiMin   = -constants::PI; double phiMax  = constants::PI; 
 
-  int    nPtBins  = 100;
+  double ptWidth  = 2;
   double ptMin    = 10;
-  double ptMax    = ptMin + static_cast<double>(nPtBins)/2;
+  double ptMax    = 100;
+  int    nPtBins  = (ptMax - ptMin)/ptWidth;
 
   int    nEtaForwardBinsFine   = 12;
   int    nEtaForwardBinsCoarse = 3;
   double etaForwardMin   = -constants::FETAMAX;
   double etaForwardMax   = -constants::FETAMIN;
 
-  int style = 0; double scale = 0.6;
-  
   for( auto& trigger : v_triggers ){
     std::cout << "Making - " << trigger << " histograms " << std::endl;
-    m_triggerSpectEta[ trigger ] = 
-      new TH2D( Form("h_spectEta_%s", trigger.c_str() ), 
+    m_triggerEtaSpect[ trigger ] = 
+      new TH2D( Form("h_etaSpect_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T} [GeV];dN/d#it{p}_{T}",
 		nEtaForwardBinsCoarse, etaForwardMin, etaForwardMax,
 		nPtSpectBins, ptSpectMin, ptSpectMax ) ;
-    m_triggerSpectEta[ trigger ]->Sumw2();
-    v_hists.push_back( m_triggerSpectEta[ trigger ] );
-    SetHStyle( m_triggerSpectEta[ trigger ], style, scale );
- 
-    m_triggerEffEta[ trigger ] = 
-      new TH2D( Form("h_effEta_%s", trigger.c_str() ), 
+    AddHistogram( m_triggerEtaSpect[ trigger ] );
+      
+    m_triggerEtaEff[ trigger ] = 
+      new TH2D( Form("h_etaEff_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T} [GeV]",
 		nEtaForwardBinsCoarse, etaForwardMin, etaForwardMax,
 		nPtEffBins, ptEffMin, ptEffMax ) ;
-    m_triggerEffEta[ trigger ]->Sumw2();
-    v_hists.push_back( m_triggerEffEta[ trigger ] );
-    SetHStyle( m_triggerEffEta[ trigger ], 0, scale );
-    
+    AddHistogram( m_triggerEtaEff[trigger ] );
+      
     m_triggerRunPrescale[ trigger ] = 
       new TH2D( Form("h_runPrescale_%s", trigger.c_str() ), 
 		";Run No;Prescale",
 		1700, 312600, 314300, 1999, 1, 2000) ;
-    m_triggerRunPrescale[ trigger ]->Sumw2();
-    m_triggerRunPrescale[ trigger ]->GetXaxis()->SetNdivisions(505);  
-    m_triggerRunPrescale[ trigger ]->GetYaxis()->SetNdivisions(505);  
-    v_hists.push_back( m_triggerRunPrescale[ trigger ] );
+    AddHistogram( m_triggerRunPrescale[ trigger ] );
     
     m_triggerEtaPhi[ trigger ] = 
       new TH2D( Form("h_etaPhi_%s", trigger.c_str() ), 
 		";#eta;#phi",
 		nEtaBins, etaMin, etaMax,
 		nPhiBins, phiMin, phiMax ) ;
-    m_triggerEtaPhi[ trigger ]->Sumw2();
-    m_triggerEtaPhi[ trigger ]->GetXaxis()->SetNdivisions(505);  
-    m_triggerEtaPhi[ trigger ]->GetYaxis()->SetNdivisions(505);  
-    v_hists.push_back( m_triggerEtaPhi[ trigger ] );
-    SetHStyle( m_triggerEtaPhi[ trigger ], 0, scale );
-  
+    AddHistogram( m_triggerEtaPhi[ trigger ] );
+     
     m_triggerEtaPt[ trigger ] = 
       new TH2D( Form("h_etaPt_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T}",
-		nEtaForwardBinsFine, etaForwardMin, etaForwardMax,
+		nEtaBins, etaMin, etaMax,
 		nPtBins, ptMin, ptMax) ;
-    m_triggerEtaPt[ trigger ]->Sumw2();
-    m_triggerEtaPt[ trigger ]->GetXaxis()->SetNdivisions(505);  
-    m_triggerEtaPt[ trigger ]->GetYaxis()->SetNdivisions(505);  
-    v_hists.push_back( m_triggerEtaPt[ trigger ] );
-    SetHStyle( m_triggerEtaPt[ trigger ], 0, scale );
-
-    style++;
+    AddHistogram( m_triggerEtaPt[ trigger ] );
   }
 }
 
@@ -217,13 +207,9 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   //----------------------------------------
   //  Open file and tree, Fill histograms
   //----------------------------------------
-  std::string fNameIn = m_is_pPb ?
-    "/home/yakov/Projects/atlas/data/pPb.root" :
-    "/home/yakov/Projects/atlas/data/pp.root"  ;
+  std::cout << "fNameIn: " << m_fNameIn << std::endl;
   
-  std::cout << "fNameIn: " << fNameIn << std::endl;
-  
-  m_fIn = TFile::Open( fNameIn.c_str() );
+  m_fIn = TFile::Open( m_fNameIn.c_str() );
   m_tree = (TTree*) m_fIn->Get( "tree" );
 
   // Connect to tree
@@ -261,8 +247,8 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     
     // loop over jets 
     for( auto& jet : vR_jets ){
-      double pt  = jet.Pt();
-      if( pt == 0 ) continue;
+      // cleaned jets have px, py, pz set to 0
+      if( jet.Pt() == 0 ) continue;
       // SPECTRA AND ETA PHI PT MAPS
       // loop over passed triggers
       for( auto& trigger : v_triggers ){
@@ -271,15 +257,15 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	// ETA-PHI
 	double jetEta = jet.Eta();
 	double jetPhi = jet.Phi();
+	double jetPt = jet.Pt()/1000.;
 	m_triggerEtaPhi[ trigger ]->Fill( jetEta, jetPhi );
+	m_triggerEtaPt [ trigger ]->Fill( jetEta, jetPt ); 
 	// eta cut
 	if( jet.Eta() > -constants::FETAMIN ) continue;
-	double jetPt = jet.Pt()/1000.;
-	m_triggerSpectEta[ trigger ]->Fill( jetEta, jetPt );
-	m_triggerEtaPt   [ trigger ]->Fill( jetEta, jetPt ); 
+	m_triggerEtaSpect[ trigger ]->Fill( jetEta, jetPt );
 	// fill mb efficiency histo also
 	if( !trigger.compare(mbTrigger) ){
-	  m_triggerEffEta[mbTrigger]->Fill( jetEta, jetPt );
+	  m_triggerEtaEff[mbTrigger]->Fill( jetEta, jetPt );
 	}
       } // end loop over triggers
     } // end loop over jets
@@ -323,7 +309,7 @@ void DiJetAnalysisData::ProcessEfficiencies( std::vector< TLorentzVector >& vTri
       for( auto& jet : vR_jets ){
 	// eta cut
 	if( jet.Eta() > -constants::FETAMIN ) continue;
-	m_triggerEffEta[ ptTrig.second ]->
+	m_triggerEtaEff[ ptTrig.second ]->
 	  Fill( jet.Eta(), jet.Pt()/1000. );
       } // end loop over jets
     }
@@ -335,15 +321,15 @@ void DiJetAnalysisData::ProcessEfficiencies( std::vector< TLorentzVector >& vTri
 //---------------------------------
 
 void DiJetAnalysisData::LoadHistograms(){
-  m_fIn = TFile::Open( m_fNameIn.c_str() ); 
+  m_fIn = TFile::Open( m_rootFname.c_str() ); 
 
   for( auto& trigger : v_triggers ){
-    m_triggerSpectEta [ trigger ] =
-      (TH2D*)m_fIn->Get( Form("h_spectEta_%s" , trigger.c_str() ) );
-    m_triggerSpectEta [ trigger ]->SetDirectory(0);
-    m_triggerEffEta   [ trigger ] =
-      (TH2D*)m_fIn->Get( Form("h_effEta_%s"   , trigger.c_str() ) );
-    m_triggerEffEta   [ trigger ]->SetDirectory(0);
+    m_triggerEtaSpect [ trigger ] =
+      (TH2D*)m_fIn->Get( Form("h_etaSpect_%s" , trigger.c_str() ) );
+    m_triggerEtaSpect [ trigger ]->SetDirectory(0);
+    m_triggerEtaEff   [ trigger ] =
+      (TH2D*)m_fIn->Get( Form("h_etaEff_%s"   , trigger.c_str() ) );
+    m_triggerEtaEff   [ trigger ]->SetDirectory(0);
     m_triggerEtaPhi   [ trigger ] =
       (TH2D*)m_fIn->Get( Form("h_etaPhi_%s", trigger.c_str() ) );
     m_triggerEtaPhi   [ trigger ]->SetDirectory(0);
@@ -368,13 +354,13 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
 
   std::vector< TH1* > v_triggerSpect;
 
-  double etaMin = m_triggerSpectEta[ mbTrigger ]->
+  double etaMin = m_triggerEtaSpect[ mbTrigger ]->
     GetXaxis()->GetBinLowEdge( etaBinLow );
-  double etaMax = m_triggerSpectEta[ mbTrigger ]->
+  double etaMax = m_triggerEtaSpect[ mbTrigger ]->
     GetXaxis()->GetBinUpEdge( etaBinUp );
 
   
-  for( auto& sh : m_triggerSpectEta ){
+  for( auto& sh : m_triggerEtaSpect ){
     TH1* hs =
       sh.second->
       ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
@@ -425,9 +411,9 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
   int style = 0; bool haveDrawn = false;
   double xMin = 0; double xMax = 0;
 
-  double etaMin = m_triggerSpectEta[ mbTrigger ]->
+  double etaMin = m_triggerEtaSpect[ mbTrigger ]->
     GetXaxis()->GetBinLowEdge( etaBinLow );
-  double etaMax = m_triggerSpectEta[ mbTrigger ]->
+  double etaMax = m_triggerEtaSpect[ mbTrigger ]->
     GetXaxis()->GetBinUpEdge( etaBinUp );
     
   std::map< std::string, TGraphAsymmErrors* > m_triggerEffGrf;
@@ -436,7 +422,7 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
   std::map< std::string, TH1* > m_triggerEff;
 
   TH1* h_mbTrig =
-    m_triggerEffEta[ mbTrigger ]->
+    m_triggerEtaEff[ mbTrigger ]->
     ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
 		      10*std::abs(etaMin),
 		      10*std::abs(etaMax),
@@ -445,7 +431,7 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
   
   for( auto& trigger : v_triggers ){
     m_triggerEff[ trigger ] =
-      m_triggerEffEta[ trigger ]->
+      m_triggerEtaEff[ trigger ]->
       ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
 			10*std::abs(etaMin),
 			10*std::abs(etaMax),
@@ -539,7 +525,7 @@ void DiJetAnalysisData::PlotEtaPt(){
     sh.second->Draw("col");
     SetHStyle( sh.second, 0, 0.6);
     DrawAtlasInternalDataLeft( 0, 0, 0.6, m_is_pPb );  
-    c_ptEta.SaveAs( Form("%s/ptEta%s_%s.pdf", 
+    c_ptEta.SaveAs( Form("%s/etaPt%s_%s.pdf", 
 			 m_dirOut.c_str(),
 			 m_labelOut.c_str(),
 			 sh.first.c_str() ) );

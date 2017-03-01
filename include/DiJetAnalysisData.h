@@ -1,8 +1,6 @@
 #ifndef DIJETANALYSISDATA_H
 #define DIJETANALYSISDATA_H
 
-#include <TH2.h>
-
 #include "DiJetAnalysis.h"
 
 class DiJetAnalysisData : public DiJetAnalysis{
@@ -10,6 +8,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
   DiJetAnalysisData();
   DiJetAnalysisData( bool, bool );
   ~DiJetAnalysisData();
+
+  void Initialize();
   
   //---------------------------
   //       Fill Tree
@@ -42,11 +42,14 @@ class DiJetAnalysisData : public DiJetAnalysis{
   void PlotEtaPt();
   
  private:
+  //============ settings =============
+  std::string m_fNameIn;
+  
   //============ data =============
   std::vector< std::string > v_triggers;
 
-  std::map< std::string, TH2* > m_triggerSpectEta;
-  std::map< std::string, TH2* > m_triggerEffEta;
+  std::map< std::string, TH2* > m_triggerEtaSpect;
+  std::map< std::string, TH2* > m_triggerEtaEff;
   
   std::map< std::string, TH2* > m_triggerRunPrescale;
   std::map< std::string, TH2* > m_triggerEtaPhi;

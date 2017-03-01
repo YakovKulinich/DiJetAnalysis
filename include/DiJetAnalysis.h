@@ -3,6 +3,8 @@
 
 #include <TLorentzVector.h>
 #include <TH1.h>
+#include <TH2.h>
+#include <TH3.h>
 #include <TF1.h>
 #include <TGraphAsymmErrors.h>
 #include <TFile.h>
@@ -18,7 +20,7 @@ class DiJetAnalysis{
   DiJetAnalysis( bool, bool );
   virtual ~DiJetAnalysis();
 
-  void Initialize();
+  virtual void Initialize();
   
   //---------------------------
   //       Fill Tree
@@ -50,18 +52,22 @@ class DiJetAnalysis{
 
   std::string m_labelOut;
   std::string m_dirOut;
-  std::string m_fNameOut;
-  std::string m_fNameIn;
-
+  std::string m_rootFname;
+  
   //============ files =============
   TFile* m_fIn;
   TFile* m_fOut;
   TTree* m_tree;
-  
+
   //============ data =============
+ private:
   std::vector< TH1*    > v_hists;  // for writing
   std::vector< TF1*    > v_functs; // for writing
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
+
+ public:
+  void AddHistogram( TH1* );
+
 };
 
 #endif

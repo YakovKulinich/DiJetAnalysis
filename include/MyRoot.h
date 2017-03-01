@@ -29,13 +29,20 @@
 //===================================
 
 namespace constants{
+  // barrel range
   const double CETAMAX = 2.8;
+
+  // FCal eta ranges
   const double FETAMIN = 3.2;
   const double FETAMAX = 4.4;
 
-  // trigger bounds
+  // trigger eta range
   const double TETAMIN = 3.2;
-  const double TETAMAX = 4.9;
+  const double TETAMAX = 4.8;
+  
+  // atlas maximum eta
+  const double ETAMIN = -5.0;
+  const double ETAMAX = 5.0;
 
   const double DELTAPHIMIN = 2.5;
 
