@@ -35,13 +35,16 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void LoadHistograms();
 
-  void PlotSpectra();
+  void PlotSpectra( int, int );
 
   void PlotEtaPhi();
 
   void PlotEtaPt();
   
  private:
+  //============   cuts   =============
+  double m_dRmax;
+  
   //============ settings =============
   std::vector< int > v_usedJZN;
   std::map< int, std::string > m_jznFnameIn;

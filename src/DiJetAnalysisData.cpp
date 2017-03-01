@@ -54,15 +54,13 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   
   int etaBinMax;
 
-  etaBinMax =
-    m_triggerEtaSpect[ mbTrigger ]->GetNbinsX();
+  etaBinMax = m_triggerEtaSpect[ mbTrigger ]->GetNbinsX();
   for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
     PlotSpectra( etaBin, etaBin );
   }
   PlotSpectra( 1, etaBinMax );
   
-  etaBinMax =
-    m_triggerEtaEff[ mbTrigger ]->GetNbinsX();
+  etaBinMax = m_triggerEtaEff[ mbTrigger ]->GetNbinsX();
   for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
     PlotEfficiencies( etaBin, etaBin );
   }
@@ -331,10 +329,10 @@ void DiJetAnalysisData::LoadHistograms(){
       (TH2D*)m_fIn->Get( Form("h_etaEff_%s"   , trigger.c_str() ) );
     m_triggerEtaEff   [ trigger ]->SetDirectory(0);
     m_triggerEtaPhi   [ trigger ] =
-      (TH2D*)m_fIn->Get( Form("h_etaPhi_%s", trigger.c_str() ) );
+      (TH2D*)m_fIn->Get( Form("h_etaPhi_%s"   , trigger.c_str() ) );
     m_triggerEtaPhi   [ trigger ]->SetDirectory(0);
     m_triggerEtaPt    [ trigger ] =
-      (TH2D*)m_fIn->Get( Form("h_etaPt_%s" , trigger.c_str() ) );
+      (TH2D*)m_fIn->Get( Form("h_etaPt_%s"    , trigger.c_str() ) );
     m_triggerEtaPt    [ trigger ]->SetDirectory(0);
   }
   
@@ -354,23 +352,26 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
 
   std::vector< TH1* > v_triggerSpect;
 
+  // if there are none, return
+  if( !m_triggerEtaSpect[ mbTrigger ] ){ return; }  
+  // should all be the same
   double etaMin = m_triggerEtaSpect[ mbTrigger ]->
     GetXaxis()->GetBinLowEdge( etaBinLow );
   double etaMax = m_triggerEtaSpect[ mbTrigger ]->
     GetXaxis()->GetBinUpEdge( etaBinUp );
 
   
-  for( auto& sh : m_triggerEtaSpect ){
+  for( auto& tH : m_triggerEtaSpect ){
     TH1* hs =
-      sh.second->
+      tH.second->
       ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
 			10*std::abs(etaMin),
 			10*std::abs(etaMax),
-			sh.first.c_str() ),
+			tH.first.c_str() ),
 		   etaBinLow, etaBinUp );
     v_triggerSpect.push_back( hs ); 
     
-    l_spect.AddEntry(  hs, sh.first.c_str() );
+    l_spect.AddEntry(  hs, tH.first.c_str() );
     SetHStyle( hs, style++, 0.6);
     hs->Draw("epsame");
     if( max < hs->GetMaximum() ){ max = hs->GetMaximum(); }
@@ -411,9 +412,12 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
   int style = 0; bool haveDrawn = false;
   double xMin = 0; double xMax = 0;
 
-  double etaMin = m_triggerEtaSpect[ mbTrigger ]->
+  // if there are none, return
+  if( !m_triggerEtaEff[ mbTrigger ] ){ return; }  
+  // should all be the same
+  double etaMin = m_triggerEtaEff[ mbTrigger ]->
     GetXaxis()->GetBinLowEdge( etaBinLow );
-  double etaMax = m_triggerEtaSpect[ mbTrigger ]->
+  double etaMax = m_triggerEtaEff[ mbTrigger ]->
     GetXaxis()->GetBinUpEdge( etaBinUp );
     
   std::map< std::string, TGraphAsymmErrors* > m_triggerEffGrf;
@@ -423,7 +427,7 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
 
   TH1* h_mbTrig =
     m_triggerEtaEff[ mbTrigger ]->
-    ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
+    ProjectionY( Form("h_eff_%2.0f.Eta.%2.0f_%s",
 		      10*std::abs(etaMin),
 		      10*std::abs(etaMax),
 		      mbTrigger.c_str() ),
@@ -432,7 +436,7 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
   for( auto& trigger : v_triggers ){
     m_triggerEff[ trigger ] =
       m_triggerEtaEff[ trigger ]->
-      ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
+      ProjectionY( Form("h_eff_%2.0f.Eta.%2.0f_%s",
 			10*std::abs(etaMin),
 			10*std::abs(etaMax),
 			trigger.c_str() ),
@@ -502,33 +506,43 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
 		     std::abs(etaMin)*10,
 		     std::abs(etaMax)*10,
 		     m_labelOut.c_str() ) );
+  c_eff.Write( Form("c_efficiencies_%2.0f.Eta.%2.0f%s.pdf",
+		      std::abs(etaMin)*10,
+		      std::abs(etaMax)*10,
+		      m_labelOut.c_str()) );
 }
 
 void DiJetAnalysisData::PlotEtaPhi(){
   TCanvas c_etaPhi("c_etaPhi","c_etaPhi",800,600);
 
-  for( auto& sh : m_triggerEtaPhi ){
-    sh.second->Draw("col");
-    SetHStyle( sh.second, 0, 0.6);
+  for( auto& tH : m_triggerEtaPhi ){
+    tH.second->Draw("col");
+    SetHStyle( tH.second, 0, 0.6);
     DrawAtlasInternalDataRight( 0, -0.55, 0.6, m_is_pPb );  
     c_etaPhi.SaveAs( Form("%s/etaPhi%s_%s.pdf", 
 			  m_dirOut.c_str(),
 			  m_labelOut.c_str(),
-			  sh.first.c_str() ) );
+			  tH.first.c_str() ) );
+    c_etaPhi.SaveAs( Form("c_etaPhi%s_%s.pdf", 
+			  m_labelOut.c_str(),
+			  tH.first.c_str() ) );
   }
 }
 
 void DiJetAnalysisData::PlotEtaPt(){
   TCanvas c_ptEta("c_ptEta","c_ptEta",800,600);
 
-  for( auto& sh : m_triggerEtaPt ){
-    sh.second->Draw("col");
-    SetHStyle( sh.second, 0, 0.6);
+  for( auto& tH : m_triggerEtaPt ){
+    tH.second->Draw("col");
+    SetHStyle( tH.second, 0, 0.6);
     DrawAtlasInternalDataLeft( 0, 0, 0.6, m_is_pPb );  
     c_ptEta.SaveAs( Form("%s/etaPt%s_%s.pdf", 
 			 m_dirOut.c_str(),
 			 m_labelOut.c_str(),
-			 sh.first.c_str() ) );
+			 tH.first.c_str() ) );
+    c_ptEta.SaveAs( Form("c_etaPt%s_%s.pdf", 
+			 m_labelOut.c_str(),
+			 tH.first.c_str() ) );
   }
 }
 

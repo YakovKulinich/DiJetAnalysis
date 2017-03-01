@@ -121,7 +121,7 @@ void DrawAtlasInternalDataRight( double x0, double y0,
   DrawRightLatex(0.875 + x0, 0.95,
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
-    DrawRightLatex(0.875 + x0, 0.88 + y0, 
+    DrawRightLatex(0.875, 0.88 + y0, 
 		   Form("#it{p}+Pb 2016, %i #mub^{-1}",
 			pPbLumi2016), scale);
   } else {
@@ -135,7 +135,7 @@ void DrawAtlasInternalDataRight( double x0, double y0,
 
 void DrawAtlasInternalDataLeft( double x0, double y0,
 				double scale, bool is_pPb ){
-  DrawRightLatex(0.875 + x0, 0.95, 
+  DrawRightLatex(0.875, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
     DrawLeftLatex(0.18 + x0, 0.88 + y0, 
@@ -152,12 +152,22 @@ void DrawAtlasInternalDataLeft( double x0, double y0,
 
 // ============ MC ================
 
-void DrawAtlasInternalMC( double x0, double y0, bool isReco, double scale ){ 
-  DrawRightLatex(0.875 + x0, 0.95, 
+void DrawAtlasInternalMCRight( double x0, double y0, double scale, bool isReco ){ 
+  DrawRightLatex(0.875, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
   if( isReco  ) DrawRightLatex(0.875 + x0, 0.815,
 			       "Reco Level", scale);
   if( !isReco ) DrawRightLatex(0.875 + x0, 0.815, 
+			       "Truth Level", scale);
+}
+
+
+void DrawAtlasInternalMCLeft( double x0, double y0, double scale, bool isReco ){ 
+  DrawRightLatex(0.875, 0.95, 
+		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
+  if( isReco  ) DrawLeftLatex(0.18 + x0, 0.815,
+			       "Reco Level", scale);
+  if( !isReco ) DrawLeftLatex(0.18 + x0, 0.815, 
 			       "Truth Level", scale);
 }
 

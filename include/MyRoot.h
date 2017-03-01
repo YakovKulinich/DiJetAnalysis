@@ -75,15 +75,20 @@ std::vector<std::string> vectorise(TString str, TString sep);
 //===================================
 //          DRAWING STUFF
 //===================================
-void DrawRightLatex( double x, double y , const char* s, float scale, int color);
-void DrawLeftLatex( double x, double y , const char* s, float scale, int color);
-void DrawCenterLatex( double x, double y , const char* s, float scale, int color);
+void DrawRightLatex ( double x, double y ,
+		      const char* s, float scale, int color);
+void DrawLeftLatex  ( double x, double y ,
+		      const char* s, float scale, int color);
+void DrawCenterLatex( double x, double y ,
+		      const char* s, float scale, int color);
 void DrawAtlasInternalDataRight( double x0, double y0,
 				 double scale, bool is_pPb);
-void DrawAtlasInternalDataLeft( double x0, double y0,
-				double scale, bool is_pPb );
-void DrawAtlasInternalMC( double x0, double y0,
-			  bool isReco, double scale );
+void DrawAtlasInternalDataLeft ( double x0, double y0,
+				 double scale, bool is_pPb );
+void DrawAtlasInternalMCRight  ( double x0, double y0,
+				 double scale, bool isReco );
+void DrawAtlasInternalMCLeft   ( double x0, double y0,
+				 double scale, bool isReco );
 
 // Histogram/Graph/Function styles
 void SetCustomMarkerStyle( TH1* his , int iflag );
