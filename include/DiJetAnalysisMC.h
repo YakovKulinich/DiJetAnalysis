@@ -47,6 +47,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   //          Tools 
   //---------------------------
+  void CombineJZN( TH1*,
+		   std::map< int, TH1*>&,
+		   std::map< int, TH1*>& );
+  
   void DrawCanvas( std::map< int, TH3* >&,
 		   TCanvas&, TLegend&,
 		   double, double,
@@ -61,16 +65,20 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::map< int, std::string > m_jznFnameIn;
   std::map< int, double >      m_jznSigma;
   std::map< int, double >      m_jznEff;
-
+  std::map< int, int    >      m_jznNev;
+  std::map< int, double >      m_jznWeights;
   //============ data =============
   std::map< int, TH2* > m_jznEtaSpect;
+  std::map< int, TH2* > m_jznEtaSpectTotal;
   std::map< int, TH2* > m_jznEtaPhi;
+  std::map< int, TH2* > m_jznEtaPhiTotal;
   std::map< int, TH2* > m_jznEtaPt;
+  std::map< int, TH2* > m_jznEtaPtTotal;
 
-  std::map< int, TH3* > m_jznRPt;
+  std::map< int, TH3* > m_jznRpt;
   std::map< int, TH3* > m_jznDeta;
   std::map< int, TH3* > m_jznDphi;
-
+  std::map< int, TH2* > m_jznNentries;  
 };
 
 #endif
