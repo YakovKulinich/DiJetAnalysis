@@ -87,9 +87,9 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   // make some spectra in various eta bins
   etaBinMax = m_jznEtaSpect.begin()->second->GetNbinsX();
   for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
-    PlotSpectra( etaBin, etaBin );
+    PlotSpectra( m_jznEtaSpect, etaBin, etaBin );
   }
-  PlotSpectra( 1, etaBinMax );
+  PlotSpectra( m_jznEtaSpect, 1, etaBinMax );
   
   PlotEtaPhiPtMap( m_jznEtaPhi );
   PlotEtaPhiPtMap( m_jznEtaPt  );
@@ -99,9 +99,11 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   // make some spectra in various eta bins
   etaBinMax = m_jznRpt.begin()->second->GetNbinsX();
   for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
-    PlotVsEtaPt( etaBin, etaBin, m_jznRpt, 0);
+    PlotVsEtaPt( etaBin, etaBin,
+		 m_jznRpt, m_jznNentries, 0);
   }
-  PlotVsEtaPt( 1, etaBinMax, m_jznRpt, 0);
+  PlotVsEtaPt( 1, etaBinMax,
+	       m_jznRpt, m_jznNentries, 0);
 
   
   // check if we have one
@@ -109,18 +111,22 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   // make some spectra in various eta bins
   etaBinMax = m_jznDeta.begin()->second->GetNbinsX();
   for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
-    PlotVsEtaPt( etaBin, etaBin, m_jznDeta, 1);
+    PlotVsEtaPt( etaBin, etaBin,
+		 m_jznDeta, m_jznNentries, 1);
   }
-  PlotVsEtaPt( 1, etaBinMax, m_jznDeta, 1);
+  PlotVsEtaPt( 1, etaBinMax,
+	       m_jznDeta, m_jznNentries, 1);
   
   // check if we have one
   if( !m_jznDphi.size() ){ return; }
   // make some spectra in various eta bins
   etaBinMax = m_jznDphi.begin()->second->GetNbinsX();
   for( int etaBin = 1; etaBin <= etaBinMax; etaBin++){
-    PlotVsEtaPt( etaBin, etaBin, m_jznDphi, 2);
+    PlotVsEtaPt( etaBin, etaBin,
+		 m_jznDphi, m_jznNentries, 2);
   }
-  PlotVsEtaPt( 1, etaBinMax, m_jznDphi, 2);
+  PlotVsEtaPt( 1, etaBinMax,
+	       m_jznDphi, m_jznNentries, 2);
 
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -186,7 +192,7 @@ void DiJetAnalysisMC::SetupHistograms(){
       new TH2D( Form("h_etaPt_jz%i", jzn),
 		";#eta_{Reco};#it{p}_{T}^{Reco}",
 		nEtaBins, etaMin, etaMax,
-		nPtBins, ptMin, ptMax );
+		nPtBins , ptMin  , ptMax );
     AddHistogram( m_jznEtaPt[ jzn ] );
     
     m_jznRpt[ jzn ] =
@@ -376,7 +382,8 @@ void DiJetAnalysisMC::LoadHistograms(){
   m_fIn->Close();
 }
 
-void DiJetAnalysisMC::PlotSpectra( int etaBinLow, int etaBinUp ){
+void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& m_jznHIN,
+				   int etaBinLow, int etaBinUp ){
   TCanvas c_spect("c_spect","c_spect",800,600);
   c_spect.SetLogy();
 
@@ -387,27 +394,27 @@ void DiJetAnalysisMC::PlotSpectra( int etaBinLow, int etaBinUp ){
   int style = 0;
   double max = -1;
 
-  std::vector< TH1* > v_jznSpect;
+  std::vector< TH1* > v_jznHIN;
 
   // check if we have one
-  if( !m_jznEtaSpect.size() ){ return; }
+  if( !m_jznHIN.size() ){ return; }
   // should all be the same
-  double etaMin = m_jznEtaSpect.begin()->second->
+  double etaMin = m_jznHIN.begin()->second->
     GetXaxis()->GetBinLowEdge( etaBinLow );
-  double etaMax = m_jznEtaSpect.begin()->second->
+  double etaMax = m_jznHIN.begin()->second->
     GetXaxis()->GetBinUpEdge( etaBinUp );
   
-  for( auto& jznH : m_jznEtaSpect ){ // loop over JZN
-    int jzn = jznH.first;
+  for( auto& jznHIN : m_jznHIN ){ // loop over JZN
+    int jzn = jznHIN.first;
     
     TH1* hs =
-      jznH.second->
-      ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_jz%i",
+      jznHIN.second->
+      ProjectionY( Form("h_%s_%2.0f.Eta.%2.0f",
+			jznHIN.second->GetName(),
 			10*std::abs(etaMin),
-			10*std::abs(etaMax),
-			jzn ),
+			10*std::abs(etaMax) ),
 		   etaBinLow, etaBinUp );
-    v_jznSpect.push_back( hs ); 
+    v_jznHIN.push_back( hs ); 
     
     l_spect.AddEntry(  hs, Form("JZ%i", jzn) );
     StyleTools::SetHStyle( hs, style++, 0.6);
@@ -415,14 +422,27 @@ void DiJetAnalysisMC::PlotSpectra( int etaBinLow, int etaBinUp ){
     if( max < hs->GetMaximum() ){ max = hs->GetMaximum(); }
 
     double power = log10(max);
-    power = std::ceil(power);
+    power = std::ceil(power); 
     max = pow( 10, power );
-    for( auto& h : v_jznSpect ){
+    for( auto& h : v_jznHIN ){
       h->SetMaximum( max );
       h->SetMinimum( 1 );
     }
   } // end loop over JZN
 
+  int  nPtBins = m_jznHIN.begin()->second->GetNbinsY();
+  double ptMin = m_jznHIN.begin()->second->GetYaxis()->GetXmin();
+  double ptMax = m_jznHIN.begin()->second->GetYaxis()->GetXmax();
+
+
+  
+  TH1* h_spect = new TH1D( Form("h_%s_%2.0f.Eta.%2.0f_final",
+				m_jznHIN.begin()->second->GetName(),
+				10*std::abs(etaMin),
+				10*std::abs(etaMax) ),
+			   m_jznHIN.begin()->second->GetTitle(),
+			   nPtBins, ptMin, ptMax );
+  
   l_spect.Draw();
   DrawTools::DrawAtlasInternalMCRight( 0, 0, 0.6, m_is_pPb ); 
   DrawTools::DrawLeftLatex( 0.5, 0.81,
@@ -447,26 +467,27 @@ void DiJetAnalysisMC::PlotSpectra( int etaBinLow, int etaBinUp ){
 		      m_labelOut.c_str() ) );
 }
 
-void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< int, TH2* >& m_jznH ){
+void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< int, TH2* >& m_jznHIN ){
   TCanvas c_map("c_map","c_map",800,600);
 
-  for( auto& jznH : m_jznH ){
-    jznH.second->Draw("col");
-    StyleTools::SetHStyle( jznH.second, 0, 0.6);
+  for( auto& jznHIN : m_jznHIN ){
+    jznHIN.second->Draw("col");
+    StyleTools::SetHStyle( jznHIN.second, 0, 0.6);
     DrawTools::DrawAtlasInternalMCLeft( 0, -0.55, 0.6, true );  
     c_map.SaveAs( Form("%s/%s%s.pdf", 
 		       m_dirOut.c_str(),
-		       jznH.second->GetName(),
+		       jznHIN.second->GetName(),
 		       m_labelOut.c_str() ) );
     c_map.SaveAs( Form("%s/%s%s.png", 
 		       m_dirOut.c_str(),
-		       jznH.second->GetName(),
+		       jznHIN.second->GetName(),
 		       m_labelOut.c_str() ) );
   }
 }
 
 void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
-				   std::map< int, TH3* >& m_jznH,
+				   std::map< int, TH3* >& m_jznHIN,
+				   std::map< int, TH2* >& m_jznNIN,
 				   int type ){
   TCanvas c_mean("c_mean","c_mean",800,600);
   TCanvas c_sigma("c_sigma","c_sigma",800,600);
@@ -482,22 +503,22 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
   std::map< int, TH1* > m_jznN;
 
   // check if we have one
-  if( !m_jznH.size() ){ return; }
+  if( !m_jznHIN.size() ){ return; }
   // should all be the same
-  double etaMin = m_jznH.begin()->second->
+  double etaMin = m_jznHIN.begin()->second->
     GetXaxis()->GetBinLowEdge( etaBinLow );
-  double etaMax = m_jznH.begin()->second->
+  double etaMax = m_jznHIN.begin()->second->
     GetXaxis()->GetBinUpEdge( etaBinUp );
   
-  int  nPtBins = m_jznH.begin()->second->GetNbinsY();
-  double ptMin = m_jznH.begin()->second->GetYaxis()->GetXmin();
-  double ptMax = m_jznH.begin()->second->GetYaxis()->GetXmax();
+  int  nPtBins = m_jznHIN.begin()->second->GetNbinsY();
+  double ptMin = m_jznHIN.begin()->second->GetYaxis()->GetXmin();
+  double ptMax = m_jznHIN.begin()->second->GetYaxis()->GetXmax();
 
   std::string yTitleMean;
   std::string yTitleSigma;
 
   if( type == 0 ){
-    yTitleMean  = "JES";
+    yTitleMean  = "#it{p}_{T}^{Reco}/#it{p}_{T}^{Reco}";
     yTitleSigma = "JER";
   } else if( type == 1 ){
     yTitleMean  = "#Delta#eta";
@@ -507,11 +528,11 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
     yTitleSigma = "#sigma#Delta#phi";
   } 
   
-  for( auto& jznH : m_jznH ){   // loop over JZN
-    int jzn = jznH.first;
+  for( auto& jznHIN : m_jznHIN ){   // loop over JZN
+    int jzn = jznHIN.first;
     
     TH1* hMean = new TH1D( Form("%s_mean_%2.0f.Eta.%2.0f",
-				jznH.second->GetName(),
+				jznHIN.second->GetName(),
 				10*std::abs(etaMin),
 				10*std::abs(etaMax) ),
 			   Form(";#it{p}_{T}^{Truth};%s",
@@ -521,7 +542,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
     m_jznMean[ jzn ] = hMean;
     
     TH1* hSigma = new TH1D( Form("%s_sigma_%2.0f.Eta.%2.0f",
-				 jznH.second->GetName(),
+				 jznHIN.second->GetName(),
 				 10*std::abs(etaMin),
 				 10*std::abs(etaMax) ),
 			    Form(";#it{p}_{T}^{Truth};%s",
@@ -530,15 +551,15 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
     StyleTools::SetHStyle( hSigma, style, 0.6);
     m_jznSigma[ jzn ] = hSigma; 
 
-    TH1* hN = m_jznNentries[ jzn ]->
+    TH1* hN = m_jznNIN[ jzn ]->
       ProjectionY( Form("%s_N_%2.0f.Eta.%2.0f",
-			jznH.second->GetName(),
+			jznHIN.second->GetName(),
 			10*std::abs(etaMin),
 			10*std::abs(etaMax) ),
 		   etaBinLow, etaBinUp);
     m_jznN[ jzn ] = hN;
     
-    ProjectEtaPtAndFit( jznH.second, hMean, hSigma, etaBinLow, etaBinUp );
+    ProjectEtaPtAndFit( jznHIN.second, hMean, hSigma, etaBinLow, etaBinUp );
 
     // Draw on Mean canvas
     c_mean.cd();
@@ -573,7 +594,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
   // The name will have jz1 in it but oh well...
   // final is is important 
   TH1* h_mean = new TH1D( Form("%s_mean_%2.0f.Eta.%2.0f_final",
-			       m_jznH.begin()->second->GetName(),
+			       m_jznHIN.begin()->second->GetName(),
 			       10*std::abs(etaMin),
 			       10*std::abs(etaMax) ),
 			  Form(";#it{p}_{T}^{Truth};%s",
@@ -584,7 +605,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
   // The name will have jz1 in it but oh well...
   // final is is important
   TH1* h_sigma = new TH1D( Form("%s_sigma_%2.0f.Eta.%2.0f_final",
-				m_jznH.begin()->second->GetName(),
+				m_jznHIN.begin()->second->GetName(),
 				10*std::abs(etaMin),
 				10*std::abs(etaMax) ),
 			   Form(";#it{p}_{T}^{Truth};%s",
@@ -604,12 +625,12 @@ void DiJetAnalysisMC::PlotVsEtaPt( int etaBinLow, int etaBinUp,
   
   // Draw the canvases for mean and sigma
   bool isMean;
-  DrawCanvas(  m_jznH ,
+  DrawCanvas(  m_jznHIN ,
 	       c_mean , leg,
 	       etaMin , etaMax,
 	       type   , isMean = true ); 
 
-  DrawCanvas(  m_jznH  ,
+  DrawCanvas(  m_jznHIN  ,
 	       c_sigma , leg,
 	       etaMin  , etaMax,
 	       type    , isMean = false ); 
@@ -703,11 +724,11 @@ void DiJetAnalysisMC::CombineJZN( TH1* h_res,
       double valueBinErr = m_jznV1[ jzn ]->GetBinError( xBin );
       double nEntriesBin = m_jznN1[ jzn ]->GetBinContent( xBin );
 
-      /*
-      std::cout << "  jz" << jzn << "   weight: " << weight
+      /*if( xBin == 10 ){
+	std::cout << "  jz" << jzn << "   weight: " << weight
 		<< "  valueBin: " << valueBin
 		<< "  nentries: " << nEntriesBin << std::endl;
-      */
+		}*/
       
       double val    = weight * nEntriesBin * valueBin;
       double valErr = weight * nEntriesBin * valueBinErr;
@@ -721,7 +742,7 @@ void DiJetAnalysisMC::CombineJZN( TH1* h_res,
     valTot      /= denomTot;
     valErrorTot /= denomTot * denomTot;
 
-    /*
+    /*   
     std::cout << h_res->GetName() << "  xbin: " << xBin
 	      << "   valT: " << valTot << std::endl; 
     */
@@ -731,7 +752,7 @@ void DiJetAnalysisMC::CombineJZN( TH1* h_res,
   }
 }
   
-void DiJetAnalysisMC::DrawCanvas( std::map< int, TH3* >& m_jznH,
+void DiJetAnalysisMC::DrawCanvas( std::map< int, TH3* >& m_jznHIN,
 				  TCanvas& c, TLegend& leg,
 				  double etaMin, double etaMax,
 				  int type, bool isMean ){
@@ -755,29 +776,29 @@ void DiJetAnalysisMC::DrawCanvas( std::map< int, TH3* >& m_jznH,
     y0 = 0;
   }
 
-  double ptMin = m_jznH.begin()->second->GetYaxis()->GetXmin();
-  double ptMax = m_jznH.begin()->second->GetYaxis()->GetXmax();
+  double ptMin = m_jznHIN.begin()->second->GetYaxis()->GetXmin();
+  double ptMax = m_jznHIN.begin()->second->GetYaxis()->GetXmax();
   
   TLine line( ptMin, y0, ptMax, y0);
   line.Draw();
     
   c.SaveAs( Form("%s/%s_%s_%2.0f.Eta.%2.0f%s.pdf",
 		 m_dirOut.c_str(),
-		 m_jznH.begin()->second->GetName(),
+		 m_jznHIN.begin()->second->GetName(),
 		 meanOrSigma.c_str(),
 		 std::abs(etaMin)*10,
 		 std::abs(etaMax)*10,
 		 m_labelOut.c_str() ) );
   c.SaveAs( Form("%s/%s_%s_%2.0f.Eta.%2.0f%s.png",
 		 m_dirOut.c_str(),
-		 m_jznH.begin()->second->GetName(),
+		 m_jznHIN.begin()->second->GetName(),
 		 meanOrSigma.c_str(),
 		 std::abs(etaMin)*10,
 		 std::abs(etaMax)*10,
 		 m_labelOut.c_str() ) );
 
   c.Write( Form("c_%s_%s_%2.0f.Eta.%2.0f%s",
-		m_jznH.begin()->second->GetName(),
+		m_jznHIN.begin()->second->GetName(),
 		meanOrSigma.c_str(),
 		std::abs(etaMin)*10,
 		std::abs(etaMax)*10,

@@ -36,11 +36,15 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void LoadHistograms();
 
-  void PlotSpectra( int, int );
+  void PlotSpectra( std::map< int, TH2* >&,
+		    int, int );
   
   void PlotEtaPhiPtMap( std::map< int, TH2* >& );
 
-  void PlotVsEtaPt( int, int, std::map< int, TH3* >&, int );
+  void PlotVsEtaPt( int, int,
+		    std::map< int, TH3* >&,
+		    std::map< int, TH2* >&,
+		    int );
   
   void ProjectEtaPtAndFit( TH3*, TH1*, TH1*, int, int );
 
@@ -69,11 +73,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::map< int, double >      m_jznWeights;
   //============ data =============
   std::map< int, TH2* > m_jznEtaSpect;
-  std::map< int, TH2* > m_jznEtaSpectTotal;
   std::map< int, TH2* > m_jznEtaPhi;
-  std::map< int, TH2* > m_jznEtaPhiTotal;
   std::map< int, TH2* > m_jznEtaPt;
-  std::map< int, TH2* > m_jznEtaPtTotal;
 
   std::map< int, TH3* > m_jznRpt;
   std::map< int, TH3* > m_jznDeta;
