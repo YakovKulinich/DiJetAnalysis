@@ -65,21 +65,23 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   double m_dRmax;
   
   //============ settings =============
-  std::vector< int > v_usedJZN;
-  std::map< int, std::string > m_jznFnameIn;
-  std::map< int, double >      m_jznSigma;
-  std::map< int, double >      m_jznEff;
-  std::map< int, int    >      m_jznNev;
-  std::map< int, double >      m_jznWeights;
-  //============ data =============
-  std::map< int, TH2* > m_jznEtaSpect;
-  std::map< int, TH2* > m_jznEtaPhi;
-  std::map< int, TH2* > m_jznEtaPt;
+  std::vector< int > m_v_usedJZN;
+  std::map< int, std::string > m_m_jznFnameIn;
+  std::map< int, double >      m_m_jznSigma;
+  std::map< int, double >      m_m_jznEff;
+  std::map< int, int    >      m_m_jznNev;
+  std::map< int, double >      m_m_jznWeights;
 
-  std::map< int, TH3* > m_jznRpt;
-  std::map< int, TH3* > m_jznDeta;
-  std::map< int, TH3* > m_jznDphi;
-  std::map< int, TH2* > m_jznNentries;  
+  double m_sumSigmaEff;
+  //============ data =============
+  std::map< int, TH2* > m_m_jznEtaSpect;
+  std::map< int, TH2* > m_m_jznEtaPhi;
+  std::map< int, TH2* > m_m_jznEtaPt;
+
+  std::map< int, TH3* > m_m_jznRpt;
+  std::map< int, TH3* > m_m_jznDeta;
+  std::map< int, TH3* > m_m_jznDphi;
+  std::map< int, TH2* > m_m_jznNentries;  
 };
 
 #endif

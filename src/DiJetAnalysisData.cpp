@@ -350,7 +350,7 @@ void DiJetAnalysisData::PlotSpectra( int etaBinLow, int etaBinUp ){
   c_spect.SetLogy();
 
   TLegend l_spect(0.23, 0.23, 0.54, 0.36);
-  StyleTools::SetLegendStyle( &l_spect, 0.55 );
+  StyleTools::SetLegendStyle( &l_spect, 0.6 );
   l_spect.SetFillStyle(0);
 
   int style = 0;
@@ -417,7 +417,7 @@ void DiJetAnalysisData::PlotEfficiencies( int etaBinLow, int etaBinUp ){
   TCanvas c_eff("c_eff","c_eff",800,600);
 
   TLegend l_eff(0.38, 0.28, 0.61, 0.41);
-  StyleTools::SetLegendStyle( &l_eff, 0.55 );
+  StyleTools::SetLegendStyle( &l_eff, 0.6 );
   l_eff.SetFillStyle(0);
 
   int style = 0; bool haveDrawn = false;
