@@ -95,6 +95,9 @@ namespace DrawTools{
 }
 
 namespace StyleTools{
+  const double lSS = 0.60;
+  const double hSS = 0.75;
+  
   // Histogram/Graph/Function styles
   void SetCustomMarkerStyle( TH1* his , int iflag );
   void SetCustomMarkerStyle( TGraph* his , int iflag );

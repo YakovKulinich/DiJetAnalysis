@@ -146,35 +146,35 @@ void DrawTools::DrawCenterLatex
 
 void DrawTools::DrawAtlasInternalDataRight
 ( double x0, double y0, double scale, bool is_pPb ){
-  DrawRightLatex(0.875 + x0, 0.95,
+  DrawRightLatex(0.88 + x0, 0.93,
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
-    DrawRightLatex(0.875, 0.88 + y0, 
+    DrawRightLatex(0.88, 0.86 + y0, 
 		   Form("#it{p}+Pb 2016, %i #mub^{-1}",
 			pPbLumi2016), scale);
   } else {
-    DrawRightLatex(0.875 + x0, 0.88 + y0, 
+    DrawRightLatex(0.88 + x0, 0.86 + y0, 
 		   Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale);
   }
-  DrawRightLatex(0.875 + x0, 0.81 + y0, 
+  DrawRightLatex(0.88 + x0, 0.80 + y0, 
 		 "#sqrt{s_{NN}}=5.02 TeV", scale);
 }
 
 void DrawTools::DrawAtlasInternalDataLeft
 ( double x0, double y0, double scale, bool is_pPb ){
-  DrawRightLatex(0.875, 0.95, 
+  DrawRightLatex(0.875, 0.94, 
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
-    DrawLeftLatex(0.18 + x0, 0.88 + y0, 
+    DrawLeftLatex(0.18 + x0, 0.87 + y0, 
 		   Form("#it{p}+Pb 2016, %i #mub^{-1}",
 			pPbLumi2016), scale);
   } else {
-    DrawLeftLatex(0.18 + x0, 0.88 + y0, 
+    DrawLeftLatex(0.18 + x0, 0.87 + y0, 
 		   Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale);
   }
-  DrawLeftLatex(0.18 + x0, 0.81 + y0, 
+  DrawLeftLatex(0.18 + x0, 0.80 + y0, 
 		"#sqrt{s_{NN}}=5.02 TeV", scale); 
 }
 
@@ -184,10 +184,12 @@ void DrawTools::DrawAtlasInternalMCRight
 ( double x0, double y0, double scale, bool isReco ){ 
   DrawRightLatex(0.875, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
-  if( isReco  ) DrawRightLatex(0.875 + x0, 0.815,
+  /*
+  if( isReco  ) DrawRightLatex(0.875 + x0, 0.87,
 			       "Reco Level", scale);
-  if( !isReco ) DrawRightLatex(0.875 + x0, 0.815, 
+  if( !isReco ) DrawRightLatex(0.875 + x0, 0.87, 
 			       "Truth Level", scale);
+  */
 }
 
 

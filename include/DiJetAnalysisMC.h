@@ -36,13 +36,11 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void LoadHistograms();
 
-  void PlotSpectra( std::map< int, TH2* >&,
-		    int, int );
+  void PlotSpectra( std::map< int, TH2* >& );
   
   void PlotEtaPhiPtMap( std::map< int, TH2* >& );
 
-  void PlotVsEtaPt( int, int,
-		    std::map< int, TH3* >&,
+  void PlotVsEtaPt( std::map< int, TH3* >&,
 		    std::map< int, TH2* >&,
 		    int );
   
@@ -52,12 +50,19 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //          Tools 
   //---------------------------
   void CombineJZN( TH1*,
+		   std::map< int, TH1*>& );
+
+  void CombineJZN( TH1*,
 		   std::map< int, TH1*>&,
 		   std::map< int, TH1*>& );
-  
+    
   void DrawCanvas( std::map< int, TH3* >&,
 		   TCanvas&, TLegend&,
 		   double, double,
+		   int, bool );
+
+  void DrawCanvas( std::vector< TH1* >&,
+		   TCanvas&, TLegend&,
 		   int, bool );
   
  private:
@@ -65,23 +70,24 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   double m_dRmax;
   
   //============ settings =============
-  std::vector< int > m_v_usedJZN;
-  std::map< int, std::string > m_m_jznFnameIn;
-  std::map< int, double >      m_m_jznSigma;
-  std::map< int, double >      m_m_jznEff;
-  std::map< int, int    >      m_m_jznNev;
-  std::map< int, double >      m_m_jznWeights;
+  std::vector< int > m_vUsedJZN;
+  std::map< int, std::string > m_mJznFnameIn;
+  std::map< int, double >      m_mJznSigma;
+  std::map< int, double >      m_mJznEff;
+  std::map< int, int    >      m_mJznNev;
+  std::map< int, double >      m_mJznWeights;
 
   double m_sumSigmaEff;
   //============ data =============
-  std::map< int, TH2* > m_m_jznEtaSpect;
-  std::map< int, TH2* > m_m_jznEtaPhi;
-  std::map< int, TH2* > m_m_jznEtaPt;
+  std::map< int, TH2* > m_mJznEtaSpect;
+  std::map< int, TH2* > m_mJznEtaPhi;
+  std::map< int, TH2* > m_mJznEtaPt;
 
-  std::map< int, TH3* > m_m_jznRpt;
-  std::map< int, TH3* > m_m_jznDeta;
-  std::map< int, TH3* > m_m_jznDphi;
-  std::map< int, TH2* > m_m_jznNentries;  
+  std::map< int, TH3* > m_mJznRpt;
+  std::map< int, TH3* > m_mJznDeta;
+  std::map< int, TH3* > m_mJznDphi;
+  std::map< int, TH3* > m_mJznRecoEff;
+  std::map< int, TH2* > m_mJznNentries;  
 };
 
 #endif

@@ -33,9 +33,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void LoadHistograms();
 
-  void PlotSpectra( int, int );
+  void PlotSpectra( std::map< std::string, TH2* >& );
 
-  void PlotEfficiencies( int, int );
+  void PlotEfficiencies( std::map< std::string, TH2* >& );
 
   void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
   
@@ -44,14 +44,14 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::string m_fNameIn;
   
   //============ data =============
-  std::vector< std::string > v_triggers;
+  std::vector< std::string > m_vTriggers;
 
-  std::map< std::string, TH2* > m_triggerEtaSpect;
-  std::map< std::string, TH2* > m_triggerEtaEff;
+  std::map< std::string, TH2* > m_mTriggerEtaSpect;
+  std::map< std::string, TH2* > m_mTriggerEtaEff;
   
-  std::map< std::string, TH2* > m_triggerRunPrescale;
-  std::map< std::string, TH2* > m_triggerEtaPhi;
-  std::map< std::string, TH2* > m_triggerEtaPt;
+  std::map< std::string, TH2* > m_mTriggerRunPrescale;
+  std::map< std::string, TH2* > m_mTriggerEtaPhi;
+  std::map< std::string, TH2* > m_mTriggerEtaPt;
 
   std::vector< int > v_tJetPt;
   std::map   < int , std::string > m_tJetPtTrigger;
