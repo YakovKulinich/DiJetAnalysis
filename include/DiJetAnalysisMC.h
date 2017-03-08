@@ -42,28 +42,34 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void PlotVsEtaPt( std::map< int, TH3* >&,
 		    std::map< int, TH2* >&,
-		    int );
-  
-  void ProjectEtaPtAndFit( TH3*, TH1*, TH1*, int, int );
+		    const std::string& );
 
   //---------------------------
   //          Tools 
   //---------------------------
+  void ProjectEtaPtAndFit( TH3*, TH1*, TH1*, int, int );
+
   void CombineJZN( TH1*,
 		   std::map< int, TH1*>& );
 
   void CombineJZN( TH1*,
 		   std::map< int, TH1*>&,
 		   std::map< int, TH1*>& );
-    
-  void DrawCanvas( std::map< int, TH3* >&,
-		   TCanvas&, TLegend&,
-		   double, double,
-		   int, bool );
+
+  //---------------------------
+  //          Drawing
+  //---------------------------
+  void DrawCanvas( std::map< int, TH1* >&, TH1*,
+		   double, double, 
+		   const std::string& , bool );
 
   void DrawCanvas( std::vector< TH1* >&,
-		   TCanvas&, TLegend&,
-		   int, bool );
+		   const std::string&, bool );
+
+  //===== MinMax and line drawing =====
+  void SetMinMax( TH1*, const std::string&, bool );
+
+  double GetLineHeight( const std::string& );
   
  private:
   //============== cuts ===============

@@ -87,6 +87,7 @@ void DiJetAnalysisData::LoadTriggers(){
     if( trigger.find("_mb_") != std::string::npos ){ 
       mbTrigger = trigger; 
       std::cout << "Found Min Bias trigger " << mbTrigger << std::endl;
+      break;
     }
   }
 
@@ -123,7 +124,8 @@ void DiJetAnalysisData::LoadTriggers(){
 void DiJetAnalysisData::SetupHistograms(){ 
   // Triggers and Spectra
   int    nPtSpectBins = 50; 
-  double ptSpectMin   = 0; double ptSpectMax  = nPtSpectBins;
+  double ptSpectMin   = 10;
+  double ptSpectMax   = 2*nPtSpectBins + ptSpectMin;
 
   int    nPtEffBins   = 50; 
   double ptEffMin     = 0; double ptEffMax  = nPtEffBins;
