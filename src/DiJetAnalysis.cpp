@@ -5,7 +5,10 @@
 #include <TEnv.h>
 #include <TCanvas.h>
 
+#include <cmath>
 #include <iostream>
+#include <sstream>
+#include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 
 #include "MyRoot.h"
@@ -47,6 +50,34 @@ void DiJetAnalysis::Initialize(){
   m_rootFname = m_dirOut + "/myOut" + m_labelOut + ".root";
   
   std::cout << "fNameIn/Out: " << m_rootFname << std::endl;
+
+  //========== Set Histogram Binning =============
+  // Common for all analysis
+  
+  // Triggers and Spectra
+  m_nPtSpectBins = 50; 
+  m_ptSpectMin   = 10;
+  m_ptSpectMax   = 2 * m_nPtSpectBins + m_ptSpectMin;
+  
+  // Eta-Phi Maps
+  m_nEtaBins = 100; 
+  m_etaMin   = constants::ETAMIN;
+  m_etaMax   = constants::ETAMAX;
+  
+  m_nPhiBins = 64; 
+  m_phiMin   = -constants::PI;
+  m_phiMax   = constants::PI; 
+  
+  m_ptWidth  = 2;
+  m_ptMin    = 10;
+  m_ptMax    = 100;
+  m_nPtBins  = (m_ptMax - m_ptMin)/m_ptWidth;
+  
+  // JES JER etc
+  m_nEtaForwardBinsFine   = 12;
+  m_nEtaForwardBinsCoarse = 3;
+  m_etaForwardMin   = -constants::FETAMAX;
+  m_etaForwardMax   = -constants::FETAMIN;
 }
 
 bool DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
@@ -100,4 +131,25 @@ void DiJetAnalysis::AddHistogram( TH1* h ){
   h->GetXaxis()->SetNdivisions(505);  
   h->GetYaxis()->SetNdivisions(505);  
   StyleTools::SetHStyle( h, 0, 0.6 );
+}
+
+std::string DiJetAnalysis::GetEtaLabel( double etaMin, double etaMax ){
+
+  std::stringstream ss;
+
+  if( m_is_pPb ){
+    ss << boost::format("%3.1f<#eta<%3.1f") % etaMin % etaMax;
+  } else {
+    if( abs(etaMin) > abs(etaMax) )
+      ss << boost::format("%3.1f<|#eta|<%3.1f") % abs(etaMax) % abs(etaMin);
+    else
+      ss << boost::format("%3.1f<|#eta|<%3.1f") % abs(etaMin) % abs(etaMax);
+  }
+  
+  return ss.str();
+}
+
+double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
+  if( m_is_pPb ) return jetEta;
+  return jetEta  > 0 ? -1 * jetEta  : jetEta;
 }

@@ -57,6 +57,12 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::map   < int , std::string > m_tJetPtTrigger;
 
   std::string  mbTrigger;
+
+  //============ histos =============
+  // Efficiencies
+  int    m_nPtEffBins;
+  double m_ptEffMin;
+  double m_ptEffMax;
 };
 
 #endif

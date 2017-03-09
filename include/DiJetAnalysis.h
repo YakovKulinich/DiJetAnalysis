@@ -44,6 +44,15 @@ class DiJetAnalysis{
   virtual void LoadHistograms() = 0;
 
   virtual void SaveOutputs();
+
+  //---------------------------
+  //       Tools
+  //---------------------------
+  void AddHistogram( TH1* );
+
+  std::string GetEtaLabel( double, double );
+
+  double AdjustEtaForPP( double );
   
  protected:
   //========== settings ===========
@@ -65,8 +74,34 @@ class DiJetAnalysis{
   std::vector< TF1*    > v_functs; // for writing
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
 
+ protected:
+  //============ histos =============
+  int    m_nPtSpectBins;
+  double m_ptSpectMin;
+  double m_ptSpectMax;
+  
+  // Eta-Phi Maps
+  int    m_nEtaBins;
+  double m_etaMin;
+  double m_etaMax;
+  
+  int    m_nPhiBins;
+  double m_phiMin;
+  double m_phiMax;
+  
+  double m_ptWidth;
+  double m_ptMin;
+  double m_ptMax;
+  int    m_nPtBins;
+  
+  // JES JER etc
+  int    m_nEtaForwardBinsFine;
+  int    m_nEtaForwardBinsCoarse;
+  double m_etaForwardMin;
+  double m_etaForwardMax;
+
  public:
-  void AddHistogram( TH1* );
+ 
 
 };
 

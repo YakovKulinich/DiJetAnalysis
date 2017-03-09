@@ -29,6 +29,12 @@ void DiJetAnalysisData::Initialize(){
   m_fNameIn = m_is_pPb ?
     "/home/yakov/Projects/atlas/data/pPb.root" :
     "/home/yakov/Projects/atlas/data/pp.root"  ;
+
+
+  // Efficiencies
+  m_nPtEffBins   = 50; 
+  m_ptEffMin     = 0;
+  m_ptEffMax     = m_nPtEffBins;
 }
 
 //---------------------------------
@@ -121,46 +127,26 @@ void DiJetAnalysisData::LoadTriggers(){
   }
 }
 
-void DiJetAnalysisData::SetupHistograms(){ 
-  // Triggers and Spectra
-  int    nPtSpectBins = 50; 
-  double ptSpectMin   = 10;
-  double ptSpectMax   = 2*nPtSpectBins + ptSpectMin;
-
-  int    nPtEffBins   = 50; 
-  double ptEffMin     = 0; double ptEffMax  = nPtEffBins;
+void DiJetAnalysisData::SetupHistograms(){
   
-  // Eta-Phi Maps
-  int    nEtaBins = 100; 
-  double etaMin   = constants::ETAMIN; double etaMax  = constants::ETAMAX;
-
-  int    nPhiBins = 64; 
-  double phiMin   = -constants::PI; double phiMax  = constants::PI; 
-
-  double ptWidth  = 2;
-  double ptMin    = 10;
-  double ptMax    = 100;
-  int    nPtBins  = (ptMax - ptMin)/ptWidth;
-
-  int    nEtaForwardBinsFine   = 12;
-  int    nEtaForwardBinsCoarse = 3;
-  double etaForwardMin   = -constants::FETAMAX;
-  double etaForwardMax   = -constants::FETAMIN;
-
   for( auto& trigger : m_vTriggers ){
     std::cout << "Making - " << trigger << " histograms " << std::endl;
     m_mTriggerEtaSpect[ trigger ] = 
       new TH2D( Form("h_etaSpect_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T} [GeV];dN/d#it{p}_{T}",
-		nEtaForwardBinsCoarse, etaForwardMin, etaForwardMax,
-		nPtSpectBins, ptSpectMin, ptSpectMax ) ;
+		m_nEtaForwardBinsCoarse,
+		m_etaForwardMin, m_etaForwardMax,
+		m_nPtSpectBins,
+		m_ptSpectMin, m_ptSpectMax ) ;
     AddHistogram( m_mTriggerEtaSpect[ trigger ] );
       
     m_mTriggerEtaEff[ trigger ] = 
       new TH2D( Form("h_etaEff_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T} [GeV]",
-		nEtaForwardBinsCoarse, etaForwardMin, etaForwardMax,
-		nPtEffBins, ptEffMin, ptEffMax ) ;
+		m_nEtaForwardBinsCoarse,
+		m_etaForwardMin, m_etaForwardMax,
+		m_nPtEffBins,
+		m_ptEffMin, m_ptEffMax ) ;
     AddHistogram( m_mTriggerEtaEff[trigger ] );
       
     m_mTriggerRunPrescale[ trigger ] = 
@@ -172,15 +158,15 @@ void DiJetAnalysisData::SetupHistograms(){
     m_mTriggerEtaPhi[ trigger ] = 
       new TH2D( Form("h_etaPhi_%s", trigger.c_str() ), 
 		";#eta;#phi",
-		nEtaBins, etaMin, etaMax,
-		nPhiBins, phiMin, phiMax ) ;
+		m_nEtaBins, m_etaMin, m_etaMax,
+		m_nPhiBins, m_phiMin, m_phiMax ) ;
     AddHistogram( m_mTriggerEtaPhi[ trigger ] );
      
     m_mTriggerEtaPt[ trigger ] = 
       new TH2D( Form("h_etaPt_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T}",
-		nEtaBins, etaMin, etaMax,
-		nPtBins, ptMin, ptMax) ;
+		m_nEtaBins, m_etaMin, m_etaMax,
+		m_nPtBins , m_ptMin , m_ptMax) ;
     AddHistogram( m_mTriggerEtaPt[ trigger ] );
   }
 }
@@ -257,14 +243,27 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	double jetEta = jet.Eta();
 	double jetPhi = jet.Phi();
 	double jetPt = jet.Pt()/1000.;
+
 	m_mTriggerEtaPhi[ trigger ]->Fill( jetEta, jetPhi );
 	m_mTriggerEtaPt [ trigger ]->Fill( jetEta, jetPt ); 
 	// eta cut
-	if( jet.Eta() > -constants::FETAMIN ) continue;
-	m_mTriggerEtaSpect[ trigger ]->Fill( jetEta, jetPt );
+
+	// convert positive eta to negative because
+	// in pp it doesnt matter.
+	// our histos run in negative eta
+	// (due to pPb configuration)
+	// the labels will be taken care of so it is ok
+	double jetEtaAdj = AdjustEtaForPP( jetEta );
+	
+	// saves computation time
+	// can theoreticall leave out
+	// will go to overflow bins in histos
+	if( jetEtaAdj > -constants::FETAMIN ) continue;
+
+	m_mTriggerEtaSpect[ trigger ]->Fill( jetEtaAdj, jetPt );
 	// fill mb efficiency histo also
 	if( !trigger.compare(mbTrigger) ){
-	  m_mTriggerEtaEff[mbTrigger]->Fill( jetEta, jetPt );
+	  m_mTriggerEtaEff[mbTrigger]->Fill( jetEtaAdj, jetPt );
 	}
       } // end loop over triggers
     } // end loop over jets
@@ -293,7 +292,8 @@ ProcessEfficiencies( std::vector< TLorentzVector >& vTrig_jets,
   // take highest pt trigger jet in forward eta range
   TLorentzVector* tJet = NULL;
   for( auto& jet : vTrig_jets ){
-    if( jet.Eta() > -constants::FETAMIN ) continue;
+    if( AdjustEtaForPP( jet.Eta() ) > -constants::FETAMIN )
+      continue;
     tJet = &jet;
     break; // found highest forward trigger jet
   }    
@@ -309,9 +309,10 @@ ProcessEfficiencies( std::vector< TLorentzVector >& vTrig_jets,
       // fill jets for that trigger
       for( auto& jet : vR_jets ){
 	// eta cut
-	if( jet.Eta() > -constants::FETAMIN ) continue;
+	double jetEtaAdj = AdjustEtaForPP( jet.Eta() );
+	if( jetEtaAdj > -constants::FETAMIN ) continue;
 	m_mTriggerEtaEff[ ptTrig.second ]->
-	  Fill( jet.Eta(), jet.Pt()/1000. );
+	  Fill( jetEtaAdj, jet.Pt()/1000. );
       } // end loop over jets
     }
   } // end loop over triggers 
@@ -349,12 +350,17 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH ){
   
   std::vector< TH1* > vTriggerSpect;
 
-  for( int xBin = 1; xBin < mTriggerH[ mbTrigger ]->GetNbinsX(); xBin++ ){
+  for( int xBin = 1; xBin <= mTriggerH[ mbTrigger ]->GetNbinsX(); xBin++ ){
   
     TCanvas c_spect("c_spect","c_spect",800,600);
     c_spect.SetLogy();
 
-    TLegend l_spect(0.15, 0.15, 0.46, 0.28);
+    double x0, y0, x1, y1;
+
+    if( m_is_pPb ){ x0 = 0.45; y0 = 0.54; x1 = 0.76; y1 = 0.67; }
+    else          { x0 = 0.56; y0 = 0.54; x1 = 0.86; y1 = 0.67; }
+    
+    TLegend l_spect( x0, y0, x1, y1 );
     StyleTools::SetLegendStyle( &l_spect, StyleTools::lSS );
     l_spect.SetFillStyle(0);
 
@@ -394,8 +400,8 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH ){
   
     l_spect.Draw();
     DrawTools::DrawAtlasInternalDataRight( 0, 0, StyleTools::lSS, m_is_pPb ); 
-    DrawTools::DrawLeftLatex( 0.75, 0.7,
-			      Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+    DrawTools::DrawLeftLatex( 0.75, 0.725,
+			      GetEtaLabel( etaMin, etaMax).c_str(),
 			      StyleTools::lSS, 1 );
   
     c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s.pdf",
@@ -424,7 +430,7 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTriggerH ){
   std::vector< TH1* > vTriggerEff;
   std::vector< TGraphAsymmErrors* > vTriggerEffGrf;
 
-  for( int xBin = 1; xBin < mTriggerH[ mbTrigger ]->GetNbinsX(); xBin++ ){
+  for( int xBin = 1; xBin <= mTriggerH[ mbTrigger ]->GetNbinsX(); xBin++ ){
   
     TCanvas c_eff("c_eff","c_eff",800,600);
 
@@ -520,7 +526,7 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTriggerH ){
 
     DrawTools::DrawAtlasInternalDataRight( 0, 0,  StyleTools::lSS, m_is_pPb ); 
     DrawTools::DrawLeftLatex( 0.5, 0.8,
-			      Form("%3.1f<#eta<%3.1f", etaMin, etaMax),
+			      GetEtaLabel( etaMin, etaMax).c_str(),
 			      StyleTools::lSS, 1 );
 
     c_eff.SaveAs( Form("%s/efficiencies_%2.0f.Eta.%2.0f%s.pdf",
