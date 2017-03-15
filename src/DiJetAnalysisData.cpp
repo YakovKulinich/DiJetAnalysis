@@ -377,7 +377,7 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH ){
     for( auto& tH : mTriggerH ){
       TH1* hs =
 	tH.second->
-	ProjectionY( Form("h_spect_%2.0f.Eta.%2.0f_%s",
+	ProjectionY( Form("h_spect_%2.0f_Eta_%2.0f_%s",
 			  10*std::abs(etaMin),
 			  10*std::abs(etaMax),
 			  tH.first.c_str() ),
@@ -404,17 +404,17 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH ){
 			      GetEtaLabel( etaMin, etaMax).c_str(),
 			      StyleTools::lSS, 1 );
   
-    c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s.pdf",
+    c_spect.SaveAs( Form("%s/spectra_%2.0f_Eta_%2.0f%s.pdf",
 			 m_dirOut.c_str(),
 			 std::abs(etaMin)*10,
 			 std::abs(etaMax)*10,
 			 m_labelOut.c_str() ) );
-    c_spect.SaveAs( Form("%s/spectra_%2.0f.Eta.%2.0f%s.png",
+    c_spect.SaveAs( Form("%s/spectra_%2.0f_Eta_%2.0f%s.png",
 			 m_dirOut.c_str(),
 			 std::abs(etaMin)*10,
 			 std::abs(etaMax)*10,
 			 m_labelOut.c_str() ) );
-    c_spect.Write( Form("c_spectra_%2.0f.Eta.%2.0f%s",
+    c_spect.Write( Form("c_spectra_%2.0f_Eta_%2.0f%s",
 			std::abs(etaMin)*10,
 			std::abs(etaMax)*10,
 			m_labelOut.c_str()) );
@@ -452,7 +452,7 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTriggerH ){
 
     TH1* h_mbTrig =
       mTriggerH[ mbTrigger ]->
-      ProjectionY( Form("h_eff_%2.0f.Eta.%2.0f_%s",
+      ProjectionY( Form("h_eff_%2.0f_Eta_%2.0f_%s",
 			10*std::abs(etaMin),
 			10*std::abs(etaMax),
 			mbTrigger.c_str() ),
@@ -462,7 +462,7 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTriggerH ){
     for( auto& trigger : m_vTriggers ){
       mTriggerEff[ trigger ] =
 	mTriggerH[ trigger ]->
-	ProjectionY( Form("h_eff_%2.0f.Eta.%2.0f_%s",
+	ProjectionY( Form("h_eff_%2.0f_Eta_%2.0f_%s",
 			  10*std::abs(etaMin),
 			  10*std::abs(etaMax),
 			  trigger.c_str() ),
@@ -529,17 +529,17 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTriggerH ){
 			      GetEtaLabel( etaMin, etaMax).c_str(),
 			      StyleTools::lSS, 1 );
 
-    c_eff.SaveAs( Form("%s/efficiencies_%2.0f.Eta.%2.0f%s.pdf",
+    c_eff.SaveAs( Form("%s/efficiencies_%2.0f_Eta_%2.0f%s.pdf",
 		       m_dirOut.c_str(),
 		       std::abs(etaMin)*10,
 		       std::abs(etaMax)*10,
 		       m_labelOut.c_str() ) );
-    c_eff.SaveAs( Form("%s/efficiencies_%2.0f.Eta.%2.0f%s.png",
+    c_eff.SaveAs( Form("%s/efficiencies_%2.0f_Eta_%2.0f%s.png",
 		       m_dirOut.c_str(),
 		       std::abs(etaMin)*10,
 		       std::abs(etaMax)*10,
 		       m_labelOut.c_str() ) );
-    c_eff.Write( Form("c_efficiencies_%2.0f.Eta.%2.0f%s",
+    c_eff.Write( Form("c_efficiencies_%2.0f_Eta_%2.0f%s",
 		      std::abs(etaMin)*10,
 		      std::abs(etaMax)*10,
 		      m_labelOut.c_str() ) );

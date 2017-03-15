@@ -181,9 +181,11 @@ void DrawTools::DrawAtlasInternalDataLeft
 // ============ MC ================
 
 void DrawTools::DrawAtlasInternalMCRight
-( double x0, double y0, double scale, bool isReco ){ 
+( double x0, double y0, double scale, std::string& mcType ){ 
   DrawRightLatex(0.875, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
+  DrawRightLatex(0.875 + x0, 0.87,
+		 mcType.c_str(), scale);
   /*
   if( isReco  ) DrawRightLatex(0.875 + x0, 0.87,
 			       "Reco Level", scale);
@@ -194,13 +196,18 @@ void DrawTools::DrawAtlasInternalMCRight
 
 
 void DrawTools::DrawAtlasInternalMCLeft
-( double x0, double y0, double scale, bool isReco ){ 
+( double x0, double y0, double scale, std::string& mcType ){ 
   DrawRightLatex(0.875, 0.95, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
+
+  DrawLeftLatex(0.18 + x0, 0.815,
+		mcType.c_str(), scale);
+  /*
   if( isReco  ) DrawLeftLatex(0.18 + x0, 0.815,
 			       "Reco Level", scale);
   if( !isReco ) DrawLeftLatex(0.18 + x0, 0.815, 
 			       "Truth Level", scale);
+  */
 }
 
 // ======= Styles for Stuff ======

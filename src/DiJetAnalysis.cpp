@@ -73,7 +73,6 @@ void DiJetAnalysis::Initialize(){
   m_ptMax    = 100;
   m_nPtBins  = (m_ptMax - m_ptMin)/m_ptWidth;
   
-  // JES JER etc
   m_nEtaForwardBinsFine   = 12;
   m_nEtaForwardBinsCoarse = 3;
   m_etaForwardMin   = -constants::FETAMAX;
@@ -136,7 +135,7 @@ void DiJetAnalysis::AddHistogram( TH1* h ){
 std::string DiJetAnalysis::GetEtaLabel( double etaMin, double etaMax ){
 
   std::stringstream ss;
-
+  
   if( m_is_pPb ){
     ss << boost::format("%3.1f<#eta<%3.1f") % etaMin % etaMax;
   } else {

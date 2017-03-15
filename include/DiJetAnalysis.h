@@ -58,7 +58,7 @@ class DiJetAnalysis{
   //========== settings ===========
   bool m_isData;
   bool m_is_pPb;
-
+  
   std::string m_labelOut;
   std::string m_dirOut;
   std::string m_rootFname;

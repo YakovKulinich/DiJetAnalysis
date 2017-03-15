@@ -55,7 +55,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void CombineJZN( TH1*,
 		   std::map< int, TH1*>&,
 		   std::map< int, TH1*>& );
-
+  
+  double GetJetWeight( double, double, double );
+  
   //---------------------------
   //          Drawing
   //---------------------------
@@ -77,15 +79,21 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   
   //============ settings =============
   int m_mcType;
+  std::string m_mcTypeLabel;
   
   std::vector< int > m_vUsedJZN;
   std::map< int, std::string > m_mJznFnameIn;
+
   std::map< int, double >      m_mJznSigma;
   std::map< int, double >      m_mJznEff;
+  std::map< int, double >      m_mJznSumPowhegWeights;
+ 
   std::map< int, int    >      m_mJznNev;
   std::map< int, double >      m_mJznWeights;
 
   double m_sumSigmaEff;
+
+  TH3* m_hPowhegWeights;
   //============ data =============
   std::map< int, TH2* > m_mJznEtaSpect;
   std::map< int, TH2* > m_mJznEtaPhi;

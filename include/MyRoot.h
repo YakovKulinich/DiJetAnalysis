@@ -89,9 +89,11 @@ namespace DrawTools{
   void DrawAtlasInternalDataLeft ( double x0, double y0,
 				   double scale, bool is_pPb );
   void DrawAtlasInternalMCRight  ( double x0, double y0,
-				   double scale, bool isReco );
+				   double scale,
+				   std::string& mcType );
   void DrawAtlasInternalMCLeft   ( double x0, double y0,
-				   double scale, bool isReco );
+				   double scale,
+				   std::string& mcType);
 }
 
 namespace StyleTools{
