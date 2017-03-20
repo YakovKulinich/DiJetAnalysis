@@ -33,9 +33,11 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void LoadHistograms();
 
-  void PlotSpectra( std::map< std::string, TH2* >& );
+  void PlotSpectra( std::map< std::string, TH2* >&,
+		    const std::string& );
 
-  void PlotEfficiencies( std::map< std::string, TH2* >& );
+  void PlotEfficiencies( std::map< std::string, TH2* >&,
+			 const std::string& );
 
   void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
   
@@ -48,15 +50,17 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   std::map< std::string, TH2* > m_mTriggerEtaSpect;
   std::map< std::string, TH2* > m_mTriggerEtaEff;
-  
+
+  // These are for all ETA, PHI
+  std::map< std::string, TH2* > m_mTriggerEtaPhiMap;
+  std::map< std::string, TH2* > m_mTriggerEtaPtMap;
+
   std::map< std::string, TH2* > m_mTriggerRunPrescale;
-  std::map< std::string, TH2* > m_mTriggerEtaPhi;
-  std::map< std::string, TH2* > m_mTriggerEtaPt;
 
   std::vector< int > v_tJetPt;
   std::map   < int , std::string > m_tJetPtTrigger;
 
-  std::string  mbTrigger;
+  std::string  m_mbTrigger;
 
   //============ histos =============
   // Efficiencies

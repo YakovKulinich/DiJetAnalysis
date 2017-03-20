@@ -50,6 +50,8 @@ class DiJetAnalysis{
   //---------------------------
   void AddHistogram( TH1* );
 
+  void FitGaussian( TH1*, TF1* );
+  
   std::string GetEtaLabel( double, double );
 
   double AdjustEtaForPP( double );
@@ -93,13 +95,14 @@ class DiJetAnalysis{
   double m_ptMin;
   double m_ptMax;
   int    m_nPtBins;
-  
-  // JES JER etc
+
+  // for jes, jer, efficiency, etc.
   int    m_nEtaForwardBinsFine;
-  int    m_nEtaForwardBinsCoarse;
   double m_etaForwardMin;
   double m_etaForwardMax;
 
+  std::vector<double> m_varEtaBinning;
+  int m_nVarEtaBins;
  public:
  
 

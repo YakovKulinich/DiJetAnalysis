@@ -36,7 +36,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void LoadHistograms();
 
-  void PlotSpectra( std::map< int, TH2* >& );
+  void PlotSpectra( std::map< int, TH2* >&,
+		    const std::string&, 
+		    const std::string& );
   
   void PlotEtaPhiPtMap( std::map< int, TH2* >& );
 
@@ -63,19 +65,31 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   void DrawCanvas( std::map< int, TH1* >&, TH1*,
 		   double, double, 
-		   const std::string& , bool );
+		   const std::string&,
+		   const std::string& );
 
   void DrawCanvas( std::vector< TH1* >&,
-		   const std::string&, bool );
+		   const std::string&,
+		   const std::string&,
+		   bool );
+  
+  void DrawCanvas( std::vector< TH1* >&,
+		   const std::string&,
+		   const std::string& );
+
 
   //===== MinMax and line drawing =====
-  void SetMinMax( TH1*, const std::string&, bool );
+  void SetMinMax( TH1*,
+		  const std::string&,
+		  const std::string& );
 
   double GetLineHeight( const std::string& );
   
  private:
   //============== cuts ===============
   double m_dRmax;
+  double m_ptFitMin;
+  int    m_nMinEntriesGausFit;
   
   //============ settings =============
   int m_mcType;
@@ -95,15 +109,20 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   TH3* m_hPowhegWeights;
   //============ data =============
-  std::map< int, TH2* > m_mJznEtaSpect;
-  std::map< int, TH2* > m_mJznEtaPhi;
-  std::map< int, TH2* > m_mJznEtaPt;
+  // These are for all ETA, PHI
+  std::map< int, TH2* > m_mJznEtaPhiMap;
+  std::map< int, TH2* > m_mJznEtaPtMap;
 
+  std::map< int, TH2* > m_mJznEtaSpectReco;
+  std::map< int, TH2* > m_mJznEtaSpectTruth;
+  
   std::map< int, TH3* > m_mJznRpt;
   std::map< int, TH3* > m_mJznDeta;
   std::map< int, TH3* > m_mJznDphi;
-  std::map< int, TH3* > m_mJznRecoEff;
   std::map< int, TH2* > m_mJznNentries;
+
+  std::map< int, TH2* > m_mJznFwdEtaPtPaired;
+  std::map< int, TH2* > m_mJznFwdEtaPtTotal;
 
   //============ histos =============
   // truth bins

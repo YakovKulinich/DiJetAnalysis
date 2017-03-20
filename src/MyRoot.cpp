@@ -15,13 +15,6 @@ bool AnalysisTools::isCentral( const double& eta ){
   return ( TMath::Abs(eta) < constants::CETAMAX );
 }
 
-
-bool AnalysisTools::isInTriggerEtaRange( const double& eta ){
-  return ( TMath::Abs(eta) < constants::TETAMAX && 
-	   TMath::Abs(eta) > constants::TETAMIN );
-}
-
-
 bool AnalysisTools::EpsilonEqual( double a, double b ){
   return fabs( a - b ) < constants::EPSILON;
 }
@@ -114,6 +107,7 @@ void AnalysisTools::FitGaussian( TH1* hProj, TF1* fit ){
 //          DRAWING STUFF
 //===================================
 
+// ============ GENERAL ================
 
 void DrawTools::DrawRightLatex
 ( double x, double y , const char* s, float scale = 1, int color = 1){
@@ -146,24 +140,24 @@ void DrawTools::DrawCenterLatex
 
 void DrawTools::DrawAtlasInternalDataRight
 ( double x0, double y0, double scale, bool is_pPb ){
-  DrawRightLatex(0.88 + x0, 0.93,
+  DrawRightLatex(0.88 , 0.93,
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
-    DrawRightLatex(0.88, 0.86 + y0, 
+    DrawRightLatex(0.88, 0.87 + y0, 
 		   Form("#it{p}+Pb 2016, %i #mub^{-1}",
 			pPbLumi2016), scale);
   } else {
-    DrawRightLatex(0.88 + x0, 0.86 + y0, 
+    DrawRightLatex(0.88 + x0, 0.87 + y0, 
 		   Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale);
   }
-  DrawRightLatex(0.88 + x0, 0.80 + y0, 
+  DrawRightLatex(0.88 + x0, 0.81 + y0, 
 		 "#sqrt{s_{NN}}=5.02 TeV", scale);
 }
 
 void DrawTools::DrawAtlasInternalDataLeft
 ( double x0, double y0, double scale, bool is_pPb ){
-  DrawRightLatex(0.875, 0.94, 
+  DrawRightLatex(0.875, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
     DrawLeftLatex(0.18 + x0, 0.87 + y0, 
@@ -174,40 +168,30 @@ void DrawTools::DrawAtlasInternalDataLeft
 		   Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale);
   }
-  DrawLeftLatex(0.18 + x0, 0.80 + y0, 
+  DrawLeftLatex(0.18 + x0, 0.81 + y0, 
 		"#sqrt{s_{NN}}=5.02 TeV", scale); 
 }
 
 // ============ MC ================
 
 void DrawTools::DrawAtlasInternalMCRight
-( double x0, double y0, double scale, std::string& mcType ){ 
-  DrawRightLatex(0.875, 0.95, 
+( double x0, double y0, double scale,
+  const std::string& mcType ){ 
+  DrawRightLatex(0.88, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
-  DrawRightLatex(0.875 + x0, 0.87,
+  DrawRightLatex(0.88 + x0, 0.87,
 		 mcType.c_str(), scale);
-  /*
-  if( isReco  ) DrawRightLatex(0.875 + x0, 0.87,
-			       "Reco Level", scale);
-  if( !isReco ) DrawRightLatex(0.875 + x0, 0.87, 
-			       "Truth Level", scale);
-  */
-}
+ }
 
 
 void DrawTools::DrawAtlasInternalMCLeft
-( double x0, double y0, double scale, std::string& mcType ){ 
-  DrawRightLatex(0.875, 0.95, 
+( double x0, double y0, double scale,
+  const std::string& mcType ){ 
+  DrawRightLatex(0.88, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
 
-  DrawLeftLatex(0.18 + x0, 0.815,
+  DrawLeftLatex(0.18 + x0, 0.87,
 		mcType.c_str(), scale);
-  /*
-  if( isReco  ) DrawLeftLatex(0.18 + x0, 0.815,
-			       "Reco Level", scale);
-  if( !isReco ) DrawLeftLatex(0.18 + x0, 0.815, 
-			       "Truth Level", scale);
-  */
 }
 
 // ======= Styles for Stuff ======

@@ -15,15 +15,47 @@
 
 #include "DiJetAnalysis.h"
 
-DiJetAnalysis::DiJetAnalysis()
-  : m_isData(true), m_is_pPb( true ),
-    m_fIn(NULL), m_fOut(NULL), m_tree(NULL)
+DiJetAnalysis::DiJetAnalysis() : DiJetAnalysis( true, true )
 {}
 
 DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   : m_isData( isData ), m_is_pPb( is_pPb ),
     m_fIn(NULL), m_fOut(NULL), m_tree(NULL)
-{}
+{
+  //========== Set Histogram Binning =============
+  // Common for all analysis
+  
+  // Triggers and Spectra
+  m_nPtSpectBins = 50; 
+  m_ptSpectMin   = 10;
+  m_ptSpectMax   = 2 * m_nPtSpectBins + m_ptSpectMin;
+  
+  // Eta-Phi Maps
+  m_nEtaBins = 100; 
+  m_etaMin   = constants::ETAMIN;
+  m_etaMax   = constants::ETAMAX;
+  
+  m_nPhiBins = 64; 
+  m_phiMin   = -constants::PI;
+  m_phiMax   = constants::PI; 
+  
+  m_ptWidth  = 2;
+  m_ptMin    = 10;
+  m_ptMax    = 100;
+  m_nPtBins  = (m_ptMax - m_ptMin)/m_ptWidth;
+  
+  m_nEtaForwardBinsFine   = 12;
+  m_etaForwardMin   = -constants::FETAMAX;
+  m_etaForwardMax   = -constants::FETAMIN;
+
+  m_varEtaBinning.push_back( -4.4 );
+  m_varEtaBinning.push_back( -4.0 );
+  m_varEtaBinning.push_back( -3.6 );
+  m_varEtaBinning.push_back( -3.3 );
+  m_nVarEtaBins = static_cast<int>( m_varEtaBinning.size() ) - 1;
+  
+  //==================== Cuts ====================
+}
 
 DiJetAnalysis::~DiJetAnalysis(){}
 
@@ -50,35 +82,11 @@ void DiJetAnalysis::Initialize(){
   m_rootFname = m_dirOut + "/myOut" + m_labelOut + ".root";
   
   std::cout << "fNameIn/Out: " << m_rootFname << std::endl;
-
-  //========== Set Histogram Binning =============
-  // Common for all analysis
-  
-  // Triggers and Spectra
-  m_nPtSpectBins = 50; 
-  m_ptSpectMin   = 10;
-  m_ptSpectMax   = 2 * m_nPtSpectBins + m_ptSpectMin;
-  
-  // Eta-Phi Maps
-  m_nEtaBins = 100; 
-  m_etaMin   = constants::ETAMIN;
-  m_etaMax   = constants::ETAMAX;
-  
-  m_nPhiBins = 64; 
-  m_phiMin   = -constants::PI;
-  m_phiMax   = constants::PI; 
-  
-  m_ptWidth  = 2;
-  m_ptMin    = 10;
-  m_ptMax    = 100;
-  m_nPtBins  = (m_ptMax - m_ptMin)/m_ptWidth;
-  
-  m_nEtaForwardBinsFine   = 12;
-  m_nEtaForwardBinsCoarse = 3;
-  m_etaForwardMin   = -constants::FETAMAX;
-  m_etaForwardMax   = -constants::FETAMIN;
 }
 
+//---------------------------
+//       Fill Tree
+//---------------------------
 bool DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
   
   std::vector<bool> isIsolated;
@@ -111,6 +119,9 @@ void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets,
   }
 }
 
+//---------------------------
+//       Plotting 
+//---------------------------
 void DiJetAnalysis::SaveOutputs(){
   //----------------------------------------
   //  Close the input file, 
@@ -124,12 +135,37 @@ void DiJetAnalysis::SaveOutputs(){
   m_fOut->Close();
 }
 
+//---------------------------
+//       Tools
+//---------------------------
 void DiJetAnalysis::AddHistogram( TH1* h ){
   v_hists.push_back( h );
   h->Sumw2();
   h->GetXaxis()->SetNdivisions(505);  
   h->GetYaxis()->SetNdivisions(505);  
   StyleTools::SetHStyle( h, 0, 0.6 );
+}
+
+void DiJetAnalysis::FitGaussian( TH1* hProj, TF1* fit ){
+  // fit once 
+  double mean   = hProj->GetMean();
+  double rms    = hProj->GetRMS();
+
+  double fitmin = mean - 2.0 * rms;
+  double fitmax = mean + 2.0 * rms;
+      
+  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
+
+  // fit second time with better parameters
+  mean   = fit->GetParameter(1);
+  rms    = fit->GetParameter(2);
+
+  fitmin = mean - 1.8 * rms;
+  fitmax = mean + 2.2 * rms;
+
+  fit->SetRange( fitmin, fitmax );
+  
+  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
 }
 
 std::string DiJetAnalysis::GetEtaLabel( double etaMin, double etaMax ){
