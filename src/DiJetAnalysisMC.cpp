@@ -73,7 +73,7 @@ void DiJetAnalysisMC::Initialize(){
     // Get Associated weights for powheg.
     // These need to be used at filling time (per event basis).
     TFile* weight_file = TFile::Open("/home/yakov/Projects/atlas/data/Powheg.reweight.root");
-    m_hPowhegWeights = (TH3D*)weight_file->Get("h3_pT_y_phi_rw");
+    m_hPowhegWeights = static_cast< TH3D* >( weight_file->Get("h3_pT_y_phi_rw") );
     m_hPowhegWeights->SetDirectory(0);
     weight_file->Close();
   } else if( m_mcType == 1 ){
@@ -164,7 +164,7 @@ void DiJetAnalysisMC::Initialize(){
   
   for( auto jzn : m_vUsedJZN ){ // loop over JZ samples
     m_fIn = TFile::Open( m_mJznFnameIn[ jzn ].c_str() );
-    m_tree = (TTree*) m_fIn->Get( "tree" );
+    m_tree = static_cast< TTree* >( m_fIn->Get( "tree" ) );
 
     int nEventsTotal = m_tree->GetEntries();
     double     sigma = m_mJznSigma[ jzn ];      
@@ -302,33 +302,18 @@ void DiJetAnalysisMC::SetupHistograms(){
 		m_etaForwardMin, m_etaForwardMax,
 		m_nPtTruthBins,
 		m_ptTruthMin, m_ptTruthMax );
-    AddHistogram( m_mJznNentries[ jzn ] );
-
-    m_mJznFwdEtaPtPaired[ jzn ] =
-      new TH2D( Form("h_fwdEtaPtPaired_jz%i", jzn),
-		";#eta^{Reco};#it{p}_{T}^{Reco}",
-		m_nVarEtaBins, 0, 1,
-		m_nPtTruthBins,
-		m_ptTruthMin, m_ptTruthMax );
-    AddHistogram( m_mJznFwdEtaPtPaired[ jzn ] );
-    m_mJznFwdEtaPtPaired[ jzn ]->GetXaxis()->
-      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
-
-    m_mJznFwdEtaPtTotal[ jzn ] =
-      new TH2D( Form("h_fwdEtaPtTotal_jz%i", jzn),
-		";#eta^{Truth};#it{p}_{T}^{Truth}",
-		m_nVarEtaBins, 0, 1,
-		m_nPtTruthBins,
-		m_ptTruthMin, m_ptTruthMax );
-    AddHistogram( m_mJznFwdEtaPtTotal[ jzn ] );
-    m_mJznFwdEtaPtTotal[ jzn ]->GetXaxis()->
-      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
-
-    
+    AddHistogram( m_mJznNentries[ jzn ] );    
   } 
 }
 
 void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
+
+  // cuts
+  std::map< int, double > mJznPtThreshold;
+  mJznPtThreshold[ 0 ] = 10.;
+  mJznPtThreshold[ 1 ] = 20.;
+  mJznPtThreshold[ 2 ] = 60.;
+    
   // collections and variables
   std::vector< TLorentzVector >    vT_jets;
   std::vector< TLorentzVector >* p_vT_jets = &vT_jets;
@@ -343,8 +328,8 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
     
     std::cout << "fNameIn: " << m_mJznFnameIn[ jzn ] << std::endl;
   
-    m_fIn = TFile::Open( m_mJznFnameIn[ jzn ].c_str() );
-    m_tree = (TTree*) m_fIn->Get( "tree" );
+    m_fIn  = TFile::Open( m_mJznFnameIn[ jzn ].c_str() );
+    m_tree = static_cast< TTree*>( m_fIn->Get( "tree" ) );
 
     // Connect to tree
     m_tree->SetBranchAddress( "vT_jets"     , &p_vT_jets );
@@ -362,23 +347,52 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
 
     int nJetsTotal = 0;
     int nJetsForward = 0;
+
     // event loop
     for( int ev = startEvent; ev < endEvent; ev++ ){
       m_tree->GetEntry( ev );
 
       ApplyCleaning ( vR_jets, v_isCleanJet );
       ApplyIsolation( 1.0, vR_jets );
-
+      
+      std::vector< JetPair > v_paired_jets;
+      PairJets( vR_jets, vT_jets, v_paired_jets );
+      
       if( AnalysisTools::DoPrint(ev) ) {
 	std::cout << "\nEvent : " << ev 
 		  << "    has : " << vR_jets.size() << " reco jets"
-		  << "    and : " << vT_jets.size() << " truth jets" 
+		  << "    and : " << vT_jets.size() << " truth jets"
 		  << std::endl; 
       }
 
-      std::vector< JetPair > v_paired_jets;
-      PairJets( vR_jets, vT_jets, v_paired_jets );
-	
+      
+      // fill for truth jets
+      // denominator for efficiency because not all
+      // reco jets are reconstructed for a truth jet
+      // also count total, and fwd truth jets
+      for( auto& tJet : vT_jets ){
+	double jetEta    = tJet.Eta();
+	double jetEtaAdj = AdjustEtaForPP( jetEta );
+	double jetPhi    = tJet.Phi();
+	double jetPt     = tJet.Pt()/1000.;
+
+	double weight = GetJetWeight( jetEta, jetPhi, jetPt );
+
+	m_mJznEtaSpectTruth[ jzn ]->
+	  Fill( jetEtaAdj, jetPt, weight);
+		
+	// count how many total truth jets
+	// and how many forward truth jets
+	// cut on pt corresponding to jz sample
+	if( jetPt > mJznPtThreshold[ jzn ] ){
+	  nJetsTotal++;   
+	  if( jetEtaAdj < -constants::FETAMIN ){
+	    nJetsForward++;
+	  }
+	} 
+      } // end loop over truth jets
+
+      // loop over pairs
       for( auto& vp : v_paired_jets ){	  
 	double jetEtaTruth = vp.TruthJet()->Eta();
 	double jetPhiTruth = vp.TruthJet()->Phi();
@@ -388,19 +402,6 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
 	double jetPhiReco = vp.RecoJet()->Phi();
 	double  jetPtReco = vp.RecoJet()->Pt()/1000.;
 
-	double weight = m_mcType == 0 ?
-	  GetJetWeight( jetEtaTruth, jetPhiTruth, jetPtTruth ) : 1;
-	
-	m_mJznEtaPhiMap[ jzn ]->Fill( jetEtaReco, jetPhiReco, weight);
-	m_mJznEtaPtMap [ jzn ]->Fill( jetEtaReco, jetPtReco , weight);
- 
-	m_mJznEtaSpectReco  [ jzn ]->
-	  Fill( jetEtaReco,  jetPtReco,  weight);
-	m_mJznEtaSpectTruth [ jzn ]->
-	  Fill( jetEtaTruth, jetPtTruth, weight);
-	
-	nJetsTotal++;
-	
 	// convert positive eta to negative because
 	// in pp it doesnt matter since detector is
 	// symmetric in eta. i.e. eta < 0 <=> eta > 0
@@ -411,8 +412,16 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
 	// (due to pPb configuration)
 	// the labels will be taken care of so it is ok
 	double jetEtaRecoAdj  = AdjustEtaForPP( jetEtaReco  );
-	double jetEtaTruthAdj = AdjustEtaForPP( jetEtaTruth );
+	double jetEtaTruthAdj = AdjustEtaForPP( jetEtaTruth );	  
 	
+	double weight = GetJetWeight( jetEtaTruth, jetPhiTruth, jetPtTruth );
+	
+	m_mJznEtaPhiMap[ jzn ]->Fill( jetEtaReco, jetPhiReco, weight);
+	m_mJznEtaPtMap [ jzn ]->Fill( jetEtaReco, jetPtReco , weight);
+ 
+	m_mJznEtaSpectReco  [ jzn ]->
+	  Fill( jetEtaRecoAdj,  jetPtReco,  weight);
+       		
 	if( vp.DeltaR() <= m_dRmax ){
 	  m_mJznRpt   [ jzn ]->
 	    Fill( jetEtaTruthAdj, jetPtTruth, jetPtReco/jetPtTruth    , weight);
@@ -422,34 +431,13 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
 	    Fill( jetEtaTruthAdj, jetPtTruth, jetPhiReco - jetPhiTruth, weight );
 	  m_mJznNentries[ jzn ]->
 	    Fill( jetEtaTruthAdj, jetPtTruth, weight );
-	  
-	  // Fill for reco jets. These are the jets that
-	  // paired with truth jets.
-	  // later we will fill similarly for all truth jets.
-	  m_mJznFwdEtaPtPaired[ jzn ]->
-	    Fill( jetEtaRecoAdj, jetPtReco, weight );	    
-
-	  nJetsForward++;
 	}
-
-	// fill for truth jets
-	// There will be more here than in
-	// the truth histo because not all
-	// reco jets are reconstructed
-	// for a truth jet (efficiency)
-	for( auto& tJet : vT_jets ){
-	  m_mJznFwdEtaPtTotal[ jzn ]->
-	    Fill( AdjustEtaForPP( tJet.Eta() ),
-		  tJet.Pt()/1000.,
-		  weight );	    
-	}
-
       } // end loop over pairs
     } // end loop over events
    
     std::cout << "DONE WITH JZ" << jzn
-	      << "   nTotalJets: "   << nJetsTotal
 	      << "   nJetsForward: " << nJetsForward
+	      << "   nTotalJets: "   << nJetsTotal
 	      << "   nTotalEvents: " << nEventsTotal
 	      << std::endl;
 
@@ -505,40 +493,31 @@ void DiJetAnalysisMC::LoadHistograms(){
 
   for( auto& jzn : m_vUsedJZN ){
     m_mJznEtaPhiMap[ jzn ] =
-      (TH2D*)m_fIn->Get( Form("h_etaPhiMap_jz%i", jzn ) );
+      static_cast< TH2D* >( m_fIn->Get( Form("h_etaPhiMap_jz%i", jzn ) ) );
     m_mJznEtaPhiMap[ jzn ]->SetDirectory(0);
     m_mJznEtaPtMap [ jzn ] =
-      (TH2D*)m_fIn->Get( Form("h_etaPtMap_jz%i", jzn ) );
+      static_cast< TH2D* >( m_fIn->Get( Form("h_etaPtMap_jz%i", jzn ) ) );
     m_mJznEtaPtMap [ jzn ]->SetDirectory(0);
 
     m_mJznEtaSpectReco [ jzn ] =
-      (TH2D*)m_fIn->Get( Form("h_etaSpectReco_jz%i", jzn ) );
+      static_cast< TH2D* >( m_fIn->Get( Form("h_etaSpectReco_jz%i", jzn ) ) );
     m_mJznEtaSpectReco [ jzn ]->SetDirectory(0);
     m_mJznEtaSpectTruth[ jzn ] =
-      (TH2D*)m_fIn->Get( Form("h_etaSpectTruth_jz%i", jzn ) );
+      static_cast< TH2D* >( m_fIn->Get( Form("h_etaSpectTruth_jz%i", jzn ) ) );
     m_mJznEtaSpectTruth[ jzn ]->SetDirectory(0);
     
     m_mJznRpt     [ jzn ] =
-      (TH3D*)m_fIn->Get( Form("h_rPt_jz%i", jzn ) );
+      static_cast< TH3D* >( m_fIn->Get( Form("h_rPt_jz%i", jzn ) ) );
     m_mJznRpt     [ jzn ]->SetDirectory(0);
     m_mJznDeta    [ jzn ]   =
-      (TH3D*)m_fIn->Get( Form("h_dEta_jz%i", jzn ) );
+      static_cast< TH3D* >( m_fIn->Get( Form("h_dEta_jz%i", jzn ) ) );
     m_mJznDeta    [ jzn ]->SetDirectory(0);
     m_mJznDphi    [ jzn ] =
-      (TH3D*)m_fIn->Get( Form("h_dPhi_jz%i", jzn ) );
+      static_cast< TH3D* >( m_fIn->Get( Form("h_dPhi_jz%i", jzn ) ) );
     m_mJznDphi    [ jzn ]->SetDirectory(0);
     m_mJznNentries[ jzn ] =
-      (TH2D*)m_fIn->Get( Form("h_nEntries_jz%i", jzn ) );
+      static_cast< TH2D* >( m_fIn->Get( Form("h_nEntries_jz%i", jzn ) ) );
     m_mJznNentries[ jzn ]->SetDirectory(0);
-
-    m_mJznFwdEtaPtPaired[ jzn ] =
-      (TH2D*)m_fIn->Get( Form("h_fwdEtaPtPaired_jz%i", jzn ) );
-    m_mJznFwdEtaPtPaired[ jzn ]->SetDirectory(0);
-      
-    m_mJznFwdEtaPtTotal[ jzn ] =
-      (TH2D*)m_fIn->Get( Form("h_fwdEtaPtTotal_jz%i", jzn ) );
-    m_mJznFwdEtaPtTotal[ jzn ]->SetDirectory(0);
-
   }
   m_fIn->Close();
 }
@@ -661,8 +640,8 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
 			 m_labelOut.c_str() ) );
 
     c_spect.Write( Form("c_%s%s_%2.0f_Eta_%2.0f%s",
-			level.c_str(),
 			type.c_str(),
+			level.c_str(),
 			std::abs(etaMin)*10,
 			std::abs(etaMax)*10,
 			m_labelOut.c_str() ) );
@@ -970,10 +949,12 @@ void DiJetAnalysisMC::CombineJZN( TH1* h_res,
 }
 
 double DiJetAnalysisMC::GetJetWeight( double eta, double phi, double pt ){
-  int xb=m_hPowhegWeights->GetXaxis()->FindBin(pt);
-  int yb=m_hPowhegWeights->GetYaxis()->FindBin(eta);
-  int zb=m_hPowhegWeights->GetZaxis()->FindBin(phi);
-  float jet_weight=m_hPowhegWeights->GetBinContent(xb,yb,zb);
+  if( m_mcType != 0 ) { return 1; } // only for powheg
+  
+  int xb = m_hPowhegWeights->GetXaxis()->FindBin(pt);
+  int yb = m_hPowhegWeights->GetYaxis()->FindBin(eta);
+  int zb = m_hPowhegWeights->GetZaxis()->FindBin(phi);
+  float jet_weight = m_hPowhegWeights->GetBinContent(xb,yb,zb);
 
   return jet_weight;
 }

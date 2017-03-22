@@ -190,14 +190,13 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   std::map< std::string, float > mTriggerPrescale;
 
   int    runNumber     = 0;
-
   //----------------------------------------
   //  Open file and tree, Fill histograms
   //----------------------------------------
   std::cout << "fNameIn: " << m_fNameIn << std::endl;
   
   m_fIn = TFile::Open( m_fNameIn.c_str() );
-  m_tree = (TTree*) m_fIn->Get( "tree" );
+  m_tree = static_cast<TTree*>( m_fIn->Get( "tree" ) );
 
   // Connect to tree
   m_tree->SetBranchAddress( "vTrig_jets"  , &p_vTrig_jets );
@@ -213,6 +212,28 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 
   m_tree->SetBranchAddress( "runNumber"   , &runNumber );  
 
+  std::map< std::string, int > mTrigPassed;
+  std::map< std::string, int > mTrigFailed;
+  
+  std::map< std::string, int > mTrigJetsForward;
+  std::map< std::string, int > mTrigJetsTotal;
+
+  // map of minimum pt for counting number of jets
+  // in the near 1 efficiency region of that trigger
+  std::map< std::string, double > mTrigPtThreshold;
+  // pt min for mb is 0
+  mTrigPtThreshold[ m_mbTrigger ] = 0; 
+  
+  for( auto & ptTrig : m_tJetPtTrigger ){
+    mTrigPassed     [ ptTrig.second ] = 0;
+    mTrigFailed     [ ptTrig.second ] = 0;
+    mTrigJetsTotal  [ ptTrig.second ] = 0;
+    // set the threshold for near 1 eff at N+5 
+    // where N is from jN
+    mTrigPtThreshold[ ptTrig.second ] = ptTrig.first + 5;
+  }
+
+  
   // n events
   int nEventsTotal = m_tree->GetEntries();
 
@@ -239,7 +260,10 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     // loop over passed triggers
     for( auto& trigger : m_vTriggers ){
       // check if we have that trigger
-      if( !mTriggerFired[trigger] ) continue;
+      if( !mTriggerFired[trigger] ) {
+	mTrigFailed[ trigger ]++;
+	continue;	
+      }
 
       // loop over jets 
       for( auto& jet : vR_jets ){
@@ -262,28 +286,40 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	// the labels will be taken care of so it is ok
 	double jetEtaAdj = AdjustEtaForPP( jetEta );
 	
+	if( jetPt >= mTrigPtThreshold[ trigger ] ){
+	  mTrigJetsTotal[ trigger ] ++;
+	}
+	
 	// saves computation time
 	// can theoreticall leave out
 	// will go to overflow bins in histos
-	if( jetEtaAdj > -constants::FETAMIN ) continue;
+	if( jetEtaAdj > -constants::FETAMIN ) { continue; }
 
+	if( jetPt >= mTrigPtThreshold[ trigger ] ){
+	  mTrigJetsForward[ trigger ] ++;
+	}
+	
 	m_mTriggerEtaSpect[ trigger ]->Fill( jetEtaAdj, jetPt );
 	// fill mb efficiency histo also
 	if( !trigger.compare(m_mbTrigger) ){
 	  m_mTriggerEtaEff[m_mbTrigger]->Fill( jetEtaAdj, jetPt );
 	}
       } // end loop over jets
-
+      mTrigPassed[ trigger ]++;
     } // end loop over triggers
-
     // EFFICIENCIES
     ProcessEfficiencies( vTrig_jets, vR_jets, mTriggerFired );
   } // end event loop
   std::cout << "DONE! Has: " << nEventsTotal << " events." << std::endl;
 
   for( auto& th : m_mTriggerEtaSpect ){
-    std::cout << th.first << "   has: " << th.second->GetEntries()
-	      << " jets" << std::endl;
+    std::cout << th.first << "   has: " << mTrigJetsForward[ th.first ]
+	      << " FWD jets, " << mTrigJetsTotal[ th.first ]
+	      << " TOTAL jets, with " << mTrigPassed[ th.first ]
+	      << " evPassed and "<< mTrigFailed[ th.first ]
+	      << " failed. Total = "
+	      << mTrigPassed[ th.first ] + mTrigFailed[ th.first ]
+	      << std::endl;
   }
 
   m_fIn->Close();
@@ -342,17 +378,21 @@ void DiJetAnalysisData::LoadHistograms(){
 
   for( auto& trigger : m_vTriggers ){
     m_mTriggerEtaPhiMap   [ trigger ] =
-      (TH2D*)m_fIn->Get( Form("h_etaPhiMap_%s"   , trigger.c_str() ) );
+      static_cast< TH2D* >
+      ( m_fIn-> Get( Form("h_etaPhiMap_%s", trigger.c_str() ) ) );
     m_mTriggerEtaPhiMap   [ trigger ]->SetDirectory(0);
     m_mTriggerEtaPtMap    [ trigger ] =
-      (TH2D*)m_fIn->Get( Form("h_etaPtMap_%s"    , trigger.c_str() ) );
+      static_cast< TH2D* >
+      ( m_fIn->Get( Form("h_etaPtMap_%s", trigger.c_str() ) ) );
     m_mTriggerEtaPtMap    [ trigger ]->SetDirectory(0);
 
     m_mTriggerEtaSpect [ trigger ] =
-      (TH2D*)m_fIn->Get( Form("h_etaSpect_%s" , trigger.c_str() ) );
+      static_cast< TH2D *>
+      ( m_fIn->Get( Form("h_etaSpect_%s", trigger.c_str() ) ) );
     m_mTriggerEtaSpect [ trigger ]->SetDirectory(0);
     m_mTriggerEtaEff   [ trigger ] =
-      (TH2D*)m_fIn->Get( Form("h_etaEff_%s"   , trigger.c_str() ) );
+      static_cast< TH2D* >
+      ( m_fIn->Get( Form("h_etaEff_%s", trigger.c_str() ) ) );
     m_mTriggerEtaEff   [ trigger ]->SetDirectory(0);
   }
   
@@ -366,24 +406,29 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
   if( !mTriggerH[ m_mbTrigger ] ){ return; }  
 
   std::string yAxisTitle = "dN/d#it{p}_{T}";
+
+  double x0, y0, x1, y1;
+
+  if( m_is_pPb ){ x0 = 0.45; y0 = 0.54; x1 = 0.76; y1 = 0.67; }
+  else          { x0 = 0.56; y0 = 0.54; x1 = 0.86; y1 = 0.67; }
+
+  TLegend l_trigSpect( x0, y0, x1, y1 );
+  StyleTools::SetLegendStyle( &l_trigSpect, StyleTools::lSS );
+  l_trigSpect.SetFillStyle(0);
   
   std::vector< TH1* > vTriggerSpect;
+  std::multimap< std::string, TH1* > mTriggerSpect;
 
   for( int xBin = 1; xBin <= mTriggerH[ m_mbTrigger ]->GetNbinsX(); xBin++ ){
   
     TCanvas c_spect("c_spect","c_spect",800,600);
     c_spect.SetLogy();
-
-    double x0, y0, x1, y1;
-
-    if( m_is_pPb ){ x0 = 0.45; y0 = 0.54; x1 = 0.76; y1 = 0.67; }
-    else          { x0 = 0.56; y0 = 0.54; x1 = 0.86; y1 = 0.67; }
     
-    TLegend l_spect( x0, y0, x1, y1 );
-    StyleTools::SetLegendStyle( &l_spect, StyleTools::lSS );
-    l_spect.SetFillStyle(0);
-
-    int style = 0;
+    TLegend l_etaSpect( x0, y0, x1, y1 );
+    StyleTools::SetLegendStyle( &l_etaSpect, StyleTools::lSS );
+    l_etaSpect.SetFillStyle(0);
+  
+    int etaStyle = 0;
     double max = -1;
 
     // should all be the same
@@ -392,9 +437,10 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
     double etaMax = mTriggerH[ m_mbTrigger ]->
       GetXaxis()->GetBinUpEdge( xBin );
 
-  
+    int trigStyle = 0;
+    
     for( auto& tH : mTriggerH ){
-      TH1* h_spect =
+      TH1* h_etaSpect =
 	tH.second->
 	ProjectionY( Form("h_%s_%2.0f_Eta_%2.0f_%s",
 			  type.c_str(),
@@ -402,18 +448,29 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
 			  10*std::abs(etaMax),
 			  tH.first.c_str() ),
 		     xBin, xBin );
-      StyleTools::SetHStyle( h_spect, style++, StyleTools::hSS);
+      StyleTools::SetHStyle( h_etaSpect, etaStyle++, StyleTools::hSS);
 
-      h_spect->GetYaxis()->SetTitle( yAxisTitle.c_str() );
-      vTriggerSpect.push_back( h_spect ); 
-    
-      h_spect->Draw("epsame");
-      if( max < h_spect->GetMaximum() )
-	{ max = h_spect->GetMaximum(); }
+      h_etaSpect->GetYaxis()->SetTitle( yAxisTitle.c_str() );
+      vTriggerSpect.push_back( h_etaSpect );
 
-      l_spect.AddEntry( h_spect, tH.first.c_str() );
+      TH1* h_trigSpect = static_cast<TH1*>( h_etaSpect->Clone() );
+      StyleTools::SetHStyle( h_trigSpect, etaStyle, StyleTools::hSS);
+      mTriggerSpect.insert( std::pair< std::string, TH1* >
+			    ( tH.first, h_trigSpect ) );
+      
+      h_etaSpect->Draw("epsame");
+      if( max < h_etaSpect->GetMaximum() )
+	{ max = h_etaSpect->GetMaximum(); }
+
+      l_etaSpect.AddEntry( h_etaSpect, tH.first.c_str() );
+
+      if( xBin == 1 ){
+	l_trigSpect.AddEntry( h_etaSpect,
+			      GetEtaLabel( etaMin, etaMax).c_str() );
+      }
     }
-
+    trigStyle++;
+    
     double power = log10(max);
     power = std::ceil(power);
     max = pow( 10, power );
@@ -422,7 +479,7 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
       h->SetMinimum( 1 );
     }
   
-    l_spect.Draw();
+    l_etaSpect.Draw();
     DrawTools::DrawAtlasInternalDataRight( 0, 0, StyleTools::lSS, m_is_pPb ); 
     DrawTools::DrawLeftLatex( 0.5, 0.87,
 			      GetEtaLabel( etaMin, etaMax).c_str(),
@@ -446,6 +503,8 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
 			std::abs(etaMax)*10,
 			m_labelOut.c_str()) );
   } // end loop over eta bins
+
+  // now draw for each trigger, spectra in various eta bins
 }
 
 void DiJetAnalysisData::

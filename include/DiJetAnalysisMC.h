@@ -121,9 +121,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::map< int, TH3* > m_mJznDphi;
   std::map< int, TH2* > m_mJznNentries;
 
-  std::map< int, TH2* > m_mJznFwdEtaPtPaired;
-  std::map< int, TH2* > m_mJznFwdEtaPtTotal;
-
   //============ histos =============
   // truth bins
   double m_ptTruthWidth;

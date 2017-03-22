@@ -33,7 +33,7 @@ namespace constants{
   const double CETAMAX = 2.8;
 
   // FCal eta ranges
-  const double FETAMIN = 3.2;
+  const double FETAMIN = 3.3;
   const double FETAMAX = 4.4;
  
   // atlas maximum eta
