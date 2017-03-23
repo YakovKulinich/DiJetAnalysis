@@ -49,7 +49,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   //          Tools 
   //---------------------------
-  void ProjectEtaPtAndFit( TH3*, TH1*, TH1*, int, int );
+  void ProjectAndFit( TH3*, TH1*, TH1*, int, int, int );
 
   void CombineJZN( TH1*,
 		   std::map< int, TH1*>& );

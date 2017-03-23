@@ -31,11 +31,13 @@ class DiJetAnalysis{
 
   virtual void ProcessEvents( int, int ) = 0;  
 
+  virtual void SaveOutputs();
+  
   virtual bool ApplyIsolation( double, std::vector<TLorentzVector>& );
     
   virtual void ApplyCleaning( std::vector<TLorentzVector>&, 
 			      std::vector<bool>& );
-      
+
   //---------------------------
   //       Plotting 
   //---------------------------
@@ -43,8 +45,21 @@ class DiJetAnalysis{
 
   virtual void LoadHistograms() = 0;
 
-  virtual void SaveOutputs();
+  virtual void SaveAsPdfPng( const TCanvas&,
+			     const std::string& = "", const std::string& = "",
+			     const std::string& = "", double = 0, double = 0,
+			     const std::string& = "", double = 0, double = 0);
+  
+  virtual void SaveAsROOT( const TCanvas&,
+			   const std::string& = "", const std::string& = "",
+			   const std::string& = "", double = 0, double = 0,
+			   const std::string& = "", double = 0, double = 0);
 
+  virtual void SaveAsAll( const TCanvas&,
+			  const std::string& = "", const std::string& = "",
+			  const std::string& = "", double = 0, double = 0,
+			  const std::string& = "", double = 0, double = 0);
+  
   //---------------------------
   //       Tools
   //---------------------------

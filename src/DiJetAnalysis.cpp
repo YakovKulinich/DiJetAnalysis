@@ -60,7 +60,7 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
 DiJetAnalysis::~DiJetAnalysis(){}
 
 void DiJetAnalysis::Initialize(){
-  m_labelOut = m_isData ? "_data" : "_mc" ;
+  m_labelOut = m_isData ? "data" : "mc" ;
   m_labelOut = m_is_pPb ? m_labelOut + "_pPb" : m_labelOut + "_pp";
 
   auto checkWriteDir = []( const char* c_dirOut ){
@@ -76,10 +76,10 @@ void DiJetAnalysis::Initialize(){
   // If they don't, create them
   m_dirOut   = "output";
   checkWriteDir( m_dirOut.c_str() );
-  m_dirOut   += "/output" + m_labelOut;
+  m_dirOut   += "/output_" + m_labelOut;
   checkWriteDir( m_dirOut.c_str() );
 
-  m_rootFname = m_dirOut + "/myOut" + m_labelOut + ".root";
+  m_rootFname = m_dirOut + "/myOut_" + m_labelOut + ".root";
   
   std::cout << "fNameIn/Out: " << m_rootFname << std::endl;
 }
@@ -133,6 +133,67 @@ void DiJetAnalysis::SaveOutputs(){
   for( auto& f  : v_functs ) { f-> Write(); }
   for( auto& gr : v_graphs ) { gr->Write(); }
   m_fOut->Close();
+}
+
+void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
+				  const std::string& label1,
+				  const std::string& label2,
+				  const std::string& axis1,
+				  double min1, double max1,
+				  const std::string& axis2 ,
+				  double min2, double max2 ){
+  std::stringstream ss;
+  ss << m_dirOut + "/";
+  
+  if( !label1.empty() ){ ss << boost::format("%s") % label1; }
+  if( !label2.empty() ){ ss << boost::format("_%s") % label2; }
+  ss << "_" + m_labelOut;
+  if( !axis1.empty() ){
+    ss << boost::format("_%2.0f_%s_%2.0f") % min1 % axis1 % max1;
+  }
+  if( !axis2.empty() ){
+    ss << boost::format("_%2.0f_%s_%2.0f") % min2 % axis2 % max2;
+  }
+
+  std::string sPdf = ss.str() + ".pdf";
+  std::string sPng = ss.str() + ".png";
+
+  c.SaveAs( sPdf.c_str() );
+  c.SaveAs( sPng.c_str() );
+}
+
+void DiJetAnalysis::SaveAsROOT( const TCanvas& c,
+			        const std::string& label1,
+				const std::string& label2,
+				const std::string& axis1,
+				double min1, double max1,
+				const std::string& axis2 ,
+				double min2, double max2 ){
+  std::stringstream ss;
+  ss << "c_";
+  
+  if( !label1.empty() ){ ss << boost::format("%s") % label1; }
+  if( !label2.empty() ){ ss << boost::format("_%s") % label2; }
+  ss << "_" + m_labelOut;
+  if( !axis1.empty() ){
+    ss << boost::format("_%2.0f_%s_%2.0f") % min1 % axis1 % max1;
+  }
+  if( !axis2.empty() ){
+    ss << boost::format("_%2.0f_%s_%2.0f") % min2 % axis2 % max2;
+  }
+
+  c.Write( ss.str().c_str() );
+}
+
+void DiJetAnalysis::SaveAsAll( const TCanvas& c,
+			       const std::string& label1,
+			       const std::string& label2,
+			       const std::string& axis1,
+			       double min1, double max1,
+			       const std::string& axis2 ,
+			       double min2, double max2 ){  
+  SaveAsPdfPng( c, label1, label2, axis1, min1, max1, axis2, min2, max2 );
+  SaveAsROOT  ( c, label1, label2, axis1, min1, max1, axis2, min2, max2 );
 }
 
 //---------------------------

@@ -49,7 +49,7 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool isData, bool is_pPb, int mcType )
 DiJetAnalysisMC::~DiJetAnalysisMC(){}
 
 void DiJetAnalysisMC::Initialize(){
-  m_labelOut = m_isData ? "_data" : "_mc" ;
+  m_labelOut = m_isData ? "data" : "mc" ;
   m_labelOut = m_is_pPb ? m_labelOut + "_pPb" : m_labelOut + "_pp";
 
   if( m_mcType == 0 ){
@@ -145,10 +145,10 @@ void DiJetAnalysisMC::Initialize(){
   // If they don't, create them
   m_dirOut   = "output";
   checkWriteDir( m_dirOut.c_str() );
-  m_dirOut   += "/output" + m_labelOut;
+  m_dirOut   += "/output_" + m_labelOut;
   checkWriteDir( m_dirOut.c_str() );
 
-  m_rootFname = m_dirOut + "/myOut" + m_labelOut + ".root";
+  m_rootFname = m_dirOut + "/myOut_" + m_labelOut + ".root";
   
   std::cout << "fNameIn/Out: " << m_rootFname << std::endl;
 
@@ -196,7 +196,7 @@ void DiJetAnalysisMC::RunOverTreeFillHistos( int nEvents,
 void DiJetAnalysisMC::ProcessPlotHistos(){
   LoadHistograms();
 
-  std::string cfNameOut = m_dirOut + "/c_myOut" + m_labelOut + ".root";
+  std::string cfNameOut = m_dirOut + "/c_myOut_" + m_labelOut + ".root";
   m_fOut = new TFile( cfNameOut.c_str(),"RECREATE");
   
   // check if we have one  
@@ -545,7 +545,7 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
     TCanvas c_spect("c_spect","c_spect",800,600);
     c_spect.SetLogy();
 
-    TLegend l_spect(0.15, 0.15, 0.46, 0.28);
+    TLegend l_spect(0.78, 0.65, 0.99, 0.78);
     StyleTools::SetLegendStyle( &l_spect, StyleTools::lSS );
     l_spect.SetFillStyle(0);
 
@@ -624,28 +624,11 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
 			      GetEtaLabel( etaMin, etaMax ).c_str(),
 			      StyleTools::lSS, 1 );
 
-    c_spect.SaveAs( Form("%s/%s%s_%2.0f_Eta_%2.0f%s.pdf",
-			 m_dirOut.c_str(),
-			 type.c_str(),
-			 level.c_str(),
-			 std::abs(etaMin)*10,
-			 std::abs(etaMax)*10,
-			 m_labelOut.c_str() ) );
-    c_spect.SaveAs( Form("%s/%s%s_%2.0f_Eta_%2.0f%s.png",
-			 m_dirOut.c_str(),
-			 type.c_str(),
-			 level.c_str(),
-			 std::abs(etaMin)*10,
-			 std::abs(etaMax)*10,
-			 m_labelOut.c_str() ) );
-
-    c_spect.Write( Form("c_%s%s_%2.0f_Eta_%2.0f%s",
-			type.c_str(),
-			level.c_str(),
-			std::abs(etaMin)*10,
-			std::abs(etaMax)*10,
-			m_labelOut.c_str() ) );
-
+    SaveAsAll( c_spect,
+	       type, level, "Eta",
+	       std::abs(etaMin)*10,
+	       std::abs(etaMax)*10 );
+    
   } // end loop over eta
 
   bool isLog = true;
@@ -661,14 +644,7 @@ void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< int, TH2* >& mJznHIN ){
     DrawTools::DrawAtlasInternalMCLeft( 0, -0.55,
 					StyleTools::lSS,
 					m_mcTypeLabel  );  
-    c_map.SaveAs( Form("%s/%s%s.pdf", 
-		       m_dirOut.c_str(),
-		       jznHIN.second->GetName(),
-		       m_labelOut.c_str() ) );
-    c_map.SaveAs( Form("%s/%s%s.png", 
-		       m_dirOut.c_str(),
-		       jznHIN.second->GetName(),
-		       m_labelOut.c_str() ) );
+    SaveAsPdfPng( c_map, jznHIN.second->GetName() );
   }
 }
 
@@ -761,7 +737,8 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< int, TH3* >& mJznHIN,
 		     xBin, xBin);
       mJznN[ jzn ] = hN;
     
-      ProjectEtaPtAndFit( jznHIN.second, h_mean, h_sigma, xBin, xBin );
+      ProjectAndFit( jznHIN.second, h_mean, h_sigma,
+		     xBin, xBin, jznHIN.first );
       
       // increment style
       style++;
@@ -811,9 +788,10 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< int, TH3* >& mJznHIN,
 //---------------------------
 //          Tools 
 //---------------------------
-void DiJetAnalysisMC::ProjectEtaPtAndFit( TH3* h3,
-					  TH1* h1Mean, TH1* h1Sigma,
-					  int etaBinLow, int etaBinUp ){
+void DiJetAnalysisMC::ProjectAndFit( TH3* h3,
+				     TH1* h1Mean, TH1* h1Sigma,
+				     int etaBinLow, int etaBinUp,
+				     int jzn = -1 ){
   TCanvas c_proj("c_proj","c_proj",800,600);
 
   double etaMin = h3->GetXaxis()->GetBinLowEdge( etaBinLow );
@@ -865,33 +843,33 @@ void DiJetAnalysisMC::ProjectEtaPtAndFit( TH3* h3,
     DrawTools::DrawAtlasInternalMCRight( 0, 0,
 					 StyleTools::lSS,
 					 m_mcTypeLabel  ); 
-    DrawTools::DrawLeftLatex( 0.5, 0.8,
+    DrawTools::DrawRightLatex( 0.88, 0.81,
 			      GetEtaLabel( etaMin, etaMax ).c_str(),
 			      StyleTools::lSS, 1 );
-    DrawTools::DrawLeftLatex( 0.5, 0.73,
+    DrawTools::DrawRightLatex( 0.88, 0.74,
 			      Form("%3.0f<%s<%3.1f",
 				   ptMin,
 				   h1Mean->GetXaxis()->GetTitle(),
 				   ptMax ),
 			      StyleTools::lSS, 1 );
-
-    c_proj.Write( Form("c_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f%s",
+    if( jzn >= 0 ){
+      DrawTools::DrawRightLatex( 0.88, 0.68,
+				 Form("JZ%i", jzn ),
+				 StyleTools::lSS, 1 );
+    }
+    
+    c_proj.Write( Form("c_%s_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
 		       h3->GetName(),
+		       m_labelOut.c_str(),
 		       std::abs(etaMin)*10,
 		       std::abs(etaMax)*10,
-		       ptMin, ptMax,
-		       m_labelOut.c_str() ) );
-
-    /*
-      c_proj.SaveAs( Form("%s/fits/%s_%2.0f_Eta_%2.0f_%2.0f _Pt_%2.0f%s.pdf",
-      m_dirOut.c_str(),
-      h3->GetName(),
-      std::abs(etaMin)*10,
-      std::abs(etaMax)*10,
-      ptMin, ptMax,
-      m_labelOut.c_str() ) );
-
-    */ 
+		       ptMin, ptMax ) );
+    
+    SaveAsROOT( c_proj,
+	        h3->GetName(), "",
+		"Eta", std::abs(etaMin)*10, std::abs(etaMax)*10,
+		"Pt" , ptMin, ptMax );
+    
   } // end loop over ptBins
 }
 
@@ -901,8 +879,6 @@ void DiJetAnalysisMC::CombineJZN( TH1* h_res,
     int jzn      = jznH.first;
     double scale = m_mJznEff[ jzn ] * m_mJznSigma[ jzn ] /
       m_mJznSumPowhegWeights[ jzn ];
-
-    std:: cout << "jz" << jzn << "   scale: " << scale << std::endl;
     h_res->Add( jznH.second, scale );
   }
   h_res->Scale( 1./m_sumSigmaEff );
@@ -1000,27 +976,8 @@ void DiJetAnalysisMC::DrawCanvas( std::map< int, TH1* >& mJznHIN, TH1* hFinal,
   // dont draw line for sigma plots
   if( type2.compare("sigma") ) { line.Draw(); }
     
-  c.SaveAs( Form("%s/%s_%s_%2.0f_Eta_%2.0f%s.pdf",
-		 m_dirOut.c_str(),
-		 type1.c_str(),
-		 type2.c_str(),
-		 std::abs(etaMin)*10,
-		 std::abs(etaMax)*10,
-		 m_labelOut.c_str() ) );
-  c.SaveAs( Form("%s/%s_%s_%2.0f_Eta_%2.0f%s.png",
-		 m_dirOut.c_str(),
-		 type1.c_str(),
-		 type2.c_str(),
-		 std::abs(etaMin)*10,
-		 std::abs(etaMax)*10,
-		 m_labelOut.c_str() ) );
-
-  c.Write( Form("c_%s_%s_%2.0f_Eta_%2.0f%s",
-		type1.c_str(),
-		type2.c_str(),
-		std::abs(etaMin)*10,
-		std::abs(etaMax)*10,
-		m_labelOut.c_str()) );  
+  SaveAsAll( c, type1, type2, "Eta",
+	     std::abs(etaMin)*10, std::abs(etaMax)*10 );
 }
 
 void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
@@ -1060,22 +1017,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
 				       m_mcTypeLabel  ); 
   leg.Draw();
 
-  c.SaveAs( Form("%s/%s%s%s.pdf",
-		 m_dirOut.c_str(),
-		 type1.c_str(),
-		 type2.c_str(),
-		 m_labelOut.c_str() ) );
-  c.SaveAs( Form("%s/%s%s%s.png",
-		 m_dirOut.c_str(),
-		 type1.c_str(),
-		 type2.c_str(),
-		 m_labelOut.c_str() ) );
-
-  c.Write( Form("c_%s%s%s",
-		type1.c_str(),
-		type2.c_str(),
-		m_labelOut.c_str()) );  
-
+  SaveAsAll( c, type1, type2 ); 
 }
 
 void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
@@ -1111,22 +1053,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   TLine line( xMin, y0, xMax, y0);
   line.Draw();
 
-  c.SaveAs( Form("%s/%s_%s%s.pdf",
-		 m_dirOut.c_str(),
-		 type1.c_str(),
-		 type2.c_str(),
-		 m_labelOut.c_str() ) );
-  c.SaveAs( Form("%s/%s_%s%s.png",
-		 m_dirOut.c_str(),
-		 type1.c_str(),
-		 type2.c_str(),
-		 m_labelOut.c_str() ) );
-
-  c.Write( Form("c_%s_%s%s",
-		type1.c_str(),
-		type2.c_str(),
-		m_labelOut.c_str()) );  
-
+  SaveAsAll( c, type1, type2 );
 }
 
 //===== MinMax and line drawing =====
