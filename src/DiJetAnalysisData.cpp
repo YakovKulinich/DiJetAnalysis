@@ -411,14 +411,13 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
 
   if( m_is_pPb ){ x0 = 0.45; y0 = 0.54; x1 = 0.76; y1 = 0.67; }
   else          { x0 = 0.56; y0 = 0.54; x1 = 0.86; y1 = 0.67; }
-
-  TLegend l_trigSpect( x0, y0, x1, y1 );
-  StyleTools::SetLegendStyle( &l_trigSpect, StyleTools::lSS );
-  l_trigSpect.SetFillStyle(0);
   
   std::vector< TH1* > vTriggerSpect;
   std::multimap< std::string, TH1* > mTriggerSpect;
 
+  double max = -1;
+
+  int etaStyle = 0;    
   for( int xBin = 1; xBin <= mTriggerH[ m_mbTrigger ]->GetNbinsX(); xBin++ ){
   
     TCanvas c_spect("c_spect","c_spect",800,600);
@@ -428,8 +427,7 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
     StyleTools::SetLegendStyle( &l_etaSpect, StyleTools::lSS );
     l_etaSpect.SetFillStyle(0);
   
-    int etaStyle = 0;
-    double max = -1;
+    int trigStyle = 0;
 
     // should all be the same
     double etaMin = mTriggerH[ m_mbTrigger ]->
@@ -437,8 +435,6 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
     double etaMax = mTriggerH[ m_mbTrigger ]->
       GetXaxis()->GetBinUpEdge( xBin );
 
-    int trigStyle = 0;
-    
     for( auto& tH : mTriggerH ){
       TH1* h_etaSpect =
 	tH.second->
@@ -448,12 +444,13 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
 			  10*std::abs(etaMin),
 			  10*std::abs(etaMax) ),
 		     xBin, xBin );
-      StyleTools::SetHStyle( h_etaSpect, etaStyle++, StyleTools::hSS);
+      StyleTools::SetHStyle( h_etaSpect, trigStyle++, StyleTools::hSS);
 
       h_etaSpect->GetYaxis()->SetTitle( yAxisTitle.c_str() );
       vTriggerSpect.push_back( h_etaSpect );
 
       TH1* h_trigSpect = static_cast<TH1*>( h_etaSpect->Clone() );
+      h_trigSpect->SetTitle( GetEtaLabel(etaMin, etaMax).c_str() );
       StyleTools::SetHStyle( h_trigSpect, etaStyle, StyleTools::hSS);
       mTriggerSpect.insert( std::pair< std::string, TH1* >
 			    ( tH.first, h_trigSpect ) );
@@ -463,20 +460,15 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
 	{ max = h_etaSpect->GetMaximum(); }
 
       l_etaSpect.AddEntry( h_etaSpect, tH.first.c_str() );
-
-      if( xBin == 1 ){
-	l_trigSpect.AddEntry( h_etaSpect,
-			      GetEtaLabel( etaMin, etaMax).c_str() );
-      }
     }
-    trigStyle++;
+    etaStyle++;
     
     double power = log10(max);
     power = std::ceil(power);
     max = pow( 10, power );
     for( auto& h : vTriggerSpect ){
-      h->SetMaximum( max );
       h->SetMinimum( 1 );
+      h->SetMaximum( max );
     }
   
     l_etaSpect.Draw();
@@ -487,18 +479,33 @@ PlotSpectra( std::map< std::string, TH2* >& mTriggerH,
 
     SaveAsAll( c_spect, type, "", "Eta", std::abs(etaMin)*10, std::abs(etaMax)*10 );    
   } // end loop over eta bins
-
+  
   // now draw for each trigger, spectra in various eta bins
-  /*
-  for( auto& tH : mTriggerSpect ){ // loop over triggers
-    auto rtH = mTriggerSpect.equal_range( tH.first );
+  for( auto& trig : m_vTriggers ){ // loop over triggers
+    TCanvas c_spect("c_spect","c_spect",800,600);
+    c_spect.SetLogy();
 
-    std::cout << "For " << tH.first() << " we have:" << std::endl;
-    for( auto it = rtH.begin(); it != rtH.end(); it++ ){
-      std::cout << "   " << (*it)->GetName() << std::endl; 
+    TLegend l_trigSpect( 0.7, y0, x1, y1 );
+    StyleTools::SetLegendStyle( &l_trigSpect, StyleTools::lSS );
+    l_trigSpect.SetFillStyle(0);
+
+    auto rtH = mTriggerSpect.equal_range( trig );
+    for( auto it = rtH.first; it != rtH.second; it++ ){
+      std::cout << "For: "<< it->first << " -> " << it->second->GetName() << std::endl; 
+      it->second->Draw("epsame");
+      it->second->SetMinimum( 1 );
+      it->second->SetMaximum( max );
+      l_trigSpect.AddEntry( it->second, it->second->GetTitle() );
+      it->second->SetTitle("");
     }
+    l_trigSpect.Draw("same");
+    DrawTools::DrawAtlasInternalDataRight( 0, 0, StyleTools::lSS, m_is_pPb ); 
+    DrawTools::DrawLeftLatex( 0.15, 0.17,
+			      trig.c_str(),
+			      StyleTools::lSS, 1 );
+ 
+    SaveAsAll( c_spect, trig );
   }// end loop over triggers
-  */
 }
 
 void DiJetAnalysisData::
