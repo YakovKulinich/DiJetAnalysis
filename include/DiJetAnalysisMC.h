@@ -41,10 +41,13 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		    const std::string& );
   
   void PlotEtaPhiPtMap( std::map< int, TH2* >& );
-
+  
   void PlotVsEtaPt( std::map< int, TH3* >&,
 		    std::map< int, TH2* >&,
 		    const std::string& );
+
+  void PlotEfficiencies( std::map< int, TH2* >&,
+			 std::map< int, TH2* >& );
 
   //---------------------------
   //          Tools 
@@ -115,11 +118,13 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   std::map< int, TH2* > m_mJznEtaSpectReco;
   std::map< int, TH2* > m_mJznEtaSpectTruth;
+  std::map< int, TH2* > m_mJznEtaSpectTruthPaired;
+  std::map< int, TH2* > m_mJznNentriesSpect;
   
   std::map< int, TH3* > m_mJznRpt;
   std::map< int, TH3* > m_mJznDeta;
   std::map< int, TH3* > m_mJznDphi;
-  std::map< int, TH2* > m_mJznNentries;
+  std::map< int, TH2* > m_mJznNentriesFine;
 
   //============ histos =============
   // truth bins
