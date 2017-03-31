@@ -47,19 +47,23 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		    const std::string& );
 
   void PlotEfficiencies( std::map< int, TH2* >&,
+			 std::map< int, TH2* >&,
 			 std::map< int, TH2* >& );
 
   //---------------------------
   //          Tools 
-  //---------------------------
-  void ProjectAndFit( TH3*, TH1*, TH1*, int, int, int );
-
+  //---------------------------  
   void CombineJZN( TH1*,
 		   std::map< int, TH1*>& );
 
   void CombineJZN( TH1*,
 		   std::map< int, TH1*>&,
 		   std::map< int, TH1*>& );
+
+  void CombineJZN( TGraphAsymmErrors*,
+		   std::map< int, TGraphAsymmErrors* >&,
+		   std::map< int, TH1*>& );
+  
   
   double GetJetWeight( double, double, double );
   
@@ -78,7 +82,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   
   void DrawCanvas( std::vector< TH1* >&,
 		   const std::string&,
-		   const std::string& );
+		   const std::string&,
+		   int = 1);
 
 
   //===== MinMax and line drawing =====
@@ -91,8 +96,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
  private:
   //============== cuts ===============
   double m_dRmax;
-  double m_ptFitMin;
-  int    m_nMinEntriesGausFit;
   
   //============ settings =============
   int m_mcType;
@@ -118,13 +121,18 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   std::map< int, TH2* > m_mJznEtaSpectReco;
   std::map< int, TH2* > m_mJznEtaSpectTruth;
-  std::map< int, TH2* > m_mJznEtaSpectTruthPaired;
-  std::map< int, TH2* > m_mJznNentriesSpect;
+  std::map< int, TH2* > m_mJznEtaSpectTruthNent;
+  
+  std::map< int, TH2* > m_mJznEtaSpectPTruth;
   
   std::map< int, TH3* > m_mJznRpt;
+  std::map< int, TH2* > m_mJznRptNent;
+
   std::map< int, TH3* > m_mJznDeta;
+  std::map< int, TH2* > m_mJznDetaNent;
+  
   std::map< int, TH3* > m_mJznDphi;
-  std::map< int, TH2* > m_mJznNentriesFine;
+  std::map< int, TH2* > m_mJznDphiNent;
 
   //============ histos =============
   // truth bins
@@ -143,5 +151,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   double m_dAngleMin;
   double m_dAngleMax;
 };
+
 
 #endif

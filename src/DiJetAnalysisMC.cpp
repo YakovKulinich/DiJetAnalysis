@@ -42,8 +42,6 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool isData, bool is_pPb, int mcType )
 
   //==================== Cuts ====================    
   m_dRmax    = 0.2;
-  m_ptFitMin = 20;
-  m_nMinEntriesGausFit = 20;;
 }
 
 DiJetAnalysisMC::~DiJetAnalysisMC(){}
@@ -209,10 +207,10 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   PlotSpectra( m_mJznEtaSpectReco , "spect", sReco );
   PlotSpectra( m_mJznEtaSpectTruth, "spect", sTruth );
   
-  PlotVsEtaPt( m_mJznRpt , m_mJznNentriesFine, "rPt");
+  PlotVsEtaPt( m_mJznRpt , m_mJznRptNent, "rPt");
   /*
-  PlotVsEtaPt( m_mJznDeta, m_mJznNentriesFine, "dEta");
-  PlotVsEtaPt( m_mJznDphi, m_mJznNentriesFine, "dPhi");
+  PlotVsEtaPt( m_mJznDeta, m_mJznDetaNent, "dEta");
+  PlotVsEtaPt( m_mJznDphi, m_mJznDphiNent, "dPhi");
   */
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -227,7 +225,8 @@ void DiJetAnalysisMC::SetupHistograms(){
   
   for( auto jzn : m_vUsedJZN ){ // loop over JZ samples
     std::cout << "Making - JZ" << jzn << " histograms " << std::endl;
-    
+
+    // -------- maps ---------
     m_mJznEtaPhiMap[ jzn ] =
       new TH2D( Form("h_etaPhiMap_jz%i", jzn),
 		";#eta_{Reco};#phi_{Reco}",
@@ -242,6 +241,7 @@ void DiJetAnalysisMC::SetupHistograms(){
 		m_nPtBins , m_ptMin  , m_ptMax );
     AddHistogram( m_mJznEtaPtMap[ jzn ] );
 
+    // -------- spect --------
     m_mJznEtaSpectReco[ jzn ] = 
       new TH2D( Form("h_etaSpectReco_jz%i", jzn ), 
 		";#eta_{Reco};#it{p}_{T}^{Reco} [GeV]",
@@ -262,16 +262,30 @@ void DiJetAnalysisMC::SetupHistograms(){
       Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
     AddHistogram( m_mJznEtaSpectTruth[ jzn ] );
 
-    m_mJznEtaSpectTruthPaired[ jzn ] = 
-      new TH2D( Form("h_etaSpectTruthPaired_jz%i", jzn ), 
+    // The Nent Histogram is only for the overlay samples
+    // where we fill with some weight. Otherwise,
+    // SpectTruth = SpectTruthNent (b/c fill with w=1)
+    m_mJznEtaSpectTruthNent[ jzn ] = 
+      new TH2D( Form("h_etaSpectTruthNent_jz%i", jzn ), 
 		";#eta_{Truth};#it{p}_{T}^{Truth} [GeV]",
 		m_nVarEtaBins, 0, 1,
 		m_nPtSpectBins,
 		m_ptSpectMin, m_ptSpectMax ) ;
-    m_mJznEtaSpectTruthPaired[ jzn ]->GetXaxis()->
+    m_mJznEtaSpectTruthNent[ jzn ]->GetXaxis()->
       Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
-    AddHistogram( m_mJznEtaSpectTruthPaired[ jzn ] );
-    
+    AddHistogram( m_mJznEtaSpectTruthNent[ jzn ] );
+
+    m_mJznEtaSpectPTruth[ jzn ] = 
+      new TH2D( Form("h_etaSpectPTruth_jz%i", jzn ), 
+		";#eta_{Truth};#it{p}_{T}^{Truth} [GeV]",
+		m_nVarEtaBins, 0, 1,
+		m_nPtSpectBins,
+		m_ptSpectMin, m_ptSpectMax ) ;
+    m_mJznEtaSpectPTruth[ jzn ]->GetXaxis()->
+      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+    AddHistogram( m_mJznEtaSpectPTruth[ jzn ] );
+
+    // --------- rPt ---------
     m_mJznRpt[ jzn ] =
       new TH3D( Form("h_rPt_jz%i", jzn),
 		";#eta^{Truth};#it{p}_{T}^{Truth};#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth}",
@@ -282,7 +296,17 @@ void DiJetAnalysisMC::SetupHistograms(){
 		m_nRPtBins,
 		m_rPtMin, m_rPtMax);
     AddHistogram( m_mJznRpt[ jzn ] );
-  
+
+    m_mJznRptNent[ jzn ] =
+      new TH2D( Form("h_rPtNent_jz%i", jzn),
+		";#eta^{Truth};#it{p}_{T}^{Truth}",
+		m_nEtaForwardBinsFine,
+		m_etaForwardMin, m_etaForwardMax,
+		m_nPtTruthBins,
+		m_ptTruthMin, m_ptTruthMax );
+    AddHistogram( m_mJznRptNent[ jzn ] );    
+
+    // --------- dEta ---------
     m_mJznDeta[ jzn ] =
       new TH3D( Form("h_dEta_jz%i", jzn),
 		";#eta^{Truth};#it{p}_{T}^{Truth};#eta^{Reco}-#eta^{Truth}",
@@ -293,7 +317,17 @@ void DiJetAnalysisMC::SetupHistograms(){
 		m_nDAngleBins,
 		m_dAngleMin, m_dAngleMax );
     AddHistogram( m_mJznDeta[ jzn ] );    
-  
+    
+    m_mJznDetaNent[ jzn ] =
+      new TH2D( Form("h_dEtaNent_jz%i", jzn),
+		";#eta^{Truth};#it{p}_{T}^{Truth}",
+		m_nEtaForwardBinsFine,
+		m_etaForwardMin, m_etaForwardMax,
+		m_nPtTruthBins,
+		m_ptTruthMin, m_ptTruthMax );
+    AddHistogram( m_mJznDetaNent[ jzn ] );    
+
+    // --------- dPhi ---------
     m_mJznDphi[ jzn ] =
       new TH3D( Form("h_dPhi_jz%i", jzn),
 		";#eta^{Truth};#it{p}_{T}^{Truth};#phi^{Reco}-#phi^{Truth}",
@@ -305,14 +339,14 @@ void DiJetAnalysisMC::SetupHistograms(){
 		m_dAngleMin, m_dAngleMax );
     AddHistogram( m_mJznDphi[ jzn ] );
 
-    m_mJznNentriesFine[ jzn ] =
-      new TH2D( Form("h_nEntriesFine_jz%i", jzn),
+    m_mJznDphiNent[ jzn ] =
+      new TH2D( Form("h_dPhiNent_jz%i", jzn),
 		";#eta^{Truth};#it{p}_{T}^{Truth}",
 		m_nEtaForwardBinsFine,
 		m_etaForwardMin, m_etaForwardMax,
 		m_nPtTruthBins,
 		m_ptTruthMin, m_ptTruthMax );
-    AddHistogram( m_mJznNentriesFine[ jzn ] );    
+    AddHistogram( m_mJznDphiNent[ jzn ] );    
   } 
 }
 
@@ -388,8 +422,11 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
 
 	double weight = GetJetWeight( jetEta, jetPhi, jetPt );
 
-	m_mJznEtaSpectTruth[ jzn ]->
+	m_mJznEtaSpectTruth    [ jzn ]->
 	  Fill( jetEtaAdj, jetPt, weight);
+
+	m_mJznEtaSpectTruthNent[ jzn ]->
+	  Fill( jetEtaAdj, jetPt );
 		
 	// count how many total truth jets
 	// and how many forward truth jets
@@ -432,18 +469,24 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
 	if( vp.DeltaR() <= m_dRmax ){
 	  m_mJznEtaSpectReco  [ jzn ]->
 	    Fill( jetEtaRecoAdj,  jetPtReco,  weight);
-	  m_mJznEtaSpectTruthPaired  [ jzn ]->
+
+	  m_mJznEtaSpectPTruth[ jzn ]->
 	    Fill( jetEtaTruthAdj,  jetPtTruth,  weight);
 
-	  m_mJznRpt   [ jzn ]->
-	    Fill( jetEtaTruthAdj, jetPtTruth, jetPtReco/jetPtTruth    , weight);
-	  m_mJznDeta  [ jzn ]->
-	    Fill( jetEtaTruthAdj, jetPtTruth, jetEtaReco - jetEtaTruth, weight);
-	  m_mJznDphi  [ jzn ]->
-	    Fill( jetEtaTruthAdj, jetPtTruth, jetPhiReco - jetPhiTruth, weight );
+	  m_mJznRpt     [ jzn ]->
+	    Fill( jetEtaTruthAdj, jetPtTruth, jetPtReco/jetPtTruth, weight);
+	  m_mJznRptNent [ jzn ]->
+	    Fill( jetEtaTruthAdj, jetPtTruth );
 
-	  m_mJznNentriesFine[ jzn ]->
-	    Fill( jetEtaTruthAdj, jetPtTruth, 1 );
+	  m_mJznDeta    [ jzn ]->
+	    Fill( jetEtaTruthAdj, jetPtTruth, jetEtaReco - jetEtaTruth, weight);
+	  m_mJznDetaNent[ jzn ]->
+	    Fill( jetEtaTruthAdj, jetPtTruth );
+
+	  m_mJznDphi    [ jzn ]->
+	    Fill( jetEtaTruthAdj, jetPtTruth, jetPhiReco - jetPhiTruth, weight );
+	  m_mJznDphiNent[ jzn ]->
+	    Fill( jetEtaTruthAdj, jetPtTruth  );
 	}
       } // end loop over pairs
     } // end loop over events
@@ -505,6 +548,7 @@ void DiJetAnalysisMC::LoadHistograms(){
   m_fIn = TFile::Open( m_rootFname.c_str() ); 
 
   for( auto& jzn : m_vUsedJZN ){
+    // -------- maps ---------
     m_mJznEtaPhiMap[ jzn ] =
       static_cast< TH2D* >( m_fIn->Get( Form("h_etaPhiMap_jz%i", jzn ) ) );
     m_mJznEtaPhiMap[ jzn ]->SetDirectory(0);
@@ -512,55 +556,75 @@ void DiJetAnalysisMC::LoadHistograms(){
       static_cast< TH2D* >( m_fIn->Get( Form("h_etaPtMap_jz%i", jzn ) ) );
     m_mJznEtaPtMap [ jzn ]->SetDirectory(0);
 
+    // -------- spect --------
     m_mJznEtaSpectReco [ jzn ] =
       static_cast< TH2D* >( m_fIn->Get( Form("h_etaSpectReco_jz%i", jzn ) ) );
     m_mJznEtaSpectReco [ jzn ]->SetDirectory(0);
-    m_mJznEtaSpectTruth[ jzn ] =
+
+    // The Nent Histogram is only for the overlay samples
+    // where we fill with some weight. Otherwise,
+    // SpectTruth = SpectTruthNent (b/c fill with w=1)
+    m_mJznEtaSpectTruth    [ jzn ] =
       static_cast< TH2D* >( m_fIn->Get( Form("h_etaSpectTruth_jz%i", jzn ) ) );
-    m_mJznEtaSpectTruth[ jzn ]->SetDirectory(0);
-    m_mJznEtaSpectTruthPaired[ jzn ] =
-      static_cast< TH2D* >( m_fIn->Get( Form("h_etaSpectTruthPaired_jz%i", jzn ) ) );
-    m_mJznEtaSpectTruthPaired[ jzn ]->SetDirectory(0);
-    m_mJznNentriesSpect[ jzn ] =
-      static_cast< TH2D* >( m_fIn->Get( Form("h_nEntriesSpect_jz%i", jzn ) ) );
-    m_mJznNentriesSpect[ jzn ]->SetDirectory(0);
-    
+    m_mJznEtaSpectTruth    [ jzn ]->SetDirectory(0);
+    m_mJznEtaSpectTruthNent[ jzn ] =
+      static_cast< TH2D* >( m_fIn->Get( Form("h_etaSpectTruthNent_jz%i", jzn ) ) );
+    m_mJznEtaSpectTruthNent[ jzn ]->SetDirectory(0);
+
+    m_mJznEtaSpectPTruth[ jzn ] =
+      static_cast< TH2D* >( m_fIn->Get( Form("h_etaSpectPTruth_jz%i", jzn ) ) );
+    m_mJznEtaSpectPTruth[ jzn ]->SetDirectory(0);
+
+    // --------- rPt ---------
     m_mJznRpt     [ jzn ] =
       static_cast< TH3D* >( m_fIn->Get( Form("h_rPt_jz%i", jzn ) ) );
     m_mJznRpt     [ jzn ]->SetDirectory(0);
+    m_mJznRptNent [ jzn ] =
+      static_cast< TH2D* >( m_fIn->Get( Form("h_rPtNent_jz%i", jzn ) ) );
+    m_mJznRptNent [ jzn ]->SetDirectory(0);
+
+    // --------- dEta ---------
     m_mJznDeta    [ jzn ]   =
       static_cast< TH3D* >( m_fIn->Get( Form("h_dEta_jz%i", jzn ) ) );
     m_mJznDeta    [ jzn ]->SetDirectory(0);
-    m_mJznDphi    [ jzn ] =
+    m_mJznDetaNent[ jzn ] =
+      static_cast< TH2D* >( m_fIn->Get( Form("h_dEtaNent_jz%i", jzn ) ) );
+    m_mJznDetaNent[ jzn ]->SetDirectory(0);
+
+    // --------- dPhi ---------
+    m_mJznDphi    [ jzn ]   =
       static_cast< TH3D* >( m_fIn->Get( Form("h_dPhi_jz%i", jzn ) ) );
     m_mJznDphi    [ jzn ]->SetDirectory(0);
-    m_mJznNentriesFine[ jzn ] =
-      static_cast< TH2D* >( m_fIn->Get( Form("h_nEntriesFine_jz%i", jzn ) ) );
-    m_mJznNentriesFine[ jzn ]->SetDirectory(0);
+    m_mJznDphiNent[ jzn ] =
+      static_cast< TH2D* >( m_fIn->Get( Form("h_dPhiNent_jz%i", jzn ) ) );
+    m_mJznDphiNent[ jzn ]->SetDirectory(0);
   }
   m_fIn->Close();
 }
 
-void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
+void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznSpect,
 				   const std::string& type,
 				   const std::string& level ){
   // check if we have one
-  if( !mJznHIN.size() ){ return; }
+  if( !mJznSpect.size() ){ return; }
   
   std::string yAxisTitle = "dN/d#it{p}_{T}";
   
   double ptSpectWidth =
     ( m_ptSpectMax - m_ptSpectMin ) / m_nPtSpectBins;
-	         
-  // keep track of projections
-  std::map< int, TH1* > mJznH;
+
+  // vector of projected spect
+  std::vector< TH1* > vSpect;
   // vector of final spectra
-  std::vector< TH1* >   vSpectFinal;
+  std::vector< TH1* > vSpectFinal;
   
   for( int xBin = 1;
-       xBin <= mJznHIN.begin()->second->GetNbinsX();
+       xBin <= mJznSpect.begin()->second->GetNbinsX();
        xBin++ ){
 
+    // keep track of projections
+    std::map< int, TH1* > mSpectTemp;
+    
     TCanvas c_spect("c_spect","c_spect",800,600);
     c_spect.SetLogy();
 
@@ -572,12 +636,12 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
     double max = -1;
 
     // should all be the same
-    double etaMin = mJznHIN.begin()->second->
+    double etaMin = mJznSpect.begin()->second->
       GetXaxis()->GetBinLowEdge( xBin );
-    double etaMax = mJznHIN.begin()->second->
+    double etaMax = mJznSpect.begin()->second->
       GetXaxis()->GetBinUpEdge( xBin );
   
-    for( auto& jznHIN : mJznHIN ){ // loop over JZN
+    for( auto& jznHIN : mJznSpect ){ // loop over JZN
       int jzn = jznHIN.first;
     
       TH1* h_spect =
@@ -593,8 +657,9 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
 
       h_spect->GetYaxis()->SetTitle( yAxisTitle.c_str() );
       h_spect->Scale( 1./ptSpectWidth );
-      mJznH[ jzn ] = h_spect ; 
-    
+      mSpectTemp[ jzn ] = h_spect ; 
+      vSpect.push_back( h_spect );
+      
       h_spect->Draw("epsame");
       max = h_spect->GetMaximum() > max ?
 	h_spect->GetMaximum() : max;
@@ -605,15 +670,15 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
       power = std::ceil(power); 
       max = pow( 10, power );
       // all spectra plots will have same max, min
-      for( auto& jznH : mJznH ){ 
-	jznH.second->SetMaximum( max );
-	jznH.second->SetMinimum( 0.1 );
+      for( auto& jznSpect : mSpectTemp ){ 
+	jznSpect.second->SetMaximum( max );
+	jznSpect.second->SetMinimum( 0.1 );
       }
     } // end loop over JZN
 
-    int  nPtBins = mJznHIN.begin()->second->GetNbinsY();
-    double ptMin = mJznHIN.begin()->second->GetYaxis()->GetXmin();
-    double ptMax = mJznHIN.begin()->second->GetYaxis()->GetXmax();
+    int  nPtBins = mJznSpect.begin()->second->GetNbinsY();
+    double ptMin = mJznSpect.begin()->second->GetYaxis()->GetXmin();
+    double ptMax = mJznSpect.begin()->second->GetYaxis()->GetXmax();
 
     TH1* h_spectFinal = new TH1D( Form("h_%s%sFinal_%2.0f_Eta_%2.0f_final",
 				       type.c_str(),
@@ -622,7 +687,7 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
 				       10*std::abs(etaMax) ),
 				  Form("%s;%s;%s",
 				       GetEtaLabel( etaMin, etaMax).c_str(),
-				       mJznHIN.begin()->second->
+				       mJznSpect.begin()->second->
 				       GetYaxis()->GetTitle(),
 				       yAxisTitle.c_str() ),
 				  nPtBins, ptMin, ptMax );
@@ -631,7 +696,7 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznHIN,
 
     l_spect.AddEntry( h_spectFinal, "Total" );
   
-    CombineJZN( h_spectFinal, mJznH );
+    CombineJZN( h_spectFinal, mSpectTemp );
     
     h_spectFinal->Draw("epsame");
 
@@ -672,7 +737,8 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< int, TH3* >& mJznHIN,
 				   const std::string& type ){
   std::vector< TH1* > vMeans;
   std::vector< TH1* > vSigmas;
-
+  std::vector< TH1* > vNent;
+  
   std::vector< TH1* > vMeansFinal;
   std::vector< TH1* > vSigmasFinal;
 
@@ -755,9 +821,10 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< int, TH3* >& mJznHIN,
 			  10*std::abs(etaMax) ),
 		     xBin, xBin);
       mJznNent[ jzn ] = hN;
-    
+      vNent.push_back( hN );
+      
       ProjectAndFit( jznHIN.second, h_mean, h_sigma,
-		     xBin, xBin, jznHIN.first );
+		     xBin, xBin, jznHIN.first, m_mcTypeLabel );
       
       // increment style
       style++;
@@ -800,106 +867,51 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< int, TH3* >& mJznHIN,
     DrawCanvas( mJznSigma, h_sigmaFinal, etaMin, etaMax, type, sSigma ); 
   } // end loop over eta
 
-  DrawCanvas( vMeansFinal , type, sMean  );
-  DrawCanvas( vSigmasFinal, type, sSigma );
+  // final means in a few eta bins.
+  // since these histograms have 12 bins
+  // we draw every 3 bins
+  DrawCanvas( vMeansFinal , type, sMean , 3 );
+  DrawCanvas( vSigmasFinal, type, sSigma, 3 );
 }
 
 void DiJetAnalysisMC::
-PlotEfficiencies( std::map< int, TH2* >& mJznEtaSpect, 
-		  std::map< int, TH2* >& mJznEtaSpectPaired ){
+PlotEfficiencies( std::map< int, TH2* >& mJznSpectPaired,
+		  std::map< int, TH2* >& mJznSpect,
+		  std::map< int, TH2* >& mJznSpectNent ){
 
+  std::vector< TH1* > vSpect;
+  std::vector< TGraphAsymmErrors* > vEffGrf;
+  std::vector< TGraphAsymmErrors* > vEffGrfFinal;
   
-  
+  // if there are none, return
+  if( !mJznSpect.size() ){ return; }  
+
+  double lX0 = 0.13;
+  double lY0 = 0.75;
+  double lX1 = 0.39;
+  double lY1 = 0.87;
+
+  for( int xBin = 1; xBin <= mJznSpect.begin()->second->GetNbinsX(); xBin++ ){
+    TCanvas c_eff("c_eff","c_eff",800,600);
+
+    TLegend l_eff( lX0, lY0, lX1, lY1);
+    StyleTools::SetLegendStyle( &l_eff, StyleTools::lSS );
+    l_eff.SetFillStyle(0);
+
+    // local inside the loop. used only on a per eta-bin
+    // basis. the actual projections are saved to the vectors
+    // that are global in this function.
+    std::map< std::string, TH1* > mSpectTemp;
+    std::map< std::string, TGraphAsymmErrors* > mEffGrfTemp;
+
+    for( auto& jznSpectPaired : mJznSpectPaired){}
+    
+  }
 }
-  
 
 //---------------------------
 //          Tools 
 //---------------------------
-void DiJetAnalysisMC::ProjectAndFit( TH3* h3,
-				     TH1* h1Mean, TH1* h1Sigma,
-				     int etaBinLow, int etaBinUp,
-				     int jzn = -1 ){
-  TCanvas c_proj("c_proj","c_proj",800,600);
-
-  double etaMin = h3->GetXaxis()->GetBinLowEdge( etaBinLow );
-  double etaMax = h3->GetXaxis()->GetBinUpEdge( etaBinUp );
-
-  int  nPtBins  = h3->GetNbinsY();
-
-  std::vector< TH1* > v_hProj;
-  std::vector< TF1* > v_fit;
-  
-  // loop over ptBins
-  for( int ptBin = 1; ptBin <= nPtBins; ptBin++ ){
-    double ptMin = h3->GetYaxis()->GetBinLowEdge(ptBin);
-    double ptMax = h3->GetYaxis()->GetBinUpEdge(ptBin);
-      
-    TH1* hProj = h3->
-      ProjectionZ( Form("%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
-			h3->GetName(),
-			10*std::abs(etaMin),
-			10*std::abs(etaMax),
-			ptMin, ptMax ),
-		   etaBinLow, etaBinUp, ptBin, ptBin );
-    StyleTools::SetHStyle( hProj, 0, StyleTools::hSS);
-    v_hProj.push_back( hProj );
-    hProj->SetTitle("");
-    
-    TF1* fit  = new TF1( Form("f_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
-			      h3->GetName(),
-			      10*std::abs(etaMin),
-			      10*std::abs(etaMax),
-			      ptMin, ptMax ),
-			 "gaus(0)" );
-    StyleTools::SetHStyle( fit, 0, StyleTools::hSS);
-    v_fit.push_back( fit );
-
-    if( hProj->GetEntries() < m_nMinEntriesGausFit ){ continue; }
-    
-    FitGaussian( hProj, fit );
-        
-    h1Mean->SetBinContent( ptBin, fit->GetParameter(1) );
-    h1Mean->SetBinError  ( ptBin, fit->GetParError (1) );
-
-    h1Sigma->SetBinContent ( ptBin, fit->GetParameter(2) );
-    h1Sigma->SetBinError   ( ptBin, fit->GetParError (2) );
-    
-    hProj->Draw();
-    fit->Draw("same");
-
-    DrawTools::DrawAtlasInternalMCRight( 0, 0,
-					 StyleTools::lSS,
-					 m_mcTypeLabel  ); 
-    DrawTools::DrawRightLatex( 0.88, 0.81,
-			      GetEtaLabel( etaMin, etaMax ).c_str(),
-			      StyleTools::lSS, 1 );
-    DrawTools::DrawRightLatex( 0.88, 0.74,
-			      Form("%3.0f<%s<%3.1f",
-				   ptMin,
-				   h1Mean->GetXaxis()->GetTitle(),
-				   ptMax ),
-			      StyleTools::lSS, 1 );
-    if( jzn >= 0 ){
-      DrawTools::DrawRightLatex( 0.88, 0.68,
-				 Form("JZ%i", jzn ),
-				 StyleTools::lSS, 1 );
-    }
-    
-    c_proj.Write( Form("c_%s_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
-		       h3->GetName(),
-		       m_labelOut.c_str(),
-		       std::abs(etaMin)*10,
-		       std::abs(etaMax)*10,
-		       ptMin, ptMax ) );
-    
-    SaveAsROOT( c_proj,
-	        h3->GetName(), "",
-		"Eta", std::abs(etaMin)*10, std::abs(etaMax)*10,
-		"Pt" , ptMin, ptMax );
-    
-  } // end loop over ptBins
-}
 
 void DiJetAnalysisMC::CombineJZN( TH1* h_res,
 				  std::map< int, TH1* >& mJznHIN){
@@ -950,6 +962,12 @@ void DiJetAnalysisMC::CombineJZN( TH1* h_res,
     h_res->SetBinContent( xBin, valFinal );
     h_res->SetBinError  ( xBin, valErrorFinal );
   }
+}
+
+void DiJetAnalysisMC::CombineJZN( TGraphAsymmErrors* h_res,
+				  std::map< int, TGraphAsymmErrors*>& mJznVIN,
+				  std::map< int, TH1*>& mJznNentIN ){
+
 }
 
 double DiJetAnalysisMC::GetJetWeight( double eta, double phi, double pt ){
@@ -1050,7 +1068,8 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
 
 void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
 				  const std::string& type1,
-				  const std::string& type2 ){
+				  const std::string& type2,
+				  int spacing ){
   TCanvas c("c","c",800,600);
   
   TLegend leg(0.68, 0.64, 0.99, 0.77);
@@ -1060,7 +1079,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   int style = 0;
 
   // plot every four on canvas
-  int dEta = vHIN.size()/3; // plot every 3
+  int dEta = vHIN.size()/spacing; // plot every n
   for( unsigned int etaRange = 0;
        etaRange < vHIN.size();
        etaRange += dEta){

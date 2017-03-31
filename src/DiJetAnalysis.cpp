@@ -55,6 +55,8 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   m_nVarEtaBins = static_cast<int>( m_varEtaBinning.size() ) - 1;
   
   //==================== Cuts ====================
+  m_ptFitMin = 20;
+  m_nMinEntriesGausFit = 20;;
 }
 
 DiJetAnalysis::~DiJetAnalysis(){}
@@ -205,6 +207,98 @@ void DiJetAnalysis::AddHistogram( TH1* h ){
   h->GetXaxis()->SetNdivisions(505);  
   h->GetYaxis()->SetNdivisions(505);  
   StyleTools::SetHStyle( h, 0, 0.6 );
+}
+
+void DiJetAnalysis::ProjectAndFit( TH3* h3,
+				   TH1* h1Mean, TH1* h1Sigma,
+				   int etaBinLow, int etaBinUp,
+				   int jzn,
+				   const std::string& mcLabel){
+  
+  TCanvas c_proj("c_proj","c_proj",800,600);
+
+  double etaMin = h3->GetXaxis()->GetBinLowEdge( etaBinLow );
+  double etaMax = h3->GetXaxis()->GetBinUpEdge( etaBinUp );
+
+  int  nPtBins  = h3->GetNbinsY();
+
+  std::vector< TH1* > v_hProj;
+  std::vector< TF1* > v_fit;
+  
+  // loop over ptBins
+  for( int ptBin = 1; ptBin <= nPtBins; ptBin++ ){
+    double ptMin = h3->GetYaxis()->GetBinLowEdge(ptBin);
+    double ptMax = h3->GetYaxis()->GetBinUpEdge(ptBin);
+      
+    TH1* hProj = h3->
+      ProjectionZ( Form("%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
+			h3->GetName(),
+			10*std::abs(etaMin),
+			10*std::abs(etaMax),
+			ptMin, ptMax ),
+		   etaBinLow, etaBinUp, ptBin, ptBin );
+    StyleTools::SetHStyle( hProj, 0, StyleTools::hSS);
+    v_hProj.push_back( hProj );
+    hProj->SetTitle("");
+    
+    TF1* fit  = new TF1( Form("f_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
+			      h3->GetName(),
+			      10*std::abs(etaMin),
+			      10*std::abs(etaMax),
+			      ptMin, ptMax ),
+			 "gaus(0)" );
+    StyleTools::SetHStyle( fit, 0, StyleTools::hSS);
+    v_fit.push_back( fit );
+
+    if( hProj->GetEntries() < m_nMinEntriesGausFit ){ continue; }
+    
+    FitGaussian( hProj, fit );
+        
+    h1Mean->SetBinContent( ptBin, fit->GetParameter(1) );
+    h1Mean->SetBinError  ( ptBin, fit->GetParError (1) );
+
+    h1Sigma->SetBinContent ( ptBin, fit->GetParameter(2) );
+    h1Sigma->SetBinError   ( ptBin, fit->GetParError (2) );
+    
+    hProj->Draw();
+    fit->Draw("same");
+
+    if( !m_isData ){
+      DrawTools::DrawAtlasInternalMCRight
+	( 0, 0, StyleTools::lSS, mcLabel  ); 
+    } else if( m_isData ){
+      DrawTools::DrawAtlasInternalDataRight
+	( 0, 0, StyleTools::lSS, m_is_pPb ); 
+    }
+    
+    DrawTools::DrawRightLatex( 0.88, 0.81,
+			      GetEtaLabel( etaMin, etaMax ).c_str(),
+			      StyleTools::lSS, 1 );
+    DrawTools::DrawRightLatex( 0.88, 0.74,
+			      Form("%3.0f<%s<%3.1f",
+				   ptMin,
+				   h1Mean->GetXaxis()->GetTitle(),
+				   ptMax ),
+			      StyleTools::lSS, 1 );
+    if( jzn >= 0 ){
+      DrawTools::DrawRightLatex( 0.88, 0.68,
+				 Form("JZ%i", jzn ),
+				 StyleTools::lSS, 1 );
+    }
+    
+    c_proj.Write( Form("c_%s_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
+		       h3->GetName(),
+		       m_labelOut.c_str(),
+		       std::abs(etaMin)*10,
+		       std::abs(etaMax)*10,
+		       ptMin, ptMax ) );
+    
+    SaveAsROOT( c_proj,
+	        h3->GetName(), "",
+		"Eta", std::abs(etaMin)*10, std::abs(etaMax)*10,
+		"Pt" , ptMin, ptMax );
+    
+  } // end loop over ptBins
 }
 
 void DiJetAnalysis::FitGaussian( TH1* hProj, TF1* fit ){

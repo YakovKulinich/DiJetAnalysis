@@ -65,6 +65,11 @@ class DiJetAnalysis{
   //---------------------------
   void AddHistogram( TH1* );
 
+  void ProjectAndFit( TH3*, TH1*, TH1*,
+		      int, int,
+		      int = -1,
+		      const std::string& = "" );
+  
   void FitGaussian( TH1*, TF1* );
   
   std::string GetEtaLabel( double, double );
@@ -72,6 +77,10 @@ class DiJetAnalysis{
   double AdjustEtaForPP( double );
   
  protected:
+  //============ cuts =============
+  int    m_nMinEntriesGausFit;
+  double m_ptFitMin;
+  
   //========== settings ===========
   bool m_isData;
   bool m_is_pPb;
@@ -119,8 +128,6 @@ class DiJetAnalysis{
   std::vector<double> m_varEtaBinning;
   int m_nVarEtaBins;
  public:
- 
-
 };
 
 #endif
