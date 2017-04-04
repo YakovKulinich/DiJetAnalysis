@@ -35,12 +35,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void ProcessPlotHistos();
 
   void LoadHistograms();
+  
+  void PlotEtaPhiPtMap( std::map< int, TH2* >& );
 
   void PlotSpectra( std::map< int, TH2* >&,
 		    const std::string&, 
 		    const std::string& );
-  
-  void PlotEtaPhiPtMap( std::map< int, TH2* >& );
   
   void PlotVsEtaPt( std::map< int, TH3* >&,
 		    std::map< int, TH2* >&,

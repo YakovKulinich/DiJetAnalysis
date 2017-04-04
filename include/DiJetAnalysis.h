@@ -9,6 +9,7 @@
 #include <TGraphAsymmErrors.h>
 #include <TFile.h>
 #include <TTree.h>
+#include <THmulf.h>
 
 #include <string>
 #include <vector>
@@ -29,11 +30,16 @@ class DiJetAnalysis{
 
   virtual void SetupHistograms() = 0;
 
-  virtual void ProcessEvents( int, int ) = 0;  
-
-  virtual void SaveOutputs();
+  virtual void AddHistogram( TH1* );
   
-  virtual bool ApplyIsolation( double, std::vector<TLorentzVector>& );
+  virtual void ProcessEvents( int, int ) = 0;  
+  
+  virtual void SaveOutputsFromTree();
+
+  //---------------------------
+  //       Analysis
+  //---------------------------
+  virtual void ApplyIsolation( double, std::vector<TLorentzVector>& );
     
   virtual void ApplyCleaning( std::vector<TLorentzVector>&, 
 			      std::vector<bool>& );
@@ -63,12 +69,10 @@ class DiJetAnalysis{
   //---------------------------
   //       Tools
   //---------------------------
-  void AddHistogram( TH1* );
-
-  void ProjectAndFit( TH3*, TH1*, TH1*,
-		      int, int,
-		      int = -1,
-		      const std::string& = "" );
+  void ProjectAndFitGaus( TH3*, TH1*, TH1*,
+			  int, int,
+			  int = -1,
+			  const std::string& = "" );
   
   void FitGaussian( TH1*, TF1* );
   

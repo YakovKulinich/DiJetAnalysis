@@ -24,7 +24,7 @@ all: $(CSOURCES) $(CINCLUDES) libMyLib.so libTHmulf.so
 	$(CXX) $(CXXFLAGS) $(CSOURCES) $(INCLUDEDIRS) \
 	$(LIBDIRS) $(LIBS) $(LDFLAGS) -o $(OBJ)
 
-libMyLib.so: $(DINCLUDES)vTlv.h Dict.cpp
+libMyLib.so: $(DINCLUDES)MyDict.h Dict.cpp
 	g++ $(CXXFLAGS) Dict.cpp -shared -fPIC -o libMyLib.so 
 
 libTHmulf.so:$(DSOURCES)THmulf.cxx $(DINCLUDES)THmulf.h
@@ -32,7 +32,7 @@ libTHmulf.so:$(DSOURCES)THmulf.cxx $(DINCLUDES)THmulf.h
 	-lTreePlayer `root-config --glibs` -shared -fPIC -o libTHmulf.so
 
 Dict.cpp:
-	rootcling -f Dict.cpp -rml libMyLib.so -c $(DINCLUDES)vTlv.h $(DINCLUDES)LinkDef.h
+	rootcling -f Dict.cpp -rml libMyLib.so -c $(DINCLUDES)MyDict.h $(DINCLUDES)LinkDef.h
 
 clean : 
 	rm $(OBJ) Dict* libMyLib* libTHmulf*

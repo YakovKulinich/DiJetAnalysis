@@ -185,7 +185,7 @@ void DiJetAnalysisMC::RunOverTreeFillHistos( int nEvents,
 					     int startEvent ){  
   SetupHistograms();
   ProcessEvents( nEvents, startEvent );
-  SaveOutputs();
+  SaveOutputsFromTree();
 }
 
 //---------------------------------
@@ -217,6 +217,9 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   PlotVsEtaPt( m_mJznDeta, m_mJznDetaNent, "dEta");
   PlotVsEtaPt( m_mJznDphi, m_mJznDphiNent, "dPhi");
   */
+
+  
+  
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
   std::cout << "......Closed  " << cfNameOut << std::endl;
@@ -606,6 +609,19 @@ void DiJetAnalysisMC::LoadHistograms(){
   m_fIn->Close();
 }
 
+void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< int, TH2* >& mJznHIN ){
+  TCanvas c_map("c_map","c_map",800,600);
+
+  for( auto& jznHIN : mJznHIN ){
+    jznHIN.second->Draw("col");
+    StyleTools::SetHStyle( jznHIN.second, 0, StyleTools::hSS);
+    DrawTools::DrawAtlasInternalMCLeft( 0, -0.55,
+					StyleTools::lSS,
+					m_mcTypeLabel  );  
+    SaveAsPdfPng( c_map, jznHIN.second->GetName() );
+  }
+}
+
 void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznSpect,
 				   const std::string& type,
 				   const std::string& level ){
@@ -723,19 +739,6 @@ void DiJetAnalysisMC::PlotSpectra( std::map< int, TH2* >& mJznSpect,
   DrawCanvas( vSpectFinal, type, level, isLog );
 }
 
-void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< int, TH2* >& mJznHIN ){
-  TCanvas c_map("c_map","c_map",800,600);
-
-  for( auto& jznHIN : mJznHIN ){
-    jznHIN.second->Draw("col");
-    StyleTools::SetHStyle( jznHIN.second, 0, StyleTools::hSS);
-    DrawTools::DrawAtlasInternalMCLeft( 0, -0.55,
-					StyleTools::lSS,
-					m_mcTypeLabel  );  
-    SaveAsPdfPng( c_map, jznHIN.second->GetName() );
-  }
-}
-
 void DiJetAnalysisMC::PlotVsEtaPt( std::map< int, TH3* >& mJznHIN,
 				   std::map< int, TH2* >& mJznNentIN,
 				   const std::string& type ){
@@ -827,8 +830,8 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< int, TH3* >& mJznHIN,
       mJznNent[ jzn ] = hNent;
       vNent.push_back( hNent );
       
-      ProjectAndFit( jznHIN.second, h_mean, h_sigma,
-		     xBin, xBin, jznHIN.first, m_mcTypeLabel );
+      ProjectAndFitGaus( jznHIN.second, h_mean, h_sigma,
+			 xBin, xBin, jznHIN.first, m_mcTypeLabel );
       
       // increment style
       style++;

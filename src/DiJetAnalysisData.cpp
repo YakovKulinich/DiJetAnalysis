@@ -48,7 +48,7 @@ void DiJetAnalysisData::RunOverTreeFillHistos( int nEvents,
   LoadTriggers();
   SetupHistograms();
   ProcessEvents( nEvents, startEvent );
-  SaveOutputs();
+  SaveOutputsFromTree();
 }
 
 //---------------------------------

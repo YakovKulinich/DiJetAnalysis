@@ -92,7 +92,32 @@ void DiJetAnalysis::Initialize(){
 //---------------------------
 //       Fill Tree
 //---------------------------
-bool DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
+void DiJetAnalysis::AddHistogram( TH1* h ){
+  v_hists.push_back( h );
+  h->Sumw2();
+  h->GetXaxis()->SetNdivisions(505);  
+  h->GetYaxis()->SetNdivisions(505);  
+  StyleTools::SetHStyle( h, 0, StyleTools::hSS );
+}
+
+void DiJetAnalysis::SaveOutputsFromTree(){
+  //----------------------------------------
+  //  Close the input file, 
+  //  write histos to output
+  //----------------------------------------
+  std::cout << "fNameOut: " << m_rootFname << std::endl;
+  TFile* m_fOut = new TFile( m_rootFname.c_str(),"RECREATE");
+  for( auto& h  : v_hists  ) { h-> Write(); }
+  for( auto& f  : v_functs ) { f-> Write(); }
+  for( auto& gr : v_graphs ) { gr->Write(); }
+  m_fOut->Close();
+}
+
+//---------------------------
+//       Analysis
+//---------------------------
+
+void DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
   
   std::vector<bool> isIsolated;
 
@@ -113,8 +138,6 @@ bool DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_
   for(unsigned int iJet = 0; iJet < v_jets.size(); iJet++ ){
     if( !isIsolated.at(iJet) ) v_jets.at(iJet).SetPxPyPzE(0,0,0,-1 );
   }
-
-  return true;
 }
 
 void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets, 
@@ -124,21 +147,10 @@ void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets,
   }
 }
 
+
 //---------------------------
 //       Plotting 
 //---------------------------
-void DiJetAnalysis::SaveOutputs(){
-  //----------------------------------------
-  //  Close the input file, 
-  //  write histos to output
-  //----------------------------------------
-  std::cout << "fNameOut: " << m_rootFname << std::endl;
-  TFile* m_fOut = new TFile( m_rootFname.c_str(),"RECREATE");
-  for( auto& h  : v_hists  ) { h-> Write(); }
-  for( auto& f  : v_functs ) { f-> Write(); }
-  for( auto& gr : v_graphs ) { gr->Write(); }
-  m_fOut->Close();
-}
 
 void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
 				  const std::string& label1,
@@ -204,19 +216,13 @@ void DiJetAnalysis::SaveAsAll( const TCanvas& c,
 //---------------------------
 //       Tools
 //---------------------------
-void DiJetAnalysis::AddHistogram( TH1* h ){
-  v_hists.push_back( h );
-  h->Sumw2();
-  h->GetXaxis()->SetNdivisions(505);  
-  h->GetYaxis()->SetNdivisions(505);  
-  StyleTools::SetHStyle( h, 0, StyleTools::hSS );
-}
 
-void DiJetAnalysis::ProjectAndFit( TH3* h3,
-				   TH1* h1Mean, TH1* h1Sigma,
-				   int etaBinLow, int etaBinUp,
-				   int jzn,
-				   const std::string& mcLabel){
+void DiJetAnalysis::
+ProjectAndFitGaus( TH3* h3,
+		   TH1* h1Mean, TH1* h1Sigma,
+		   int etaBinLow, int etaBinUp,
+		   int jzn,
+		   const std::string& mcLabel){
   
   TCanvas c_proj("c_proj","c_proj",800,600);
 
@@ -299,8 +305,7 @@ void DiJetAnalysis::ProjectAndFit( TH3* h3,
     SaveAsROOT( c_proj,
 	        h3->GetName(), "",
 		"Eta", std::abs(etaMin)*10, std::abs(etaMax)*10,
-		"Pt" , ptMin, ptMax );
-    
+		"Pt" , ptMin, ptMax );    
   } // end loop over ptBins
 }
 
@@ -318,8 +323,8 @@ void DiJetAnalysis::FitGaussian( TH1* hProj, TF1* fit ){
   mean   = fit->GetParameter(1);
   rms    = fit->GetParameter(2);
 
-  fitmin = mean - 1.8 * rms;
-  fitmax = mean + 2.2 * rms;
+  fitmin = mean - 2.0 * rms;
+  fitmax = mean + 2.0 * rms;
 
   fit->SetRange( fitmin, fitmax );
   

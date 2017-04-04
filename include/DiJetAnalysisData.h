@@ -33,13 +33,13 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void LoadHistograms();
 
+  void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
+  
   void PlotSpectra( std::map< std::string, TH2* >&,
 		    const std::string& );
 
   void PlotEfficiencies( std::map< std::string, TH2* >&,
 			 const std::string& );
-
-  void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
   
  private:
   //============ settings =============
