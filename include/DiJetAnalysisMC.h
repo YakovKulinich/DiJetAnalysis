@@ -48,21 +48,24 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void PlotEfficiencies( std::map< int, TH2* >&,
 			 std::map< int, TH2* >&,
-			 std::map< int, TH2* >& );
+			 std::map< int, TH2* >&,
+			 const std::string& );
 
   //---------------------------
   //          Tools 
   //---------------------------  
-  void CombineJZN( TH1*,
-		   std::map< int, TH1*>& );
+  void
+    CombineJZN( TH1*,
+		std::map< int, TH1*>& );
+  
+  void
+    CombineJZN( TH1*,
+		std::map< int, TH1*>&,
+		std::map< int, TH1*>& );
 
-  void CombineJZN( TH1*,
-		   std::map< int, TH1*>&,
-		   std::map< int, TH1*>& );
-
-  void CombineJZN( TGraphAsymmErrors*,
-		   std::map< int, TGraphAsymmErrors* >&,
-		   std::map< int, TH1*>& );
+  TGraphAsymmErrors*
+    CombineJZN( std::map< int, TGraphAsymmErrors* >&,
+		std::map< int, TH1*>& );
   
   
   double GetJetWeight( double, double, double );
@@ -74,18 +77,24 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		   double, double, 
 		   const std::string&,
 		   const std::string& );
-
-  void DrawCanvas( std::vector< TH1* >&,
-		   const std::string&,
-		   const std::string&,
-		   bool );
   
   void DrawCanvas( std::vector< TH1* >&,
 		   const std::string&,
 		   const std::string&,
 		   int = 1);
 
+  void DrawCanvas( std::vector< TH1* >&,
+		   const std::string&,
+		   const std::string&,
+		   bool );
 
+  void DrawCanvas( std::vector< TGraphAsymmErrors* >&,
+		   const std::string&,
+		   const std::string&,
+		   double, double );
+
+
+  
   //===== MinMax and line drawing =====
   void SetMinMax( TH1*,
 		  const std::string&,
@@ -121,9 +130,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   std::map< int, TH2* > m_mJznEtaSpectReco;
   std::map< int, TH2* > m_mJznEtaSpectTruth;
-  std::map< int, TH2* > m_mJznEtaSpectTruthNent;
-  
-  std::map< int, TH2* > m_mJznEtaSpectPTruth;
+  std::map< int, TH2* > m_mJznEtaSpectTruthNent; 
+  std::map< int, TH2* > m_mJznEtaSpectTruthPaired;
   
   std::map< int, TH3* > m_mJznRpt;
   std::map< int, TH2* > m_mJznRptNent;
@@ -134,7 +142,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::map< int, TH3* > m_mJznDphi;
   std::map< int, TH2* > m_mJznDphiNent;
 
-  //============ histos =============
+  //========= histos binning ========
   // truth bins
   double m_ptTruthWidth;
   double m_ptTruthMin;

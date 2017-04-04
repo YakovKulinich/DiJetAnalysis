@@ -21,11 +21,12 @@ DiJetAnalysisData::DiJetAnalysisData( bool isData,
   : DiJetAnalysis( isData, is_pPb)
 {
   //========== Set Histogram Binning =============
+  /*
   // Efficiencies
   m_nPtEffBins   = 50; 
   m_ptEffMin     = 0;
   m_ptEffMax     = m_nPtEffBins;
-
+  */
   //==================== Cuts ====================    
 }
 
@@ -65,7 +66,7 @@ void DiJetAnalysisData::ProcessPlotHistos(){
 
   PlotSpectra( m_mTriggerEtaSpect, "spect" );
 
-  PlotEfficiencies( m_mTriggerEtaEff, "eff" );
+  PlotEfficiencies( m_mTriggerEtaSpectEff, "eff" );
   
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -157,15 +158,15 @@ void DiJetAnalysisData::SetupHistograms(){
       Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
     AddHistogram( m_mTriggerEtaSpect[ trigger ] );
       
-    m_mTriggerEtaEff[ trigger ] = 
-      new TH2D( Form("h_etaEff_%s", trigger.c_str() ), 
+    m_mTriggerEtaSpectEff[ trigger ] = 
+      new TH2D( Form("h_etaSpectEff_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T} [GeV]",
 		m_nVarEtaBins, 0, 1,
-		m_nPtEffBins,
-		m_ptEffMin, m_ptEffMax ) ;
-    m_mTriggerEtaEff[ trigger ]->GetXaxis()->
+		m_nPtSpectBins,
+		m_ptSpectMin, m_ptSpectMax ) ;
+    m_mTriggerEtaSpectEff[ trigger ]->GetXaxis()->
       Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
-    AddHistogram( m_mTriggerEtaEff[trigger ] );
+    AddHistogram( m_mTriggerEtaSpectEff[trigger ] );
 
     m_mTriggerRunPrescale[ trigger ] = 
       new TH2D( Form("h_runPrescale_%s", trigger.c_str() ), 
@@ -302,7 +303,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	m_mTriggerEtaSpect[ trigger ]->Fill( jetEtaAdj, jetPt );
 	// fill mb efficiency histo also
 	if( !trigger.compare(m_mbTrigger) ){
-	  m_mTriggerEtaEff[m_mbTrigger]->Fill( jetEtaAdj, jetPt );
+	  m_mTriggerEtaSpectEff[m_mbTrigger]->Fill( jetEtaAdj, jetPt );
 	}
       } // end loop over jets
       mTrigPassed[ trigger ]++;
@@ -362,7 +363,7 @@ ProcessEfficiencies( std::vector< TLorentzVector >& vTrig_jets,
 	// eta cut
 	double jetEtaAdj = AdjustEtaForPP( jet.Eta() );
 	if( jetEtaAdj > -constants::FETAMIN ) continue;
-	m_mTriggerEtaEff[ ptTrig.second ]->
+	m_mTriggerEtaSpectEff[ ptTrig.second ]->
 	  Fill( jetEtaAdj, jet.Pt()/1000. );
       } // end loop over jets
     }
@@ -390,20 +391,20 @@ void DiJetAnalysisData::LoadHistograms(){
       static_cast< TH2D *>
       ( m_fIn->Get( Form("h_etaSpect_%s", trigger.c_str() ) ) );
     m_mTriggerEtaSpect [ trigger ]->SetDirectory(0);
-    m_mTriggerEtaEff   [ trigger ] =
+    m_mTriggerEtaSpectEff[ trigger ] =
       static_cast< TH2D* >
-      ( m_fIn->Get( Form("h_etaEff_%s", trigger.c_str() ) ) );
-    m_mTriggerEtaEff   [ trigger ]->SetDirectory(0);
+      ( m_fIn->Get( Form("h_etaSpectEff_%s", trigger.c_str() ) ) );
+    m_mTriggerEtaSpectEff[ trigger ]->SetDirectory(0);
   }
   
   m_fIn->Close();
 }
 
 void DiJetAnalysisData::
-PlotSpectra( std::map< std::string, TH2* >& mTrigEtaSpect,
+PlotSpectra( std::map< std::string, TH2* >& mTrigSpect,
 	     const std::string& type){
   // if there are none, return
-  if( !mTrigEtaSpect.size() ){ return; }  
+  if( !mTrigSpect.size() ){ return; }  
 
   std::string yAxisTitle = "dN/d#it{p}_{T}";
 
@@ -420,7 +421,7 @@ PlotSpectra( std::map< std::string, TH2* >& mTrigEtaSpect,
 
   double max = -1;
 
-  for( int xBin = 1; xBin <= mTrigEtaSpect[ m_mbTrigger ]->GetNbinsX(); xBin++ ){
+  for( int xBin = 1; xBin <= mTrigSpect[ m_mbTrigger ]->GetNbinsX(); xBin++ ){
   
     TCanvas c_spect("c_spect","c_spect",800,600);
     c_spect.SetLogy();
@@ -430,14 +431,13 @@ PlotSpectra( std::map< std::string, TH2* >& mTrigEtaSpect,
     l_etaSpect.SetFillStyle(0);
   
     int trigStyle = 0;
-
     // should all be the same
-    double etaMin = mTrigEtaSpect[ m_mbTrigger ]->
+    double etaMin = mTrigSpect[ m_mbTrigger ]->
       GetXaxis()->GetBinLowEdge( xBin );
-    double etaMax = mTrigEtaSpect[ m_mbTrigger ]->
+    double etaMax = mTrigSpect[ m_mbTrigger ]->
       GetXaxis()->GetBinUpEdge( xBin );
 
-    for( auto& tH : mTrigEtaSpect ){
+    for( auto& tH : mTrigSpect ){
       TH1* h_etaSpect =
 	tH.second->
 	ProjectionY( Form("h_%s_%s_%2.0f_Eta_%2.0f",
@@ -492,9 +492,12 @@ PlotSpectra( std::map< std::string, TH2* >& mTrigEtaSpect,
     StyleTools::SetLegendStyle( &l_trigSpect, StyleTools::lSS );
     l_trigSpect.SetFillStyle(0);
 
-    auto rtH = mmTrigSpect.equal_range( trig );
-    for( auto it = rtH.first; it != rtH.second; it++ ){
-      std::cout << "For: "<< it->first << " -> " << it->second->GetName() << std::endl; 
+    auto rangeTrigSpect = mmTrigSpect.equal_range( trig );
+    for( auto it = rangeTrigSpect.first;
+	 it != rangeTrigSpect.second;
+	 it++ ){
+      std::cout << "For: "<< it->first << " -> "
+		<< it->second->GetName() << std::endl; 
       it->second->Draw("epsame");
       it->second->SetMinimum( 1 );
       it->second->SetMaximum( max );
@@ -512,15 +515,20 @@ PlotSpectra( std::map< std::string, TH2* >& mTrigEtaSpect,
 }
 
 void DiJetAnalysisData::
-PlotEfficiencies( std::map< std::string, TH2* >& mTrigEtaSpect,
+PlotEfficiencies( std::map< std::string, TH2* >& mTrigSpect,
 		  const std::string& type ){
   // if there is no mb trigger, return
-  if( !mTrigEtaSpect[ m_mbTrigger ] ){ return; }  
+  if( !mTrigSpect[ m_mbTrigger ] ){ return; }  
 
   double lX0 = 0.13;
   double lY0 = 0.75;
   double lX1 = 0.39;
   double lY1 = 0.87;
+
+  double xMin = 0.;   //mTrigSpect[ m_mbTrigger ]->GetYaxis()->GetXmin();
+  double xMax = 90.;  //mTrigSpect[ m_mbTrigger ]->GetYaxis()->GetXmax();
+
+  std::string gTitle = ";#it{p}_{T} [GeV];#it{#varepsilon}_{Trigger}";
   
   // For later
   // in pp we have heavily prescaled triggers
@@ -533,34 +541,31 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigEtaSpect,
   std::vector< TH1* > vMbTrigger;
   std::vector< TH1* > vSpect;
   std::vector< TGraphAsymmErrors* > vEffGrf;
-
   std::multimap< std::string, TGraphAsymmErrors* > mmTrigEffGrf;
   
-  for( int xBin = 1; xBin <= mTrigEtaSpect[ m_mbTrigger ]->GetNbinsX(); xBin++ ){
+  for( int xBin = 1; xBin <= mTrigSpect[ m_mbTrigger ]->GetNbinsX(); xBin++ ){
   
     TCanvas c_eff("c_eff","c_eff",800,600);
-
+    StyleTools::SetCStyleEff( c_eff, xMin, m_effMin, xMax, m_effMax, gTitle );
+    
     TLegend l_eff( lX0, lY0, lX1, lY1);
     StyleTools::SetLegendStyle( &l_eff, StyleTools::lSS );
     l_eff.SetFillStyle(0);
 
-    int trigStyle = 0; bool haveDrawn = false;
-    double xMin = 0; double xMax = 0;
-
+    int trigStyle = 0;
     // should all be the same
-    double etaMin = mTrigEtaSpect[ m_mbTrigger ]->
+    double etaMin = mTrigSpect[ m_mbTrigger ]->
       GetXaxis()->GetBinLowEdge( xBin );
-    double etaMax = mTrigEtaSpect[ m_mbTrigger ]->
+    double etaMax = mTrigSpect[ m_mbTrigger ]->
       GetXaxis()->GetBinUpEdge( xBin );
 
     // local inside the loop. used only on a per eta-bin
     // basis. the actual projections are saved to the vectors
     // that are global in this function.
     std::map< std::string, TH1* > mSpectTemp;
-    std::map< std::string, TGraphAsymmErrors* > mEffGrfTemp;
-
+    
     TH1* h_mbTrig =
-      mTrigEtaSpect[ m_mbTrigger ]->
+      mTrigSpect[ m_mbTrigger ]->
       ProjectionY( Form("h_%s_%s_%2.0f_Eta_%2.0f",
 			type.c_str(),
 			m_mbTrigger.c_str(),
@@ -569,10 +574,10 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigEtaSpect,
 		   xBin, xBin );
     vMbTrigger.push_back( h_mbTrig );
   
-    for( auto& tH : mTrigEtaSpect ){
-      std::string trigger = tH.first;
+    for( auto& trigSpect : mTrigSpect ){
+      std::string trigger = trigSpect.first;
       mSpectTemp[ trigger ] =
-	tH.second->
+	trigSpect.second->
 	ProjectionY( Form("h_%s_%s_%2.0f_Eta_%2.0f",
 			  type.c_str(),
 			  trigger.c_str(),
@@ -582,12 +587,13 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigEtaSpect,
       vSpect.push_back( mSpectTemp[ trigger ] );
     }
   
-    for( auto& trigger : m_vTriggers ){
-      mEffGrfTemp[ trigger ] = new TGraphAsymmErrors();
-      TGraphAsymmErrors* g_etaEff = mEffGrfTemp[ trigger ];
+    for( auto& trigSpect : mSpectTemp ){
+      std::string trigger = trigSpect.first;
+      
+      TGraphAsymmErrors* g_etaEff = new TGraphAsymmErrors();
       g_etaEff->SetName ( Form("gr_%s_%s", type.c_str(), trigger.c_str() ) );
-      g_etaEff->SetTitle( ";#it{p}_{T} [GeV];#it{#varepsilon}_{Trigger}" );
-      vEffGrf.push_back( mEffGrfTemp[ trigger ] );
+      g_etaEff->SetTitle( gTitle.c_str() );
+      vEffGrf.push_back( g_etaEff );
       // dont draw the MB efficiencies, its just 1
       // dont add mb efficiencies to legend
       if( !trigger.compare(m_mbTrigger) ) continue;
@@ -614,10 +620,8 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigEtaSpect,
       std::cout << "-----For: "     << trigger
 		<< " dividing by: " << denomName << std::endl;
       
-      g_etaEff->Divide( mSpectTemp[ trigger ], denom,
+      g_etaEff->Divide( trigSpect.second, denom,
 		       "cl=0.683 b(1,1) mode" );
-      g_etaEff->SetMaximum( 1.3 );
-      g_etaEff->SetMinimum( 0. );
       StyleTools::SetHStyle( g_etaEff, trigStyle++, StyleTools::hSS);
 
       int etaStyle = xBin - 1; // increments with thee x/etaBin
@@ -628,13 +632,8 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigEtaSpect,
       mmTrigEffGrf.insert( std::pair< std::string, TGraphAsymmErrors* >
 			  ( trigger, g_trigEff ) );
       
-      if( !haveDrawn ) {
-	g_etaEff->Draw("ap"); // first one
-	haveDrawn = true;
-	xMin = g_etaEff->GetXaxis()->GetXmin();
-	xMax = g_etaEff->GetXaxis()->GetXmax();
-      } else { g_etaEff->Draw("p same"); } // others
-    }
+      g_etaEff->Draw("p"); 
+    } // end loop over triggers
   
     l_eff.Draw();
 
@@ -652,29 +651,23 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigEtaSpect,
   // now draw for each trigger, spectra in various eta bins
   for( auto& trig : m_vTriggers ){ // loop over triggers
     TCanvas c_eff("c_eff","c_eff",800,600);
-
+    StyleTools::SetCStyleEff( c_eff, xMin, m_effMin, xMax, m_effMax, gTitle );
+      
     if( !trig.compare( m_mbTrigger ) ){ continue; }
     
     TLegend l_trigEff( lX0, lY0, lX1, lY1);
     StyleTools::SetLegendStyle( &l_trigEff, StyleTools::lSS );
     l_trigEff.SetFillStyle(0);
-
-    bool haveDrawn = false;
-    int xMin = 0; int xMax = 0;
     
-    auto rtH = mmTrigEffGrf.equal_range( trig );
-    for( auto it = rtH.first; it != rtH.second; it++ ){
+    auto rangeTrigSpect = mmTrigEffGrf.equal_range( trig );
+    for( auto it = rangeTrigSpect.first;
+	 it != rangeTrigSpect.second;
+	 it++ ){
       std::cout << "For: "<< it->first << " -> "
 		<< it->second->GetName() << std::endl;
-      if( !haveDrawn ) {
-	it->second->Draw("ap"); // first one
-	haveDrawn = true;
-	xMin = it->second->GetXaxis()->GetXmin();
-	xMax = it->second->GetXaxis()->GetXmax();
-      } else { it->second->Draw("p same"); } // others
 
+      it->second->Draw("p"); 
       l_trigEff.AddEntry( it->second, it->second->GetTitle() );
-      it->second->SetTitle("");
     }
 
     l_trigEff.Draw();
@@ -696,12 +689,12 @@ void DiJetAnalysisData::
 PlotEtaPhiPtMap( std::map< std::string, TH2* >& mTrigHIN ){
   TCanvas c_map("c_map","c_map",800,600);
 
-  for( auto& tH : mTrigHIN ){
-    tH.second->Draw("col");
-    StyleTools::SetHStyle( tH.second, 0, StyleTools::hSS);
+  for( auto& trigH : mTrigHIN ){
+    trigH.second->Draw("col");
+    StyleTools::SetHStyle( trigH.second, 0, StyleTools::hSS);
     DrawTools::DrawAtlasInternalDataRight( 0, -0.55,
 					   StyleTools::lSS, m_is_pPb );  
 
-    SaveAsAll( c_map, tH.second->GetName() );
+    SaveAsAll( c_map, trigH.second->GetName() );
   }
 }

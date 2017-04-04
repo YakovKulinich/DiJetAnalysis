@@ -194,6 +194,9 @@ void DrawTools::DrawAtlasInternalMCLeft
 		mcType.c_str(), scale);
 }
 
+//===================================
+//          STYLE STUFF
+//===================================
 // ======= Styles for Stuff ======
 
 void StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){	
@@ -375,6 +378,17 @@ void StyleTools::SetHStyle( TF1* funct, int iflag, float scale)
   funct->GetYaxis()->SetLabelSize( (int)(30 * scale) );
   
   // SetCustomMarkerStyle( funct, iflag );
+}
+
+TH1F* StyleTools::SetCStyleEff( TCanvas& c,
+			        double x0, double y0, double x1, double y1,
+			        const std::string& title ){
+  c.DrawFrame( x0, y0, x1, y1, title.c_str() );
+  TH1F* hF = c.DrawFrame( x0, y0, x1, y1, title.c_str() );
+  hF->GetXaxis()->SetNdivisions(505);  
+  hF->GetYaxis()->SetNdivisions(510);  
+  StyleTools::SetHStyle( hF, 0, StyleTools::hSS );
+  return hF;
 }
 
 void StyleTools::SetLegendStyle(TLegend * legend, float scale)

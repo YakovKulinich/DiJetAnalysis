@@ -101,7 +101,7 @@ class DiJetAnalysis{
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
 
  protected:
-  //============ histos =============
+  //========= histos binning ========
   int    m_nPtSpectBins;
   double m_ptSpectMin;
   double m_ptSpectMax;
@@ -127,6 +127,10 @@ class DiJetAnalysis{
 
   std::vector<double> m_varEtaBinning;
   int m_nVarEtaBins;
+
+  // efficiency
+  double m_effMin;
+  double m_effMax;
  public:
 };
 

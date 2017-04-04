@@ -91,6 +91,9 @@ namespace DrawTools{
 				   const std::string& mcType );
 }
 
+//===================================
+//          STYLE STUFF
+//===================================
 namespace StyleTools{
   const double lSS = 0.60;
   const double hSS = 0.75;
@@ -102,6 +105,11 @@ namespace StyleTools{
   void SetHStyle( TGraph* his, int iflag, float scale);
   void SetHStyle( TF1*    his, int iflag, float scale);
 
+  // For Canvas where you draw efficiency
+  TH1F* SetCStyleEff( TCanvas&,
+		      double, double, double, double,
+		      const std::string& );
+  
   // Legend Style
   void SetLegendStyle(TLegend * legend, float scale);
 }

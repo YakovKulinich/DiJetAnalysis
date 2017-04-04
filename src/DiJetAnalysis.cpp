@@ -53,6 +53,9 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   m_varEtaBinning.push_back( -3.6 );
   m_varEtaBinning.push_back( -3.3 );
   m_nVarEtaBins = static_cast<int>( m_varEtaBinning.size() ) - 1;
+
+  m_effMin = 0.;
+  m_effMax = 1.3;
   
   //==================== Cuts ====================
   m_ptFitMin = 20;
@@ -206,7 +209,7 @@ void DiJetAnalysis::AddHistogram( TH1* h ){
   h->Sumw2();
   h->GetXaxis()->SetNdivisions(505);  
   h->GetYaxis()->SetNdivisions(505);  
-  StyleTools::SetHStyle( h, 0, 0.6 );
+  StyleTools::SetHStyle( h, 0, StyleTools::hSS );
 }
 
 void DiJetAnalysis::ProjectAndFit( TH3* h3,

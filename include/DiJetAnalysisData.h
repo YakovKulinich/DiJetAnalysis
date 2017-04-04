@@ -49,7 +49,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< std::string > m_vTriggers;
 
   std::map< std::string, TH2* > m_mTriggerEtaSpect;
-  std::map< std::string, TH2* > m_mTriggerEtaEff;
+  std::map< std::string, TH2* > m_mTriggerEtaSpectEff;
 
   // These are for all ETA, PHI
   std::map< std::string, TH2* > m_mTriggerEtaPhiMap;
@@ -62,11 +62,13 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   std::string  m_mbTrigger;
 
-  //============ histos =============
+  //========= histos binning ========
+  /*
   // Efficiencies
   int    m_nPtEffBins;
   double m_ptEffMin;
   double m_ptEffMax;
+  */
 };
 
 #endif
