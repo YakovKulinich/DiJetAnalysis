@@ -21,12 +21,7 @@ DiJetAnalysisData::DiJetAnalysisData( bool isData,
   : DiJetAnalysis( isData, is_pPb)
 {
   //========== Set Histogram Binning =============
-  /*
-  // Efficiencies
-  m_nPtEffBins   = 50; 
-  m_ptEffMin     = 0;
-  m_ptEffMax     = m_nPtEffBins;
-  */
+
   //==================== Cuts ====================    
 }
 
@@ -134,20 +129,23 @@ void DiJetAnalysisData::SetupHistograms(){
 
   for( auto& trigger : m_vTriggers ){
     std::cout << "Making - " << trigger << " histograms " << std::endl;          
+
+    // -------- maps ---------
     m_mTriggerEtaPhiMap[ trigger ] = 
       new TH2D( Form("h_etaPhiMap_%s", trigger.c_str() ), 
 		";#eta;#phi",
-		m_nEtaBins, m_etaMin, m_etaMax,
-		m_nPhiBins, m_phiMin, m_phiMax ) ;
+		m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
+		m_nPhiMapBins, m_phiMapMin, m_phiMapMax ) ;
     AddHistogram( m_mTriggerEtaPhiMap[ trigger ] );
      
     m_mTriggerEtaPtMap[ trigger ] = 
       new TH2D( Form("h_etaPtMap_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T}",
-		m_nEtaBins, m_etaMin, m_etaMax,
-		m_nPtBins , m_ptMin , m_ptMax) ;
+		m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
+		m_nPtMapBins , m_ptMapMin , m_ptMapMax) ;
     AddHistogram( m_mTriggerEtaPtMap[ trigger ] );
 
+    // -------- spect --------
     m_mTriggerEtaSpect[ trigger ] = 
       new TH2D( Form("h_etaSpect_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T} [GeV];",
@@ -168,6 +166,45 @@ void DiJetAnalysisData::SetupHistograms(){
       Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
     AddHistogram( m_mTriggerEtaSpectEff[trigger ] );
 
+    // -------- dPhi --------
+    std::vector< int    > nDphiBins;
+    std::vector< double > dPhiMin;
+    std::vector< double > dPhiMax;
+
+    // Eta_1
+    nDphiBins.push_back( 1 );
+    dPhiMin.  push_back( 0  );
+    dPhiMax.  push_back( 1  );
+
+    // Eta_2
+    nDphiBins.push_back( 1 );
+    dPhiMin.  push_back( 0  );
+    dPhiMax.  push_back( 1  );
+
+    // pT_1
+    nDphiBins.push_back( m_nDphiPtBins );
+    dPhiMin.  push_back( m_nDphiPtMin  );
+    dPhiMax.  push_back( m_nDphiPtMin  );
+
+    // pT_2
+    nDphiBins.push_back( m_nDphiPtBins );
+    dPhiMin.  push_back( m_nDphiPtMin  );
+    dPhiMax.  push_back( m_nDphiPtMin  );
+
+    // dPhi 
+    nDphiBins.push_back( m_nDphiDphiBins );
+    dPhiMin.  push_back( m_nDphiDphiMin  );
+    dPhiMax.  push_back( m_nDphiDphiMin  );
+
+    unsigned int nDim = nDphiBins.size();
+    
+    THnSparse* hn =
+      new THnSparseD( Form("hs_dPhi_%s", trigger.c_str() ), "",
+		      nDim, &nDphiBins[0], &dPhiMin[0], &dPhiMax[0] );
+    m_dPhi[ trigger ] = hn;
+    AddHistogram( hn );
+    
+    // ------- runInfo ------    
     m_mTriggerRunPrescale[ trigger ] = 
       new TH2D( Form("h_runPrescale_%s", trigger.c_str() ), 
 		";Run No;Prescale",
@@ -260,6 +297,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     // SPECTRA AND ETA PHI PT MAPS
     // loop over passed triggers
     for( auto& trigger : m_vTriggers ){
+
       // check if we have that trigger
       if( !mTriggerFired[trigger] ) {
 	mTrigFailed[ trigger ]++;
@@ -513,7 +551,7 @@ PlotSpectra( std::map< std::string, TH2* >& mTrigSpect,
 			      StyleTools::lSS, 1 );
  
     SaveAsAll( c_spect, type, trig );
-  }// end loop over triggers
+  } // end loop over triggers
 
   for( auto& h : vSpect ){ delete h; }
 }
@@ -542,7 +580,6 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigSpect,
   mTrigRefTrig[ 15 ] = -1; // mb
   mTrigRefTrig[ 25 ] = 10; 
   
-  std::vector< TH1* > vMbTrigger;
   std::vector< TH1* > vSpect;
   std::vector< TGraphAsymmErrors* > vEffGrf;
   
@@ -577,8 +614,8 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigSpect,
 			10*std::abs(etaMin),
 			10*std::abs(etaMax) ),
 		   xBin, xBin );
-    vMbTrigger.push_back( h_mbTrig );
-  
+    // dont need to add this to a collection 
+    // since its a subset of vSpect
     for( auto& trigSpect : mTrigSpect ){
       std::string trigger = trigSpect.first;
       mSpectTemp[ trigger ] =
@@ -688,9 +725,8 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigSpect,
 			       StyleTools::lSS, 1 );
  
     SaveAsAll( c_eff, type, trig );
-  }// end loop over triggers
-
-  for( auto& h : vMbTrigger ){ delete h; }
+  } // end loop over triggers
+  
   for( auto& h : vSpect     ){ delete h; }
   for( auto& g : vEffGrf    ){ delete g; }
 }

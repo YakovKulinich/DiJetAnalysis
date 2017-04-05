@@ -25,19 +25,19 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool isData, bool is_pPb, int mcType )
   : DiJetAnalysis( isData, is_pPb), m_mcType( mcType )
 {
   //========== Set Histogram Binning =============
-  // truth bins
+    // ------ truth binning --------
   m_ptTruthWidth  = 5;
   m_ptTruthMin    = 10;
   m_ptTruthMax    = 100;
   m_nPtTruthBins  =
     (m_ptTruthMax - m_ptTruthMin) / m_ptTruthWidth;
 
-  m_nRPtBins   = 50;
-  m_rPtMin     = 0;  m_rPtMax = 2;
+  // ---- JES/PRes/Etc ----- 
+  m_nRPtRecoTruthBins   = 50;
+  m_rPtRecoTruthMin     = 0;  m_rPtRecoTruthMax = 2;
 
-  // angular bins
-  m_nDAngleBins  = 50;
-  m_dAngleMin    = -0.5;  m_dAngleMax = 0.5;
+  m_nDAngleRecoTruthBins = 50;
+  m_dAngleRecoTruthMin   = -0.5; m_dAngleRecoTruthMax = 0.5;
 
   //==================== Cuts ====================    
   m_dRmax    = 0.2;
@@ -244,15 +244,15 @@ void DiJetAnalysisMC::SetupHistograms(){
     m_mJznEtaPhiMap[ jzn ] =
       new TH2D( Form("h_etaPhiMap_%s", jzn.c_str() ),
 		";#eta_{Reco};#phi_{Reco}",
-		m_nEtaBins, m_etaMin, m_etaMax,
-		m_nPhiBins, m_phiMin, m_phiMax );
+		m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
+		m_nPhiMapBins, m_phiMapMin, m_phiMapMax );
     AddHistogram( m_mJznEtaPhiMap[ jzn ] );
       
     m_mJznEtaPtMap[ jzn ] =
       new TH2D( Form("h_etaPtMap_%s", jzn.c_str() ),
 		";#eta_{Reco};#it{p}_{T}^{Reco}",
-		m_nEtaBins, m_etaMin, m_etaMax,
-		m_nPtBins , m_ptMin  , m_ptMax );
+		m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
+		m_nPtMapBins , m_ptMapMin , m_ptMapMax );
     AddHistogram( m_mJznEtaPtMap[ jzn ] );
 
     // -------- spect --------
@@ -307,8 +307,8 @@ void DiJetAnalysisMC::SetupHistograms(){
 		m_etaForwardMin, m_etaForwardMax,
 		m_nPtTruthBins,
 		m_ptTruthMin, m_ptTruthMax,
-		m_nRPtBins,
-		m_rPtMin, m_rPtMax);
+		m_nRPtRecoTruthBins,
+		m_rPtRecoTruthMin, m_rPtRecoTruthMax);
     AddHistogram( m_mJznRecoTruthRpt[ jzn ] );
 
     m_mJznRecoTruthRptNent[ jzn ] =
@@ -328,8 +328,8 @@ void DiJetAnalysisMC::SetupHistograms(){
 		m_etaForwardMin, m_etaForwardMax,
 		m_nPtTruthBins,
 		m_ptTruthMin, m_ptTruthMax,
-		m_nDAngleBins,
-		m_dAngleMin, m_dAngleMax );
+		m_nDAngleRecoTruthBins,
+		m_dAngleRecoTruthMin, m_dAngleRecoTruthMax );
     AddHistogram( m_mJznRecoTruthDeta[ jzn ] );    
     
     m_mJznRecoTruthDetaNent[ jzn ] =
@@ -349,8 +349,8 @@ void DiJetAnalysisMC::SetupHistograms(){
 		m_etaForwardMin, m_etaForwardMax,
 		m_nPtTruthBins,
 		m_ptTruthMin, m_ptTruthMax,
-		m_nDAngleBins,
-		m_dAngleMin, m_dAngleMax );
+		m_nDAngleRecoTruthBins,
+		m_dAngleRecoTruthMin, m_dAngleRecoTruthMax );
     AddHistogram( m_mJznRecoTruthDphi[ jzn ] );
 
     m_mJznRecoTruthDphiNent[ jzn ] =
@@ -1218,7 +1218,8 @@ double DiJetAnalysisMC::GetJetWeight( double eta, double phi, double pt ){
 //---------------------------
 //          Drawing 
 //---------------------------
-void DiJetAnalysisMC::DrawCanvas( std::map< std::string, TH1* >& mJznHIN, TH1* hFinal,
+void DiJetAnalysisMC::DrawCanvas( std::map< std::string, TH1* >& mJznHIN,
+				  TH1* hFinal,
 				  double etaMin, double etaMax,
 				  const std::string& type1,
 				  const std::string& type2 ){

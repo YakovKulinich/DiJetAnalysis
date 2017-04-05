@@ -9,7 +9,7 @@
 #include <TGraphAsymmErrors.h>
 #include <TFile.h>
 #include <TTree.h>
-#include <THmulf.h>
+#include <THnSparse.h>
 
 #include <string>
 #include <vector>
@@ -31,6 +31,7 @@ class DiJetAnalysis{
   virtual void SetupHistograms() = 0;
 
   virtual void AddHistogram( TH1* );
+  virtual void AddHistogram( THnSparse* );
   
   virtual void ProcessEvents( int, int ) = 0;  
   
@@ -43,8 +44,21 @@ class DiJetAnalysis{
     
   virtual void ApplyCleaning( std::vector<TLorentzVector>&, 
 			      std::vector<bool>& );
-
   //---------------------------
+  //       Tools
+  //---------------------------
+  void ProjectAndFitGaus( TH3*, TH1*, TH1*,
+			  int, int,
+			  const std::string& = "" ,
+			  const std::string& = "" );
+  
+  void FitGaussian( TH1*, TF1* );
+  
+  std::string GetEtaLabel( double, double );
+
+  double AdjustEtaForPP( double );
+
+   //---------------------------
   //       Plotting 
   //---------------------------
   virtual void ProcessPlotHistos() = 0;
@@ -66,19 +80,6 @@ class DiJetAnalysis{
 			  const std::string& = "", double = 0, double = 0,
 			  const std::string& = "", double = 0, double = 0);
   
-  //---------------------------
-  //       Tools
-  //---------------------------
-  void ProjectAndFitGaus( TH3*, TH1*, TH1*,
-			  int, int,
-			  const std::string& = "" ,
-			  const std::string& = "" );
-  
-  void FitGaussian( TH1*, TF1* );
-  
-  std::string GetEtaLabel( double, double );
-
-  double AdjustEtaForPP( double );
   
  protected:
   //============ cuts =============
@@ -100,42 +101,58 @@ class DiJetAnalysis{
 
   //============ data =============
  private:
-  std::vector< TH1*    > v_hists;  // for writing
-  std::vector< TF1*    > v_functs; // for writing
+  std::vector< TH1*       > v_hists;  // for writing
+  std::vector< THnSparse* > v_hns;    // for writing
+  std::vector< TF1*       > v_functs; // for writing
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
+
+  // histogram common to both
+ protected:
+  // -------- dPhi --------
+  std::map< std::string, THnSparse* > m_dPhi;
 
  protected:
   //========= histos binning ========
+   // -------- maps ---------
+  int    m_nEtaMapBins;
+  double m_etaMapMin;
+  double m_etaMapMax;
+  
+  int    m_nPhiMapBins;
+  double m_phiMapMin;
+  double m_phiMapMax;
+
+  int    m_nPtMapBins;
+  double m_ptMapMin;
+  double m_ptMapMax;
+
+  // -------- spect --------
   int    m_nPtSpectBins;
   double m_ptSpectMin;
   double m_ptSpectMax;
   
-  // Eta-Phi Maps
-  int    m_nEtaBins;
-  double m_etaMin;
-  double m_etaMax;
-  
-  int    m_nPhiBins;
-  double m_phiMin;
-  double m_phiMax;
-  
-  double m_ptWidth;
-  double m_ptMin;
-  double m_ptMax;
-  int    m_nPtBins;
-
-  // for jes, jer, efficiency, etc.
+  // ---- JES/PRes/Etc ----- 
   int    m_nEtaForwardBinsFine;
   double m_etaForwardMin;
   double m_etaForwardMax;
 
+  // ---- forward eta binning ---
   std::vector<double> m_varEtaBinning;
   int m_nVarEtaBins;
 
-  // efficiency
+  // -------- eff ---------
   double m_effMin;
   double m_effMax;
- public:
+
+  // -------- dphi- --------
+  int    m_nDphiPtBins;
+  double m_nDphiPtMin;
+  double m_nDphiPtMax;
+  
+  int    m_nDphiDphiBins;
+  double m_nDphiDphiMin;
+  double m_nDphiDphiMax;
+
 };
 
 #endif

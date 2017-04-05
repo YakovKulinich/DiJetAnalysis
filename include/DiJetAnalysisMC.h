@@ -1,8 +1,6 @@
 #ifndef DIJETANALYSISMC_H
 #define DIJETANALYSISMC_H
 
-#include "THmulf.h"
-
 #include "DiJetAnalysis.h"
 
 class JetPair;
@@ -113,10 +111,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< std::string > m_vUsedJZN;
   std::map< std::string, std::string > m_mJznFnameIn;
 
-  std::map< std::string, double >  m_mJznPtThreshold;
   std::map< std::string, double >  m_mJznSigma;
   std::map< std::string, double >  m_mJznEff;
   std::map< std::string, double >  m_mJznSumPowhegWeights;
+  std::map< std::string, double >  m_mJznPtThreshold;
  
   std::map< std::string, int    >  m_mJznNev;
   std::map< std::string, double >  m_mJznWeights;
@@ -125,40 +123,43 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   TH3* m_hPowhegWeights;
   //============ data =============
-  // These are for all ETA, PHI
+  // -------- maps ---------
   std::map< std::string, TH2* > m_mJznEtaPhiMap;
   std::map< std::string, TH2* > m_mJznEtaPtMap;
 
+  // -------- spect --------
   std::map< std::string, TH2* > m_mJznEtaSpectReco;
   std::map< std::string, TH2* > m_mJznEtaSpectTruth;
   std::map< std::string, TH2* > m_mJznEtaSpectTruthNent; 
   std::map< std::string, TH2* > m_mJznEtaSpectTruthPaired;
-  
+
+  // --------- recoTruthRpt ---------
   std::map< std::string, TH3* > m_mJznRecoTruthRpt;
   std::map< std::string, TH2* > m_mJznRecoTruthRptNent;
 
+  // --------- recoTruthDeta ---------
   std::map< std::string, TH3* > m_mJznRecoTruthDeta;
   std::map< std::string, TH2* > m_mJznRecoTruthDetaNent;
-  
+
+  // --------- recoTruthDphi ---------
   std::map< std::string, TH3* > m_mJznRecoTruthDphi;
   std::map< std::string, TH2* > m_mJznRecoTruthDphiNent;
 
   //========= histos binning ========
-  // truth bins
+  // ------ truth binning --------
   double m_ptTruthWidth;
   double m_ptTruthMin;
   double m_ptTruthMax;
   int    m_nPtTruthBins;
 
-  // Jes Jer
-  int    m_nRPtBins;
-  double m_rPtMin;
-  double m_rPtMax;
+  // ---- JES/PRes/Etc ----- 
+  int    m_nRPtRecoTruthBins;
+  double m_rPtRecoTruthMin;
+  double m_rPtRecoTruthMax;
 
-  // angular bins
-  int    m_nDAngleBins;
-  double m_dAngleMin;
-  double m_dAngleMax;
+  int    m_nDAngleRecoTruthBins;
+  double m_dAngleRecoTruthMin;
+  double m_dAngleRecoTruthMax;
 };
 
 

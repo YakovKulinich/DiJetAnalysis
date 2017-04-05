@@ -4,5 +4,4 @@
 #pragma link off all functions;
 #pragma link C++ nestedclasses;
 #pragma link C++ class std::vector<TLorentzVector>+;
-#pragma link C++ class THmulf+;
 #endif

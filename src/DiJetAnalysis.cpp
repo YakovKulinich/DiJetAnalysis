@@ -25,37 +25,48 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   //========== Set Histogram Binning =============
   // Common for all analysis
   
-  // Triggers and Spectra
+  // -------- maps ---------
+  m_nEtaMapBins = 100; 
+  m_etaMapMin   = constants::ETAMIN;
+  m_etaMapMax   = constants::ETAMAX;
+  
+  m_nPhiMapBins = 64; 
+  m_phiMapMin   = -constants::PI;
+  m_phiMapMax   = constants::PI; 
+
+  m_nPtMapBins  = 45;
+  m_ptMapMin    = 10;
+  m_ptMapMax    = 100;
+  
+  // -------- spect --------
   m_nPtSpectBins = 50; 
   m_ptSpectMin   = 10;
   m_ptSpectMax   = 2 * m_nPtSpectBins + m_ptSpectMin;
-  
-  // Eta-Phi Maps
-  m_nEtaBins = 100; 
-  m_etaMin   = constants::ETAMIN;
-  m_etaMax   = constants::ETAMAX;
-  
-  m_nPhiBins = 64; 
-  m_phiMin   = -constants::PI;
-  m_phiMax   = constants::PI; 
-  
-  m_ptWidth  = 2;
-  m_ptMin    = 10;
-  m_ptMax    = 100;
-  m_nPtBins  = (m_ptMax - m_ptMin)/m_ptWidth;
-  
+
+  // ---- JES/PRes/Etc ----- 
   m_nEtaForwardBinsFine   = 12;
   m_etaForwardMin   = -constants::FETAMAX;
   m_etaForwardMax   = -constants::FETAMIN;
 
+  // ---- forward eta binning ---
   m_varEtaBinning.push_back( -4.4 );
   m_varEtaBinning.push_back( -4.0 );
   m_varEtaBinning.push_back( -3.6 );
   m_varEtaBinning.push_back( -3.3 );
   m_nVarEtaBins = static_cast<int>( m_varEtaBinning.size() ) - 1;
 
+  // -------- eff ---------
   m_effMin = 0.;
   m_effMax = 1.3;
+
+  // -------- dphi- --------
+  m_nDphiPtBins = 5; 
+  m_nDphiPtMin  = 10;
+  m_nDphiPtMax  = 60;
+  
+  m_nDphiDphiBins = 25;
+  m_nDphiDphiMin  = 1.;
+  m_nDphiDphiMax  = constants::PI;
   
   //==================== Cuts ====================
   m_ptFitMin = 20;
@@ -95,10 +106,30 @@ void DiJetAnalysis::Initialize(){
 void DiJetAnalysis::AddHistogram( TH1* h ){
   v_hists.push_back( h );
   h->Sumw2();
-  h->GetXaxis()->SetNdivisions(505);  
-  h->GetYaxis()->SetNdivisions(505);  
   StyleTools::SetHStyle( h, 0, StyleTools::hSS );
+
+  TH1* h1 = dynamic_cast< TH1* >(h);
+  if( h1 ){ h->GetXaxis()->SetNdivisions(505); }
+
+  TH2* h2 = dynamic_cast< TH2* >(h);
+  if( h2 ){ h->GetYaxis()->SetNdivisions(505); }
+
+  TH3* h3 = dynamic_cast< TH3* >(h);
+  if( h3 ){ h->GetZaxis()->SetNdivisions(505); }
 }
+
+void DiJetAnalysis::AddHistogram( THnSparse* h ){
+  v_hns.push_back( hn );
+  hn->Sumw2();
+  hn->GetAxis(0)->SetTitle("#eta_{1}");
+  hn->GetAxis(0)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+  hn->GetAxis(1)->SetTitle("#eta_{2}");
+  hn->GetAxis(1)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+  hn->GetAxis(2)->SetTitle("#it{p}_{T}^{1}");
+  hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
+  hn->GetAxis(4)->SetTitle("#Delta#phi");
+}
+
 
 void DiJetAnalysis::SaveOutputsFromTree(){
   //----------------------------------------
@@ -107,9 +138,10 @@ void DiJetAnalysis::SaveOutputsFromTree(){
   //----------------------------------------
   std::cout << "fNameOut: " << m_rootFname << std::endl;
   TFile* m_fOut = new TFile( m_rootFname.c_str(),"RECREATE");
-  for( auto& h  : v_hists  ) { h-> Write(); }
-  for( auto& f  : v_functs ) { f-> Write(); }
-  for( auto& gr : v_graphs ) { gr->Write(); }
+  for( auto& h  : v_hists  ){ h-> Write(); }
+  for( auto& f  : v_functs ){ f-> Write(); }
+  for( auto& gr : v_graphs ){ gr->Write(); }
+  for( auto& hn : v_hns    ){ hn->Write(); }
   m_fOut->Close();
 }
 
@@ -145,72 +177,6 @@ void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets,
   for( unsigned int jn = 0; jn < v_jets.size() ; jn++ ){
     if( !v_isCleanJet.at(jn) ) v_jets.at(jn).SetPxPyPzE(0,0,0,-1 );
   }
-}
-
-
-//---------------------------
-//       Plotting 
-//---------------------------
-
-void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
-				  const std::string& label1,
-				  const std::string& label2,
-				  const std::string& axis1,
-				  double min1, double max1,
-				  const std::string& axis2 ,
-				  double min2, double max2 ){
-  std::stringstream ss;
-  ss << m_dirOut + "/";
-  
-  if( !label1.empty() ){ ss << boost::format("%s") % label1; }
-  if( !label2.empty() ){ ss << boost::format("_%s") % label2; }
-  ss << "_" + m_labelOut;
-  if( !axis1.empty() ){
-    ss << boost::format("_%2.0f_%s_%2.0f") % min1 % axis1 % max1;
-  }
-  if( !axis2.empty() ){
-    ss << boost::format("_%2.0f_%s_%2.0f") % min2 % axis2 % max2;
-  }
-
-  std::string sPdf = ss.str() + ".pdf";
-  std::string sPng = ss.str() + ".png";
-
-  c.SaveAs( sPdf.c_str() );
-  c.SaveAs( sPng.c_str() );
-}
-
-void DiJetAnalysis::SaveAsROOT( const TCanvas& c,
-			        const std::string& label1,
-				const std::string& label2,
-				const std::string& axis1,
-				double min1, double max1,
-				const std::string& axis2 ,
-				double min2, double max2 ){
-  std::stringstream ss;
-  ss << "c_";
-  
-  if( !label1.empty() ){ ss << boost::format("%s") % label1; }
-  if( !label2.empty() ){ ss << boost::format("_%s") % label2; }
-  ss << "_" + m_labelOut;
-  if( !axis1.empty() ){
-    ss << boost::format("_%2.0f_%s_%2.0f") % min1 % axis1 % max1;
-  }
-  if( !axis2.empty() ){
-    ss << boost::format("_%2.0f_%s_%2.0f") % min2 % axis2 % max2;
-  }
-
-  c.Write( ss.str().c_str() );
-}
-
-void DiJetAnalysis::SaveAsAll( const TCanvas& c,
-			       const std::string& label1,
-			       const std::string& label2,
-			       const std::string& axis1,
-			       double min1, double max1,
-			       const std::string& axis2 ,
-			       double min2, double max2 ){  
-  SaveAsPdfPng( c, label1, label2, axis1, min1, max1, axis2, min2, max2 );
-  SaveAsROOT  ( c, label1, label2, axis1, min1, max1, axis2, min2, max2 );
 }
 
 //---------------------------
@@ -304,6 +270,9 @@ ProjectAndFitGaus( TH3* h3,
 		"Eta", std::abs(etaMin)*10, std::abs(etaMax)*10,
 		"Pt" , ptMin, ptMax );    
   } // end loop over ptBins
+
+  for( auto& h : v_hProj ){ delete h; }
+  for( auto& f : v_fit   ){ delete f; }
 }
 
 void DiJetAnalysis::FitGaussian( TH1* hProj, TF1* fit ){
@@ -347,4 +316,69 @@ std::string DiJetAnalysis::GetEtaLabel( double etaMin, double etaMax ){
 double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
   if( m_is_pPb ) return jetEta;
   return jetEta  > 0 ? -1 * jetEta  : jetEta;
+}
+
+//---------------------------
+//       Plotting 
+//---------------------------
+
+void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
+				  const std::string& label1,
+				  const std::string& label2,
+				  const std::string& axis1,
+				  double min1, double max1,
+				  const std::string& axis2 ,
+				  double min2, double max2 ){
+  std::stringstream ss;
+  ss << m_dirOut + "/";
+  
+  if( !label1.empty() ){ ss << boost::format("%s") % label1; }
+  if( !label2.empty() ){ ss << boost::format("_%s") % label2; }
+  ss << "_" + m_labelOut;
+  if( !axis1.empty() ){
+    ss << boost::format("_%2.0f_%s_%2.0f") % min1 % axis1 % max1;
+  }
+  if( !axis2.empty() ){
+    ss << boost::format("_%2.0f_%s_%2.0f") % min2 % axis2 % max2;
+  }
+
+  std::string sPdf = ss.str() + ".pdf";
+  std::string sPng = ss.str() + ".png";
+
+  c.SaveAs( sPdf.c_str() );
+  c.SaveAs( sPng.c_str() );
+}
+
+void DiJetAnalysis::SaveAsROOT( const TCanvas& c,
+			        const std::string& label1,
+				const std::string& label2,
+				const std::string& axis1,
+				double min1, double max1,
+				const std::string& axis2 ,
+				double min2, double max2 ){
+  std::stringstream ss;
+  ss << "c_";
+  
+  if( !label1.empty() ){ ss << boost::format("%s") % label1; }
+  if( !label2.empty() ){ ss << boost::format("_%s") % label2; }
+  ss << "_" + m_labelOut;
+  if( !axis1.empty() ){
+    ss << boost::format("_%2.0f_%s_%2.0f") % min1 % axis1 % max1;
+  }
+  if( !axis2.empty() ){
+    ss << boost::format("_%2.0f_%s_%2.0f") % min2 % axis2 % max2;
+  }
+
+  c.Write( ss.str().c_str() );
+}
+
+void DiJetAnalysis::SaveAsAll( const TCanvas& c,
+			       const std::string& label1,
+			       const std::string& label2,
+			       const std::string& axis1,
+			       double min1, double max1,
+			       const std::string& axis2 ,
+			       double min2, double max2 ){  
+  SaveAsPdfPng( c, label1, label2, axis1, min1, max1, axis2, min2, max2 );
+  SaveAsROOT  ( c, label1, label2, axis1, min1, max1, axis2, min2, max2 );
 }
