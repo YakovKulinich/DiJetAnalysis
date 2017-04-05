@@ -40,10 +40,14 @@ class DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
-  virtual void ApplyIsolation( double, std::vector<TLorentzVector>& );
+  virtual double AnalyzeDeltaPhi( THnSparse*,
+				  const std::vector
+				  <TLorentzVector>& );
+  
+  virtual void  ApplyIsolation( double, std::vector<TLorentzVector>& );
     
-  virtual void ApplyCleaning( std::vector<TLorentzVector>&, 
-			      std::vector<bool>& );
+  virtual void  ApplyCleaning ( std::vector<TLorentzVector>&, 
+			        std::vector<bool>& );
   //---------------------------
   //       Tools
   //---------------------------
@@ -58,13 +62,16 @@ class DiJetAnalysis{
 
   double AdjustEtaForPP( double );
 
-   //---------------------------
+  //---------------------------
   //       Plotting 
   //---------------------------
   virtual void ProcessPlotHistos() = 0;
 
   virtual void LoadHistograms() = 0;
-
+  
+  //---------------------------
+  //       Saving 
+  //---------------------------
   virtual void SaveAsPdfPng( const TCanvas&,
 			     const std::string& = "", const std::string& = "",
 			     const std::string& = "", double = 0, double = 0,
@@ -85,7 +92,8 @@ class DiJetAnalysis{
   //============ cuts =============
   int    m_nMinEntriesGausFit;
   double m_ptFitMin;
-  
+
+  double m_dPhiThirdJetFraction;
   //========== settings ===========
   bool m_isData;
   bool m_is_pPb;
@@ -99,18 +107,22 @@ class DiJetAnalysis{
   TFile* m_fOut;
   TTree* m_tree;
 
-  //============ data =============
+  // -------- eventCounter --------
+  int m_ev;
+  
  private:
+  //============ data =============
   std::vector< TH1*       > v_hists;  // for writing
   std::vector< THnSparse* > v_hns;    // for writing
   std::vector< TF1*       > v_functs; // for writing
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
 
-  // histogram common to both
  protected:
   // -------- dPhi --------
-  std::map< std::string, THnSparse* > m_dPhi;
+  std::map< std::string, THnSparse* > m_mDphi;
 
+  
+  
  protected:
   //========= histos binning ========
    // -------- maps ---------
@@ -137,9 +149,12 @@ class DiJetAnalysis{
   double m_etaForwardMax;
 
   // ---- forward eta binning ---
+  std::vector<double> m_varFwdEtaBinning;
+  int m_nVarFwdEtaBins;
+
   std::vector<double> m_varEtaBinning;
   int m_nVarEtaBins;
-
+  
   // -------- eff ---------
   double m_effMin;
   double m_effMax;

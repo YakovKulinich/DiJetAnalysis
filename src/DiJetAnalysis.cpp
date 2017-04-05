@@ -49,11 +49,12 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   m_etaForwardMax   = -constants::FETAMIN;
 
   // ---- forward eta binning ---
-  m_varEtaBinning.push_back( -4.4 );
-  m_varEtaBinning.push_back( -4.0 );
-  m_varEtaBinning.push_back( -3.6 );
-  m_varEtaBinning.push_back( -3.3 );
-  m_nVarEtaBins = static_cast<int>( m_varEtaBinning.size() ) - 1;
+  m_varFwdEtaBinning.push_back( -4.4 );
+  m_varFwdEtaBinning.push_back( -4.0 );
+  m_varFwdEtaBinning.push_back( -3.6 );
+  m_varFwdEtaBinning.push_back( -3.3 );
+  m_nVarFwdEtaBins =
+    static_cast<int>( m_varFwdEtaBinning.size() ) - 1;
 
   // -------- eff ---------
   m_effMin = 0.;
@@ -64,13 +65,15 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   m_nDphiPtMin  = 10;
   m_nDphiPtMax  = 60;
   
-  m_nDphiDphiBins = 25;
-  m_nDphiDphiMin  = 1.;
+  m_nDphiDphiBins = 60;
+  m_nDphiDphiMin  = 0;
   m_nDphiDphiMax  = constants::PI;
   
   //==================== Cuts ====================
-  m_ptFitMin = 20;
-  m_nMinEntriesGausFit = 20;;
+  m_nMinEntriesGausFit = 20;
+  m_ptFitMin           = 20.;
+  
+  m_dPhiThirdJetFraction = 0.4;
 }
 
 DiJetAnalysis::~DiJetAnalysis(){}
@@ -118,16 +121,14 @@ void DiJetAnalysis::AddHistogram( TH1* h ){
   if( h3 ){ h->GetZaxis()->SetNdivisions(505); }
 }
 
-void DiJetAnalysis::AddHistogram( THnSparse* h ){
+void DiJetAnalysis::AddHistogram( THnSparse* hn ){
   v_hns.push_back( hn );
   hn->Sumw2();
   hn->GetAxis(0)->SetTitle("#eta_{1}");
-  hn->GetAxis(0)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
   hn->GetAxis(1)->SetTitle("#eta_{2}");
-  hn->GetAxis(1)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
   hn->GetAxis(2)->SetTitle("#it{p}_{T}^{1}");
   hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
-  hn->GetAxis(4)->SetTitle("#Delta#phi");
+  hn->GetAxis(4)->SetTitle("#Delta#phi");  
 }
 
 
@@ -148,6 +149,56 @@ void DiJetAnalysis::SaveOutputsFromTree(){
 //---------------------------
 //       Analysis
 //---------------------------
+
+double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
+				       const std::vector
+				       <TLorentzVector>& v_jets ){
+  
+  const TLorentzVector* jet1 = &v_jets.at(0);
+  const TLorentzVector* jet2 = &v_jets.at(1);
+
+  // because removing from vectors is expensive, I set
+  // "bad" or unmached jets to have (0,0,0,-1) 4vector.
+  if( jet2->Pt() == 0 || jet1->Pt() == 0 ) return -1;
+
+  unsigned int nJets = v_jets.size();
+  
+  // if we have only 2 jets, we consider the 
+  // "third" to have Pt=0
+  double followingJetPt = 0;
+
+  if( nJets > 2 )
+    followingJetPt = v_jets.at(2).Pt()/1000.;
+
+  double jet1_pt  = jet1->Pt()/1000.;
+  double jet1_phi = jet1->Phi();
+  double jet1_eta = jet1->Eta();
+  
+  double jet2_pt  = jet2->Pt()/1000.;
+  double jet2_phi = jet2->Phi();
+  double jet2_eta = jet2->Eta();      
+
+  double ptAvg    = ( jet2_pt + jet1_pt )/2;
+
+  double deltaPhi = AnalysisTools::DeltaPhi( jet2_phi, jet1_phi );
+  
+  // some cuts for phi inter calibration
+  if( followingJetPt > ptAvg * m_dPhiThirdJetFraction ) return -1;
+  // some min pt cut
+  
+  std::vector< double > x;
+  x.reserve( hn->GetNdimensions() );
+  
+  x.push_back( jet1_eta );  
+  x.push_back( jet2_eta );
+  x.push_back( jet1_pt  );
+  x.push_back( jet2_pt );
+  x.push_back( deltaPhi );
+      
+  hn->Fill( &x[0], 1 );
+
+  return deltaPhi;
+}
 
 void DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
   
@@ -319,7 +370,12 @@ double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
 }
 
 //---------------------------
-//       Plotting 
+//       Plotting
+//---------------------------
+ 
+
+//---------------------------
+//       Saving 
 //---------------------------
 
 void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,

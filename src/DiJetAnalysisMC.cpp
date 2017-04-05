@@ -259,21 +259,21 @@ void DiJetAnalysisMC::SetupHistograms(){
     m_mJznEtaSpectReco[ jzn ] = 
       new TH2D( Form("h_etaSpectReco_%s", jzn.c_str() ), 
 		";#eta_{Reco};#it{p}_{T}^{Reco} [GeV]",
-		m_nVarEtaBins, 0, 1,
+		m_nVarFwdEtaBins, 0, 1,
 		m_nPtSpectBins,
 		m_ptSpectMin, m_ptSpectMax ) ;
     m_mJznEtaSpectReco[ jzn ]->GetXaxis()->
-      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+      Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_mJznEtaSpectReco[ jzn ] );
 
     m_mJznEtaSpectTruth[ jzn ] = 
       new TH2D( Form("h_etaSpectTruth_%s", jzn.c_str() ), 
 		";#eta_{Truth};#it{p}_{T}^{Truth} [GeV]",
-		m_nVarEtaBins, 0, 1,
+		m_nVarFwdEtaBins, 0, 1,
 		m_nPtSpectBins,
 		m_ptSpectMin, m_ptSpectMax ) ;
     m_mJznEtaSpectTruth[ jzn ]->GetXaxis()->
-      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+      Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_mJznEtaSpectTruth[ jzn ] );
 
     // The Nent Histogram is only for the overlay samples
@@ -282,21 +282,21 @@ void DiJetAnalysisMC::SetupHistograms(){
     m_mJznEtaSpectTruthNent[ jzn ] = 
       new TH2D( Form("h_etaSpectTruthNent_%s", jzn.c_str() ), 
 		";#eta_{Truth};#it{p}_{T}^{Truth} [GeV]",
-		m_nVarEtaBins, 0, 1,
+		m_nVarFwdEtaBins, 0, 1,
 		m_nPtSpectBins,
 		m_ptSpectMin, m_ptSpectMax ) ;
     m_mJznEtaSpectTruthNent[ jzn ]->GetXaxis()->
-      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+      Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_mJznEtaSpectTruthNent[ jzn ] );
 
     m_mJznEtaSpectTruthPaired[ jzn ] = 
       new TH2D( Form("h_etaSpectTruthPaired_%s", jzn.c_str() ), 
 		";#eta_{Truth};#it{p}_{T}^{Truth} [GeV]",
-		m_nVarEtaBins, 0, 1,
+		m_nVarFwdEtaBins, 0, 1,
 		m_nPtSpectBins,
 		m_ptSpectMin, m_ptSpectMax ) ;
     m_mJznEtaSpectTruthPaired[ jzn ]->GetXaxis()->
-      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+      Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_mJznEtaSpectTruthPaired[ jzn ] );
 
     // --------- recoTruthRpt ---------
@@ -400,8 +400,8 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
     int nJetsForward = 0;
 
     // event loop
-    for( int ev = startEvent; ev < endEvent; ev++ ){
-      m_tree->GetEntry( ev );
+    for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
+      m_tree->GetEntry( m_ev );
 
       ApplyCleaning ( vR_jets, v_isCleanJet );
       ApplyIsolation( 1.0, vR_jets );
@@ -409,8 +409,8 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
       std::vector< JetPair > v_paired_jets;
       PairJets( vR_jets, vT_jets, v_paired_jets );
       
-      if( AnalysisTools::DoPrint(ev) ) {
-	std::cout << "\nEvent : " << ev 
+      if( AnalysisTools::DoPrint(m_ev) ) {
+	std::cout << "\nEvent : " << m_ev 
 		  << "    has : " << vR_jets.size() << " reco jets"
 		  << "    and : " << vT_jets.size() << " truth jets"
 		  << std::endl; 
@@ -606,19 +606,6 @@ void DiJetAnalysisMC::LoadHistograms(){
     m_mJznRecoTruthDphiNent[ jzn ]->SetDirectory(0);
   }
   m_fIn->Close();
-}
-
-void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< std::string, TH2* >& mJznHIN ){
-  TCanvas c_map("c_map","c_map",800,600);
-
-  for( auto& jznHIN : mJznHIN ){
-    jznHIN.second->Draw("col");
-    StyleTools::SetHStyle( jznHIN.second, 0, StyleTools::hSS);
-    DrawTools::DrawAtlasInternalMCLeft( 0, -0.55,
-					StyleTools::lSS,
-					m_mcTypeLabel  );  
-    SaveAsPdfPng( c_map, jznHIN.second->GetName() );
-  }
 }
 
 void DiJetAnalysisMC::PlotSpectra( std::map< std::string, TH2* >& mJznSpect,
@@ -1022,6 +1009,19 @@ PlotEfficiencies( std::map< std::string, TH2* >& mJznSpectPaired,
   for( auto& h : vSpect       ){ delete h; }
   for( auto& g : vEffGrf      ){ delete g; }
   for( auto& g : vEffGrfFinal ){ delete g; }
+}
+
+void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< std::string, TH2* >& mJznHIN ){
+  TCanvas c_map("c_map","c_map",800,600);
+
+  for( auto& jznHIN : mJznHIN ){
+    jznHIN.second->Draw("col");
+    StyleTools::SetHStyle( jznHIN.second, 0, StyleTools::hSS);
+    DrawTools::DrawAtlasInternalMCLeft( 0, -0.55,
+					StyleTools::lSS,
+					m_mcTypeLabel  );  
+    SaveAsPdfPng( c_map, jznHIN.second->GetName() );
+  }
 }
 
 //---------------------------

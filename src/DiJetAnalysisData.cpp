@@ -149,59 +149,62 @@ void DiJetAnalysisData::SetupHistograms(){
     m_mTriggerEtaSpect[ trigger ] = 
       new TH2D( Form("h_etaSpect_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T} [GeV];",
-		m_nVarEtaBins, 0, 1,
+		m_nVarFwdEtaBins, 0, 1,
 		m_nPtSpectBins,
 		m_ptSpectMin, m_ptSpectMax ) ;
     m_mTriggerEtaSpect[ trigger ]->GetXaxis()->
-      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+      Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_mTriggerEtaSpect[ trigger ] );
       
     m_mTriggerEtaSpectEff[ trigger ] = 
       new TH2D( Form("h_etaSpectEff_%s", trigger.c_str() ), 
 		";#eta;#it{p}_{T} [GeV]",
-		m_nVarEtaBins, 0, 1,
+		m_nVarFwdEtaBins, 0, 1,
 		m_nPtSpectBins,
 		m_ptSpectMin, m_ptSpectMax ) ;
     m_mTriggerEtaSpectEff[ trigger ]->GetXaxis()->
-      Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+      Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_mTriggerEtaSpectEff[trigger ] );
 
     // -------- dPhi --------
     std::vector< int    > nDphiBins;
     std::vector< double > dPhiMin;
     std::vector< double > dPhiMax;
-
+    
     // Eta_1
-    nDphiBins.push_back( 1 );
+    nDphiBins.push_back( m_nVarFwdEtaBins );
     dPhiMin.  push_back( 0  );
     dPhiMax.  push_back( 1  );
-
+    
     // Eta_2
-    nDphiBins.push_back( 1 );
-    dPhiMin.  push_back( 0  );
-    dPhiMax.  push_back( 1  );
-
+    nDphiBins.push_back( m_nVarFwdEtaBins );
+    dPhiMin.  push_back( 0 );
+    dPhiMax.  push_back( 1 );
     // pT_1
     nDphiBins.push_back( m_nDphiPtBins );
     dPhiMin.  push_back( m_nDphiPtMin  );
-    dPhiMax.  push_back( m_nDphiPtMin  );
-
+    dPhiMax.  push_back( m_nDphiPtMax  );
+    
     // pT_2
     nDphiBins.push_back( m_nDphiPtBins );
     dPhiMin.  push_back( m_nDphiPtMin  );
-    dPhiMax.  push_back( m_nDphiPtMin  );
+    dPhiMax.  push_back( m_nDphiPtMax  );
 
     // dPhi 
     nDphiBins.push_back( m_nDphiDphiBins );
     dPhiMin.  push_back( m_nDphiDphiMin  );
-    dPhiMax.  push_back( m_nDphiDphiMin  );
+    dPhiMax.  push_back( m_nDphiDphiMax  );
 
     unsigned int nDim = nDphiBins.size();
     
     THnSparse* hn =
       new THnSparseD( Form("hs_dPhi_%s", trigger.c_str() ), "",
 		      nDim, &nDphiBins[0], &dPhiMin[0], &dPhiMax[0] );
-    m_dPhi[ trigger ] = hn;
+
+    hn->GetAxis(0)->Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
+    hn->GetAxis(1)->Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
+  
+    m_mDphi[ trigger ] = hn;
     AddHistogram( hn );
     
     // ------- runInfo ------    
@@ -282,28 +285,34 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 					startEvent + nEvents : nEventsTotal;
 
   // event loop
-  for( int ev = startEvent; ev < endEvent; ev++ ){
-    m_tree->GetEntry( ev );
+  for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
+    m_tree->GetEntry( m_ev );
 
     ApplyCleaning ( vR_jets, v_isCleanJet );
     ApplyIsolation( 1.0, vR_jets );
 
-    if( AnalysisTools::DoPrint(ev) ) {
-      std::cout << "\nEvent : " << ev << "    runN : " << runNumber
+    if( AnalysisTools::DoPrint(m_ev) ) {
+      std::cout << "\nEvent : " << m_ev << "    runN : " << runNumber
 		<< "    has : " << vR_jets.size() << " jets" 
 		<< std::endl; 
     }
+
+    std::sort( vR_jets.begin(), vR_jets.end(),
+	       AnalysisTools::sortByDecendingPt );
     
     // SPECTRA AND ETA PHI PT MAPS
     // loop over passed triggers
     for( auto& trigger : m_vTriggers ){
 
       // check if we have that trigger
-      if( !mTriggerFired[trigger] ) {
+      if( !mTriggerFired[ trigger ] ) {
 	mTrigFailed[ trigger ]++;
 	continue;	
       }
 
+      if( vR_jets.size() >= 2 )
+	{ AnalyzeDeltaPhi( m_mDphi[ trigger ], vR_jets ); }
+      
       // loop over jets 
       for( auto& jet : vR_jets ){
 	// cleaned jets have px, py, pz set to 0
@@ -729,6 +738,11 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigSpect,
   
   for( auto& h : vSpect     ){ delete h; }
   for( auto& g : vEffGrf    ){ delete g; }
+}
+
+void DiJetAnalysisData::PlotDeltaPhi
+( std::map< std::string, THnSparse*>& m ){
+  
 }
 
 void DiJetAnalysisData::

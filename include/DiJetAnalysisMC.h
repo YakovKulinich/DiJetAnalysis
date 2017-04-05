@@ -34,8 +34,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void LoadHistograms();
   
-  void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
-
   void PlotSpectra( std::map< std::string, TH2* >&,
 		    const std::string&, 
 		    const std::string& );
@@ -49,6 +47,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			 std::map< std::string, TH2* >&,
 			 const std::string& );
 
+  void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
+  
   //---------------------------
   //          Tools 
   //---------------------------  
