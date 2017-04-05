@@ -71,7 +71,7 @@ class DiJetAnalysis{
   //---------------------------
   void ProjectAndFitGaus( TH3*, TH1*, TH1*,
 			  int, int,
-			  int = -1,
+			  const std::string& = "" ,
 			  const std::string& = "" );
   
   void FitGaussian( TH1*, TF1* );

@@ -36,19 +36,19 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void LoadHistograms();
   
-  void PlotEtaPhiPtMap( std::map< int, TH2* >& );
+  void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
 
-  void PlotSpectra( std::map< int, TH2* >&,
+  void PlotSpectra( std::map< std::string, TH2* >&,
 		    const std::string&, 
 		    const std::string& );
   
-  void PlotVsEtaPt( std::map< int, TH3* >&,
-		    std::map< int, TH2* >&,
+  void PlotVsEtaPt( std::map< std::string, TH3* >&,
+		    std::map< std::string, TH2* >&,
 		    const std::string& );
 
-  void PlotEfficiencies( std::map< int, TH2* >&,
-			 std::map< int, TH2* >&,
-			 std::map< int, TH2* >&,
+  void PlotEfficiencies( std::map< std::string, TH2* >&,
+			 std::map< std::string, TH2* >&,
+			 std::map< std::string, TH2* >&,
 			 const std::string& );
 
   //---------------------------
@@ -56,16 +56,16 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------  
   void
     CombineJZN( TH1*,
-		std::map< int, TH1*>& );
+		std::map< std::string, TH1*>& );
   
   void
     CombineJZN( TH1*,
-		std::map< int, TH1*>&,
-		std::map< int, TH1*>& );
+		std::map< std::string, TH1*>&,
+		std::map< std::string, TH1*>& );
 
   TGraphAsymmErrors*
-    CombineJZN( std::map< int, TGraphAsymmErrors* >&,
-		std::map< int, TH1*>& );
+    CombineJZN( std::map< std::string, TGraphAsymmErrors* >&,
+		std::map< std::string, TH1*>& );
   
   
   double GetJetWeight( double, double, double );
@@ -73,7 +73,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   //          Drawing
   //---------------------------
-  void DrawCanvas( std::map< int, TH1* >&, TH1*,
+  void DrawCanvas( std::map< std::string, TH1* >&, TH1*,
 		   double, double, 
 		   const std::string&,
 		   const std::string& );
@@ -110,37 +110,38 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   int m_mcType;
   std::string m_mcTypeLabel;
   
-  std::vector< int > m_vUsedJZN;
-  std::map< int, std::string > m_mJznFnameIn;
+  std::vector< std::string > m_vUsedJZN;
+  std::map< std::string, std::string > m_mJznFnameIn;
 
-  std::map< int, double >      m_mJznSigma;
-  std::map< int, double >      m_mJznEff;
-  std::map< int, double >      m_mJznSumPowhegWeights;
+  std::map< std::string, double >  m_mJznPtThreshold;
+  std::map< std::string, double >  m_mJznSigma;
+  std::map< std::string, double >  m_mJznEff;
+  std::map< std::string, double >  m_mJznSumPowhegWeights;
  
-  std::map< int, int    >      m_mJznNev;
-  std::map< int, double >      m_mJznWeights;
+  std::map< std::string, int    >  m_mJznNev;
+  std::map< std::string, double >  m_mJznWeights;
 
   double m_sumSigmaEff;
 
   TH3* m_hPowhegWeights;
   //============ data =============
   // These are for all ETA, PHI
-  std::map< int, TH2* > m_mJznEtaPhiMap;
-  std::map< int, TH2* > m_mJznEtaPtMap;
+  std::map< std::string, TH2* > m_mJznEtaPhiMap;
+  std::map< std::string, TH2* > m_mJznEtaPtMap;
 
-  std::map< int, TH2* > m_mJznEtaSpectReco;
-  std::map< int, TH2* > m_mJznEtaSpectTruth;
-  std::map< int, TH2* > m_mJznEtaSpectTruthNent; 
-  std::map< int, TH2* > m_mJznEtaSpectTruthPaired;
+  std::map< std::string, TH2* > m_mJznEtaSpectReco;
+  std::map< std::string, TH2* > m_mJznEtaSpectTruth;
+  std::map< std::string, TH2* > m_mJznEtaSpectTruthNent; 
+  std::map< std::string, TH2* > m_mJznEtaSpectTruthPaired;
   
-  std::map< int, TH3* > m_mJznRpt;
-  std::map< int, TH2* > m_mJznRptNent;
+  std::map< std::string, TH3* > m_mJznRecoTruthRpt;
+  std::map< std::string, TH2* > m_mJznRecoTruthRptNent;
 
-  std::map< int, TH3* > m_mJznDeta;
-  std::map< int, TH2* > m_mJznDetaNent;
+  std::map< std::string, TH3* > m_mJznRecoTruthDeta;
+  std::map< std::string, TH2* > m_mJznRecoTruthDetaNent;
   
-  std::map< int, TH3* > m_mJznDphi;
-  std::map< int, TH2* > m_mJznDphiNent;
+  std::map< std::string, TH3* > m_mJznRecoTruthDphi;
+  std::map< std::string, TH2* > m_mJznRecoTruthDphiNent;
 
   //========= histos binning ========
   // truth bins

@@ -51,6 +51,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::map< std::string, TH2* > m_mTriggerEtaSpect;
   std::map< std::string, TH2* > m_mTriggerEtaSpectEff;
 
+  std::map< std::string, THmulf* > m_mDphi;
+  
   // These are for all ETA, PHI
   std::map< std::string, TH2* > m_mTriggerEtaPhiMap;
   std::map< std::string, TH2* > m_mTriggerEtaPtMap;

@@ -221,7 +221,7 @@ void DiJetAnalysis::
 ProjectAndFitGaus( TH3* h3,
 		   TH1* h1Mean, TH1* h1Sigma,
 		   int etaBinLow, int etaBinUp,
-		   int jzn,
+		   const std::string& jzn,
 		   const std::string& mcLabel){
   
   TCanvas c_proj("c_proj","c_proj",800,600);
@@ -274,7 +274,9 @@ ProjectAndFitGaus( TH3* h3,
 
     if( !m_isData ){
       DrawTools::DrawAtlasInternalMCRight
-	( 0, 0, StyleTools::lSS, mcLabel  ); 
+	( 0, 0, StyleTools::lSS, mcLabel  );
+      DrawTools::DrawRightLatex
+	( 0.88, 0.68, jzn.c_str(), StyleTools::lSS, 1 );
     } else if( m_isData ){
       DrawTools::DrawAtlasInternalDataRight
 	( 0, 0, StyleTools::lSS, m_is_pPb ); 
@@ -289,11 +291,6 @@ ProjectAndFitGaus( TH3* h3,
 				   h1Mean->GetXaxis()->GetTitle(),
 				   ptMax ),
 			      StyleTools::lSS, 1 );
-    if( jzn >= 0 ){
-      DrawTools::DrawRightLatex( 0.88, 0.68,
-				 Form("JZ%i", jzn ),
-				 StyleTools::lSS, 1 );
-    }
     
     c_proj.Write( Form("c_%s_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
 		       h3->GetName(),
