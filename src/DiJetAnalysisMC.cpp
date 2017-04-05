@@ -736,6 +736,9 @@ void DiJetAnalysisMC::PlotSpectra( std::map< std::string, TH2* >& mJznSpect,
 
   bool isLog = true;
   DrawCanvas( vSpectFinal, type, level, isLog );
+
+  for( auto& h : vSpect      ){ delete h; }
+  for( auto& h : vSpectFinal ){ delete h; }
 }
 
 void DiJetAnalysisMC::PlotVsEtaPt( std::map< std::string, TH3* >& mJznHIN,
@@ -879,6 +882,13 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< std::string, TH3* >& mJznHIN,
   int spacing = 3;
   DrawCanvas( vMeansFinal , type, sMean , spacing );
   DrawCanvas( vSigmasFinal, type, sSigma, spacing );
+
+  for( auto& h : vMeans  ){ delete h; }
+  for( auto& h : vSigmas ){ delete h; }
+  for( auto& h : vNent   ){ delete h; }
+  
+  for( auto& h : vMeansFinal  ){ delete h; }
+  for( auto& h : vSigmasFinal ){ delete h; }
 }
 
 void DiJetAnalysisMC::
@@ -1008,6 +1018,10 @@ PlotEfficiencies( std::map< std::string, TH2* >& mJznSpectPaired,
   } // end loop over eta
 
   DrawCanvas( vEffGrfFinal, type, gTitle, xMin, xMax );
+
+  for( auto& h : vSpect       ){ delete h; }
+  for( auto& g : vEffGrf      ){ delete g; }
+  for( auto& g : vEffGrfFinal ){ delete g; }
 }
 
 //---------------------------

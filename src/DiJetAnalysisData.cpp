@@ -456,6 +456,8 @@ PlotSpectra( std::map< std::string, TH2* >& mTrigSpect,
       TH1* h_trigSpect = static_cast<TH1*>( h_etaSpect->Clone() );
       h_trigSpect->SetTitle( GetEtaLabel(etaMin, etaMax).c_str() );
       StyleTools::SetHStyle( h_trigSpect, etaStyle, StyleTools::hSS);
+      vSpect.push_back( h_trigSpect );
+      
       mmTrigSpect.insert( std::pair< std::string, TH1* >
 			    ( tH.first, h_trigSpect ) );
       
@@ -512,6 +514,8 @@ PlotSpectra( std::map< std::string, TH2* >& mTrigSpect,
  
     SaveAsAll( c_spect, type, trig );
   }// end loop over triggers
+
+  for( auto& h : vSpect ){ delete h; }
 }
 
 void DiJetAnalysisData::
@@ -541,6 +545,7 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigSpect,
   std::vector< TH1* > vMbTrigger;
   std::vector< TH1* > vSpect;
   std::vector< TGraphAsymmErrors* > vEffGrf;
+  
   std::multimap< std::string, TGraphAsymmErrors* > mmTrigEffGrf;
   
   for( int xBin = 1; xBin <= mTrigSpect[ m_mbTrigger ]->GetNbinsX(); xBin++ ){
@@ -629,6 +634,8 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigSpect,
 	static_cast<TGraphAsymmErrors*>( g_etaEff->Clone() );
       g_trigEff->SetTitle( GetEtaLabel(etaMin, etaMax).c_str() );
       StyleTools::SetHStyle( g_trigEff, etaStyle, StyleTools::hSS);
+      vEffGrf.push_back( g_trigEff );
+      
       mmTrigEffGrf.insert( std::pair< std::string, TGraphAsymmErrors* >
 			  ( trigger, g_trigEff ) );
       
@@ -682,7 +689,10 @@ PlotEfficiencies( std::map< std::string, TH2* >& mTrigSpect,
  
     SaveAsAll( c_eff, type, trig );
   }// end loop over triggers
-  
+
+  for( auto& h : vMbTrigger ){ delete h; }
+  for( auto& h : vSpect     ){ delete h; }
+  for( auto& g : vEffGrf    ){ delete g; }
 }
 
 void DiJetAnalysisData::
