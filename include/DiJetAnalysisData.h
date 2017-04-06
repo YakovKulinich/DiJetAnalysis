@@ -12,59 +12,70 @@ class DiJetAnalysisData : public DiJetAnalysis{
   void Initialize();
   
   //---------------------------
-  //       Fill Tree
+  // Fill Tree / Plot Controls
   //---------------------------
   void RunOverTreeFillHistos( int, int );
 
+  void ProcessPlotHistos();
+
+  //---------------------------
+  //       Fill Tree
+  //---------------------------
   void LoadTriggers();
 
   void SetupHistograms();
 
   void ProcessEvents( int, int );  
 
-  void ProcessEfficiencies( std::vector< TLorentzVector >&,
-			    std::vector< TLorentzVector >&,
-			    std::map< std::string, bool >&);
+  //---------------------------
+  //       Analysis
+  //---------------------------
+  void AnalyzeEff( std::vector< TLorentzVector >&,
+		   std::vector< TLorentzVector >&,
+		   std::map< int, bool >&);
 
   //---------------------------
-  //       Plotting 
+  //       Plot Data 
   //---------------------------
-  void ProcessPlotHistos();
-
   void LoadHistograms();
 
-  void PlotSpectra( std::map< std::string, TH2* >&,
+  void PlotSpectra( std::vector< TH2* >&,
 		    const std::string& );
 
-  void PlotEfficiencies( std::map< std::string, TH2* >&,
+  void PlotEfficiencies( std::vector< TH2* >&,
 			 const std::string& );
 
   virtual void PlotDeltaPhi
-    ( std::map< std::string, THnSparse*>& );
+    ( std::vector< THnSparse*>& );
 
-  void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
+  void PlotEtaPhiPtMap( std::vector< TH2* >& );
    
  private:
   //============ settings =============
   std::string m_fNameIn;
 
-  std::vector< int > v_tJetPt;
-  std::map   < int , std::string > m_tJetPtTrigger;
-
   std::vector< std::string > m_vTriggers;
-  std::string  m_mbTrigger;  
+  std::vector< std::string > m_vRefTriggers;
+  std::vector< double >      m_vTholdPtTriggers;
+  std::vector< double >      m_vEffPtTriggers;
+
+  std::string m_mbTriggerName;
+  int m_mbTriggerI;
+  
+  unsigned int m_nTriggers;
+ 
   //============ data =============
   // -------- maps ---------
-  std::map< std::string, TH2* > m_mTriggerEtaPhiMap;
-  std::map< std::string, TH2* > m_mTriggerEtaPtMap;
+  std::vector< TH2* > m_vTriggerEtaPhiMap;
+  std::vector< TH2* > m_vTriggerEtaPtMap;
 
   // -------- spect --------
-  std::map< std::string, TH2* > m_mTriggerEtaSpect;
-  std::map< std::string, TH2* > m_mTriggerEtaSpectEff;
+  std::vector< TH2* > m_vTriggerEtaSpect;
+  std::vector< TH2* > m_vTriggerEtaSpectEff;
 
-  // ------- runInfo ------
-  std::map< std::string, TH2* > m_mTriggerRunPrescale;
-
+  // -------- dPhi ---------
+  std::vector< THnSparse* > m_vDphi;
+  
   //========= histos binning ========
 };
 

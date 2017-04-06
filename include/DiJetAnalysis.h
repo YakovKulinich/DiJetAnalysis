@@ -31,6 +31,7 @@ class DiJetAnalysis{
   virtual void SetupHistograms() = 0;
 
   virtual void AddHistogram( TH1* );
+
   virtual void AddHistogram( THnSparse* );
   
   virtual void ProcessEvents( int, int ) = 0;  
@@ -59,7 +60,9 @@ class DiJetAnalysis{
   void FitGaussian( TH1*, TF1* );
   
   std::string GetEtaLabel( double, double );
-
+  
+  std::string GetName( double, double, const std::string& );
+  
   double AdjustEtaForPP( double );
 
   //---------------------------
@@ -150,10 +153,10 @@ class DiJetAnalysis{
 
   // ---- forward eta binning ---
   std::vector<double> m_varFwdEtaBinning;
-  int m_nVarFwdEtaBins;
+  unsigned int m_nVarFwdEtaBins;
 
   std::vector<double> m_varEtaBinning;
-  int m_nVarEtaBins;
+  unsigned int m_nVarEtaBins;
   
   // -------- eff ---------
   double m_effMin;

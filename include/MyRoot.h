@@ -22,6 +22,7 @@
 #include <TGraph.h>
 #include <TGraphErrors.h>
 #include <TGraphAsymmErrors.h>
+#include <string>
 #include <sstream>
 
 //===================================
@@ -66,6 +67,7 @@ namespace AnalysisTools{
   bool TruncateHistoBins( TH3* h3 );
   bool DoPrint( int ev );
   std::vector<std::string> vectorise(TString str, TString sep);
+  std::vector<double> vectoriseD(TString str, TString sep);
   void FitGaussian( TH1* hProj, TF1* fit );
 }
 

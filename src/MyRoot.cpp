@@ -73,11 +73,21 @@ bool AnalysisTools::DoPrint( int ev ) {
 }
 
 std::vector<std::string> AnalysisTools::vectorise(TString str, TString sep) {
-  std::vector<std::string> result; TObjArray *strings = str.Tokenize(sep.Data());
+  std::vector<std::string> result;
+  TObjArray *strings = str.Tokenize(sep.Data());
   if (strings->GetEntries()==0) { delete strings; return result; }
   TIter istr(strings);
-  while (TObjString* os=(TObjString*)istr()) result.push_back(std::string(os->GetString()));
+  while (TObjString* os=(TObjString*)istr())
+    {result.push_back(std::string(os->GetString()));}
   delete strings; return result;
+}   
+
+std::vector<double> AnalysisTools::vectoriseD(TString str, TString sep) {
+  std::vector<double> result;
+  std::vector<std::string> vecS = vectorise(str,sep);
+  for (uint i=0;i<vecS.size();++i)
+    {result.push_back(std::stod(vecS[i]));}
+  return result;
 }   
 
 
@@ -400,5 +410,5 @@ void StyleTools::SetLegendStyle(TLegend * legend, float scale)
   legend->SetLineStyle(1);
   legend->SetLineWidth(1);
   legend->SetFillColor(0);
-  legend->SetFillStyle(1001);
+  legend->SetFillStyle(0);
 }

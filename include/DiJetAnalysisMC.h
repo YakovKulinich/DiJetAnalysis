@@ -13,12 +13,17 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   ~DiJetAnalysisMC();
 
   void Initialize();
+
+  //---------------------------
+  // Fill Tree / Plot Controls
+  //---------------------------
+  void RunOverTreeFillHistos( int, int );
+
+  void ProcessPlotHistos();
   
   //---------------------------
   //       Fill Tree
   //---------------------------
-  void RunOverTreeFillHistos( int, int );
-
   void SetupHistograms();
 
   void ProcessEvents( int, int );  
@@ -28,9 +33,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		 std::vector< JetPair >& );
   
   //---------------------------
-  //       Plotting 
+  //       Plot Data 
   //---------------------------
-  void ProcessPlotHistos();
 
   void LoadHistograms();
   

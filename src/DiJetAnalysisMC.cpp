@@ -186,9 +186,10 @@ void DiJetAnalysisMC::Initialize(){
   }
 }
 
-//---------------------------------
-//            Read Data
-//---------------------------------
+//---------------------------
+// Fill Tree / Plot Controls
+//---------------------------
+
 void DiJetAnalysisMC::RunOverTreeFillHistos( int nEvents, 
 					     int startEvent ){  
   SetupHistograms();
@@ -196,9 +197,6 @@ void DiJetAnalysisMC::RunOverTreeFillHistos( int nEvents,
   SaveOutputsFromTree();
 }
 
-//---------------------------------
-//            Plot Data
-//---------------------------------
 void DiJetAnalysisMC::ProcessPlotHistos(){
   LoadHistograms();
 
@@ -548,9 +546,8 @@ void DiJetAnalysisMC::PairJets(  std::vector< TLorentzVector >& vR_jets,
 
 
 //---------------------------------
-//            Plot Data
+//           Plot Data
 //---------------------------------
-
 void DiJetAnalysisMC::LoadHistograms(){
   m_fIn = TFile::Open( m_rootFname.c_str() ); 
 
@@ -714,11 +711,12 @@ void DiJetAnalysisMC::PlotSpectra( std::map< std::string, TH2* >& mJznSpect,
 			      GetEtaLabel( etaMin, etaMax ).c_str(),
 			      StyleTools::lSS, 1 );
 
+    /*
     SaveAsAll( c_spect,
 	       type, level, "Eta",
 	       std::abs(etaMin)*10,
 	       std::abs(etaMax)*10 );
-    
+    */
   } // end loop over eta
 
   bool isLog = true;
@@ -1001,7 +999,8 @@ PlotEfficiencies( std::map< std::string, TH2* >& mJznSpectPaired,
 			       GetEtaLabel( etaMin, etaMax).c_str(),
 			       StyleTools::lSS, 1 );
 
-    SaveAsAll( c_eff, type, "", "Eta", std::abs(etaMin)*10, std::abs(etaMax)*10 );
+    
+    // SaveAsAll( c_eff, type, "", "Eta", std::abs(etaMin)*10, std::abs(etaMax)*10 );
   } // end loop over eta
 
   DrawCanvas( vEffGrfFinal, type, gTitle, xMin, xMax );
@@ -1255,9 +1254,11 @@ void DiJetAnalysisMC::DrawCanvas( std::map< std::string, TH1* >& mJznHIN,
   TLine line( xMin, y0, xMax, y0);
   // dont draw line for sigma plots
   if( type2.compare("sigma") ) { line.Draw(); }
-    
+
+  /*
   SaveAsAll( c, type1, type2, "Eta",
 	     std::abs(etaMin)*10, std::abs(etaMax)*10 );
+  */
 }
 
 void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
@@ -1296,7 +1297,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   TLine line( xMin, y0, xMax, y0);
   line.Draw();
 
-  SaveAsAll( c, type1, type2 );
+  // SaveAsAll( c, type1, type2 );
 }
 
 void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
@@ -1336,7 +1337,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
 				       m_mcTypeLabel  ); 
   leg.Draw();
 
-  SaveAsAll( c, type1, type2 ); 
+  //  SaveAsAll( c, type1, type2 ); 
 }
 
 
@@ -1368,7 +1369,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TGraphAsymmErrors* >& vGIN,
   TLine line( xMin, 1, xMax, 1);
   line.Draw();
   
-  SaveAsAll( c, type ); 
+  //  SaveAsAll( c, type ); 
 }
 
 //===== MinMax and line drawing =====
