@@ -76,9 +76,16 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   m_ptFitMin           = 20.;
   
   m_dPhiThirdJetFraction = 0.4;
+
+  //========= common tools ========
+  anaTool   = new CT::AnalysisTools();
+  drawTool  = new CT::DrawTools();
+  styleTool = new CT::StyleTools();
 }
 
-DiJetAnalysis::~DiJetAnalysis(){}
+DiJetAnalysis::~DiJetAnalysis(){
+  delete anaTool; delete drawTool; delete styleTool;
+}
 
 void DiJetAnalysis::Initialize(){
   m_labelOut = m_isData ? "data" : "mc" ;
@@ -111,7 +118,7 @@ void DiJetAnalysis::Initialize(){
 void DiJetAnalysis::AddHistogram( TH1* h ){
   v_hists.push_back( h );
   h->Sumw2();
-  StyleTools::SetHStyle( h, 0, StyleTools::hSS );
+  styleTool->SetHStyle( h, 0, CT::StyleTools::hSS );
 
   TH1* h1 = dynamic_cast< TH1* >(h);
   if( h1 ){ h->GetXaxis()->SetNdivisions(505); }
@@ -181,7 +188,7 @@ double DiJetAnalysis::AnalyzeDeltaPhi
 
   double ptAvg    = ( jet2_pt + jet1_pt )/2;
 
-  double deltaPhi = AnalysisTools::DeltaPhi( jet2_phi, jet1_phi );
+  double deltaPhi = anaTool->DeltaPhi( jet2_phi, jet1_phi );
   
   // some cuts for phi inter calibration
   if( followingJetPt > ptAvg * m_dPhiThirdJetFraction ) return -1;
@@ -209,8 +216,8 @@ void DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_
     for(unsigned int iSecondJet = 0; iSecondJet < v_jets.size(); iSecondJet++){   
       if( iSecondJet == iTestJet ) continue;
 
-      if( AnalysisTools::DeltaR( v_jets.at(iTestJet),
-				 v_jets.at(iSecondJet)) < Rmin &&
+      if( anaTool->DeltaR( v_jets.at(iTestJet),
+			   v_jets.at(iSecondJet)) < Rmin &&
 	  v_jets.at(iSecondJet).Pt() > v_jets.at(iTestJet).Pt() * 0.5 ){       
 	isIsolated.push_back(false);
 	continue;
@@ -225,7 +232,7 @@ void DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_
 }
 
 void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets, 
-		    std::vector<bool>& v_isCleanJet){
+				   std::vector<bool>& v_isCleanJet){
   for( unsigned int jn = 0; jn < v_jets.size() ; jn++ ){
     if( !v_isCleanJet.at(jn) ) v_jets.at(jn).SetPxPyPzE(0,0,0,-1 );
   }
@@ -264,7 +271,7 @@ ProjectAndFitGaus( TH3* h3,
 			10*std::abs(etaMax),
 			ptMin, ptMax ),
 		   etaBinLow, etaBinUp, ptBin, ptBin );
-    StyleTools::SetHStyle( hProj, 0, StyleTools::hSS);
+    styleTool->SetHStyle( hProj, 0, CT::StyleTools::hSS);
     v_hProj.push_back( hProj );
     hProj->SetTitle("");
     
@@ -274,7 +281,7 @@ ProjectAndFitGaus( TH3* h3,
 			      10*std::abs(etaMax),
 			      ptMin, ptMax ),
 			 "gaus(0)" );
-    StyleTools::SetHStyle( fit, 0, StyleTools::hSS);
+    styleTool->SetHStyle( fit, 0, CT::StyleTools::hSS);
     v_fit.push_back( fit );
 
     if( hProj->GetEntries() < m_nMinEntriesGausFit ){ continue; }
@@ -291,24 +298,24 @@ ProjectAndFitGaus( TH3* h3,
     fit->Draw("same");
 
     if( !m_isData ){
-      DrawTools::DrawAtlasInternalMCRight
-	( 0, 0, StyleTools::lSS, mcLabel  );
-      DrawTools::DrawRightLatex
-	( 0.88, 0.68, jzn.c_str(), StyleTools::lSS, 1 );
+      drawTool->DrawAtlasInternalMCRight
+	( 0, 0, CT::StyleTools::lSS, mcLabel  );
+      drawTool->DrawLeftLatex
+	( 0.18, 0.74, jzn.c_str(), CT::StyleTools::lSS, 1 );
     } else if( m_isData ){
-      DrawTools::DrawAtlasInternalDataRight
-	( 0, 0, StyleTools::lSS, m_is_pPb ); 
+      drawTool->DrawAtlasInternalDataRight
+	( 0, 0, CT::StyleTools::lSS, m_is_pPb ); 
     }
     
-    DrawTools::DrawRightLatex( 0.88, 0.81,
-			      GetEtaLabel( etaMin, etaMax ).c_str(),
-			      StyleTools::lSS, 1 );
-    DrawTools::DrawRightLatex( 0.88, 0.74,
-			      Form("%3.0f<%s<%3.1f",
-				   ptMin,
-				   h1Mean->GetXaxis()->GetTitle(),
-				   ptMax ),
-			      StyleTools::lSS, 1 );
+    drawTool->DrawLeftLatex( 0.18, 0.88,
+			     GetEtaLabel( etaMin, etaMax ).c_str(),
+			     CT::StyleTools::lSS, 1 );
+    drawTool->DrawLeftLatex( 0.18, 0.81,
+			     Form("%3.0f<%s<%3.1f",
+				  ptMin,
+				  h1Mean->GetXaxis()->GetTitle(),
+				  ptMax ),
+			     CT::StyleTools::lSS, 1 );
     
     c_proj.Write( Form("c_%s_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
 		       h3->GetName(),
@@ -349,7 +356,26 @@ void DiJetAnalysis::FitGaussian( TH1* hProj, TF1* fit ){
   hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
 }
 
-std::string DiJetAnalysis::GetEtaLabel( double etaMin, double etaMax ){
+double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
+  if( m_is_pPb ) return jetEta;
+  return jetEta  > 0 ? -1 * jetEta  : jetEta;
+}
+
+std::string DiJetAnalysis::GetLabel
+( double vMin,double vMax,
+  const std::string& var, const std::string& unit ){
+  
+  std::stringstream ss;
+
+  ss << boost::format("%3.1f<%s<%3.1f")
+    % vMin % var % vMax;
+  if( !unit.empty() ){ ss << boost::format(" %s") % unit; }
+  
+  return ss.str();
+}
+
+std::string DiJetAnalysis::GetEtaLabel( double etaMin,
+					double etaMax ){
 
   std::stringstream ss;
   
@@ -365,19 +391,6 @@ std::string DiJetAnalysis::GetEtaLabel( double etaMin, double etaMax ){
   }
   
   return ss.str();
-}
-
-std::string DiJetAnalysis::GetName( double etaMin, double etaMax,
-				    const std::string& var){
-  std::stringstream ss;
-  ss <<  boost::format("%2.0f_%s_%2.0f")
-    % (10*std::abs(etaMin)) % var % (10*std::abs(etaMax)) ;
-  return ss.str();
-}
-
-double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
-  if( m_is_pPb ) return jetEta;
-  return jetEta  > 0 ? -1 * jetEta  : jetEta;
 }
 
 //---------------------------

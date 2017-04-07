@@ -15,6 +15,14 @@
 #include <vector>
 #include <map>
 
+#include "MyRoot.h"
+
+namespace CS{
+  class AnalysisTools;
+  class DrawTools;
+  class StyleTools;
+}
+
 class DiJetAnalysis{
  public:
   DiJetAnalysis();
@@ -58,13 +66,15 @@ class DiJetAnalysis{
 			  const std::string& = "" );
   
   void FitGaussian( TH1*, TF1* );
+      
+  double AdjustEtaForPP( double );
+
+  std::string GetLabel( double, double,
+			const std::string&,
+			const std::string& = "" );
   
   std::string GetEtaLabel( double, double );
   
-  std::string GetName( double, double, const std::string& );
-  
-  double AdjustEtaForPP( double );
-
   //---------------------------
   //       Plotting 
   //---------------------------
@@ -104,14 +114,13 @@ class DiJetAnalysis{
   std::string m_labelOut;
   std::string m_dirOut;
   std::string m_rootFname;
+  // -------- eventCounter --------
+  int m_ev;
   
   //============ files =============
   TFile* m_fIn;
   TFile* m_fOut;
   TTree* m_tree;
-
-  // -------- eventCounter --------
-  int m_ev;
   
  private:
   //============ data =============
@@ -124,11 +133,14 @@ class DiJetAnalysis{
   // -------- dPhi --------
   std::map< std::string, THnSparse* > m_mDphi;
 
-  
-  
+  //========= common tools ========
+  CT::AnalysisTools* anaTool;
+  CT::DrawTools*     drawTool;
+  CT::StyleTools*    styleTool;
+
  protected:
-  //========= histos binning ========
-   // -------- maps ---------
+  //======== histos binning =======
+  // -------- maps ---------
   int    m_nEtaMapBins;
   double m_etaMapMin;
   double m_etaMapMax;

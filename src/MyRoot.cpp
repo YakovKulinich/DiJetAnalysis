@@ -1,3 +1,7 @@
+#include <boost/format.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/assign.hpp>
+
 #include "MyRoot.h"
 
 const int pPbLumi2016 = 437; // ub
@@ -6,21 +10,21 @@ const int ppLumi2015  = 26;  // pb
 //===================================
 //         COMMON FUNCTIONS
 //===================================
-bool AnalysisTools::isForward( const double& eta ){
+bool CT::AnalysisTools::isForward( const double& eta ){
   return ( TMath::Abs(eta) < constants::FETAMAX && 
 	   TMath::Abs(eta) > constants::FETAMIN );
 }
 
-bool AnalysisTools::isCentral( const double& eta ){
+bool CT::AnalysisTools::isCentral( const double& eta ){
   return ( TMath::Abs(eta) < constants::CETAMAX );
 }
 
-bool AnalysisTools::EpsilonEqual( double a, double b ){
+bool CT::AnalysisTools::EpsilonEqual( double a, double b ){
   return fabs( a - b ) < constants::EPSILON;
 }
 
 // returns dphi in range 0<dphi<2pi
-double AnalysisTools::DPhiFC( double phi1, double phi2 ){
+double CT::AnalysisTools::DPhiFC( double phi1, double phi2 ){
   double deltaPhi = phi1 - phi2;
 
   while( deltaPhi < 0 ) deltaPhi += 2*constants::PI;
@@ -28,7 +32,7 @@ double AnalysisTools::DPhiFC( double phi1, double phi2 ){
   return deltaPhi;
 }
 
-double AnalysisTools::DeltaPhi
+double CT::AnalysisTools::DeltaPhi
 ( double phi1, double phi2 ){
   double deltaPhi = TMath::Abs(phi1 - phi2);
 
@@ -37,7 +41,7 @@ double AnalysisTools::DeltaPhi
   return deltaPhi;
 }
 
-double AnalysisTools::DeltaR
+double CT::AnalysisTools::DeltaR
 (  const TLorentzVector& jet1, const TLorentzVector& jet2 ){  
   double deltaEta = jet1.Eta() - jet2.Eta();
   double deltaPhi = TMath::Abs( jet1.Phi() - jet2.Phi() );
@@ -46,12 +50,12 @@ double AnalysisTools::DeltaR
   return TMath::Sqrt( deltaEta*deltaEta + deltaPhi*deltaPhi );
 }
 
-bool AnalysisTools::sortByDecendingPt
+bool CT::AnalysisTools::sortByDecendingPt
 ( const TLorentzVector& jet1, const TLorentzVector& jet2 ){
   return ( jet1.Pt() > jet2.Pt() );
 }
 
-bool AnalysisTools::TruncateHistoBins( TH3* h3 ){
+bool CT::AnalysisTools::TruncateHistoBins( TH3* h3 ){
   for( int z = 1; z <= h3->GetZaxis()->GetNbins(); z++ ){
     for( int y = 1; y <= h3->GetYaxis()->GetNbins(); y++ ){    
       for( int x = 1; x <= h3->GetXaxis()->GetNbins(); x++ ){
@@ -62,7 +66,7 @@ bool AnalysisTools::TruncateHistoBins( TH3* h3 ){
   return true;
 }
 
-bool AnalysisTools::DoPrint( int ev ) {
+bool CT::AnalysisTools::DoPrint( int ev ) {
   int statSize=1;
   if( ev != 0){
     double power=std::floor(log10(ev));
@@ -72,7 +76,8 @@ bool AnalysisTools::DoPrint( int ev ) {
   return false;
 }
 
-std::vector<std::string> AnalysisTools::vectorise(TString str, TString sep) {
+std::vector<std::string> CT::AnalysisTools::vectorise
+(TString str, TString sep) {
   std::vector<std::string> result;
   TObjArray *strings = str.Tokenize(sep.Data());
   if (strings->GetEntries()==0) { delete strings; return result; }
@@ -82,7 +87,8 @@ std::vector<std::string> AnalysisTools::vectorise(TString str, TString sep) {
   delete strings; return result;
 }   
 
-std::vector<double> AnalysisTools::vectoriseD(TString str, TString sep) {
+std::vector<double> CT::AnalysisTools::vectoriseD
+(TString str, TString sep) {
   std::vector<double> result;
   std::vector<std::string> vecS = vectorise(str,sep);
   for (uint i=0;i<vecS.size();++i)
@@ -91,7 +97,7 @@ std::vector<double> AnalysisTools::vectoriseD(TString str, TString sep) {
 }   
 
 
-void AnalysisTools::FitGaussian( TH1* hProj, TF1* fit ){
+void CT::AnalysisTools::FitGaussian( TH1* hProj, TF1* fit ){
   // fit once 
   double mean   = hProj->GetMean();
   double rms    = hProj->GetRMS();
@@ -113,34 +119,56 @@ void AnalysisTools::FitGaussian( TH1* hProj, TF1* fit ){
   hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
 }
 
+std::string CT::AnalysisTools::GetName( double v1, double v2,
+					const std::string& var){
+  std::stringstream ss;
+  ss <<  boost::format("%2.0f_%s_%2.0f")
+    % (10*std::abs(v1)) % var % (10*std::abs(v2)) ;
+  return ss.str();
+}
+
+
+void CT::AnalysisTools::GetBinRange( TAxis* a,
+				 int b1, int b2,
+				 double& x1, double& x2){
+  x1 = a->GetBinLowEdge( b1 );
+  x2 = a->GetBinUpEdge ( b2 );
+}
+
 //===================================
 //          DRAWING STUFF
 //===================================
 
 // ============ GENERAL ================
 
-void DrawTools::DrawRightLatex
+void CT::DrawTools::DrawRightLatex
 ( double x, double y , const char* s, float scale = 1, int color = 1){
   TLatex tltx; 
-  tltx.SetTextFont(43); tltx.SetTextSize((int)(32*scale)); tltx.SetTextColor(color);
+  tltx.SetTextFont(43);
+  tltx.SetTextSize((int)(32*scale));
+  tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
   tltx.SetTextAlign(32);
   tltx.DrawLatex( x, y, s );
 }
 
-void DrawTools::DrawLeftLatex
+void CT::DrawTools::DrawLeftLatex
 ( double x, double y , const char* s, float scale = 1, int color = 1){
   TLatex tltx; 
-  tltx.SetTextFont(43); tltx.SetTextSize((int)(32*scale)); tltx.SetTextColor(color);
+  tltx.SetTextFont(43);
+  tltx.SetTextSize((int)(32*scale));
+  tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
   tltx.SetTextAlign(12);
   tltx.DrawLatex( x, y, s );
 }
 
-void DrawTools::DrawCenterLatex
+void CT::DrawTools::DrawCenterLatex
 ( double x, double y , const char* s, float scale = 1, int color = 1){
   TLatex tltx; 
-  tltx.SetTextFont(43); tltx.SetTextSize((int)(32*scale)); tltx.SetTextColor(color);
+  tltx.SetTextFont(43);
+  tltx.SetTextSize((int)(32*scale));
+  tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
   tltx.SetTextAlign(22);
   tltx.DrawLatex( x, y, s );
@@ -148,7 +176,7 @@ void DrawTools::DrawCenterLatex
 
 // ============ DATA ================
 
-void DrawTools::DrawAtlasInternalDataRight
+void CT::DrawTools::DrawAtlasInternalDataRight
 ( double x0, double y0, double scale, bool is_pPb ){
   DrawRightLatex(0.88 , 0.93,
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
@@ -165,7 +193,7 @@ void DrawTools::DrawAtlasInternalDataRight
 		 "#sqrt{s_{NN}}=5.02 TeV", scale);
 }
 
-void DrawTools::DrawAtlasInternalDataLeft
+void CT::DrawTools::DrawAtlasInternalDataLeft
 ( double x0, double y0, double scale, bool is_pPb ){
   DrawRightLatex(0.875, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Internal", scale);
@@ -184,7 +212,7 @@ void DrawTools::DrawAtlasInternalDataLeft
 
 // ============ MC ================
 
-void DrawTools::DrawAtlasInternalMCRight
+void CT::DrawTools::DrawAtlasInternalMCRight
 ( double x0, double y0, double scale,
   const std::string& mcType ){ 
   DrawRightLatex(0.88, 0.93, 
@@ -194,7 +222,7 @@ void DrawTools::DrawAtlasInternalMCRight
  }
 
 
-void DrawTools::DrawAtlasInternalMCLeft
+void CT::DrawTools::DrawAtlasInternalMCLeft
 ( double x0, double y0, double scale,
   const std::string& mcType ){ 
   DrawRightLatex(0.88, 0.93, 
@@ -209,7 +237,7 @@ void DrawTools::DrawAtlasInternalMCLeft
 //===================================
 // ======= Styles for Stuff ======
 
-void StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){	
+void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){	
   //Set Color
   his->SetLineWidth(2);
   if( iflag == 0 ){
@@ -269,7 +297,7 @@ void StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
   } 
 }
 
-void StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
+void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
   //Set Color
   graph->SetFillColor(0);
   graph->SetLineWidth(2);
@@ -329,7 +357,7 @@ void StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
   }  
 }
 
-void StyleTools::SetHStyle( TH1* his, int iflag, float scale)
+void CT::StyleTools::SetHStyle( TH1* his, int iflag, float scale)
 {
   his->SetLineWidth(2);
   his->SetStats(0);
@@ -347,7 +375,7 @@ void StyleTools::SetHStyle( TH1* his, int iflag, float scale)
   SetCustomMarkerStyle( his, iflag );  
 }
 
-void StyleTools::SetHStyle( TGraph* graph, int iflag, float scale)
+void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, float scale)
 {
   graph->SetLineWidth(2);
 
@@ -369,7 +397,7 @@ void StyleTools::SetHStyle( TGraph* graph, int iflag, float scale)
 }
 
 
-void StyleTools::SetHStyle( TF1* funct, int iflag, float scale)
+void CT::StyleTools::SetHStyle( TF1* funct, int iflag, float scale)
 {
   funct->SetLineWidth(2);
 
@@ -390,7 +418,7 @@ void StyleTools::SetHStyle( TF1* funct, int iflag, float scale)
   // SetCustomMarkerStyle( funct, iflag );
 }
 
-TH1F* StyleTools::SetCStyleEff( TCanvas& c,
+TH1F* CT::StyleTools::SetCStyleEff( TCanvas& c,
 			        double x0, double y0, double x1, double y1,
 			        const std::string& title ){
   c.DrawFrame( x0, y0, x1, y1, title.c_str() );
@@ -401,7 +429,7 @@ TH1F* StyleTools::SetCStyleEff( TCanvas& c,
   return hF;
 }
 
-void StyleTools::SetLegendStyle(TLegend * legend, float scale)
+void CT::StyleTools::SetLegendStyle(TLegend * legend, float scale)
 {
   legend->SetBorderSize(0);
   legend->SetTextFont(43);
@@ -412,3 +440,7 @@ void StyleTools::SetLegendStyle(TLegend * legend, float scale)
   legend->SetFillColor(0);
   legend->SetFillStyle(0);
 }
+
+const double CT::StyleTools::lSS = 0.60;
+
+const double CT::StyleTools::hSS = 0.75;

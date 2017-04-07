@@ -407,7 +407,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
       std::vector< JetPair > v_paired_jets;
       PairJets( vR_jets, vT_jets, v_paired_jets );
       
-      if( AnalysisTools::DoPrint(m_ev) ) {
+      if( anaTool->DoPrint(m_ev) ) {
 	std::cout << "\nEvent : " << m_ev 
 		  << "    has : " << vR_jets.size() << " reco jets"
 		  << "    and : " << vT_jets.size() << " truth jets"
@@ -527,9 +527,9 @@ void DiJetAnalysisMC::PairJets(  std::vector< TLorentzVector >& vR_jets,
       // to avoid changing the vector size
       if( recoJet.Pt() == 0 ) continue;
       // if we have a "real" reco jet, continue
-      if( AnalysisTools::DeltaR( recoJet, truthJet ) <= deltaRmin ) {	
+      if( anaTool->DeltaR( recoJet, truthJet ) <= deltaRmin ) {	
 	pairedRecoJet = &recoJet;
-	deltaRmin     = AnalysisTools::DeltaR( recoJet, truthJet );
+	deltaRmin     = anaTool->DeltaR( recoJet, truthJet );
       }
     }  // end loop over reco jets
     // just for safety. if there is at least
@@ -632,7 +632,7 @@ void DiJetAnalysisMC::PlotSpectra( std::map< std::string, TH2* >& mJznSpect,
     c_spect.SetLogy();
 
     TLegend l_spect(0.78, 0.65, 0.99, 0.78);
-    StyleTools::SetLegendStyle( &l_spect, StyleTools::lSS );
+    styleTool->SetLegendStyle( &l_spect, CT::StyleTools::lSS );
     l_spect.SetFillStyle(0);
 
     int jznStyle =  1;
@@ -656,7 +656,7 @@ void DiJetAnalysisMC::PlotSpectra( std::map< std::string, TH2* >& mJznSpect,
 			  10*std::abs(etaMin),
 			  10*std::abs(etaMax) ),
 		     xBin, xBin );
-      StyleTools::SetHStyle( h_spect, jznStyle++, StyleTools::hSS);
+      styleTool->SetHStyle( h_spect, jznStyle++, CT::StyleTools::hSS);
 
       h_spect->GetYaxis()->SetTitle( yAxisTitle.c_str() );
       h_spect->Scale( 1./ptSpectWidth );
@@ -694,7 +694,7 @@ void DiJetAnalysisMC::PlotSpectra( std::map< std::string, TH2* >& mJznSpect,
 				       GetYaxis()->GetTitle(),
 				       yAxisTitle.c_str() ),
 				  nPtBins, ptMin, ptMax );
-    StyleTools::SetHStyle( h_spectFinal, 0, StyleTools::hSS);
+    styleTool->SetHStyle( h_spectFinal, 0, CT::StyleTools::hSS);
     vSpectFinal.push_back( h_spectFinal );
   
     CombineJZN( h_spectFinal, mSpectTemp );
@@ -704,12 +704,12 @@ void DiJetAnalysisMC::PlotSpectra( std::map< std::string, TH2* >& mJznSpect,
     l_spect.AddEntry( h_spectFinal, "Total" );
     l_spect.Draw();
     
-    DrawTools::DrawAtlasInternalMCRight( 0, 0,
-					 StyleTools::lSS,
+    drawTool->DrawAtlasInternalMCRight( 0, 0,
+					 CT::StyleTools::lSS,
 					 m_mcTypeLabel ); 
-    DrawTools::DrawLeftLatex( 0.45, 0.87,
+    drawTool->DrawLeftLatex( 0.45, 0.87,
 			      GetEtaLabel( etaMin, etaMax ).c_str(),
-			      StyleTools::lSS, 1 );
+			      CT::StyleTools::lSS, 1 );
 
     /*
     SaveAsAll( c_spect,
@@ -789,7 +789,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< std::string, TH3* >& mJznHIN,
 				   jznHIN.second->GetYaxis()->GetTitle(),
 				   yTitleMean.c_str() ),
 			      nPtBins, ptMin, ptMax );    
-      StyleTools::SetHStyle( h_mean, style, StyleTools::hSS);
+      styleTool->SetHStyle( h_mean, style, CT::StyleTools::hSS);
       mJznMean[ jzn ] = h_mean;
       vMeans.push_back( h_mean );
     
@@ -803,7 +803,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< std::string, TH3* >& mJznHIN,
 				    jznHIN.second->GetYaxis()->GetTitle(),
 				    yTitleSigma.c_str() ),
 			       nPtBins, ptMin, ptMax );    
-      StyleTools::SetHStyle( h_sigma, style, StyleTools::hSS);
+      styleTool->SetHStyle( h_sigma, style, CT::StyleTools::hSS);
       mJznSigma[ jzn ] = h_sigma;
       vSigmas.push_back( h_sigma );
 
@@ -837,7 +837,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< std::string, TH3* >& mJznHIN,
 				      GetYaxis()->GetTitle(),
 				      yTitleSigma.c_str() ),
 				 nPtBins, ptMin, ptMax );
-    StyleTools::SetHStyle( h_meanFinal, 0, StyleTools::hSS);
+    styleTool->SetHStyle( h_meanFinal, 0, CT::StyleTools::hSS);
     vMeansFinal.push_back( h_meanFinal );
   
     TH1* h_sigmaFinal = new TH1D( Form("h_%s_sigma_%2.0f_Eta_%2.0f_final",
@@ -850,7 +850,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< std::string, TH3* >& mJznHIN,
 				       GetYaxis()->GetTitle(),
 				       yTitleSigma.c_str() ),
 				  nPtBins, ptMin, ptMax );
-    StyleTools::SetHStyle( h_sigmaFinal, 0, StyleTools::hSS);
+    styleTool->SetHStyle( h_sigmaFinal, 0, CT::StyleTools::hSS);
     vSigmasFinal.push_back( h_sigmaFinal );
 
     CombineJZN( h_meanFinal , mJznMean , mJznNent );
@@ -900,10 +900,10 @@ PlotEfficiencies( std::map< std::string, TH2* >& mJznSpectPaired,
   
   for( int xBin = 1; xBin <= mJznSpect.begin()->second->GetNbinsX(); xBin++ ){
     TCanvas c_eff("c_eff","c_eff",800,600);
-    StyleTools::SetCStyleEff( c_eff, xMin, m_effMin, xMax, m_effMax, gTitle );
+    styleTool->SetCStyleEff( c_eff, xMin, m_effMin, xMax, m_effMax, gTitle );
  
     TLegend l_eff( lX0, lY0, lX1, lY1);
-    StyleTools::SetLegendStyle( &l_eff, StyleTools::lSS );
+    styleTool->SetLegendStyle( &l_eff, CT::StyleTools::lSS );
     l_eff.SetFillStyle(0);
 
     // should all be the same
@@ -961,7 +961,7 @@ PlotEfficiencies( std::map< std::string, TH2* >& mJznSpectPaired,
       TH1* hSpectPaired = mSpectPaired[ jzn ];
 
       TGraphAsymmErrors* g_etaEff = new TGraphAsymmErrors();
-      StyleTools::SetHStyle( g_etaEff, jznStyle++, StyleTools::hSS);
+      styleTool->SetHStyle( g_etaEff, jznStyle++, CT::StyleTools::hSS);
       
       g_etaEff->SetName ( Form("gr_%s_%s", type.c_str(), jzn.c_str() ) );
       vEffGrf.push_back( g_etaEff );
@@ -983,7 +983,7 @@ PlotEfficiencies( std::map< std::string, TH2* >& mJznSpectPaired,
 			      10*std::abs(etaMin),
 			      10*std::abs(etaMax) ) );
     g_effFinal->SetTitle( GetEtaLabel( etaMin, etaMax ).c_str() );
-    StyleTools::SetHStyle( g_effFinal, 0, StyleTools::hSS);
+    styleTool->SetHStyle( g_effFinal, 0, CT::StyleTools::hSS);
     vEffGrfFinal.push_back( g_effFinal );
 
     g_effFinal->Draw("p");
@@ -994,10 +994,10 @@ PlotEfficiencies( std::map< std::string, TH2* >& mJznSpectPaired,
     TLine line( xMin, 1, xMax, 1);
     line.Draw();
 
-    DrawTools::DrawAtlasInternalDataRight( 0, 0,  StyleTools::lSS, m_is_pPb ); 
-    DrawTools::DrawRightLatex( 0.88, 0.17,
+    drawTool->DrawAtlasInternalDataRight( 0, 0,  CT::StyleTools::lSS, m_is_pPb ); 
+    drawTool->DrawRightLatex( 0.88, 0.17,
 			       GetEtaLabel( etaMin, etaMax).c_str(),
-			       StyleTools::lSS, 1 );
+			       CT::StyleTools::lSS, 1 );
 
     
     // SaveAsAll( c_eff, type, "", "Eta", std::abs(etaMin)*10, std::abs(etaMax)*10 );
@@ -1015,9 +1015,9 @@ void DiJetAnalysisMC::PlotEtaPhiPtMap( std::map< std::string, TH2* >& mJznHIN ){
 
   for( auto& jznHIN : mJznHIN ){
     jznHIN.second->Draw("col");
-    StyleTools::SetHStyle( jznHIN.second, 0, StyleTools::hSS);
-    DrawTools::DrawAtlasInternalMCLeft( 0, -0.55,
-					StyleTools::lSS,
+    styleTool->SetHStyle( jznHIN.second, 0, CT::StyleTools::hSS);
+    drawTool->DrawAtlasInternalMCLeft( 0, -0.55,
+					CT::StyleTools::lSS,
 					m_mcTypeLabel  );  
     SaveAsPdfPng( c_map, jznHIN.second->GetName() );
   }
@@ -1225,7 +1225,7 @@ void DiJetAnalysisMC::DrawCanvas( std::map< std::string, TH1* >& mJznHIN,
   TCanvas c("c","c",800,600);
   
   TLegend leg(0.13, 0.14, 0.44, 0.27);
-  StyleTools::SetLegendStyle( &leg, StyleTools::lSS );
+  styleTool->SetLegendStyle( &leg, CT::StyleTools::lSS );
   leg.SetFillStyle(0);
 
   for( auto& jznHIN : mJznHIN ){
@@ -1239,12 +1239,12 @@ void DiJetAnalysisMC::DrawCanvas( std::map< std::string, TH1* >& mJznHIN,
   
   leg.Draw();
   
-  DrawTools::DrawAtlasInternalMCRight( 0, 0,
-				       StyleTools::lSS,
+  drawTool->DrawAtlasInternalMCRight( 0, 0,
+				       CT::StyleTools::lSS,
 				       m_mcTypeLabel ); 
-  DrawTools::DrawLeftLatex( 0.45, 0.874,
+  drawTool->DrawLeftLatex( 0.45, 0.874,
 			    GetEtaLabel( etaMin, etaMax ).c_str(),
-			    StyleTools::lSS, 1 );
+			    CT::StyleTools::lSS, 1 );
   
   double y0 = GetLineHeight( type1 );
   
@@ -1268,7 +1268,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   TCanvas c("c","c",800,600);
   
   TLegend leg(0.68, 0.64, 0.99, 0.77);
-  StyleTools::SetLegendStyle( &leg, StyleTools::lSS );
+  styleTool->SetLegendStyle( &leg, CT::StyleTools::lSS );
   leg.SetFillStyle(0);
 
   int style = 0;
@@ -1280,7 +1280,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   for( unsigned int etaRange = 0;
        etaRange < vHIN.size();
        etaRange += recoTruthDeta){
-    StyleTools::SetHStyle( vHIN[ etaRange], style++, StyleTools::hSS );
+    styleTool->SetHStyle( vHIN[ etaRange], style++, CT::StyleTools::hSS );
     leg.AddEntry( vHIN[ etaRange ], vHIN[ etaRange ]->GetTitle() );
     vHIN[ etaRange ]->SetTitle("");
     vHIN[ etaRange ]->Draw("epsame");
@@ -1308,7 +1308,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   if( logY ) { c.SetLogy(); }
   
   TLegend leg(0.68, 0.64, 0.99, 0.77);
-  StyleTools::SetLegendStyle( &leg, StyleTools::lSS );
+  styleTool->SetLegendStyle( &leg, CT::StyleTools::lSS );
   leg.SetFillStyle(0);
 
   double max = -1;
@@ -1324,7 +1324,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   
   int style = 0;  
   for( auto& h : vHIN ){
-    StyleTools::SetHStyle( h, style++, StyleTools::hSS );
+    styleTool->SetHStyle( h, style++, CT::StyleTools::hSS );
     leg.AddEntry( h, h->GetTitle() );
     h->SetTitle("");
     h->Draw("epsame");
@@ -1332,8 +1332,8 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
     h->SetMinimum( 0.1 );
   }
 
-  DrawTools::DrawAtlasInternalMCRight( 0, 0,
-				       StyleTools::lSS,
+  drawTool->DrawAtlasInternalMCRight( 0, 0,
+				       CT::StyleTools::lSS,
 				       m_mcTypeLabel  ); 
   leg.Draw();
 
@@ -1346,24 +1346,23 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TGraphAsymmErrors* >& vGIN,
 				  const std::string& title,
 				  double xMin, double xMax ){
   TCanvas c("c","c",800,600);
-  StyleTools::SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax,
+  styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax,
 			    title.c_str() );
    
   TLegend leg(0.64, 0.20, 0.95, 0.34);
-  StyleTools::SetLegendStyle( &leg, StyleTools::lSS );
+  styleTool->SetLegendStyle( &leg, CT::StyleTools::lSS );
   leg.SetFillStyle(0);
   
   int style = 0;  
   for( auto& gr : vGIN ){
-    StyleTools::SetHStyle( gr, style++, StyleTools::hSS );
+    styleTool->SetHStyle( gr, style++, CT::StyleTools::hSS );
     leg.AddEntry( gr, gr->GetTitle() );
     gr->SetTitle("");
     gr->Draw("epsame");
   }
 
-  DrawTools::DrawAtlasInternalMCRight( 0, 0,
-				       StyleTools::lSS,
-				       m_mcTypeLabel  ); 
+  drawTool->DrawAtlasInternalMCRight
+    ( 0, 0, CT::StyleTools::lSS, m_mcTypeLabel  ); 
   leg.Draw();
 
   TLine line( xMin, 1, xMax, 1);
