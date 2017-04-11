@@ -121,9 +121,20 @@ void CT::AnalysisTools::FitGaussian( TH1* hProj, TF1* fit ){
 
 std::string CT::AnalysisTools::GetName( double v1, double v2,
 					const std::string& var){
+  // for now, edit this later
+  int multiplier = std::abs(v1) < 10 ? 10 : 1;
+  
   std::stringstream ss;
-  ss <<  boost::format("%2.0f_%s_%2.0f")
-    % (10*std::abs(v1)) % var % (10*std::abs(v2)) ;
+  if( v1 != v2 ){
+    ss <<  boost::format("%d_%s_%d")
+      % static_cast<int>(std::abs(multiplier * v1))
+      % var
+      % static_cast<int>(std::abs(multiplier * v2)) ;
+  } else {
+    ss <<  boost::format("%d_%s")
+      % static_cast<int>(std::abs(multiplier * v1))
+      % var ;
+  }
   return ss.str();
 }
 

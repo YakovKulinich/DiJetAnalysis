@@ -52,7 +52,7 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   // ---- forward eta binning ---
   boost::assign::push_back( m_varFwdEtaBinning )
     ( -4.4 )( -4.0 )( -3.6 )( -3.3 );
-  m_nVarFwdEtaBins = ( m_varFwdEtaBinning.size() ) - 1;
+  m_nVarFwdEtaBins = m_varFwdEtaBinning.size() - 1;
 
   // -------- eff ---------
   m_effMin = 0.;
@@ -67,10 +67,15 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   m_nDphiDphiMin  = 0;
   m_nDphiDphiMax  = constants::PI;
 
-  boost::assign::push_back( m_varFwdEtaBinning )
-    ( -4.4 )( -3.3 )( -2.8 )( 2.8 )( 3.3 )( 4.4 );
-  m_nVarEtaBins = ( m_varEtaBinning.size() ) - 1;
+  boost::assign::push_back( m_varEtaBinning )
+    ( -4.4 )( -3.3 )( -2.8 )( 0 )( 2.8 )( 3.3 )( 4.4 );
+  m_nVarEtaBins = m_varEtaBinning.size() - 1;
 
+  // --- variable pt binning ---
+  boost::assign::push_back( m_varPtBinning )
+    ( 20 )( 30 )(40)( 200 );
+  m_nVarPtBins = m_varPtBinning.size() - 1;
+  
   //==================== Cuts ====================
   m_nMinEntriesGausFit = 20;
   m_ptFitMin           = 20.;
@@ -192,19 +197,25 @@ double DiJetAnalysis::AnalyzeDeltaPhi
   
   // some cuts for phi inter calibration
   if( followingJetPt > ptAvg * m_dPhiThirdJetFraction ) return -1;
-  // some min pt cut
-  
-  std::vector< double > x;
-  x.reserve( hn->GetNdimensions() );
-  
-  x.push_back( jet1_eta );  
-  x.push_back( jet2_eta );
-  x.push_back( jet1_pt  );
-  x.push_back( jet2_pt );
-  x.push_back( deltaPhi );
-      
-  hn->Fill( &x[0], 1 );
 
+  std::vector< double > x;
+  x.resize( hn->GetNdimensions() );
+
+  // some min pt cut
+  for( int pt2Bin = 1; pt2Bin < hn->GetAxis(3)->GetNbins(); pt2Bin++ ){  
+
+    if( jet2_pt < hn->GetAxis(3)->GetBinUpEdge ( pt2Bin ) &&
+	jet2_pt < hn->GetAxis(3)->GetBinLowEdge( pt2Bin ) ){ break; }
+    
+    x[0] = jet1_eta;  
+    x[1] = jet2_eta;
+    x[2] = jet1_pt ;
+    x[3] = hn->GetAxis(3)->GetBinCenter( pt2Bin );
+    x[4] = deltaPhi;
+      
+    hn->Fill( &x[0], 1 );
+  }
+  
   return deltaPhi;
 }
 
@@ -367,8 +378,14 @@ std::string DiJetAnalysis::GetLabel
   
   std::stringstream ss;
 
-  ss << boost::format("%3.1f<%s<%3.1f")
-    % vMin % var % vMax;
+  if( vMin != vMax ){
+    ss << boost::format("%3.1f<%s<%3.1f")
+      % vMin % var % vMax;
+  }
+  else{
+    ss << boost::format("%s>%3.1f")
+      % var % vMin ;  
+  }
   if( !unit.empty() ){ ss << boost::format(" %s") % unit; }
   
   return ss.str();

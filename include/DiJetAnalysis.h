@@ -167,8 +167,14 @@ class DiJetAnalysis{
   std::vector<double> m_varFwdEtaBinning;
   unsigned int m_nVarFwdEtaBins;
 
+  // --- whole range variable ---
+  // ------- eta binning --------
   std::vector<double> m_varEtaBinning;
   unsigned int m_nVarEtaBins;
+
+  // ---- variable pt binning ---
+  std::vector<double> m_varPtBinning;
+  unsigned int m_nVarPtBins;
   
   // -------- eff ---------
   double m_effMin;

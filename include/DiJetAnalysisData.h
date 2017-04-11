@@ -46,7 +46,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
 			 const std::string& );
 
   virtual void PlotDeltaPhi
-    ( std::vector< THnSparse*>& );
+    ( std::vector< THnSparse*>&,
+      const std::string& );
 
   void PlotEtaPhiPtMap( std::vector< TH2* >& );
    

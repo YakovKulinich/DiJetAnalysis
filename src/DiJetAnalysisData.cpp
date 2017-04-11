@@ -60,6 +60,8 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   PlotEtaPhiPtMap( m_vTriggerEtaPtMap  );
 
   PlotSpectra( m_vTriggerEtaSpect, "spect" );
+
+  PlotDeltaPhi( m_vDphi, "dPhi" );
   
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -158,10 +160,10 @@ void DiJetAnalysisData::SetupHistograms(){
 
 
     boost::assign::push_back( nDphiBins )
-      ( m_nVarFwdEtaBins )( m_nVarFwdEtaBins )
-      ( m_nDphiPtBins    )( m_nDphiPtBins    )
-      ( m_nDphiDphiBins  );
-
+      ( m_nVarEtaBins   )( m_nVarEtaBins )
+      ( m_nDphiPtBins   )( m_nDphiPtBins )
+      ( m_nDphiDphiBins );
+    
     boost::assign::push_back( dPhiMin  )
       (        0       )(       0      )
       ( m_nDphiPtMin   )( m_nDphiPtMin )
@@ -175,11 +177,13 @@ void DiJetAnalysisData::SetupHistograms(){
     uint nDim = nDphiBins.size();
     
     THnSparse* hn =
-      new THnSparseD( Form("hs_dPhi_%s", trigger.c_str() ), "",
+      new THnSparseD( Form("hn_dPhi_%s", trigger.c_str() ), "",
 		      nDim, &nDphiBins[0], &dPhiMin[0], &dPhiMax[0] );
-    hn->GetAxis(0)->Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
-    hn->GetAxis(1)->Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
-  
+    hn->GetAxis(0)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+    hn->GetAxis(1)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+    hn->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
+    hn->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
+
     m_vDphi.push_back( hn );
     AddHistogram( hn );
   }
@@ -407,6 +411,12 @@ void DiJetAnalysisData::LoadHistograms(){
       push_back( static_cast< TH2D *>
 		 ( m_fIn->Get( Form("h_etaSpect_%s", trigger.c_str() ))));
     m_vTriggerEtaSpect.back()->SetDirectory(0);
+
+    // -------- dPhi- --------
+    m_vDphi.
+      push_back( static_cast< THnSparse *>
+		 ( m_fIn->Get( Form("hn_dPhi_%s", trigger.c_str() ))));
+    //    m_vDphi.back()->SetDirectory(0);
   }
   
   m_fIn->Close();
@@ -425,7 +435,7 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& mTrigSpect,
 
   // use this as reference because
   // it should be in every file
-  TH2* hMB   = mTrigSpect[ m_mbTriggerI ];
+  TH2*   hMB = mTrigSpect[ m_mbTriggerI ];
   int nXbins = hMB->GetNbinsX();
   
   std::vector< std::vector< TH1* > > vSpect;
@@ -544,13 +554,14 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& mTrigSpect,
 void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& mTrigSpect,
 					  const std::string& type ){}
 
-void DiJetAnalysisData::PlotDeltaPhi( std::vector< THnSparse* >& vhn ){
-  /*
+void DiJetAnalysisData::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
+				      const std::string& type ){
   std::vector< TH1* > vDphi;
     
   for( uint iT = 0; iT < m_nTriggers; iT++ ){
     THnSparse* hn = vhn[iT];
-
+    std::string trigger = m_vTriggers[iT];
+    
     TAxis* eta1Axis = hn->GetAxis(0); TAxis* pt1Axis = hn->GetAxis(2);
     TAxis* eta2Axis = hn->GetAxis(1); TAxis* pt2Axis = hn->GetAxis(3); 
 
@@ -566,9 +577,7 @@ void DiJetAnalysisData::PlotDeltaPhi( std::vector< THnSparse* >& vhn ){
 	for( int pt1Bin = 1; pt1Bin <= nPt1Bins; pt1Bin++ ){
 	  pt1Axis->SetRange( pt1Bin, pt1Bin );
 	  for( int pt2Bin = 1; pt2Bin <= nPt2Bins; pt2Bin++ ){
-	    pt2Axis->SetRange( pt2Bin, pt2Bin );
-
-	    
+	    pt2Axis->SetRange( pt2Bin, nPt2Bins );
 	    
 	    // Take projection onto the dPhi axis
 	    TH1* hDphi = hn->Projection( 4 );
@@ -587,43 +596,47 @@ void DiJetAnalysisData::PlotDeltaPhi( std::vector< THnSparse* >& vhn ){
 	    anaTool->GetBinRange
 	      ( pt2Axis, pt2Bin, pt2Bin, pt2Low, pt2Up );
 
-	    
-	    anaTool->GetBinRange()
 	    hDphi->SetName
-	      ("h_dPhi_%s_%s_%s_s",
-	       anaTool->GetName( eta1Low, eta1Up ),
-	       anaTool->GetName( eta2Low, eta2Up ),
-	       anaTool->GetName( pt1Low , pt1Up  ),
-	       anaTool->GetName( pt2Low , pt2Up  ) );
+	      ( Form( "h_dPhi_%s_%s_%s_%s_%s",
+		      trigger.c_str(),
+		      anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
+		      anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+		      anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
+		      anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str() ) );
 
 	    TCanvas c( "c", hDphi->GetName(), 800, 600 );
 	    hDphi->Draw();
-
+	    if( hDphi->GetEntries() )
+	      { hDphi->Scale( 1./hDphi->Integral() ); }
+	    hDphi->GetYaxis()->SetTitle("Normalized Count");
+	    hDphi->SetTitle("");
+	    
 	    drawTool->DrawLeftLatex
-	      ( 0.18, 0.88,
-		anaTool->GetUnit( eta1Low, eta1Up, "#eta" ),
-		,CT::StyleTools::lSS, 1 );
+	      ( 0.13, 0.87,
+	        GetLabel( eta1Low, eta1Up, "#eta_{1}" ).c_str(),
+		CT::StyleTools::lSS, 1 );
 	    drawTool->DrawLeftLatex
-	      ( 0.88, 0.71,
-		anaTool->GetUnit( eta2Low, eta2Up, "#eta" ),
-		,CT::StyleTools::lSS, 1 );
+	      ( 0.13, 0.82,
+		GetLabel( eta2Low, eta2Up, "#eta_{2}" ).c_str(),
+		CT::StyleTools::lSS, 1 );
 	    drawTool->DrawLeftLatex
-	      ( 0.88, 0.74,
-		anaTool->GetUnit( pt1Low, pt1Up, "#it{p}_{T}^{1}" ),
-		,CT::StyleTools::lSS, 1 );
+	      ( 0.13, 0.76,
+		GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str(),
+		CT::StyleTools::lSS, 1 );
 	    drawTool->DrawLeftLatex
-	      ( 0.88, 0.67,
-		anaTool->GetUnit( pt2Low, pt2Up, "#it{p}_{T}^{2}" ),
-		,CT::StyleTools::lSS, 1 );
+	      ( 0.13, 0.69,
+		GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ).c_str(),
+		CT::StyleTools::lSS, 1 );
 	    
 	    drawTool->DrawAtlasInternalDataRight
 	      ( 0, 0, CT::StyleTools::lSS, m_is_pPb ); 
+
+	    SaveAsROOT( c, Form("c_%s", hDphi->GetName() ) );
 	  }
       	}
       }      
     }
   } // end loop over iT
-  */
 }
 
 void DiJetAnalysisData::PlotEtaPhiPtMap( std::vector< TH2* >& vTrigHin ){
