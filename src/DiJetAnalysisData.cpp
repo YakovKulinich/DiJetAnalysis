@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include <boost/assign.hpp>
+#include <boost/format.hpp>
 
 #include "MyRoot.h"
 
@@ -344,9 +345,11 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 //---------------------------
 //       Analysis
 //---------------------------
-void DiJetAnalysisData::AnalyzeEff( std::vector< TLorentzVector >& vTrig_jets,
-				       std::vector< TLorentzVector >& vR_jets,
-				       std::map< int, bool >& mTriggerFired ){
+void DiJetAnalysisData::AnalyzeEff
+( std::vector< TLorentzVector >& vTrig_jets,
+  std::vector< TLorentzVector >& vR_jets,
+  std::map< int, bool >& mTriggerFired ){
+  
   // if we had no MB trigger fired
   // or the trigger jet collection is
   // empty, return.
@@ -498,10 +501,10 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& mTrigSpect,
     } // end loop over iE
     
     leg.Draw("same");
-    drawTool->DrawAtlasInternalDataRight( 0, 0, CT::StyleTools::lSS, m_is_pPb ); 
-    drawTool->DrawLeftLatex( 0.15, 0.17,
-			      cLabel.c_str(),
-			      CT::StyleTools::lSS, 1 );
+    drawTool->DrawAtlasInternalDataRight
+      ( 0, 0, CT::StyleTools::lSS, m_is_pPb ); 
+    drawTool->DrawLeftLatex
+      ( 0.15, 0.17, cLabel.c_str(), CT::StyleTools::lSS, 1 );
     SaveAsAll( c, type, cName );
   } // end loop over iT
   
@@ -536,10 +539,10 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& mTrigSpect,
     } // end loop over iT
     
     leg.Draw("same");
-    drawTool->DrawAtlasInternalDataRight( 0, 0, CT::StyleTools::lSS, m_is_pPb ); 
-    drawTool->DrawLeftLatex( 0.15, 0.17,
-			      cLabel.c_str(),
-			      CT::StyleTools::lSS, 1 );
+    drawTool->DrawAtlasInternalDataRight
+      ( 0, 0, CT::StyleTools::lSS, m_is_pPb ); 
+    drawTool->DrawLeftLatex
+      ( 0.15, 0.17, cLabel.c_str(), CT::StyleTools::lSS, 1 );
 
     SaveAsAll( c, type, cName );
   } // end loop over iE
@@ -552,7 +555,29 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& mTrigSpect,
 }
 
 void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& mTrigSpect,
-					  const std::string& type ){}
+					  const std::string& type ){
+
+// if there is no mb trigger, return
+  if( !mTrigSpect[ m_mbTrigger ] ){ return; }  
+
+  double lX0 = 0.13;
+  double lY0 = 0.75;
+  double lX1 = 0.39;
+  double lY1 = 0.87;
+
+  double xMin = 0.;   //mTrigSpect[ m_mbTrigger ]->GetYaxis()->GetXmin();
+  double xMax = 90.;  //mTrigSpect[ m_mbTrigger ]->GetYaxis()->GetXmax();
+
+  std::string gTitle = ";#it{p}_{T} [GeV];#it{#varepsilon}_{Trigger}";
+  
+  std::vector< std::vector< TH1* > > vSpect;
+  std::vector< std::vector< TGraphAsymmErrors* > > vEffGrf;
+  vSpect.resize( m_nTriggers - 1 ); // dont do it for MB
+  vEffGrf.resize( m_nTriggers - 1 );
+
+  
+  
+}
 
 void DiJetAnalysisData::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 				      const std::string& type ){
@@ -631,7 +656,7 @@ void DiJetAnalysisData::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    drawTool->DrawAtlasInternalDataRight
 	      ( 0, 0, CT::StyleTools::lSS, m_is_pPb ); 
 
-	    SaveAsROOT( c, Form("c_%s", hDphi->GetName() ) );
+	    SaveAsROOT( c, hDphi->GetName() );
 	  }
       	}
       }      
@@ -653,3 +678,124 @@ void DiJetAnalysisData::PlotEtaPhiPtMap( std::vector< TH2* >& vTrigHin ){
   }
 }
 
+void DiJetAnalysisData::PlotDataTogether(){
+  std::string configName = "config/configJetsFwd";
+  
+  TEnv config_pPb;
+  TEnv config_pp;
+
+  std::string triggerMenu;
+  
+  config_pPb.ReadFile( Form("%s_pPb.cfg", configName.c_str() ), EEnvLevel(0));
+  config_pp.ReadFile ( Form("%s_pp.cfg" , configName.c_str() ), EEnvLevel(0));
+
+  triggerMenu = config_pPb.GetValue("triggerMenu", " ");
+  std::string trigger_pPb =
+    config_pPb.GetValue( Form("finalTrigger.%s",triggerMenu.c_str()), "");
+
+  triggerMenu = config_pp.GetValue("triggerMenu", " " );
+  std::string trigger_pp =
+    config_pp.GetValue( Form("finalTrigger.%s",triggerMenu.c_str()), "");
+
+  std::cout << " -- " << trigger_pPb << std::endl;
+  std::cout << " -- " << trigger_pp << std::endl;
+  
+  TFile* fIn_pPb = TFile::Open("output/output_data_pPb/c_myOut_data_pPb.root");
+  TFile* fIn_pp  = TFile::Open("output/output_data_pp/c_myOut_data_pp.root");
+  TFile* fOut    = new TFile  ("output/c_myOut_data.root","recreate");
+  
+  for( uint eta1Bin = 0; eta1Bin < m_nVarEtaBins; eta1Bin++ ){
+    for( uint eta2Bin = 0; eta2Bin < m_nVarEtaBins; eta2Bin++ ){
+      for( uint pt1Bin = 0; pt1Bin < m_nVarPtBins; pt1Bin++ ){
+	for( uint pt2Bin = 0; pt2Bin < m_nVarPtBins; pt2Bin++ ){
+
+	  double eta1Low = m_varEtaBinning[ eta1Bin ];
+	  double eta1Up  = m_varEtaBinning[ eta1Bin + 1 ];
+	    
+	  double eta2Low = m_varEtaBinning[ eta2Bin ];
+	  double eta2Up  = m_varEtaBinning[ eta2Bin + 1 ];
+
+	  double pt1Low  = m_varPtBinning[ pt1Bin ];
+	  double pt1Up   = m_varPtBinning[ pt1Bin + 1 ];
+
+	  double pt2Low  = m_varPtBinning[ pt2Bin ];
+	    
+	  std::string hName =
+	    Form("%s_%s_%s_%s",
+		 anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
+		 anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+		 anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
+		 anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str() );
+
+	  std::string hName_pPb =
+	    Form("h_dPhi_%s_%s", trigger_pPb.c_str(), hName.c_str() );
+	  std::string hName_pp =
+	    Form("h_dPhi_%s_%s", trigger_pp.c_str() , hName.c_str() );
+	    
+	  TCanvas* c_pPb =
+	    static_cast<TCanvas*>
+	    ( fIn_pPb->Get( Form("c_%s_data_pPb", hName_pPb.c_str() ) ) );
+	  TCanvas* c_pp  =
+	    static_cast<TCanvas*>
+	    ( fIn_pp->Get( Form("c_%s_data_pp", hName_pp.c_str() ) ) );
+
+	  TH1* h_pPb =
+	    static_cast<TH1D*>( c_pPb->GetPrimitive( hName_pPb.c_str() ) );
+	  styleTool->SetHStyle( h_pPb, 0, CT::StyleTools::hSS );
+	  TH1* h_pp  =
+	    static_cast<TH1D*>( c_pp->GetPrimitive( hName_pp.c_str() ) );
+	  styleTool->SetHStyle( h_pp, 1, CT::StyleTools::hSS );
+
+	  TCanvas c("c","c", 800, 600 );
+	    
+	  TLegend leg( 0.27, 0.41, 0.38, 0.52 );
+	  styleTool->SetLegendStyle( &leg, CT::StyleTools::lSS );
+	  leg.AddEntry( h_pPb, "p+Pb");
+	  leg.AddEntry( h_pp , "pp");
+
+	  h_pPb->Draw("epsame");
+	  h_pp->Draw("epsame");
+	  leg.Draw("same");
+
+	  if( h_pPb->GetMaximum() > h_pp->GetMaximum() ){
+	    h_pPb->SetMaximum( h_pPb->GetMaximum() * 1.1 );
+	    h_pp->SetMaximum ( h_pPb->GetMaximum() * 1.1 );
+	  } else {
+	    h_pPb->SetMaximum( h_pp->GetMaximum() * 1.1 );
+	    h_pp->SetMaximum ( h_pp->GetMaximum() * 1.1 );
+	  }
+	    
+	  drawTool->DrawLeftLatex
+	    ( 0.13, 0.87,
+	      GetLabel( eta1Low, eta1Up, "#eta_{1}" ).c_str(),
+	      CT::StyleTools::lSS, 1 );
+	  drawTool->DrawLeftLatex
+	    ( 0.13, 0.82,
+	      GetLabel( eta2Low, eta2Up, "#eta_{2}" ).c_str(),
+	      CT::StyleTools::lSS, 1 );
+	  drawTool->DrawLeftLatex
+	    ( 0.13, 0.76,
+	      GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str(),
+	      CT::StyleTools::lSS, 1 );
+	  drawTool->DrawLeftLatex
+	    ( 0.13, 0.69,
+	      GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ).c_str(),
+	      CT::StyleTools::lSS, 1 );
+
+	  drawTool->DrawAtlasInternal( CT::StyleTools::lSS );
+	  
+	  SaveAsROOT( c, Form("h_dPhi_%s", hName.c_str() ) );
+
+	  delete h_pPb;
+	  delete h_pp;
+	  delete c_pPb;
+	  delete c_pp;
+	}
+      }
+    } 
+  }
+  
+  std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
+  fOut->Close();
+  std::cout << "......Closed  " << fOut->GetName() << std::endl;
+}

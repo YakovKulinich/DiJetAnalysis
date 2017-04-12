@@ -96,6 +96,8 @@ void DiJetAnalysis::Initialize(){
   m_labelOut = m_isData ? "data" : "mc" ;
   m_labelOut = m_is_pPb ? m_labelOut + "_pPb" : m_labelOut + "_pp";
 
+  // Check if the directories exist.
+  // If they don't, create them
   auto checkWriteDir = []( const char* c_dirOut ){
     boost::filesystem::path dir( c_dirOut );  
     if(!(boost::filesystem::exists(dir))){
@@ -105,8 +107,6 @@ void DiJetAnalysis::Initialize(){
     }
   };
 
-  // Check if the directories exist.
-  // If they don't, create them
   m_dirOut   = "output";
   checkWriteDir( m_dirOut.c_str() );
   m_dirOut   += "/output_" + m_labelOut;
@@ -413,7 +413,6 @@ std::string DiJetAnalysis::GetEtaLabel( double etaMin,
 //---------------------------
 //       Plotting
 //---------------------------
- 
 
 //---------------------------
 //       Saving 

@@ -81,6 +81,8 @@ class DiJetAnalysis{
   virtual void ProcessPlotHistos() = 0;
 
   virtual void LoadHistograms() = 0;
+
+  virtual void PlotDataTogether(){};
   
   //---------------------------
   //       Saving 

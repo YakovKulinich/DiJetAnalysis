@@ -49,12 +49,17 @@ int main(int argc, char *argv[])
 
   analysis->Initialize();
 
-  if( mode ){
+  if( mode == 1){
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
-  } else if( !mode ) {
+  } else if( mode == 0 ) {
     rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
     analysis->ProcessPlotHistos();
+    rootapp->Run();
+  } else if( mode == 2 ){
+    rootapp = new TApplication("JetAnalysis",&argc, argv);
+    gROOT->SetBatch(kTRUE);
+    analysis->PlotDataTogether();
     rootapp->Run();
   }
   

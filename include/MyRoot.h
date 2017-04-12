@@ -105,6 +105,7 @@ namespace CT{
 			  const char* s, float scale, int color);
     void DrawCenterLatex( double x, double y ,
 			  const char* s, float scale, int color);
+    void DrawAtlasInternal( double scale );
     void DrawAtlasInternalDataRight( double x0, double y0,
 				     double scale, bool is_pPb);
     void DrawAtlasInternalDataLeft ( double x0, double y0,

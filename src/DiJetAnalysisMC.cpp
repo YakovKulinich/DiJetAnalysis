@@ -835,7 +835,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::map< std::string, TH3* >& mJznHIN,
 				      GetEtaLabel( etaMin, etaMax).c_str(),
 				      mJznHIN.begin()->second->
 				      GetYaxis()->GetTitle(),
-				      yTitleSigma.c_str() ),
+				      yTitleMean.c_str() ),
 				 nPtBins, ptMin, ptMax );
     styleTool->SetHStyle( h_meanFinal, 0, CT::StyleTools::hSS);
     vMeansFinal.push_back( h_meanFinal );
@@ -1239,9 +1239,8 @@ void DiJetAnalysisMC::DrawCanvas( std::map< std::string, TH1* >& mJznHIN,
   
   leg.Draw();
   
-  drawTool->DrawAtlasInternalMCRight( 0, 0,
-				       CT::StyleTools::lSS,
-				       m_mcTypeLabel ); 
+  drawTool->DrawAtlasInternalMCRight
+    ( 0, 0, CT::StyleTools::lSS, m_mcTypeLabel ); 
   drawTool->DrawLeftLatex( 0.45, 0.874,
 			    GetEtaLabel( etaMin, etaMax ).c_str(),
 			    CT::StyleTools::lSS, 1 );
@@ -1254,11 +1253,9 @@ void DiJetAnalysisMC::DrawCanvas( std::map< std::string, TH1* >& mJznHIN,
   TLine line( xMin, y0, xMax, y0);
   // dont draw line for sigma plots
   if( type2.compare("sigma") ) { line.Draw(); }
-
-  /*
+ 
   SaveAsAll( c, type1, type2, "Eta",
 	     std::abs(etaMin)*10, std::abs(etaMax)*10 );
-  */
 }
 
 void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
@@ -1297,7 +1294,9 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   TLine line( xMin, y0, xMax, y0);
   line.Draw();
 
-  // SaveAsAll( c, type1, type2 );
+  drawTool->DrawAtlasInternalMCRight
+    ( 0, 0, CT::StyleTools::lSS, m_mcTypeLabel ); 
+  SaveAsAll( c, type1, type2 );
 }
 
 void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
@@ -1332,12 +1331,11 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
     h->SetMinimum( 0.1 );
   }
 
-  drawTool->DrawAtlasInternalMCRight( 0, 0,
-				       CT::StyleTools::lSS,
-				       m_mcTypeLabel  ); 
+  drawTool->DrawAtlasInternalMCRight
+    ( 0, 0, CT::StyleTools::lSS, m_mcTypeLabel  ); 
   leg.Draw();
 
-  //  SaveAsAll( c, type1, type2 ); 
+  SaveAsAll( c, type1, type2 ); 
 }
 
 
@@ -1368,7 +1366,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TGraphAsymmErrors* >& vGIN,
   TLine line( xMin, 1, xMax, 1);
   line.Draw();
   
-  //  SaveAsAll( c, type ); 
+  SaveAsAll( c, type ); 
 }
 
 //===== MinMax and line drawing =====

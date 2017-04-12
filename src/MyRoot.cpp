@@ -138,7 +138,6 @@ std::string CT::AnalysisTools::GetName( double v1, double v2,
   return ss.str();
 }
 
-
 void CT::AnalysisTools::GetBinRange( TAxis* a,
 				 int b1, int b2,
 				 double& x1, double& x2){
@@ -187,17 +186,22 @@ void CT::DrawTools::DrawCenterLatex
 
 // ============ DATA ================
 
+void CT::DrawTools::DrawAtlasInternal( double scale ){
+  DrawRightLatex
+    (0.88 , 0.93, "#bf{#font[72]{ATLAS}} Internal", scale);
+}
+
 void CT::DrawTools::DrawAtlasInternalDataRight
 ( double x0, double y0, double scale, bool is_pPb ){
-  DrawRightLatex(0.88 , 0.93,
-		 "#bf{#font[72]{ATLAS}} Internal", scale);
+  DrawRightLatex
+    (0.88 , 0.93,"#bf{#font[72]{ATLAS}} Internal", scale);
   if( is_pPb ){
-    DrawRightLatex(0.88, 0.87 + y0, 
-		   Form("#it{p}+Pb 2016, %i #mub^{-1}",
-			pPbLumi2016), scale);
+    DrawRightLatex
+      (0.88, 0.87 + y0, Form("#it{p}+Pb 2016, %i #mub^{-1}",
+			     pPbLumi2016), scale);
   } else {
-    DrawRightLatex(0.88 + x0, 0.87 + y0, 
-		   Form("#it{pp} 2015, %i pb^{-1}",
+    DrawRightLatex
+      (0.88 + x0, 0.87 + y0,Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale);
   }
   DrawRightLatex(0.88 + x0, 0.81 + y0, 

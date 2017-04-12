@@ -50,6 +50,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
       const std::string& );
 
   void PlotEtaPhiPtMap( std::vector< TH2* >& );
+  
+  virtual void PlotDataTogether();
+
    
  private:
   //============ settings =============
