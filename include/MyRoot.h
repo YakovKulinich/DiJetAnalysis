@@ -95,30 +95,6 @@ namespace CT{
   };
 
   //===================================
-  //          DRAWING STUFF
-  //===================================
-  class DrawTools{
-  public:
-    void DrawRightLatex ( double x, double y ,
-			  const char* s, float scale, int color);
-    void DrawLeftLatex  ( double x, double y ,
-			  const char* s, float scale, int color);
-    void DrawCenterLatex( double x, double y ,
-			  const char* s, float scale, int color);
-    void DrawAtlasInternal( double scale );
-    void DrawAtlasInternalDataRight( double x0, double y0,
-				     double scale, bool is_pPb);
-    void DrawAtlasInternalDataLeft ( double x0, double y0,
-				     double scale, bool is_pPb );
-    void DrawAtlasInternalMCRight  ( double x0, double y0,
-				     double scale,
-				     const std::string& mcType );
-    void DrawAtlasInternalMCLeft   ( double x0, double y0,
-				     double scale,
-				     const std::string& mcType );
-  };
-
-  //===================================
   //          STYLE STUFF
   //===================================
   class StyleTools{
@@ -129,17 +105,44 @@ namespace CT{
     // Histogram/Graph/Function styles
     void SetCustomMarkerStyle( TH1* his    , int iflag );
     void SetCustomMarkerStyle( TGraph* his , int iflag );
-    void SetHStyle( TH1*    his, int iflag, float scale);
-    void SetHStyle( TGraph* his, int iflag, float scale);
-    void SetHStyle( TF1*    his, int iflag, float scale);
+    
+    void SetHStyle( TH1*    his, int iflag, double scale = hSS);
+    void SetHStyle( TGraph* his, int iflag, double scale = hSS);
+    void SetHStyle( TF1*    his, int iflag, double scale = hSS);
 
     // For Canvas where you draw efficiency
-    TH1F* SetCStyleEff( TCanvas&,
-			double, double, double, double,
+    TH1F* SetCStyleEff( TCanvas&, double, double, double, double,
 			const std::string& );
   
     // Legend Style
-    void SetLegendStyle(TLegend * legend, float scale);
+    void SetLegendStyle(TLegend * legend, double scale = lSS);
+  };
+  
+  //===================================
+  //          DRAWING STUFF
+  //===================================
+  class DrawTools{
+  public:
+    void DrawRightLatex ( double x, double y ,
+			  const char* s, int color,
+			  double scale = StyleTools::lSS );
+    void DrawLeftLatex  ( double x, double y ,
+			  const char* s, int color,
+			  double scale = StyleTools::lSS );
+    void DrawCenterLatex( double x, double y ,
+			  const char* s, int color,
+			  double scale = StyleTools::lSS );
+    void DrawAtlasInternal( double scale = StyleTools::lSS );
+    void DrawAtlasInternalDataRight( double x0, double y0, bool is_pPb,
+				     double scale = StyleTools::lSS );
+    void DrawAtlasInternalDataLeft ( double x0, double y0, bool is_pPb,
+				     double scale = StyleTools::lSS );
+    void DrawAtlasInternalMCRight  ( double x0, double y0,
+				     const std::string& mcType,
+				     double scale = StyleTools::lSS );
+    void DrawAtlasInternalMCLeft   ( double x0, double y0,
+				     const std::string& mcType,
+				     double scale = StyleTools::lSS );
   };
 }
 

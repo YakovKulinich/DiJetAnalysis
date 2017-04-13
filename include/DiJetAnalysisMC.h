@@ -76,9 +76,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //          Drawing
   //---------------------------
   void DrawCanvas( std::map< std::string, TH1* >&, TH1*,
-		   double, double, 
 		   const std::string&,
-		   const std::string& );
+		   const std::string&,
+		   double, double);
   
   void DrawCanvas( std::vector< TH1* >&,
 		   const std::string&,
@@ -94,7 +94,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		   const std::string&,
 		   const std::string&,
 		   double, double );
-
 
   
   //===== MinMax and line drawing =====

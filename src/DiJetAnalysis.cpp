@@ -123,7 +123,7 @@ void DiJetAnalysis::Initialize(){
 void DiJetAnalysis::AddHistogram( TH1* h ){
   v_hists.push_back( h );
   h->Sumw2();
-  styleTool->SetHStyle( h, 0, CT::StyleTools::hSS );
+  styleTool->SetHStyle( h, 0 );
 
   TH1* h1 = dynamic_cast< TH1* >(h);
   if( h1 ){ h->GetXaxis()->SetNdivisions(505); }
@@ -282,7 +282,7 @@ ProjectAndFitGaus( TH3* h3,
 			10*std::abs(etaMax),
 			ptMin, ptMax ),
 		   etaBinLow, etaBinUp, ptBin, ptBin );
-    styleTool->SetHStyle( hProj, 0, CT::StyleTools::hSS);
+    styleTool->SetHStyle( hProj, 0 );
     v_hProj.push_back( hProj );
     hProj->SetTitle("");
     
@@ -292,7 +292,7 @@ ProjectAndFitGaus( TH3* h3,
 			      10*std::abs(etaMax),
 			      ptMin, ptMax ),
 			 "gaus(0)" );
-    styleTool->SetHStyle( fit, 0, CT::StyleTools::hSS);
+    styleTool->SetHStyle( fit, 0 );
     v_fit.push_back( fit );
 
     if( hProj->GetEntries() < m_nMinEntriesGausFit ){ continue; }
@@ -309,24 +309,19 @@ ProjectAndFitGaus( TH3* h3,
     fit->Draw("same");
 
     if( !m_isData ){
-      drawTool->DrawAtlasInternalMCRight
-	( 0, 0, CT::StyleTools::lSS, mcLabel  );
-      drawTool->DrawLeftLatex
-	( 0.18, 0.74, jzn.c_str(), CT::StyleTools::lSS, 1 );
+      drawTool->DrawAtlasInternalMCRight( 0, 0, mcLabel );
+      drawTool->DrawLeftLatex( 0.18, 0.74, jzn.c_str(), 1 );
     } else if( m_isData ){
-      drawTool->DrawAtlasInternalDataRight
-	( 0, 0, CT::StyleTools::lSS, m_is_pPb ); 
+      drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); 
     }
     
-    drawTool->DrawLeftLatex( 0.18, 0.88,
-			     GetEtaLabel( etaMin, etaMax ).c_str(),
-			     CT::StyleTools::lSS, 1 );
-    drawTool->DrawLeftLatex( 0.18, 0.81,
-			     Form("%3.0f<%s<%3.1f",
-				  ptMin,
-				  h1Mean->GetXaxis()->GetTitle(),
-				  ptMax ),
-			     CT::StyleTools::lSS, 1 );
+    drawTool->DrawLeftLatex
+      ( 0.18, 0.88, GetEtaLabel( etaMin, etaMax ).c_str(), 1 );
+    drawTool->DrawLeftLatex
+      ( 0.18, 0.81, Form("%3.0f<%s<%3.1f",
+			 ptMin,
+			 h1Mean->GetXaxis()->GetTitle(),
+			 ptMax ), 1 );
     
     c_proj.Write( Form("c_%s_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
 		       h3->GetName(),

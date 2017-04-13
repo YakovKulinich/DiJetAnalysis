@@ -146,108 +146,6 @@ void CT::AnalysisTools::GetBinRange( TAxis* a,
 }
 
 //===================================
-//          DRAWING STUFF
-//===================================
-
-// ============ GENERAL ================
-
-void CT::DrawTools::DrawRightLatex
-( double x, double y , const char* s, float scale = 1, int color = 1){
-  TLatex tltx; 
-  tltx.SetTextFont(43);
-  tltx.SetTextSize((int)(32*scale));
-  tltx.SetTextColor(color);
-  tltx.SetNDC(kTRUE);
-  tltx.SetTextAlign(32);
-  tltx.DrawLatex( x, y, s );
-}
-
-void CT::DrawTools::DrawLeftLatex
-( double x, double y , const char* s, float scale = 1, int color = 1){
-  TLatex tltx; 
-  tltx.SetTextFont(43);
-  tltx.SetTextSize((int)(32*scale));
-  tltx.SetTextColor(color);
-  tltx.SetNDC(kTRUE);
-  tltx.SetTextAlign(12);
-  tltx.DrawLatex( x, y, s );
-}
-
-void CT::DrawTools::DrawCenterLatex
-( double x, double y , const char* s, float scale = 1, int color = 1){
-  TLatex tltx; 
-  tltx.SetTextFont(43);
-  tltx.SetTextSize((int)(32*scale));
-  tltx.SetTextColor(color);
-  tltx.SetNDC(kTRUE);
-  tltx.SetTextAlign(22);
-  tltx.DrawLatex( x, y, s );
-}
-
-// ============ DATA ================
-
-void CT::DrawTools::DrawAtlasInternal( double scale ){
-  DrawRightLatex
-    (0.88 , 0.93, "#bf{#font[72]{ATLAS}} Internal", scale);
-}
-
-void CT::DrawTools::DrawAtlasInternalDataRight
-( double x0, double y0, double scale, bool is_pPb ){
-  DrawRightLatex
-    (0.88 , 0.93,"#bf{#font[72]{ATLAS}} Internal", scale);
-  if( is_pPb ){
-    DrawRightLatex
-      (0.88, 0.87 + y0, Form("#it{p}+Pb 2016, %i #mub^{-1}",
-			     pPbLumi2016), scale);
-  } else {
-    DrawRightLatex
-      (0.88 + x0, 0.87 + y0,Form("#it{pp} 2015, %i pb^{-1}",
-			ppLumi2015), scale);
-  }
-  DrawRightLatex(0.88 + x0, 0.81 + y0, 
-		 "#sqrt{s_{NN}}=5.02 TeV", scale);
-}
-
-void CT::DrawTools::DrawAtlasInternalDataLeft
-( double x0, double y0, double scale, bool is_pPb ){
-  DrawRightLatex(0.875, 0.93, 
-		 "#bf{#font[72]{ATLAS}} Internal", scale);
-  if( is_pPb ){
-    DrawLeftLatex(0.18 + x0, 0.87 + y0, 
-		   Form("#it{p}+Pb 2016, %i #mub^{-1}",
-			pPbLumi2016), scale);
-  } else {
-    DrawLeftLatex(0.18 + x0, 0.87 + y0, 
-		   Form("#it{pp} 2015, %i pb^{-1}",
-			ppLumi2015), scale);
-  }
-  DrawLeftLatex(0.18 + x0, 0.81 + y0, 
-		"#sqrt{s_{NN}}=5.02 TeV", scale); 
-}
-
-// ============ MC ================
-
-void CT::DrawTools::DrawAtlasInternalMCRight
-( double x0, double y0, double scale,
-  const std::string& mcType ){ 
-  DrawRightLatex(0.88, 0.93, 
-		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
-  DrawRightLatex(0.88 + x0, 0.87,
-		 mcType.c_str(), scale);
- }
-
-
-void CT::DrawTools::DrawAtlasInternalMCLeft
-( double x0, double y0, double scale,
-  const std::string& mcType ){ 
-  DrawRightLatex(0.88, 0.93, 
-		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
-
-  DrawLeftLatex(0.18 + x0, 0.87,
-		mcType.c_str(), scale);
-}
-
-//===================================
 //          STYLE STUFF
 //===================================
 // ======= Styles for Stuff ======
@@ -372,7 +270,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
   }  
 }
 
-void CT::StyleTools::SetHStyle( TH1* his, int iflag, float scale)
+void CT::StyleTools::SetHStyle( TH1* his, int iflag, double scale)
 {
   his->SetLineWidth(2);
   his->SetStats(0);
@@ -390,7 +288,7 @@ void CT::StyleTools::SetHStyle( TH1* his, int iflag, float scale)
   SetCustomMarkerStyle( his, iflag );  
 }
 
-void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, float scale)
+void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, double scale)
 {
   graph->SetLineWidth(2);
 
@@ -412,7 +310,7 @@ void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, float scale)
 }
 
 
-void CT::StyleTools::SetHStyle( TF1* funct, int iflag, float scale)
+void CT::StyleTools::SetHStyle( TF1* funct, int iflag, double scale)
 {
   funct->SetLineWidth(2);
 
@@ -433,9 +331,10 @@ void CT::StyleTools::SetHStyle( TF1* funct, int iflag, float scale)
   // SetCustomMarkerStyle( funct, iflag );
 }
 
-TH1F* CT::StyleTools::SetCStyleEff( TCanvas& c,
-			        double x0, double y0, double x1, double y1,
-			        const std::string& title ){
+TH1F* CT::StyleTools::SetCStyleEff
+( TCanvas& c,
+  double x0, double y0, double x1, double y1,
+  const std::string& title ){
   c.DrawFrame( x0, y0, x1, y1, title.c_str() );
   TH1F* hF = c.DrawFrame( x0, y0, x1, y1, title.c_str() );
   hF->GetXaxis()->SetNdivisions(505);  
@@ -444,7 +343,7 @@ TH1F* CT::StyleTools::SetCStyleEff( TCanvas& c,
   return hF;
 }
 
-void CT::StyleTools::SetLegendStyle(TLegend * legend, float scale)
+void CT::StyleTools::SetLegendStyle(TLegend * legend, double scale)
 {
   legend->SetBorderSize(0);
   legend->SetTextFont(43);
@@ -459,3 +358,103 @@ void CT::StyleTools::SetLegendStyle(TLegend * legend, float scale)
 const double CT::StyleTools::lSS = 0.60;
 
 const double CT::StyleTools::hSS = 0.75;
+
+//===================================
+//          DRAWING STUFF
+//===================================
+
+// ============ GENERAL ================
+
+void CT::DrawTools::DrawRightLatex
+( double x, double y , const char* s, int color, double scale){
+  TLatex tltx; 
+  tltx.SetTextFont(43);
+  tltx.SetTextSize((int)(32*scale));
+  tltx.SetTextColor(color);
+  tltx.SetNDC(kTRUE);
+  tltx.SetTextAlign(32);
+  tltx.DrawLatex( x, y, s );
+}
+
+void CT::DrawTools::DrawLeftLatex
+( double x, double y , const char* s, int color, double scale ){
+  TLatex tltx; 
+  tltx.SetTextFont(43);
+  tltx.SetTextSize((int)(32*scale));
+  tltx.SetTextColor(color);
+  tltx.SetNDC(kTRUE);
+  tltx.SetTextAlign(12);
+  tltx.DrawLatex( x, y, s );
+}
+
+void CT::DrawTools::DrawCenterLatex
+( double x, double y , const char* s, int color, double scale){
+  TLatex tltx; 
+  tltx.SetTextFont(43);
+  tltx.SetTextSize((int)(32*scale));
+  tltx.SetTextColor(color);
+  tltx.SetNDC(kTRUE);
+  tltx.SetTextAlign(22);
+  tltx.DrawLatex( x, y, s );
+}
+
+// ============ DATA ================
+
+void CT::DrawTools::DrawAtlasInternal( double scale ){
+  DrawRightLatex
+    (0.88 , 0.93, "#bf{#font[72]{ATLAS}} Internal", scale);
+}
+
+void CT::DrawTools::DrawAtlasInternalDataRight
+( double x0, double y0, bool is_pPb, double scale ){
+  DrawRightLatex
+    (0.88 , 0.93,"#bf{#font[72]{ATLAS}} Internal", scale);
+  if( is_pPb ){
+    DrawRightLatex
+      (0.88, 0.87 + y0, Form("#it{p}+Pb 2016, %i #mub^{-1}",
+			     pPbLumi2016), scale);
+  } else {
+    DrawRightLatex
+      (0.88 + x0, 0.87 + y0,Form("#it{pp} 2015, %i pb^{-1}",
+			ppLumi2015), scale);
+  }
+  DrawRightLatex(0.88 + x0, 0.81 + y0, 
+		 "#sqrt{s_{NN}}=5.02 TeV", scale);
+}
+
+void CT::DrawTools::DrawAtlasInternalDataLeft
+( double x0, double y0, bool is_pPb, double scale ){
+  DrawRightLatex(0.875, 0.93, 
+		 "#bf{#font[72]{ATLAS}} Internal", scale);
+  if( is_pPb ){
+    DrawLeftLatex(0.18 + x0, 0.87 + y0, 
+		   Form("#it{p}+Pb 2016, %i #mub^{-1}",
+			pPbLumi2016), scale);
+  } else {
+    DrawLeftLatex(0.18 + x0, 0.87 + y0, 
+		   Form("#it{pp} 2015, %i pb^{-1}",
+			ppLumi2015), scale);
+  }
+  DrawLeftLatex(0.18 + x0, 0.81 + y0, 
+		"#sqrt{s_{NN}}=5.02 TeV", scale); 
+}
+
+// ============ MC ================
+
+void CT::DrawTools::DrawAtlasInternalMCRight
+( double x0, double y0, const std::string& mcType, double scale ){ 
+  DrawRightLatex(0.88, 0.93, 
+		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
+  DrawRightLatex(0.88 + x0, 0.87,
+		 mcType.c_str(), scale);
+ }
+
+
+void CT::DrawTools::DrawAtlasInternalMCLeft
+( double x0, double y0, const std::string& mcType, double scale ){ 
+  DrawRightLatex(0.88, 0.93, 
+		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale);
+
+  DrawLeftLatex(0.18 + x0, 0.87,
+		mcType.c_str(), scale);
+}

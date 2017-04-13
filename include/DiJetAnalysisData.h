@@ -43,6 +43,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
 		    const std::string& );
 
   void PlotEfficiencies( std::vector< TH2* >&,
+			 std::vector< TH2* >&,
 			 const std::string& );
 
   virtual void PlotDeltaPhi
@@ -59,14 +60,14 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::string m_fNameIn;
 
   std::vector< std::string > m_vTriggers;
-  std::vector< std::string > m_vRefTriggers;
+  std::vector< int    >      m_vRefTriggerIndex;
   std::vector< double >      m_vTholdPtTriggers;
   std::vector< double >      m_vEffPtTriggers;
 
   std::string m_mbTriggerName;
   int m_mbTriggerI;
   
-  unsigned int m_nTriggers;
+  uint m_nTriggers;
  
   //============ data =============
   // -------- maps ---------
@@ -75,7 +76,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   // -------- spect --------
   std::vector< TH2* > m_vTriggerEtaSpect;
-  std::vector< TH2* > m_vTriggerEtaSpectEff;
+  std::vector< TH2* > m_vTriggerEtaSpectSim;
 
   // -------- dPhi ---------
   std::vector< THnSparse* > m_vDphi;
