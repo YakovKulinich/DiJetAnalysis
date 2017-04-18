@@ -30,10 +30,12 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
+  bool IsInTriggerRange( double, uint );
+  
   void AnalyzeEff( std::vector< TLorentzVector >&,
 		   std::vector< TLorentzVector >&,
 		   std::map< int, bool >&);
-
+  
   //---------------------------
   //       Plot Data 
   //---------------------------
@@ -65,6 +67,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< double >      m_vEffPtTriggers;
 
   std::string m_mbTriggerName;
+  std::string m_allName;
+
   int m_mbTriggerI;
   
   uint m_nTriggers;
@@ -78,9 +82,11 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< TH2* > m_vTriggerEtaSpect;
   std::vector< TH2* > m_vTriggerEtaSpectSim;
 
+  TH2* m_hAllEtaSpect;
   // -------- dPhi ---------
   std::vector< THnSparse* > m_vDphi;
-  
+
+  THnSparse* m_hAllDphi;
   //========= histos binning ========
 };
 

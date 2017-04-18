@@ -10,34 +10,27 @@ const int ppLumi2015  = 26;  // pb
 //===================================
 //         COMMON FUNCTIONS
 //===================================
-bool CT::AnalysisTools::isForward( const double& eta ){
-  return ( TMath::Abs(eta) < constants::FETAMAX && 
-	   TMath::Abs(eta) > constants::FETAMIN );
-}
+bool CT::AnalysisTools::IsForward( const double& eta )
+{ return ( TMath::Abs(eta) < constants::FETAMAX && 
+	   TMath::Abs(eta) > constants::FETAMIN ); }
 
-bool CT::AnalysisTools::isCentral( const double& eta ){
-  return ( TMath::Abs(eta) < constants::CETAMAX );
-}
+bool CT::AnalysisTools::IsCentral( const double& eta )
+{ return ( TMath::Abs(eta) < constants::CETAMAX ); }
 
-bool CT::AnalysisTools::EpsilonEqual( double a, double b ){
-  return fabs( a - b ) < constants::EPSILON;
-}
+bool CT::AnalysisTools::EpsilonEqual( double a, double b )
+{ return fabs( a - b ) < constants::EPSILON; }
 
 // returns dphi in range 0<dphi<2pi
 double CT::AnalysisTools::DPhiFC( double phi1, double phi2 ){
   double deltaPhi = phi1 - phi2;
-
   while( deltaPhi < 0 ) deltaPhi += 2*constants::PI;
-
   return deltaPhi;
 }
 
 double CT::AnalysisTools::DeltaPhi
 ( double phi1, double phi2 ){
   double deltaPhi = TMath::Abs(phi1 - phi2);
-
   if( deltaPhi > constants::PI ){ deltaPhi = 2*constants::PI - deltaPhi; };
-
   return deltaPhi;
 }
 

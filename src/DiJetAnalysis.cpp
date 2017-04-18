@@ -40,9 +40,9 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb )
   m_ptMapMax    = 100;
   
   // -------- spect --------
-  m_nPtSpectBins = 50; 
+  m_nPtSpectBins = 40; 
   m_ptSpectMin   = 10;
-  m_ptSpectMax   = 2 * m_nPtSpectBins + m_ptSpectMin;
+  m_ptSpectMax   = 110;
 
   // ---- JES/PRes/Etc ----- 
   m_nEtaForwardBinsFine   = 12;
@@ -164,48 +164,63 @@ void DiJetAnalysis::SaveOutputsFromTree(){
 //       Analysis
 //---------------------------
 
+bool DiJetAnalysis::GetDiJets( const std::vector <TLorentzVector>& v_jets, 
+			       TLorentzVector& jet1,
+			       TLorentzVector& jet2 ){
+  bool haveFirstJet   = false;
+  bool haveSecondJet  = false;
+
+  for( const auto& jet : v_jets ){
+    if( !haveFirstJet && jet.Pt() > 0 ){
+      jet1 = jet;
+      haveFirstJet  = true;
+    } else if( haveFirstJet && jet.Pt() > 0 ){
+      jet2 = jet;
+      haveSecondJet = true;
+      break;
+    }
+  }
+
+  // make sure we have two jets
+  if( !haveFirstJet || !haveSecondJet )
+    { return false; }
+
+  // Require one of the jets to be forward
+  if( !anaTool->IsForward( jet1.Eta() ) &&
+      !anaTool->IsForward( jet2.Eta() ) )
+    { return false; }
+  
+  // met all cuts, have two jets
+  return true;
+}
+
 double DiJetAnalysis::AnalyzeDeltaPhi
-( THnSparse* hn, const std::vector <TLorentzVector>& v_jets ){
+( THnSparse* hn,
+  const std::vector <TLorentzVector>& v_jets,
+  double weight  ){
+
+  TLorentzVector jet1, jet2;
+
+  if( !GetDiJets( v_jets, jet1, jet2 ) )
+    { return -1; }
+
+  double jet1_pt  = jet1.Pt()/1000.;
+  double jet1_phi = jet1.Phi();
+  double jet1_eta = jet1.Eta();
   
-  const TLorentzVector* jet1 = &v_jets.at(0);
-  const TLorentzVector* jet2 = &v_jets.at(1);
-
-  // because removing from vectors is expensive, I set
-  // "bad" or unmached jets to have (0,0,0,-1) 4vector.
-  if( jet2->Pt() == 0 || jet1->Pt() == 0 ) return -1;
-
-  unsigned int nJets = v_jets.size();
+  double jet2_pt  = jet2.Pt()/1000.;
+  double jet2_phi = jet2.Phi();
+  double jet2_eta = jet2.Eta();      
   
-  // if we have only 2 jets, we consider the 
-  // "third" to have Pt=0
-  double followingJetPt = 0;
-
-  if( nJets > 2 )
-    followingJetPt = v_jets.at(2).Pt()/1000.;
-
-  double jet1_pt  = jet1->Pt()/1000.;
-  double jet1_phi = jet1->Phi();
-  double jet1_eta = jet1->Eta();
-  
-  double jet2_pt  = jet2->Pt()/1000.;
-  double jet2_phi = jet2->Phi();
-  double jet2_eta = jet2->Eta();      
-
-  double ptAvg    = ( jet2_pt + jet1_pt )/2;
-
   double deltaPhi = anaTool->DeltaPhi( jet2_phi, jet1_phi );
   
-  // some cuts for phi inter calibration
-  if( followingJetPt > ptAvg * m_dPhiThirdJetFraction ) return -1;
-
   std::vector< double > x;
   x.resize( hn->GetNdimensions() );
 
   // some min pt cut
   for( int pt2Bin = 1; pt2Bin < hn->GetAxis(3)->GetNbins(); pt2Bin++ ){  
 
-    if( jet2_pt < hn->GetAxis(3)->GetBinUpEdge ( pt2Bin ) &&
-	jet2_pt < hn->GetAxis(3)->GetBinLowEdge( pt2Bin ) ){ break; }
+    if( jet2_pt < hn->GetAxis(3)->GetBinLowEdge ( pt2Bin ) ){ break; }
     
     x[0] = jet1_eta;  
     x[1] = jet2_eta;
@@ -213,7 +228,7 @@ double DiJetAnalysis::AnalyzeDeltaPhi
     x[3] = hn->GetAxis(3)->GetBinCenter( pt2Bin );
     x[4] = deltaPhi;
       
-    hn->Fill( &x[0], 1 );
+    hn->Fill( &x[0], weight );
   }
   
   return deltaPhi;

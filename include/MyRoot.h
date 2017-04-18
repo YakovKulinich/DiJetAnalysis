@@ -36,6 +36,10 @@ namespace constants{
   // barrel range
   const double CETAMAX = 2.8;
 
+  // cut on the trigger
+  // jet eta
+  const double TETAMIN = 3.2;
+  
   // FCal eta ranges
   const double FETAMIN = 3.3;
   const double FETAMAX = 4.4;
@@ -61,9 +65,9 @@ namespace CT{
   //===================================
   class AnalysisTools{
   public:
-    bool isForward( const double& eta );
+    bool IsForward( const double& eta );
 
-    bool isCentral( const double& eta );
+    bool IsCentral( const double& eta );
 
     bool EpsilonEqual( double a, double b );
 
@@ -124,13 +128,13 @@ namespace CT{
   class DrawTools{
   public:
     void DrawRightLatex ( double x, double y ,
-			  const char* s, int color,
+			  const char* s, int color = 1,
 			  double scale = StyleTools::lSS );
     void DrawLeftLatex  ( double x, double y ,
-			  const char* s, int color,
+			  const char* s, int color = 1,
 			  double scale = StyleTools::lSS );
     void DrawCenterLatex( double x, double y ,
-			  const char* s, int color,
+			  const char* s, int color = 1,
 			  double scale = StyleTools::lSS );
     void DrawAtlasInternal( double scale = StyleTools::lSS );
     void DrawAtlasInternalDataRight( double x0, double y0, bool is_pPb,

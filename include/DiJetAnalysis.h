@@ -49,9 +49,14 @@ class DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
+  virtual bool GetDiJets( const std::vector
+			  <TLorentzVector>&,
+			  TLorentzVector&,
+			  TLorentzVector& );
+  
   virtual double AnalyzeDeltaPhi( THnSparse*,
-				  const std::vector
-				  <TLorentzVector>& );
+				  const std::vector <TLorentzVector>&,
+				  double = 1 );
   
   virtual void  ApplyIsolation( double, std::vector<TLorentzVector>& );
     
