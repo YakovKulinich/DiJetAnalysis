@@ -20,7 +20,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void RunOverTreeFillHistos( int, int );
 
   void ProcessPlotHistos();
-  
+
   //---------------------------
   //       Fill Tree
   //---------------------------
@@ -35,7 +35,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   //       Plot Data 
   //---------------------------
-
   void LoadHistograms();
   
   void PlotSpectra( std::map< std::string, TH2* >&,
@@ -69,48 +68,13 @@ class DiJetAnalysisMC : public DiJetAnalysis{
     CombineJZN( std::map< std::string, TGraphAsymmErrors* >&,
 		std::map< std::string, TH1*>& );
   
-  
   double GetJetWeight( double, double, double );
-  
-  //---------------------------
-  //          Drawing
-  //---------------------------
-  void DrawCanvas( std::map< std::string, TH1* >&, TH1*,
-		   const std::string&,
-		   const std::string&,
-		   double, double);
-  
-  void DrawCanvas( std::vector< TH1* >&,
-		   const std::string&,
-		   const std::string&,
-		   int = 1);
-
-  void DrawCanvas( std::vector< TH1* >&,
-		   const std::string&,
-		   const std::string&,
-		   bool );
-
-  void DrawCanvas( std::vector< TGraphAsymmErrors* >&,
-		   const std::string&,
-		   const std::string&,
-		   double, double );
-
-  
-  //===== MinMax and line drawing =====
-  void SetMinMax( TH1*,
-		  const std::string&,
-		  const std::string& );
-
-  double GetLineHeight( const std::string& );
   
  private:
   //============== cuts ===============
   double m_dRmax;
   
-  //============ settings =============
-  int m_mcType;
-  std::string m_mcTypeLabel;
-  
+  //============ settings ============= 
   std::vector< std::string > m_vUsedJZN;
   std::map< std::string, std::string > m_mJznFnameIn;
 

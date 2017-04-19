@@ -19,9 +19,9 @@
 DiJetAnalysisData::DiJetAnalysisData() : DiJetAnalysisData( true, true )
 {}
 
-DiJetAnalysisData::DiJetAnalysisData( bool isData,
-				      bool is_pPb )
-  : DiJetAnalysis( isData, is_pPb)
+DiJetAnalysisData::DiJetAnalysisData
+( bool isData, bool is_pPb  )
+  : DiJetAnalysis( isData, is_pPb  )
 {
   //========== Set Histogram Binning =============
 
@@ -585,7 +585,7 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
     drawTool->DrawAtlasInternalDataRight
       ( 0, 0, m_is_pPb ); 
     drawTool->DrawLeftLatex
-      ( 0.15, 0.17, cLabel.c_str(), 1 );
+      ( 0.15, 0.17, cLabel.c_str() );
     SaveAsAll( c, type, cName );
   } // end loop over iT
   
@@ -623,7 +623,7 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
     drawTool->DrawAtlasInternalDataRight
       ( 0, 0, m_is_pPb ); 
     drawTool->DrawLeftLatex
-      ( 0.15, 0.17, cLabel.c_str(), 1 );
+      ( 0.15, 0.17, cLabel.c_str() );
 
     SaveAsAll( c, type, cName );
   } // end loop over iE
@@ -750,7 +750,7 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
     drawTool->DrawAtlasInternalDataRight
       ( 0, 0, m_is_pPb ); 
     drawTool->DrawLeftLatex
-      ( 0.4, 0.17, cLabel.c_str(), 1 );
+      ( 0.4, 0.17, cLabel.c_str() );
     
     SaveAsAll( c, type, cName );
   } // end loop over iT
@@ -797,7 +797,7 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
     drawTool->DrawAtlasInternalDataRight
       ( 0, 0, m_is_pPb ); 
     drawTool->DrawLeftLatex
-      ( 0.4, 0.17, cLabel.c_str(), 1 );
+      ( 0.4, 0.17, cLabel.c_str() );
 
     SaveAsAll( c, type, cName );
   } // end loop over iE
@@ -880,18 +880,18 @@ void DiJetAnalysisData::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    
 	    drawTool->DrawLeftLatex
 	      ( 0.13, 0.87,
-	        GetLabel( eta1Low, eta1Up, "#eta_{1}" ).c_str(), 1 );
+	        GetLabel( eta1Low, eta1Up, "#eta_{1}" ).c_str() );
 	    drawTool->DrawLeftLatex
 	      ( 0.13, 0.82,
-		GetLabel( eta2Low, eta2Up, "#eta_{2}" ).c_str(), 1 );
+		GetLabel( eta2Low, eta2Up, "#eta_{2}" ).c_str() );
 	    drawTool->DrawLeftLatex
 	      ( 0.13, 0.76,
-		GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str(), 1 );
+		GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
 	    drawTool->DrawLeftLatex
 	      ( 0.13, 0.69,
-		GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ).c_str(), 1 );
+		GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ).c_str() );
 	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.62, trigger.c_str(), 1 );
+	      ( 0.13, 0.62, trigger.c_str() );
 	    
 	    
 	    drawTool->DrawAtlasInternalDataRight
@@ -1019,16 +1019,16 @@ void DiJetAnalysisData::PlotDataTogether(){
 	    
 	  drawTool->DrawLeftLatex
 	    ( 0.13, 0.87,
-	      GetLabel( eta1Low, eta1Up, "#eta_{1}" ).c_str(), 1 );
+	      GetLabel( eta1Low, eta1Up, "#eta_{1}" ).c_str() );
 	  drawTool->DrawLeftLatex
 	    ( 0.13, 0.82,
-	      GetLabel( eta2Low, eta2Up, "#eta_{2}" ).c_str(), 1 );
+	      GetLabel( eta2Low, eta2Up, "#eta_{2}" ).c_str() );
 	  drawTool->DrawLeftLatex
 	    ( 0.13, 0.76,
-	      GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str(), 1 );
+	      GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
 	  drawTool->DrawLeftLatex
 	    ( 0.13, 0.69,
-	      GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ).c_str(), 1 );
+	      GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ).c_str() );
 
 	  drawTool->DrawAtlasInternal();
 	  

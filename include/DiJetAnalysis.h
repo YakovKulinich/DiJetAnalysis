@@ -26,16 +26,21 @@ namespace CS{
 class DiJetAnalysis{
  public:
   DiJetAnalysis();
-  DiJetAnalysis( bool, bool );
+  DiJetAnalysis( bool, bool, int = 0 );
   virtual ~DiJetAnalysis();
 
   virtual void Initialize();
+
+  //---------------------------
+  // Fill Tree / Plot Controls
+  //---------------------------
+  virtual void RunOverTreeFillHistos( int, int ) = 0;
+
+  virtual void ProcessPlotHistos() = 0;
   
   //---------------------------
   //       Fill Tree
   //---------------------------
-  virtual void RunOverTreeFillHistos( int, int ) = 0;
-
   virtual void SetupHistograms() = 0;
 
   virtual void AddHistogram( TH1* );
@@ -75,7 +80,7 @@ class DiJetAnalysis{
   double AdjustEtaForPP( double );
 
   std::string GetLabel( double, double,
-			const std::string&,
+			const std::string& = "",
 			const std::string& = "" );
   
   std::string GetEtaLabel( double, double );
@@ -83,12 +88,40 @@ class DiJetAnalysis{
   //---------------------------
   //       Plotting 
   //---------------------------
-  virtual void ProcessPlotHistos() = 0;
-
   virtual void LoadHistograms() = 0;
 
   virtual void PlotDataTogether(){};
+
+  //---------------------------
+  //        Drawing
+  //---------------------------
+  void DrawCanvas( std::map< std::string, TH1* >&,
+		   TH1*, const std::string& = "",
+		   const std::string& = "",
+		   double = 0, double = 0 );
   
+  void DrawCanvas( std::vector< TH1* >&,
+		   const std::string& = "",
+		   const std::string& = "",
+		   int = 1);
+
+  void DrawCanvas( std::vector< TH1* >&,
+		   const std::string& = "",
+		   const std::string& = "",
+		   bool = true );
+
+  void DrawCanvas( std::vector< TGraphAsymmErrors* >&,
+		   const std::string& = "",
+		   const std::string& = "",
+		   double = 0, double = 0);
+  
+  //===== MinMax and line drawing =====
+  void SetMinMax( TH1*,
+		  const std::string&,
+		  const std::string& );
+
+  double GetLineHeight( const std::string& );
+
   //---------------------------
   //       Saving 
   //---------------------------
@@ -117,6 +150,9 @@ class DiJetAnalysis{
   //========== settings ===========
   bool m_isData;
   bool m_is_pPb;
+
+  int m_mcType;
+  std::string m_mcTypeLabel;
   
   std::string m_labelOut;
   std::string m_dirOut;

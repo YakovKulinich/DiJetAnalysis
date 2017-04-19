@@ -18,11 +18,11 @@
 #include "DiJetAnalysisMC.h"
 #include "JetPair.h"
 
-DiJetAnalysisMC::DiJetAnalysisMC() : DiJetAnalysisMC( true, true, 0 )
+DiJetAnalysisMC::DiJetAnalysisMC() : DiJetAnalysisMC( true, true , 0 )
 {}
 
 DiJetAnalysisMC::DiJetAnalysisMC( bool isData, bool is_pPb, int mcType )
-  : DiJetAnalysis( isData, is_pPb), m_mcType( mcType )
+  : DiJetAnalysis( isData, is_pPb, mcType )
 {
   //========== Set Histogram Binning =============
     // ------ truth binning --------
@@ -706,7 +706,7 @@ void DiJetAnalysisMC::PlotSpectra( std::map< std::string, TH2* >& mJznSpect,
     
     drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); 
     drawTool->DrawLeftLatex
-      ( 0.45, 0.87, GetEtaLabel( etaMin, etaMax ).c_str(), 1 );
+      ( 0.45, 0.87, GetEtaLabel( etaMin, etaMax ).c_str() );
 
     SaveAsAll( c_spect,
 	       type, level, "Eta",
@@ -989,9 +989,9 @@ PlotEfficiencies( std::map< std::string, TH2* >& mJznSpectPaired,
     TLine line( xMin, 1, xMax, 1);
     line.Draw();
 
-    drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); 
+    drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); 
     drawTool->DrawRightLatex
-      ( 0.88, 0.17, GetEtaLabel( etaMin, etaMax).c_str(), 1 );
+      ( 0.88, 0.17, GetEtaLabel( etaMin, etaMax).c_str() );
 
     
     SaveAsAll( c_eff, type, "", "Eta", std::abs(etaMin)*10, std::abs(etaMax)*10 );
@@ -1205,195 +1205,3 @@ double DiJetAnalysisMC::GetJetWeight( double eta, double phi, double pt ){
   return jet_weight;
 }
 
-
-//---------------------------
-//          Drawing 
-//---------------------------
-void DiJetAnalysisMC::DrawCanvas( std::map< std::string, TH1* >& mJznHIN,
-				  TH1* hFinal,
-				  const std::string& type1,
-				  const std::string& type2,
-				  double etaMin, double etaMax ){
-  TCanvas c("c","c",800,600);
-  
-  TLegend leg(0.13, 0.14, 0.44, 0.27);
-  styleTool->SetLegendStyle( &leg );
-  leg.SetFillStyle(0);
-
-  for( auto& jznHIN : mJznHIN ){
-    jznHIN.second->SetTitle("");
-    jznHIN.second->Draw("epsame");
-    SetMinMax( jznHIN.second, type1, type2 );
-    leg.AddEntry( jznHIN.second, jznHIN.first.c_str() );
-  }
-  hFinal->Draw("same");
-  leg.AddEntry( hFinal, "Total" );
-  
-  leg.Draw();
-  
-  drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); 
-  drawTool->DrawLeftLatex
-    ( 0.45, 0.874,GetEtaLabel( etaMin, etaMax ).c_str(), 1 );
-  
-  double y0 = GetLineHeight( type1 );
-  
-  double xMin = mJznHIN.begin()->second->GetXaxis()->GetXmin();
-  double xMax = mJznHIN.begin()->second->GetXaxis()->GetXmax();
-
-  TLine line( xMin, y0, xMax, y0);
-  // dont draw line for sigma plots
-  if( type2.compare("sigma") ) { line.Draw(); }
- 
-  SaveAsAll( c, type1, type2, "Eta",
-	     std::abs(etaMin)*10, std::abs(etaMax)*10 );
-}
-
-void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
-				  const std::string& type1,
-				  const std::string& type2,
-				  int spacing ){
-  TCanvas c("c","c",800,600);
-  
-  TLegend leg(0.68, 0.64, 0.99, 0.77);
-  styleTool->SetLegendStyle( &leg );
-  leg.SetFillStyle(0);
-
-  int style = 0;
-
-  // for situations where dont want to
-  // plot every single bin 
-  // plot every n on canvas
-  int recoTruthDeta = vHIN.size()/spacing; // plot every n
-  for( unsigned int etaRange = 0;
-       etaRange < vHIN.size();
-       etaRange += recoTruthDeta){
-    styleTool->SetHStyle( vHIN[ etaRange], style++ );
-    leg.AddEntry( vHIN[ etaRange ], vHIN[ etaRange ]->GetTitle() );
-    vHIN[ etaRange ]->SetTitle("");
-    vHIN[ etaRange ]->Draw("epsame");
-    SetMinMax( vHIN[ etaRange ], type1, type2 );
-  }
-
-  leg.Draw();
-  
-  double y0 = GetLineHeight( type1 );
-  
-  double xMin = vHIN.front()->GetXaxis()->GetXmin();
-  double xMax = vHIN.front()->GetXaxis()->GetXmax();
-  
-  TLine line( xMin, y0, xMax, y0);
-  line.Draw();
-
-  drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); 
-  SaveAsAll( c, type1, type2 );
-}
-
-void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
-				  const std::string& type1,
-				  const std::string& type2,
-				  bool logY ){
-  TCanvas c("c","c",800,600);
-  if( logY ) { c.SetLogy(); }
-  
-  TLegend leg(0.68, 0.64, 0.99, 0.77);
-  styleTool->SetLegendStyle( &leg );
-  leg.SetFillStyle(0);
-
-  double max = -1;
-  for( auto& h : vHIN ){
-    max = h->GetMaximum() > max ? h->GetMaximum() : max;
-  }
-
-  if( logY ){
-    double power = log10(max);
-    power = std::ceil(power); 
-    max   = pow( 10, power );
-  }
-  
-  int style = 0;  
-  for( auto& h : vHIN ){
-    styleTool->SetHStyle( h, style++ );
-    leg.AddEntry( h, h->GetTitle() );
-    h->SetTitle("");
-    h->Draw("epsame");
-    h->SetMaximum( max );
-    h->SetMinimum( 0.1 );
-  }
-
-  drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel  ); 
-  leg.Draw();
-
-  SaveAsAll( c, type1, type2 ); 
-}
-
-
-void DiJetAnalysisMC::DrawCanvas( std::vector< TGraphAsymmErrors* >& vGIN,
-				  const std::string& type,
-				  const std::string& title,
-				  double xMin, double xMax ){
-  TCanvas c("c","c",800,600);
-  styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax,
-			    title.c_str() );
-   
-  TLegend leg(0.64, 0.20, 0.95, 0.34);
-  styleTool->SetLegendStyle( &leg );
-  leg.SetFillStyle(0);
-  
-  int style = 0;  
-  for( auto& gr : vGIN ){
-    styleTool->SetHStyle( gr, style++ );
-    leg.AddEntry( gr, gr->GetTitle() );
-    gr->SetTitle("");
-    gr->Draw("epsame");
-  }
-
-  drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel  ); 
-  leg.Draw();
-
-  TLine line( xMin, 1, xMax, 1);
-  line.Draw();
-  
-  SaveAsAll( c, type ); 
-}
-
-//===== MinMax and line drawing =====
-
-void DiJetAnalysisMC::
-SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
-  // JES JER
-  if( !type1.compare("recoTruthRpt") ){ 
-    if( !type2.compare("mean") ){ // sigma
-      h1->SetMaximum(1.25);
-      h1->SetMinimum(0.75);
-    } else if( !type2.compare("sigma") ){ // sigma
-      h1->SetMaximum(0.34);
-      h1->SetMinimum(0.);
-    }
-  }
-  // ANGLES
-  else if( !type1.compare("recoTruthDeta") ||
-	   !type1.compare("recoTruthDphi") ) { 
-    if( !type2.compare("mean") ){ // mean
-      h1->SetMaximum(0.075);      
-      h1->SetMinimum(-0.075);
-    } else if( !type2.compare("sigma") ){ // sigma
-      h1->SetMaximum(0.056);
-      h1->SetMinimum(0.);
-    } 
-  } 
-}
-
-double DiJetAnalysisMC::GetLineHeight( const std::string& type ){
-  double y0 = 0;
-  
-  if( !type.compare("recoTruthRpt") ){ // JES/JER
-    y0 = 1;
-    y0 = 1;
-  } else if( !type.compare("rEta") ||
-	     !type.compare("recoTruthDphi") ) { // ANGLES
-    y0 = 0;
-    y0 = 0;
-  }
-
-  return y0;
-}

@@ -127,15 +127,15 @@ namespace CT{
   //===================================
   class DrawTools{
   public:
-    void DrawRightLatex ( double x, double y ,
-			  const char* s, int color = 1,
-			  double scale = StyleTools::lSS );
-    void DrawLeftLatex  ( double x, double y ,
-			  const char* s, int color = 1,
-			  double scale = StyleTools::lSS );
-    void DrawCenterLatex( double x, double y ,
-			  const char* s, int color = 1,
-			  double scale = StyleTools::lSS );
+    void DrawRightLatex ( double x, double y, const char* s,
+			  double scale = StyleTools::lSS,
+			  int color = 1 );
+    void DrawLeftLatex  ( double x, double y, const char* s,
+			  double scale = StyleTools::lSS,
+			  int color = 1 );
+    void DrawCenterLatex( double x, double y, const char* s,
+			  double scale = StyleTools::lSS,
+			  int color = 1 );
     void DrawAtlasInternal( double scale = StyleTools::lSS );
     void DrawAtlasInternalDataRight( double x0, double y0, bool is_pPb,
 				     double scale = StyleTools::lSS );

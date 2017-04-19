@@ -21,12 +21,12 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //       Fill Tree
   //---------------------------
-  void LoadTriggers();
-
   void SetupHistograms();
 
   void ProcessEvents( int, int );  
 
+  void LoadTriggers();
+  
   //---------------------------
   //       Analysis
   //---------------------------
@@ -48,9 +48,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
 			 std::vector< TH2* >&,
 			 const std::string& );
 
-  virtual void PlotDeltaPhi
-    ( std::vector< THnSparse*>&,
-      const std::string& );
+  virtual void PlotDeltaPhi( std::vector< THnSparse*>&,
+			     const std::string& );
 
   void PlotEtaPhiPtMap( std::vector< TH2* >& );
   
