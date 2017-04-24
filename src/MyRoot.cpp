@@ -90,26 +90,68 @@ std::vector<double> CT::AnalysisTools::vectoriseD
 }   
 
 
-void CT::AnalysisTools::FitGaussian( TH1* hProj, TF1* fit ){
+TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
+  auto expoFunction = [&]( double* x, double* par){
+    return par[0]*std::exp(-1*par[1]*(x[0]-constants::PI))+par[2];
+  };
+  
+  TF1* fit = new TF1( Form("f_%s", hProj->GetName()),
+		      expoFunction, 0, constants::PI, 3);
+
+  if( !hProj->GetEntries() )
+    { return fit; }
+    
+  hProj->Fit( fit->GetName(), "NQR", "" , 0, constants::PI);
+
+  return fit;
+}
+
+TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
+
+  TF1* fit  = new TF1( Form("f_%s", hProj->GetName()), "gaus(0)" );
+
+  double hXmin = hProj->GetXaxis()->GetXmin();
+  double hXmax = hProj->GetXaxis()->GetXmax();
+  
   // fit once 
   double mean   = hProj->GetMean();
   double rms    = hProj->GetRMS();
 
-  double fitmin = mean - 2.0 * rms;
-  double fitmax = mean + 2.0 * rms;
-      
-  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
+  double fitMin = mean - 2.0 * rms;
+  double fitMax = mean + 2.0 * rms;
+
+  if( hProj->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
+    { return fit; }
+  
+  hProj->Fit( fit->GetName(), "NQR", "", fitMin, fitMax );
 
   // fit second time with better parameters
   mean   = fit->GetParameter(1);
   rms    = fit->GetParameter(2);
 
-  fitmin = mean - 2.0 * rms;
-  fitmax = mean + 2.0 * rms;
+  fitMin = mean - 2.0 * rms;
+  fitMax = mean + 2.0 * rms;
 
-  fit->SetRange( fitmin, fitmax );
+  if( hProj->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
+    { return fit; }
   
-  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
+  fit->SetRange( fitMin, fitMax );
+  
+  hProj->Fit( fit->GetName(), "NQR", "", fitMin, fitMax );
+
+  return fit;
+}
+
+double CT::AnalysisTools::AdjustEtaForPP( double jetEta, bool is_pPb){
+  if( is_pPb ) return jetEta;
+  return jetEta  > 0 ? -1 * jetEta  : jetEta;
+}
+
+void CT::AnalysisTools::GetBinRange( TAxis* a,
+				 int b1, int b2,
+				 double& x1, double& x2){
+  x1 = a->GetBinLowEdge( b1 );
+  x2 = a->GetBinUpEdge ( b2 );
 }
 
 std::string CT::AnalysisTools::GetName( double v1, double v2,
@@ -131,12 +173,42 @@ std::string CT::AnalysisTools::GetName( double v1, double v2,
   return ss.str();
 }
 
-void CT::AnalysisTools::GetBinRange( TAxis* a,
-				 int b1, int b2,
-				 double& x1, double& x2){
-  x1 = a->GetBinLowEdge( b1 );
-  x2 = a->GetBinUpEdge ( b2 );
+std::string CT::AnalysisTools::GetEtaLabel( double etaMin,
+					    double etaMax,
+					    bool is_pPb){
+  std::stringstream ss;
+  if( is_pPb )
+    { ss << boost::format("%3.1f<#eta<%3.1f") % etaMin % etaMax;}
+  else {
+    if( std::abs(etaMin) > std::abs(etaMax) )
+      { ss << boost::format("%3.1f<|#eta|<%3.1f")
+	  % std::abs(etaMax) % std::abs(etaMin); }
+    else
+      { ss << boost::format("%3.1f<|#eta|<%3.1f")
+	  % std::abs(etaMin) % std::abs(etaMax); }
+  }
+  return ss.str();
 }
+
+std::string CT::AnalysisTools::GetLabel
+( double vMin,double vMax,
+  const std::string& var, const std::string& unit ){
+  
+  std::stringstream ss;
+
+  if( vMin != vMax ){
+    ss << boost::format("%3.1f<%s<%3.1f")
+      % vMin % var % vMax;
+  }
+  else{
+    ss << boost::format("%s>%3.1f")
+      % var % vMin ;  
+  }
+  if( !unit.empty() ){ ss << boost::format(" %s") % unit; }
+  
+  return ss.str();
+}
+
 
 //===================================
 //          STYLE STUFF
@@ -306,7 +378,7 @@ void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, double scale)
 void CT::StyleTools::SetHStyle( TF1* funct, int iflag, double scale)
 {
   funct->SetLineWidth(2);
-
+  
   funct->GetXaxis()->SetTitleFont( 43 );
   funct->GetXaxis()->SetTitleSize( (int)(32 * scale) );  
   funct->GetXaxis()->SetTitleOffset(1.2);
@@ -324,10 +396,10 @@ void CT::StyleTools::SetHStyle( TF1* funct, int iflag, double scale)
   // SetCustomMarkerStyle( funct, iflag );
 }
 
-TH1F* CT::StyleTools::SetCStyleEff
-( TCanvas& c,
-  double x0, double y0, double x1, double y1,
-  const std::string& title ){
+TH1F* CT::StyleTools::SetCStyleEff ( TCanvas& c,
+				     double x0, double y0,
+				     double x1, double y1,
+				     const std::string& title ){
   c.DrawFrame( x0, y0, x1, y1, title.c_str() );
   TH1F* hF = c.DrawFrame( x0, y0, x1, y1, title.c_str() );
   hF->GetXaxis()->SetNdivisions(505);  
@@ -359,36 +431,36 @@ const double CT::StyleTools::hSS = 0.75;
 // ============ GENERAL ================
 
 void CT::DrawTools::DrawRightLatex
-( double x, double y , const char* s, double scale, int color ){
+( double x, double y , const std::string& s, double scale, int color ){
   TLatex tltx; 
   tltx.SetTextFont(43);
   tltx.SetTextSize((int)(32*scale));
   tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
   tltx.SetTextAlign(32);
-  tltx.DrawLatex( x, y, s );
+  tltx.DrawLatex( x, y, s.c_str() );
 }
 
 void CT::DrawTools::DrawLeftLatex
-( double x, double y , const char* s, double scale, int color  ){
+( double x, double y , const std::string& s, double scale, int color  ){
   TLatex tltx; 
   tltx.SetTextFont(43);
   tltx.SetTextSize((int)(32*scale));
   tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
   tltx.SetTextAlign(12);
-  tltx.DrawLatex( x, y, s );
+  tltx.DrawLatex( x, y, s.c_str() );
 }
 
 void CT::DrawTools::DrawCenterLatex
-( double x, double y , const char* s, double scale, int color ){
+( double x, double y , const std::string& s, double scale, int color ){
   TLatex tltx; 
   tltx.SetTextFont(43);
   tltx.SetTextSize((int)(32*scale));
   tltx.SetTextColor(color);
   tltx.SetNDC(kTRUE);
   tltx.SetTextAlign(22);
-  tltx.DrawLatex( x, y, s );
+  tltx.DrawLatex( x, y, s.c_str() );
 }
 
 // ============ DATA ================
@@ -438,8 +510,7 @@ void CT::DrawTools::DrawAtlasInternalMCRight
 ( double x0, double y0, const std::string& mcType, double scale ){ 
   DrawRightLatex(0.88, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
-  DrawRightLatex(0.88 + x0, 0.87,
-		 mcType.c_str(), scale, 1 );
+  DrawRightLatex(0.88 + x0, 0.87, mcType, scale, 1 );
  }
 
 
@@ -448,6 +519,5 @@ void CT::DrawTools::DrawAtlasInternalMCLeft
   DrawRightLatex(0.88, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
 
-  DrawLeftLatex(0.18 + x0, 0.87,
-		mcType.c_str(), scale, 1 );
+  DrawLeftLatex(0.18 + x0, 0.87, mcType, scale, 1 );
 }

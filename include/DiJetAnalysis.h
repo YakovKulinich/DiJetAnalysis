@@ -69,37 +69,23 @@ class DiJetAnalysis{
 			        std::vector<bool>& );
   //---------------------------
   //       Tools
-  //---------------------------
-  void ProjectAndFitGaus( TH3*, TH1*, TH1*,
-			  int, int,
-			  const std::string& = "" ,
-			  const std::string& = "" );
-  
-  void FitGaussian( TH1*, TF1* );
-      
-  double AdjustEtaForPP( double );
-
-  std::string GetLabel( double, double,
-			const std::string& = "",
-			const std::string& = "" );
-  
-  std::string GetEtaLabel( double, double );
+  //---------------------------  
   
   //---------------------------
   //       Plotting 
   //---------------------------
   virtual void LoadHistograms() = 0;
 
-  virtual void PlotDataTogether(){};
+  virtual void PlotDeltaPhi( std::vector< THnSparse*>&,
+			     const std::vector< std::string >&,
+			     const std::string& = "" ,
+			     const std::string& = "" );
+  
+  virtual void PlotDphiTogether(){};
 
   //---------------------------
   //        Drawing
   //---------------------------
-  void DrawCanvas( std::map< std::string, TH1* >&,
-		   TH1*, const std::string& = "",
-		   const std::string& = "",
-		   double = 0, double = 0 );
-  
   void DrawCanvas( std::vector< TH1* >&,
 		   const std::string& = "",
 		   const std::string& = "",
@@ -144,6 +130,7 @@ class DiJetAnalysis{
  protected:
   //============ cuts =============
   int    m_nMinEntriesGausFit;
+  int    m_nMinEntriesExpFit;
   double m_ptFitMin;
 
   double m_dPhiThirdJetFraction;

@@ -48,12 +48,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 			 std::vector< TH2* >&,
 			 const std::string& );
 
-  virtual void PlotDeltaPhi( std::vector< THnSparse*>&,
-			     const std::string& );
-
   void PlotEtaPhiPtMap( std::vector< TH2* >& );
   
-  virtual void PlotDataTogether();
+  virtual void PlotDphiTogether();
 
    
  private:
@@ -74,16 +71,16 @@ class DiJetAnalysisData : public DiJetAnalysis{
  
   //============ data =============
   // -------- maps ---------
-  std::vector< TH2* > m_vTriggerEtaPhiMap;
-  std::vector< TH2* > m_vTriggerEtaPtMap;
+  std::vector< TH2* > m_vHtriggerEtaPhiMap;
+  std::vector< TH2* > m_vHtriggerEtaPtMap;
 
   // -------- spect --------
-  std::vector< TH2* > m_vTriggerEtaSpect;
-  std::vector< TH2* > m_vTriggerEtaSpectSim;
+  std::vector< TH2* > m_vHtriggerEtaSpect;
+  std::vector< TH2* > m_vHtriggerEtaSpectSim;
 
   TH2* m_hAllEtaSpect;
   // -------- dPhi ---------
-  std::vector< THnSparse* > m_vDphi;
+  std::vector< THnSparse* > m_vHtriggerDphi;
 
   THnSparse* m_hAllDphi;
   //========= histos binning ========

@@ -91,11 +91,21 @@ namespace CT{
 
     std::vector<double> vectoriseD(TString str, TString sep);
 
-    void FitGaussian( TH1* hProj, TF1* fit );
+    TF1* FitGaussian( TH1* hProj, double = 0, double = 0 );
 
+    TF1* FitDphi( TH1* hProj, double = 0, double = 0 );
+
+    double AdjustEtaForPP( double, bool );
+    
     void GetBinRange( TAxis*, int, int, double&, double& );
 
     std::string GetName( double, double, const std::string& );
+
+    std::string GetEtaLabel( double, double, bool = false );
+
+    std::string GetLabel( double, double,
+			const std::string& = "",
+			const std::string& = "" );
   };
 
   //===================================
@@ -127,16 +137,17 @@ namespace CT{
   //===================================
   class DrawTools{
   public:
-    void DrawRightLatex ( double x, double y, const char* s,
+    void DrawRightLatex ( double x, double y, const std::string&,
 			  double scale = StyleTools::lSS,
 			  int color = 1 );
-    void DrawLeftLatex  ( double x, double y, const char* s,
+    void DrawLeftLatex  ( double x, double y, const std::string&,
 			  double scale = StyleTools::lSS,
 			  int color = 1 );
-    void DrawCenterLatex( double x, double y, const char* s,
+    void DrawCenterLatex( double x, double y, const std::string&,
 			  double scale = StyleTools::lSS,
 			  int color = 1 );
     void DrawAtlasInternal( double scale = StyleTools::lSS );
+
     void DrawAtlasInternalDataRight( double x0, double y0, bool is_pPb,
 				     double scale = StyleTools::lSS );
     void DrawAtlasInternalDataLeft ( double x0, double y0, bool is_pPb,

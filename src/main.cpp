@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
   } else if( mode == 2 ){
     rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
-    analysis->PlotDataTogether();
+    analysis->PlotDphiTogether();
     rootapp->Run();
   }
   

@@ -45,7 +45,7 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   m_ptSpectMax   = 110;
 
   // ---- JES/PRes/Etc ----- 
-  m_nEtaForwardBinsFine   = 12;
+  m_nEtaForwardBinsFine   = 11;
   m_etaForwardMin   = -constants::FETAMAX;
   m_etaForwardMax   = -constants::FETAMIN;
 
@@ -78,6 +78,8 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   
   //==================== Cuts ====================
   m_nMinEntriesGausFit = 20;
+  m_nMinEntriesExpFit  = 20;
+
   m_ptFitMin           = 20.;
   
   m_dPhiThirdJetFraction = 0.4;
@@ -268,203 +270,115 @@ void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets,
 //       Tools
 //---------------------------
 
-void DiJetAnalysis::
-ProjectAndFitGaus( TH3* h3,
-		   TH1* h1Mean, TH1* h1Sigma,
-		   int etaBinLow, int etaBinUp,
-		   const std::string& jzn,
-		   const std::string& mcLabel){
-  
-  TCanvas c_proj("c_proj","c_proj",800,600);
-
-  double etaMin = h3->GetXaxis()->GetBinLowEdge( etaBinLow );
-  double etaMax = h3->GetXaxis()->GetBinUpEdge( etaBinUp );
-
-  int  nPtBins  = h3->GetNbinsY();
-
-  std::vector< TH1* > v_hProj;
-  std::vector< TF1* > v_fit;
-  
-  // loop over ptBins
-  for( int ptBin = 1; ptBin <= nPtBins; ptBin++ ){
-    double ptMin = h3->GetYaxis()->GetBinLowEdge(ptBin);
-    double ptMax = h3->GetYaxis()->GetBinUpEdge(ptBin);
-      
-    TH1* hProj = h3->
-      ProjectionZ( Form("%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
-			h3->GetName(),
-			10*std::abs(etaMin),
-			10*std::abs(etaMax),
-			ptMin, ptMax ),
-		   etaBinLow, etaBinUp, ptBin, ptBin );
-    styleTool->SetHStyle( hProj, 0 );
-    v_hProj.push_back( hProj );
-    hProj->SetTitle("");
-    
-    TF1* fit  = new TF1( Form("f_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
-			      h3->GetName(),
-			      10*std::abs(etaMin),
-			      10*std::abs(etaMax),
-			      ptMin, ptMax ),
-			 "gaus(0)" );
-    styleTool->SetHStyle( fit, 0 );
-    v_fit.push_back( fit );
-
-    if( hProj->GetEntries() < m_nMinEntriesGausFit ){ continue; }
-    
-    FitGaussian( hProj, fit );
-        
-    h1Mean->SetBinContent( ptBin, fit->GetParameter(1) );
-    h1Mean->SetBinError  ( ptBin, fit->GetParError (1) );
-
-    h1Sigma->SetBinContent ( ptBin, fit->GetParameter(2) );
-    h1Sigma->SetBinError   ( ptBin, fit->GetParError (2) );
-    
-    hProj->Draw();
-    fit->Draw("same");
-
-    if( !m_isData ){
-      drawTool->DrawAtlasInternalMCRight( 0, 0, mcLabel );
-      drawTool->DrawLeftLatex( 0.18, 0.74, jzn.c_str() );
-    } else if( m_isData ){
-      drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); 
-    }
-    
-    drawTool->DrawLeftLatex
-      ( 0.18, 0.88, GetEtaLabel( etaMin, etaMax ).c_str() );
-    drawTool->DrawLeftLatex
-      ( 0.18, 0.81, Form("%3.0f<%s<%3.1f",
-			 ptMin, h1Mean->GetXaxis()->GetTitle(), ptMax ) );
-    
-    c_proj.Write( Form("c_%s_%s_%2.0f_Eta_%2.0f_%2.0f_Pt_%2.0f",
-		       h3->GetName(),
-		       m_labelOut.c_str(),
-		       std::abs(etaMin)*10,
-		       std::abs(etaMax)*10,
-		       ptMin, ptMax ) );
-    
-    SaveAsROOT( c_proj,
-	        h3->GetName(), "",
-		"Eta", std::abs(etaMin)*10, std::abs(etaMax)*10,
-		"Pt" , ptMin, ptMax );    
-  } // end loop over ptBins
-
-  for( auto& h : v_hProj ){ delete h; }
-  for( auto& f : v_fit   ){ delete f; }
-}
-
-void DiJetAnalysis::FitGaussian( TH1* hProj, TF1* fit ){
-  // fit once 
-  double mean   = hProj->GetMean();
-  double rms    = hProj->GetRMS();
-
-  double fitmin = mean - 2.0 * rms;
-  double fitmax = mean + 2.0 * rms;
-      
-  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
-
-  // fit second time with better parameters
-  mean   = fit->GetParameter(1);
-  rms    = fit->GetParameter(2);
-
-  fitmin = mean - 2.0 * rms;
-  fitmax = mean + 2.0 * rms;
-
-  fit->SetRange( fitmin, fitmax );
-  
-  hProj->Fit( fit->GetName(), "NQR", "", fitmin, fitmax );
-}
-
-double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
-  if( m_is_pPb ) return jetEta;
-  return jetEta  > 0 ? -1 * jetEta  : jetEta;
-}
-
-std::string DiJetAnalysis::GetLabel
-( double vMin,double vMax,
-  const std::string& var, const std::string& unit ){
-  
-  std::stringstream ss;
-
-  if( vMin != vMax ){
-    ss << boost::format("%3.1f<%s<%3.1f")
-      % vMin % var % vMax;
-  }
-  else{
-    ss << boost::format("%s>%3.1f")
-      % var % vMin ;  
-  }
-  if( !unit.empty() ){ ss << boost::format(" %s") % unit; }
-  
-  return ss.str();
-}
-
-std::string DiJetAnalysis::GetEtaLabel( double etaMin,
-					double etaMax ){
-
-  std::stringstream ss;
-  
-  if( m_is_pPb ){
-    ss << boost::format("%3.1f<#eta<%3.1f") % etaMin % etaMax;
-  } else {
-    if( std::abs(etaMin) > std::abs(etaMax) )
-      ss << boost::format("%3.1f<|#eta|<%3.1f")
-	% std::abs(etaMax) % std::abs(etaMin);
-    else
-      ss << boost::format("%3.1f<|#eta|<%3.1f")
-	% std::abs(etaMin) % std::abs(etaMax);
-  }
-  
-  return ss.str();
-}
-
 //---------------------------
 //       Plotting
 //---------------------------
+void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
+				  const std::vector< std::string >& vLabel,
+				  const std::string& type1,
+				  const std::string& type2 ){
+  std::vector< TH1* > vDphi;
+  std::vector< TF1* > vFits;
+
+  std::string mcType = !type1.empty() ? "_" + type1 : "" ;
+  
+  for( uint iG = 0; iG < vLabel.size(); iG++ ){
+    THnSparse* hn = vhn[iG];
+    std::string label = vLabel[iG];
+    
+    TAxis* eta1Axis = hn->GetAxis(0); TAxis* pt1Axis = hn->GetAxis(2);
+    TAxis* eta2Axis = hn->GetAxis(1); TAxis* pt2Axis = hn->GetAxis(3); 
+
+    int nEta1Bins = eta1Axis->GetNbins();
+    int nEta2Bins = eta2Axis->GetNbins();
+    int nPt1Bins  =  pt1Axis->GetNbins();
+    int nPt2Bins  =  pt2Axis->GetNbins();
+    
+    for( int eta1Bin = 1; eta1Bin <= nEta1Bins; eta1Bin++ ){
+      eta1Axis->SetRange( eta1Bin, eta1Bin );
+      for( int eta2Bin = 1; eta2Bin <= nEta2Bins; eta2Bin++ ){
+	eta2Axis->SetRange( eta2Bin, eta2Bin );
+	
+	for( int pt1Bin = 1; pt1Bin <= nPt1Bins; pt1Bin++ ){
+	  pt1Axis->SetRange( pt1Bin, pt1Bin );
+	  for( int pt2Bin = 1; pt2Bin <= nPt2Bins; pt2Bin++ ){
+	    pt2Axis->SetRange( pt2Bin, nPt2Bins );
+
+	    if( !anaTool->IsForward( eta1Axis->GetBinCenter( eta1Bin ) ) &&
+		!anaTool->IsForward( eta2Axis->GetBinCenter( eta2Bin ) ) )
+	      { continue; }
+	    if( eta1Axis->GetBinLowEdge( pt1Bin ) < 
+		eta2Axis->GetBinLowEdge( pt2Bin ) )
+	      { continue; }
+	    
+	    // Take projection onto the dPhi axis
+	    TH1* hDphi = hn->Projection( 4 );
+	    styleTool->SetHStyle( hDphi, 0 );
+	    vDphi.push_back( hDphi );
+
+	    double eta1Low, eta1Up, eta2Low, eta2Up;
+	    double pt1Low , pt1Up , pt2Low , pt2Up;
+
+	    anaTool->GetBinRange
+	      ( eta1Axis, eta1Bin, eta1Bin, eta1Low, eta1Up );
+	    anaTool->GetBinRange
+	      ( eta2Axis, eta2Bin, eta2Bin, eta2Low, eta2Up );
+	    anaTool->GetBinRange
+	      ( pt1Axis, pt1Bin, pt1Bin, pt1Low, pt1Up );
+	    anaTool->GetBinRange
+	      ( pt2Axis, pt2Bin, pt2Bin, pt2Low, pt2Up );
+
+	    hDphi->SetName
+	      ( Form( "h_dPhi%s_%s_%s_%s_%s_%s",
+		      mcType.c_str(),
+		      anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
+		      anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+		      anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
+		      anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str(),
+		      label.c_str() ) );
+
+	    TCanvas c( "c", hDphi->GetName(), 800, 600 );
+
+	    hDphi->Draw();
+	    if( hDphi->GetEntries() )
+	      { hDphi->Scale( 1./hDphi->Integral() ); }
+	    hDphi->GetYaxis()->SetTitle("Normalized Count");
+	    hDphi->SetTitle("");
+	    
+	    drawTool->DrawLeftLatex
+	      ( 0.13, 0.87,anaTool->GetLabel( eta1Low, eta1Up, "#eta_{1}" ) );
+	    drawTool->DrawLeftLatex
+	      ( 0.13, 0.82,anaTool->GetLabel( eta2Low, eta2Up, "#eta_{2}" ) );
+	    drawTool->DrawLeftLatex
+	      ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ) );
+	    drawTool->DrawLeftLatex
+	      ( 0.13, 0.69,anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ) );
+	    drawTool->DrawLeftLatex( 0.13, 0.62, label );
+
+	    if( m_isData ){
+	      drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
+	    } else {
+	      drawTool->DrawRightLatex( 0.88, 0.82, type1 );
+	      drawTool->DrawAtlasInternalMCRight( 0, 0, type2 );
+	    }
+	    
+	    TF1* fit = anaTool->FitDphi( hDphi );
+	    styleTool->SetHStyle( fit, 0 );
+	    vFits.push_back( fit );
+	    
+	    fit->Draw("same");
+
+	    SaveAsROOT( c, hDphi->GetName() );
+	  }
+      	}
+      }      
+    }
+  } // end loop over iG
+}
 
 //---------------------------
 //        Drawing
 //---------------------------
-void DiJetAnalysis::DrawCanvas( std::map< std::string, TH1* >& mJznHIN,
-				  TH1* hFinal,
-				  const std::string& type1,
-				  const std::string& type2,
-				  double etaMin, double etaMax ){
-  TCanvas c("c","c",800,600);
-  
-  TLegend leg(0.13, 0.14, 0.44, 0.27);
-  styleTool->SetLegendStyle( &leg );
-  leg.SetFillStyle(0);
-
-  for( auto& jznHIN : mJznHIN ){
-    jznHIN.second->SetTitle("");
-    jznHIN.second->Draw("epsame");
-    SetMinMax( jznHIN.second, type1, type2 );
-    leg.AddEntry( jznHIN.second, jznHIN.first.c_str() );
-  }
-  hFinal->Draw("same");
-  leg.AddEntry( hFinal, "Total" );
-  
-  leg.Draw();
-  
-  drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); 
-  drawTool->DrawLeftLatex
-    ( 0.45, 0.874,GetEtaLabel( etaMin, etaMax ).c_str() );
-  
-  double y0 = GetLineHeight( type1 );
-  
-  double xMin = mJznHIN.begin()->second->GetXaxis()->GetXmin();
-  double xMax = mJznHIN.begin()->second->GetXaxis()->GetXmax();
-
-  TLine line( xMin, y0, xMax, y0);
-  // dont draw line for sigma plots
-  if( type2.compare("sigma") ) { line.Draw(); }
- 
-  SaveAsAll( c, type1, type2, "Eta",
-	     std::abs(etaMin)*10, std::abs(etaMax)*10 );
-}
-
-
 void DiJetAnalysis::DrawCanvas( std::vector< TH1* >& vHIN,
 				const std::string& type1,
 				const std::string& type2,
@@ -480,15 +394,15 @@ void DiJetAnalysis::DrawCanvas( std::vector< TH1* >& vHIN,
   // for situations where dont want to
   // plot every single bin 
   // plot every n on canvas
-  int recoTruthDeta = vHIN.size()/spacing; // plot every n
-  for( unsigned int etaRange = 0;
-       etaRange < vHIN.size();
-       etaRange += recoTruthDeta){
-    styleTool->SetHStyle( vHIN[ etaRange], style++ );
-    leg.AddEntry( vHIN[ etaRange ], vHIN[ etaRange ]->GetTitle() );
-    vHIN[ etaRange ]->SetTitle("");
-    vHIN[ etaRange ]->Draw("epsame");
-    SetMinMax( vHIN[ etaRange ], type1, type2 );
+  int dX = vHIN.size()/spacing; // plot every n
+  for( unsigned int xRange = 0;
+       xRange < vHIN.size();
+       xRange += dX){
+    styleTool->SetHStyle( vHIN[ xRange], style++ );
+    leg.AddEntry( vHIN[ xRange ], vHIN[ xRange ]->GetTitle() );
+    vHIN[ xRange ]->SetTitle("");
+    vHIN[ xRange ]->Draw("epsame");
+    SetMinMax( vHIN[ xRange ], type1, type2 );
   }
 
   leg.Draw();
@@ -557,8 +471,7 @@ void DiJetAnalysis::DrawCanvas( std::vector< TGraphAsymmErrors* >& vGIN,
 				const std::string& title,
 				double xMin, double xMax ){
   TCanvas c("c","c",800,600);
-  styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax,
-			   title.c_str() );
+  styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax, title );
    
   TLegend leg(0.64, 0.20, 0.95, 0.34);
   styleTool->SetLegendStyle( &leg );

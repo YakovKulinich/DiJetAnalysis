@@ -20,8 +20,8 @@ DiJetAnalysisData::DiJetAnalysisData() : DiJetAnalysisData( true, true )
 {}
 
 DiJetAnalysisData::DiJetAnalysisData
-( bool isData, bool is_pPb  )
-  : DiJetAnalysis( isData, is_pPb  )
+( bool isData, bool is_pPb )
+  : DiJetAnalysis( isData, is_pPb )
 {
   //========== Set Histogram Binning =============
 
@@ -59,14 +59,14 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   std::string cfNameOut = m_dirOut + "/c_myOut_" + m_labelOut + ".root";
   m_fOut = new TFile( cfNameOut.c_str(),"RECREATE");
 
-  PlotEtaPhiPtMap( m_vTriggerEtaPhiMap );
-  PlotEtaPhiPtMap( m_vTriggerEtaPtMap  );
+  PlotEtaPhiPtMap( m_vHtriggerEtaPhiMap );
+  PlotEtaPhiPtMap( m_vHtriggerEtaPtMap  );
 
-  PlotSpectra( m_vTriggerEtaSpect, "spect" );
+  PlotSpectra( m_vHtriggerEtaSpect, "spect" );
 
-  PlotEfficiencies( m_vTriggerEtaSpectSim, m_vTriggerEtaSpect, "eff" );
+  PlotEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpect, "eff" );
   
-  PlotDeltaPhi( m_vDphi, "dPhi" );
+  PlotDeltaPhi( m_vHtriggerDphi, m_vTriggers );
   
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -93,23 +93,22 @@ void DiJetAnalysisData::LoadTriggers(){
   std::vector< std::string> vRefTriggers =
     anaTool->vectorise
     ( config.GetValue( Form("refTriggers.%s",triggerMenu.c_str()), "" ), " ");
-  m_vRefTriggerIndex.reserve( vRefTriggers.size() );
     
   // Get Index for reference trigger
   for( uint iR = 0 ; iR < vRefTriggers.size(); iR++ ){
-      for( uint iT = 0 ; iT < vRefTriggers.size(); iT++ ){
-	if( !m_vTriggers[iT].compare( vRefTriggers[iR] ) )
-	  { m_vRefTriggerIndex.push_back(iT); }
+      for( uint iG = 0 ; iG < vRefTriggers.size(); iG++ ){
+	if( !m_vTriggers[iG].compare( vRefTriggers[iR] ) )
+	  { m_vRefTriggerIndex.push_back(iG); }
       }
   }
-  
-  for( uint iT = 0 ; iT < m_vRefTriggerIndex.size(); iT++ ){
-    int refTrigIndex = m_vRefTriggerIndex[iT];
-    std::cout << " For: "         << m_vTriggers[iT]
+
+  for( uint iG = 0 ; iG < m_vRefTriggerIndex.size(); iG++ ){
+    int refTrigIndex = m_vRefTriggerIndex[iG];
+    std::cout << " For: "         << m_vTriggers[iG]
 	      << " Ref Trig is: " << m_vTriggers[refTrigIndex]
 	      << std::endl;      
   }
-  
+
   m_vTholdPtTriggers =
     anaTool->vectoriseD
     ( config.GetValue( Form("tholdTriggers.%s",triggerMenu.c_str()), "" ), " ");
@@ -121,10 +120,10 @@ void DiJetAnalysisData::LoadTriggers(){
   m_nTriggers = m_vTriggers.size();
 
   // See if we can find the min bias trigger
-  for( uint iT = 0; iT < m_nTriggers; iT++ ){
-    std::string trigger = m_vTriggers[iT];
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
+    std::string trigger = m_vTriggers[iG];
     if( trigger.find("_mb_") != std::string::npos ){ 
-      m_mbTriggerI    = iT;
+      m_mbTriggerI    = iG;
       m_mbTriggerName = trigger;
       std::cout << "Found " << trigger << " at " << m_mbTriggerI << std::endl;
       break;
@@ -144,43 +143,43 @@ void DiJetAnalysisData::SetupHistograms(){
     std::cout << "Making - " << trigger << " histograms " << std::endl;          
     
     // -------- maps ---------
-    m_vTriggerEtaPhiMap.push_back
+    m_vHtriggerEtaPhiMap.push_back
       ( new TH2D( Form("h_etaPhiMap_%s", trigger.c_str() ), 
 		   ";#eta;#phi",
 		   m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
 		   m_nPhiMapBins, m_phiMapMin, m_phiMapMax ) ) ;
-    AddHistogram( m_vTriggerEtaPhiMap.back() );
+    AddHistogram( m_vHtriggerEtaPhiMap.back() );
      
-    m_vTriggerEtaPtMap.push_back
+    m_vHtriggerEtaPtMap.push_back
       ( new TH2D( Form("h_etaPtMap_%s", trigger.c_str() ), 
 		   ";#eta;#it{p}_{T}",
 		   m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
 		   m_nPtMapBins , m_ptMapMin , m_ptMapMax) ) ;
-    AddHistogram( m_vTriggerEtaPtMap.back() );
+    AddHistogram( m_vHtriggerEtaPtMap.back() );
 
     // -------- spect --------
-    m_vTriggerEtaSpect.push_back
+    m_vHtriggerEtaSpect.push_back
       ( new TH2D( Form("h_etaSpect_%s", trigger.c_str() ), 
 		  ";#eta;#it{p}_{T} [GeV];",
 		  m_nVarFwdEtaBins, 0, 1,
 		  m_nPtSpectBins,
 		  m_ptSpectMin, m_ptSpectMax ) ) ;
-    m_vTriggerEtaSpect.back()->GetXaxis()->
+    m_vHtriggerEtaSpect.back()->GetXaxis()->
       Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
-    AddHistogram( m_vTriggerEtaSpect.back() );
+    AddHistogram( m_vHtriggerEtaSpect.back() );
 
     if( !trigger.compare( m_allName ) )
-      { m_hAllEtaSpect = m_vTriggerEtaSpect.back(); }
+      { m_hAllEtaSpect = m_vHtriggerEtaSpect.back(); }
     
-    m_vTriggerEtaSpectSim.push_back
+    m_vHtriggerEtaSpectSim.push_back
       ( new TH2D ( Form("h_etaSpectSim_%s", trigger.c_str() ), 
 		   ";#eta;#it{p}_{T} [GeV]",
 		   m_nVarFwdEtaBins, 0, 1,
 		   m_nPtSpectBins,
 		   m_ptSpectMin, m_ptSpectMax ) ) ;
-    m_vTriggerEtaSpectSim.back()->GetXaxis()->
+    m_vHtriggerEtaSpectSim.back()->GetXaxis()->
       Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
-    AddHistogram( m_vTriggerEtaSpectSim.back() );
+    AddHistogram( m_vHtriggerEtaSpectSim.back() );
 
     // -------- dPhi --------
     std::vector< int    > nDphiBins;
@@ -212,7 +211,7 @@ void DiJetAnalysisData::SetupHistograms(){
     hn->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
     hn->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
 
-    m_vDphi.push_back( hn );
+    m_vHtriggerDphi.push_back( hn );
     AddHistogram( hn );
 
     if( !trigger.compare( m_allName ) )
@@ -254,11 +253,11 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   vTriggerFired.resize   ( m_nTriggers );
   vTriggerPrescale.resize( m_nTriggers );
 
-  for( uint iT = 0; iT < m_nTriggers; iT++ ){
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
     m_tree->SetBranchAddress
-      ( Form("passed_%s", m_vTriggers[iT].c_str() ), &mTriggerFired[iT] );
+      ( Form("passed_%s", m_vTriggers[iG].c_str() ), &mTriggerFired[iG] );
     m_tree->SetBranchAddress
-      ( Form("prescale_%s", m_vTriggers[iT].c_str() ),&vTriggerPrescale[iT] );
+      ( Form("prescale_%s", m_vTriggers[iG].c_str() ),&vTriggerPrescale[iG] );
   }
 
   m_tree->SetBranchAddress( "runNumber", &runNumber );  
@@ -302,20 +301,19 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 
     // SPECTRA AND ETA PHI PT MAPS
     // loop over passed triggers
-    for( uint iT = 0; iT < m_nTriggers; iT++ ){
+    for( uint iG = 0; iG < m_nTriggers; iG++ ){
 
       // check if we have that trigger
       // if we dont - continue
-      if( !mTriggerFired[iT] ) {
-	mTrigFailed[iT]++;
+      if( !mTriggerFired[iG] ) {
+	mTrigFailed[iG]++;
 	continue;	
       }
 
-      TLorentzVector jet1, jet2;
-
       // dPhi for trigger without matching
-      AnalyzeDeltaPhi( m_vDphi[iT], vR_jets );
+      AnalyzeDeltaPhi( m_vHtriggerDphi[iG], vR_jets );
 
+      TLorentzVector jet1, jet2;
       // dPhi for all triggers, matched
       if( GetDiJets( vR_jets, jet1, jet2 ) ){
 	double jet1_eta = jet1.Eta();
@@ -324,12 +322,12 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	double jet2_pt  = jet2.Pt()/1000.;
 
 	if( ( anaTool->IsForward( jet1_eta ) &&
-	      IsInTriggerRange( jet1_pt , iT ) ) ||
+	      IsInTriggerRange( jet1_pt , iG ) ) ||
 	    ( anaTool->IsForward( jet2_eta ) &&
-	      IsInTriggerRange( jet2_pt , iT ) ) )
+	      IsInTriggerRange( jet2_pt , iG ) ) )
 	  { AnalyzeDeltaPhi( m_hAllDphi,
 			     vR_jets,
-			     vTriggerPrescale[iT]); }
+			     vTriggerPrescale[iG]); }
       }
       
       // loop over jets 
@@ -342,47 +340,47 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	double jetPhi = jet.Phi();
 	double jetPt = jet.Pt()/1000.;
 	
-	m_vTriggerEtaPhiMap[iT]->Fill( jetEta, jetPhi );
-	m_vTriggerEtaPtMap [iT]->Fill( jetEta, jetPt ); 
+	m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
+	m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt ); 
 
 	// convert positive eta to negative because
 	// in pp it doesnt matter.
 	// our histos run in negative eta
 	// (due to pPb configuration)
 	// the labels will be taken care of so it is ok
-	double jetEtaAdj = AdjustEtaForPP( jetEta );
+	double jetEtaAdj = anaTool->AdjustEtaForPP( jetEta, m_is_pPb );
 	
-	if( jetPt >= m_vTholdPtTriggers[iT] )
-	  { mTrigJetsTotal[iT] ++; }
+	if( jetPt >= m_vTholdPtTriggers[iG] )
+	  { mTrigJetsTotal[iG] ++; }
 	
 	// saves computation time
 	// can theoreticall leave out
 	// will go to overflow bins in histos
 	if( !anaTool->IsForward( jetEtaAdj) ){ continue; }
-	m_vTriggerEtaSpect[iT]->Fill( jetEtaAdj, jetPt );
+	m_vHtriggerEtaSpect[iG]->Fill( jetEtaAdj, jetPt );
 
 	// check if the jet is in appropriate range
 	// for the trigger fired
-	if( !IsInTriggerRange( jetPt, iT ) ){ continue; };
+	if( !IsInTriggerRange( jetPt, iG ) ){ continue; };
 	
-	m_hAllEtaSpect->Fill( jetEtaAdj, jetPt, vTriggerPrescale[iT] );
-	mTrigJetsForward[iT]++;
+	m_hAllEtaSpect->Fill( jetEtaAdj, jetPt, vTriggerPrescale[iG] );
+	mTrigJetsForward[iG]++;
       } // end loop over jets
-      mTrigPassed[iT]++;
-    } // end loop over iT
+      mTrigPassed[iG]++;
+    } // end loop over iG
     // EFFICIENCIES
     AnalyzeEff( vTrig_jets, vR_jets, mTriggerFired );    
   } // end event loop
   std::cout << "DONE! Has: " << nEventsTotal << " events." << std::endl;
 
-  for( unsigned iT = 0; iT < m_vTriggers.size(); iT++ ){
-    std::cout <<  m_vTriggers[iT]
-	      << "  has: " << mTrigJetsForward[iT]
-	      << "  FWD jets, " << mTrigJetsTotal[iT]
-	      << "  TOTAL jets, with " << mTrigPassed[iT]
-	      << "  evPassed and "<< mTrigFailed[iT]
+  for( unsigned iG = 0; iG < m_vTriggers.size(); iG++ ){
+    std::cout <<  m_vTriggers[iG]
+	      << "  has: " << mTrigJetsForward[iG]
+	      << "  FWD jets, " << mTrigJetsTotal[iG]
+	      << "  TOTAL jets, with " << mTrigPassed[iG]
+	      << "  evPassed and "<< mTrigFailed[iG]
 	      << "  failed. Total = "
-	      << mTrigPassed[iT] + mTrigFailed[iT]
+	      << mTrigPassed[iG] + mTrigFailed[iG]
 	      << std::endl;
   }
 
@@ -392,17 +390,17 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 //---------------------------
 //       Analysis
 //---------------------------
-bool DiJetAnalysisData::IsInTriggerRange( double jetPt, uint iT ){
+bool DiJetAnalysisData::IsInTriggerRange( double jetPt, uint iG ){
   // MB eff is set at zero
   // will always pass that trigger
   // for all others, have to be above
   // some efficiency (which we find from graphs)
-  if( jetPt < m_vEffPtTriggers[iT] ){ return false; }
+  if( jetPt < m_vEffPtTriggers[iG] ){ return false; }
   // check that it is in some range.
-  // if it is the last trigger (iT == m_nTriggers)
+  // if it is the last trigger (iG == m_nTriggers)
   // just require it to be greater (by this point already meet that
   // condition from first if)
-  if( iT < (m_nTriggers - 1) && jetPt > m_vEffPtTriggers[ iT + 1 ] )
+  if( iG < (m_nTriggers - 1) && jetPt > m_vEffPtTriggers[ iG + 1 ] )
     { return false; }
   // otherwise, ok, return true
   return true;
@@ -422,7 +420,8 @@ void DiJetAnalysisData::AnalyzeEff( std::vector< TLorentzVector >& vTrig_jets,
   // For reco jets we use 3.3.
   TLorentzVector* tJet = NULL;
   for( auto& jet : vTrig_jets ){
-    if( AdjustEtaForPP( jet.Eta() ) > -constants::TETAMIN )
+    if( anaTool->AdjustEtaForPP
+	( jet.Eta(), m_is_pPb) > -constants::TETAMIN )
       { continue; }
     tJet = &jet;
     break; // found highest forward trigger jet
@@ -432,9 +431,9 @@ void DiJetAnalysisData::AnalyzeEff( std::vector< TLorentzVector >& vTrig_jets,
   if( !tJet ) return;
 
   // now fill histos for triggers that could have passed
-  for( uint iT = 0; iT < m_nTriggers; iT++ ){
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
     // check if this triggers reference trigger fired
-    int refTrigIndex = m_vRefTriggerIndex[iT];
+    int refTrigIndex = m_vRefTriggerIndex[iG];
     if( !mTriggerFired[refTrigIndex] ){ continue; }
     
     double tJetPt = tJet->Pt()/1000;
@@ -442,22 +441,22 @@ void DiJetAnalysisData::AnalyzeEff( std::vector< TLorentzVector >& vTrig_jets,
     // now check if we should fill for that trigger
     // only if trigger jet is above threshold
     // for that trigger
-    if( tJetPt < m_vTholdPtTriggers[iT] ){ continue; } 
+    if( tJetPt < m_vTholdPtTriggers[iG] ){ continue; } 
 
     // fill jets for that trigger
     for( auto& jet : vR_jets ){
       // avoid cleaned jets
       if( jet.Pt() == 0 ) continue;
 
-      double jetEtaAdj = AdjustEtaForPP( jet.Eta() );
+      double jetEtaAdj = anaTool->AdjustEtaForPP( jet.Eta(), m_is_pPb );
 
       // eta cut. want forward trigger jet
       if( !anaTool->IsForward( jetEtaAdj ) ){ continue; }
       
-      m_vTriggerEtaSpectSim[iT]->
+      m_vHtriggerEtaSpectSim[iG]->
 	Fill( jetEtaAdj, jet.Pt()/1000. );
     } // end loop over jets
-  } // end loop over iT
+  } // end loop over iG
 }
 
 //---------------------------------
@@ -469,38 +468,38 @@ void DiJetAnalysisData::LoadHistograms(){
 
   for( auto& trigger : m_vTriggers ){
     // -------- maps ---------
-    m_vTriggerEtaPhiMap.push_back
+    m_vHtriggerEtaPhiMap.push_back
       ( static_cast< TH2D* >
 	( m_fIn-> Get( Form("h_etaPhiMap_%s",
 			    trigger.c_str() ))));
-    m_vTriggerEtaPhiMap.back()->SetDirectory(0);
+    m_vHtriggerEtaPhiMap.back()->SetDirectory(0);
     
-    m_vTriggerEtaPtMap.push_back
+    m_vHtriggerEtaPtMap.push_back
       ( static_cast< TH2D* >
 	( m_fIn->Get( Form("h_etaPtMap_%s", trigger.c_str() ))));
-    m_vTriggerEtaPtMap.back()->SetDirectory(0);
+    m_vHtriggerEtaPtMap.back()->SetDirectory(0);
     
     // -------- spect --------
-    m_vTriggerEtaSpect.push_back
+    m_vHtriggerEtaSpect.push_back
       ( static_cast< TH2D *>
 	( m_fIn->Get( Form("h_etaSpect_%s", trigger.c_str() ))));
-    m_vTriggerEtaSpect.back()->SetDirectory(0);
+    m_vHtriggerEtaSpect.back()->SetDirectory(0);
     
     if( !trigger.compare( m_allName ) )
-      { m_hAllEtaSpect = m_vTriggerEtaSpect.back(); }
+      { m_hAllEtaSpect = m_vHtriggerEtaSpect.back(); }
     
-    m_vTriggerEtaSpectSim.push_back
+    m_vHtriggerEtaSpectSim.push_back
       ( static_cast< TH2D *>
 	( m_fIn->Get( Form("h_etaSpectSim_%s", trigger.c_str() ))));
-    m_vTriggerEtaSpectSim.back()->SetDirectory(0);
+    m_vHtriggerEtaSpectSim.back()->SetDirectory(0);
 
     // -------- dPhi- --------
-    m_vDphi.push_back
+    m_vHtriggerDphi.push_back
       ( static_cast< THnSparse *>
 	( m_fIn->Get( Form("hn_dPhi_%s", trigger.c_str() ))));
 
     if( !trigger.compare(m_allName ) )
-      { m_hAllDphi = m_vDphi.back(); }
+      { m_hAllDphi = m_vHtriggerDphi.back(); }
   }
   
   m_fIn->Close();
@@ -525,8 +524,8 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
   vSpect.resize( m_nTriggers + 1 );
   
   double max = -1;
-  for( uint iT = 0; iT < m_nTriggers + 1; iT++){
-    std::string trigger = m_vTriggers[iT];
+  for( uint iG = 0; iG < m_nTriggers + 1; iG++){
+    std::string trigger = m_vTriggers[iG];
 
     for( int xBin = 1; xBin <= nXbins; xBin++ ){
       double etaMin = m_hAllEtaSpect->GetXaxis()->GetBinLowEdge( xBin );
@@ -535,21 +534,22 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
       std::string etaName = anaTool->GetName(etaMin,etaMax,"Eta");
       
       TH1* h_etaSpect =
-	vTrigSpect[iT]->
+	vTrigSpect[iG]->
 	ProjectionY( Form("h_%s_%s_%s",
 			  type.c_str(),
-			  trigger.c_str(),
-			  etaName.c_str() ),
+			  etaName.c_str(),
+			  trigger.c_str() ),
 		     xBin, xBin );
-      h_etaSpect->SetTitle( GetEtaLabel( etaMin, etaMax ).c_str() );
+      h_etaSpect->SetTitle
+	( anaTool->GetEtaLabel( etaMin, etaMax, m_is_pPb ).c_str() );
       h_etaSpect->GetYaxis()->SetTitle( yAxisTitle.c_str() );
       h_etaSpect->Scale( 1./ptSpectWidth );
-      vSpect[iT].push_back( h_etaSpect );
+      vSpect[iG].push_back( h_etaSpect );
       
       if( max < h_etaSpect->GetMaximum() )
 	{ max = h_etaSpect->GetMaximum(); }
     } // end loop over xBin
-  } // end loop over iT
+  } // end loop over iG
 
   // set maxima globally for all spectra hists.
   // easier to compare. Set on log scale.
@@ -560,9 +560,9 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
   //------------------------------------------------
   //------- Draw Eta as Fucntion of Triggers -------
   //------------------------------------------------
-  for( uint iT = 0; iT < m_nTriggers + 1; iT++ ){
-    std::string cName  = m_vTriggers[iT];
-    std::string cLabel = m_vTriggers[iT];
+  for( uint iG = 0; iG < m_nTriggers + 1; iG++ ){
+    std::string cName  = m_vTriggers[iG];
+    std::string cLabel = m_vTriggers[iG];
 
     TCanvas c( "c", cLabel.c_str(), 800, 600 );
     c.SetLogy();
@@ -571,37 +571,35 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
     styleTool->SetLegendStyle( &leg  );
 
     int style = 0;
-    for( int iE = 0; iE < nXbins; iE++ ){
-      TH1* h = vSpect[iT][iE];
+    for( int iX = 0; iX < nXbins; iX++ ){
+      TH1* h = vSpect[iG][iX];
       styleTool->SetHStyle( h, style++ );
       h->Draw("epsame");
       h->SetMinimum( 1 );
       h->SetMaximum( max );
       leg.AddEntry( h, h->GetTitle() );
       h->SetTitle("");
-    } // end loop over iE
+    } // end loop over iX
     
     leg.Draw("same");
-    drawTool->DrawAtlasInternalDataRight
-      ( 0, 0, m_is_pPb ); 
-    drawTool->DrawLeftLatex
-      ( 0.15, 0.17, cLabel.c_str() );
+    drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); 
+    drawTool->DrawLeftLatex( 0.15, 0.17, cLabel );
     SaveAsAll( c, type, cName );
-  } // end loop over iT
+  } // end loop over iG
   
   //------------------------------------------------
   //------- Draw Triggers as Fucntion of Eta -------
   //------------------------------------------------
-  for( int iE = 0; iE < nXbins; iE++ ){
+  for( int iX = 0; iX < nXbins; iX++ ){
     // no longer have title.
     // Need to make output files
     // with eta names
-    int      xBin = iE + 1;
+    int      xBin = iX + 1;
     double etaMin = m_hAllEtaSpect->GetXaxis()->GetBinLowEdge( xBin );
     double etaMax = m_hAllEtaSpect->GetXaxis()->GetBinUpEdge ( xBin );
     
     std::string cName  = anaTool->GetName( etaMin, etaMax, "Eta" );
-    std::string cLabel = GetEtaLabel( etaMin, etaMax );
+    std::string cLabel = anaTool->GetEtaLabel( etaMin, etaMax, m_is_pPb );
     
     TCanvas c( "c", cLabel.c_str(), 800, 600 );
     c.SetLogy();
@@ -610,28 +608,26 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
     styleTool->SetLegendStyle( &leg  );
     
     int style = 0;
-    for( uint iT = 0; iT < m_nTriggers + 1; iT++ ){
-      TH1* h = vSpect[iT][iE];
+    for( uint iG = 0; iG < m_nTriggers + 1; iG++ ){
+      TH1* h = vSpect[iG][iX];
       styleTool->SetHStyle( h, style++ );
       h->Draw("epsame");
       h->SetMinimum( 1 );
       h->SetMaximum( max );
-      leg.AddEntry( h, m_vTriggers[iT].c_str() );
-    } // end loop over iT
+      leg.AddEntry( h, m_vTriggers[iG].c_str() );
+    } // end loop over iG
     
     leg.Draw("same");
-    drawTool->DrawAtlasInternalDataRight
-      ( 0, 0, m_is_pPb ); 
-    drawTool->DrawLeftLatex
-      ( 0.15, 0.17, cLabel.c_str() );
+    drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); 
+    drawTool->DrawLeftLatex( 0.15, 0.17, cLabel );
 
     SaveAsAll( c, type, cName );
-  } // end loop over iE
+  } // end loop over iX
 
   // delete
-  for( uint iT = 0; iT < m_nTriggers; iT++ ){
-    for( int iE = 0; iE < nXbins; iE++ )
-      { delete vSpect[iT][iE]; }
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
+    for( int iX = 0; iX < nXbins; iX++ )
+      { delete vSpect[iG][iX]; }
   }
 }
 
@@ -659,54 +655,56 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
   vSpectRef.resize( m_nTriggers );
   vEffGrf  .resize( m_nTriggers );
   
-  for( uint iT = 0; iT < m_nTriggers; iT++ ){
-    std::string trigger = m_vTriggers[iT];
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
+    std::string trigger = m_vTriggers[iG];
  
     for( int xBin = 1; xBin <= nXbins; xBin++ ){
       // should all be the same
       double etaMin = m_hAllEtaSpect->GetXaxis()->GetBinLowEdge( xBin );
       double etaMax = m_hAllEtaSpect->GetXaxis()->GetBinUpEdge ( xBin );
 
-      std::string etaLabel = GetEtaLabel( etaMin, etaMax );
-      std::string etaName  = anaTool->GetName( etaMin, etaMax, "Eta" );
+      std::string etaLabel = anaTool->GetEtaLabel
+	( etaMin, etaMax, m_is_pPb );
+      std::string etaName  = anaTool->GetName
+	( etaMin, etaMax, "Eta" );
       
-      TH1* h_etaSpect = vTrigSpect[iT]->
+      TH1* h_etaSpect = vTrigSpect[iG]->
 	ProjectionY( Form("h_%s_%s_%s",
 			  type.c_str(),
-			  trigger.c_str(),
-			  etaName.c_str() ),
+			  etaName.c_str(),
+			  trigger.c_str() ),
 		     xBin, xBin );
       h_etaSpect->SetTitle( etaLabel.c_str() );
-      vSpect[iT].push_back( h_etaSpect );
+      vSpect[iG].push_back( h_etaSpect );
 
-      TH1* h_etaSpectRef = vTrigSpectRef[iT]->
+      TH1* h_etaSpectRef = vTrigSpectRef[iG]->
 	ProjectionY( Form("h_%s_%s_ref_%s",
 			  type.c_str(),
-			  trigger.c_str(),
-			  etaName.c_str() ),
+			  etaName.c_str(),
+			  trigger.c_str() ),
 		     xBin, xBin );
       h_etaSpectRef->SetTitle( etaLabel.c_str() );
-      vSpectRef[iT].push_back( h_etaSpectRef );
+      vSpectRef[iG].push_back( h_etaSpectRef );
 
       TGraphAsymmErrors* g_etaEff = new TGraphAsymmErrors();
       g_etaEff->SetName( Form("gr_%s_%s_%s",
 			      type.c_str(),
-			      trigger.c_str(),
-			      etaName.c_str() ) );
+			      etaName.c_str(),
+			      trigger.c_str() ) );
       g_etaEff->SetTitle( etaLabel.c_str() );
-      vEffGrf[iT].push_back( g_etaEff );      
+      vEffGrf[iG].push_back( g_etaEff );      
     } // end loop over eta
   } // end loop over triggers
 
   //------------------------------------------------
   //--------- Now Divide by Appropriate Ref  -------
   //------------------------------------------------
-  for( uint iT = 0; iT < m_nTriggers; iT++ ){
-    for( int iE = 0; iE < nXbins; iE++ ){
-      int  refTrigIndex = m_vRefTriggerIndex[iT];
-      TH1* hSpect    = vSpect[iT][iE];
-      TH1* hSpectRef = vSpectRef[refTrigIndex][iE];
-      vEffGrf[iT][iE]->Divide( hSpect, hSpectRef );
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
+    for( int iX = 0; iX < nXbins; iX++ ){
+      int  refTrigIndex = m_vRefTriggerIndex[iG];
+      TH1* hSpect    = vSpect[iG][iX];
+      TH1* hSpectRef = vSpectRef[refTrigIndex][iX];
+      vEffGrf[iG][iX]->Divide( hSpect, hSpectRef );
     }
   }
   
@@ -718,14 +716,14 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
   //------------------------------------------------
   //-------- Draw Eta Bins for each Trigger --------
   //------------------------------------------------
-  for( uint iT = 0; iT < m_nTriggers; iT++ ){
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
     // dont draw MB trigger
-    if( !m_vTriggers[iT].compare( m_mbTriggerName ) )
+    if( !m_vTriggers[iG].compare( m_mbTriggerName ) )
       { continue; }
-    if( !m_vTriggers[iT].compare( m_allName ) )
+    if( !m_vTriggers[iG].compare( m_allName ) )
       { continue; }
-    std::string cName  = m_vTriggers[iT];
-    std::string cLabel = m_vTriggers[iT];
+    std::string cName  = m_vTriggers[iG];
+    std::string cLabel = m_vTriggers[iG];
 
     TCanvas c( "c", cLabel.c_str(), 800, 600 );
     styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax, gLabel );
@@ -734,40 +732,38 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
     styleTool->SetLegendStyle( &leg  );
 
     int style = 0;
-    for( int iE = 0; iE < nXbins; iE++ ){
-      TGraphAsymmErrors* g = vEffGrf[iT][iE];
+    for( int iX = 0; iX < nXbins; iX++ ){
+      TGraphAsymmErrors* g = vEffGrf[iG][iX];
       styleTool->SetHStyle( g, style++ );
       g->Draw("p");
       leg.AddEntry( g, g->GetTitle() );
       g->SetTitle("");
-    } // end loop over iE
+    } // end loop over iX
     
     leg.Draw("same");
 
     TLine line( xMin, 1, xMax, 1);
     line.Draw();
     
-    drawTool->DrawAtlasInternalDataRight
-      ( 0, 0, m_is_pPb ); 
-    drawTool->DrawLeftLatex
-      ( 0.4, 0.17, cLabel.c_str() );
+    drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); 
+    drawTool->DrawLeftLatex( 0.4, 0.17, cLabel );
     
     SaveAsAll( c, type, cName );
-  } // end loop over iT
+  } // end loop over iG
 
   //------------------------------------------------
   //---------- Draw Triggers in Eta Bins -----------
   //------------------------------------------------
-  for( int iE = 0; iE < nXbins; iE++ ){
+  for( int iX = 0; iX < nXbins; iX++ ){
     // no longer have title.
     // Need to make output files
     // with eta names
-    int      xBin = iE + 1;
+    int      xBin = iX + 1;
     double etaMin = m_hAllEtaSpect->GetXaxis()->GetBinLowEdge( xBin );
     double etaMax = m_hAllEtaSpect->GetXaxis()->GetBinUpEdge ( xBin );
     
     std::string cName  = anaTool->GetName( etaMin, etaMax, "Eta" );
-    std::string cLabel = GetEtaLabel( etaMin, etaMax );
+    std::string cLabel = anaTool->GetEtaLabel( etaMin, etaMax, m_is_pPb );
     
     TCanvas c( "c", cLabel.c_str(), 800, 600 );
     styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax, gLabel );
@@ -776,140 +772,47 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
     styleTool->SetLegendStyle( &leg  );
     
     int style = 0;
-    for( uint iT = 0; iT < m_nTriggers; iT++ ){
+    for( uint iG = 0; iG < m_nTriggers; iG++ ){
       // dont draw MB trigger
-      if( !m_vTriggers[iT].compare( m_mbTriggerName ) )
+      if( !m_vTriggers[iG].compare( m_mbTriggerName ) )
 	{ continue; }
-      if( !m_vTriggers[iT].compare( m_allName ) )
+      if( !m_vTriggers[iG].compare( m_allName ) )
 	{ continue; }
 
-      TGraphAsymmErrors* g = vEffGrf[iT][iE];
+      TGraphAsymmErrors* g = vEffGrf[iG][iX];
       styleTool->SetHStyle( g, style++ );
       g->Draw("p");
-      leg.AddEntry( g, m_vTriggers[iT].c_str() );
-    } // end loop over iT
+      leg.AddEntry( g, m_vTriggers[iG].c_str() );
+    } // end loop over iG
     
     leg.Draw("same");
 
     TLine line( xMin, 1, xMax, 1);
     line.Draw();    
     
-    drawTool->DrawAtlasInternalDataRight
-      ( 0, 0, m_is_pPb ); 
-    drawTool->DrawLeftLatex
-      ( 0.4, 0.17, cLabel.c_str() );
+    drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); 
+    drawTool->DrawLeftLatex( 0.4, 0.17, cLabel );
 
     SaveAsAll( c, type, cName );
-  } // end loop over iE
+  } // end loop over iX
 
   // delete
-  for( uint iT = 0; iT < m_nTriggers; iT++ ){
-    for( int iE = 0; iE < nXbins; iE++ )
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
+    for( int iX = 0; iX < nXbins; iX++ )
       {
-	delete vSpect[iT][iE];
-	delete vSpectRef[iT][iE];
-	delete vEffGrf[iT][iE];
+	delete vSpect[iG][iX];
+	delete vSpectRef[iG][iX];
+	delete vEffGrf[iG][iX];
       }
   }
   
 }
 
-void DiJetAnalysisData::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
-				      const std::string& type ){
-  std::vector< TH1* > vDphi;
-    
-  for( uint iT = 0; iT < m_nTriggers + 1; iT++ ){
-    THnSparse* hn = vhn[iT];
-    std::string trigger = m_vTriggers[iT];
-    
-    TAxis* eta1Axis = hn->GetAxis(0); TAxis* pt1Axis = hn->GetAxis(2);
-    TAxis* eta2Axis = hn->GetAxis(1); TAxis* pt2Axis = hn->GetAxis(3); 
-
-    int nEta1Bins = eta1Axis->GetNbins();
-    int nEta2Bins = eta2Axis->GetNbins();
-    int nPt1Bins  =  pt1Axis->GetNbins();
-    int nPt2Bins  =  pt2Axis->GetNbins();
-    
-    for( int eta1Bin = 1; eta1Bin <= nEta1Bins; eta1Bin++ ){
-      eta1Axis->SetRange( eta1Bin, eta1Bin );
-      for( int eta2Bin = 1; eta2Bin <= nEta2Bins; eta2Bin++ ){
-	eta2Axis->SetRange( eta2Bin, eta2Bin );
-	for( int pt1Bin = 1; pt1Bin <= nPt1Bins; pt1Bin++ ){
-	  pt1Axis->SetRange( pt1Bin, pt1Bin );
-	  for( int pt2Bin = 1; pt2Bin <= nPt2Bins; pt2Bin++ ){
-	    pt2Axis->SetRange( pt2Bin, nPt2Bins );
-
-	    if( !anaTool->IsForward( eta1Axis->GetBinCenter( eta1Bin ) ) &&
-		!anaTool->IsForward( eta2Axis->GetBinCenter( eta2Bin ) ) )
-	      { continue; }
-	    if( eta1Axis->GetBinLowEdge( pt1Bin ) < 
-		eta2Axis->GetBinLowEdge( pt2Bin ) )
-	      { continue; }
-	    
-	    // Take projection onto the dPhi axis
-	    TH1* hDphi = hn->Projection( 4 );
-	    styleTool->SetHStyle( hDphi, 0 );
-	    vDphi.push_back( hDphi );
-
-	    double eta1Low, eta1Up, eta2Low, eta2Up;
-	    double pt1Low , pt1Up , pt2Low , pt2Up;
-
-	    anaTool->GetBinRange
-	      ( eta1Axis, eta1Bin, eta1Bin, eta1Low, eta1Up );
-	    anaTool->GetBinRange
-	      ( eta2Axis, eta2Bin, eta2Bin, eta2Low, eta2Up );
-	    anaTool->GetBinRange
-	      ( pt1Axis, pt1Bin, pt1Bin, pt1Low, pt1Up );
-	    anaTool->GetBinRange
-	      ( pt2Axis, pt2Bin, pt2Bin, pt2Low, pt2Up );
-
-	    hDphi->SetName
-	      ( Form( "h_dPhi_%s_%s_%s_%s_%s",
-		      trigger.c_str(),
-		      anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
-		      anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
-		      anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
-		      anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str() ) );
-
-	    TCanvas c( "c", hDphi->GetName(), 800, 600 );
-	    hDphi->Draw();
-	    if( hDphi->GetEntries() )
-	      { hDphi->Scale( 1./hDphi->Integral() ); }
-	    hDphi->GetYaxis()->SetTitle("Normalized Count");
-	    hDphi->SetTitle("");
-	    
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.87,
-	        GetLabel( eta1Low, eta1Up, "#eta_{1}" ).c_str() );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.82,
-		GetLabel( eta2Low, eta2Up, "#eta_{2}" ).c_str() );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.76,
-		GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.69,
-		GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ).c_str() );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.62, trigger.c_str() );
-	    
-	    
-	    drawTool->DrawAtlasInternalDataRight
-	      ( 0, 0, m_is_pPb ); 
-
-	    SaveAsROOT( c, hDphi->GetName() );
-	  }
-      	}
-      }      
-    }
-  } // end loop over iT
-}
-
 void DiJetAnalysisData::PlotEtaPhiPtMap( std::vector< TH2* >& vTrigHin ){
   TCanvas c_map("c_map","c_map",800,600);
   
-  for( uint iT = 0; iT < m_nTriggers; iT++){
-    TH2* h = vTrigHin[iT];
+  for( uint iG = 0; iG < m_nTriggers; iG++){
+    TH2* h = vTrigHin[iG];
     h->Draw("col");
     styleTool->SetHStyle( h, 0 );
     drawTool->DrawAtlasInternalDataRight
@@ -919,7 +822,7 @@ void DiJetAnalysisData::PlotEtaPhiPtMap( std::vector< TH2* >& vTrigHin ){
   }
 }
 
-void DiJetAnalysisData::PlotDataTogether(){
+void DiJetAnalysisData::PlotDphiTogether(){
   std::string configName = "config/configJetsFwd";
   
   TEnv config_pPb;
@@ -970,9 +873,7 @@ void DiJetAnalysisData::PlotDataTogether(){
 	  if( pt1Low < pt2Low  )
 	    { continue; }
 	    
-
-	  
-	  std::string hName =
+	  std::string hTag =
 	    Form("%s_%s_%s_%s",
 		 anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
 		 anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
@@ -980,9 +881,9 @@ void DiJetAnalysisData::PlotDataTogether(){
 		 anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str() );
 
 	  std::string hName_pPb =
-	    Form("h_dPhi_%s_%s", trigger_pPb.c_str(), hName.c_str() );
+	    Form("h_dPhi_%s_%s", hTag.c_str(), trigger_pPb.c_str() );
 	  std::string hName_pp =
-	    Form("h_dPhi_%s_%s", trigger_pp.c_str() , hName.c_str() );
+	    Form("h_dPhi_%s_%s", hTag.c_str(), trigger_pp.c_str() );
 	    
 	  TCanvas* c_pPb =
 	    static_cast<TCanvas*>
@@ -997,7 +898,18 @@ void DiJetAnalysisData::PlotDataTogether(){
 	  TH1* h_pp  =
 	    static_cast<TH1D*>( c_pp->GetPrimitive( hName_pp.c_str() ) );
 	  styleTool->SetHStyle( h_pp, 1 );
-
+	  
+	  TF1* f_pPb =
+	    static_cast<TF1*>( c_pPb->GetPrimitive
+			       ( Form("f_%s", hName_pp.c_str())));
+	  styleTool->SetHStyle( f_pPb, 0 );
+	  f_pPb->SetLineColor( h_pPb->GetLineColor() );
+	  TF1* f_pp  =
+	    static_cast<TF1*>( c_pp->GetPrimitive
+			       ( Form("f_%s", hName_pp.c_str())));
+	  styleTool->SetHStyle( f_pp, 1 );
+	  f_pp->SetLineColor( h_pp->GetLineColor() );
+	  
 	  TCanvas c("c","c", 800, 600 );
 	    
 	  TLegend leg( 0.27, 0.41, 0.38, 0.52 );
@@ -1007,6 +919,10 @@ void DiJetAnalysisData::PlotDataTogether(){
 
 	  h_pPb->Draw("epsame");
 	  h_pp->Draw("epsame");
+
+	  f_pPb->Draw("same");
+	  f_pp->Draw("same");
+
 	  leg.Draw("same");
 
 	  if( h_pPb->GetMaximum() > h_pp->GetMaximum() ){
@@ -1018,24 +934,22 @@ void DiJetAnalysisData::PlotDataTogether(){
 	  }
 	    
 	  drawTool->DrawLeftLatex
-	    ( 0.13, 0.87,
-	      GetLabel( eta1Low, eta1Up, "#eta_{1}" ).c_str() );
+	    ( 0.13, 0.87,anaTool->GetLabel( eta1Low, eta1Up, "#eta_{1}" ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.13, 0.82,
-	      GetLabel( eta2Low, eta2Up, "#eta_{2}" ).c_str() );
+	    ( 0.13, 0.82,anaTool->GetLabel( eta2Low, eta2Up, "#eta_{2}" ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.13, 0.76,
-	      GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
+	    ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.13, 0.69,
-	      GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ).c_str() );
+	    ( 0.13, 0.69,anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ) );
 
 	  drawTool->DrawAtlasInternal();
 	  
-	  SaveAsROOT( c, Form("h_dPhi_%s", hName.c_str() ) );
+	  SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ) );
 
 	  delete h_pPb;
 	  delete h_pp;
+	  delete f_pPb;
+	  delete f_pp;
 	  delete c_pPb;
 	  delete c_pp;
 	}

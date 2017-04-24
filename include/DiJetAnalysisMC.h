@@ -27,91 +27,101 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void SetupHistograms();
 
   void ProcessEvents( int, int );  
-
-  void PairJets( std::vector< TLorentzVector >&,
-		 std::vector< TLorentzVector >&,
-		 std::vector< JetPair >& );
   
   //---------------------------
   //       Plot Data 
   //---------------------------
   void LoadHistograms();
   
-  void PlotSpectra( std::map< std::string, TH2* >&,
+  void PlotSpectra( std::vector< TH2* >&,
 		    const std::string&, 
 		    const std::string& );
   
-  void PlotVsEtaPt( std::map< std::string, TH3* >&,
-		    std::map< std::string, TH2* >&,
+  void PlotVsEtaPt( std::vector< TH3* >&,
+		    std::vector< TH2* >&,
 		    const std::string& );
 
-  void PlotEfficiencies( std::map< std::string, TH2* >&,
-			 std::map< std::string, TH2* >&,
-			 std::map< std::string, TH2* >&,
+  void PlotEfficiencies( std::vector< TH2* >&,
+			 std::vector< TH2* >&,
+			 std::vector< TH2* >&,
 			 const std::string& );
 
-  void PlotEtaPhiPtMap( std::map< std::string, TH2* >& );
+  void PlotDphiTogether();
+  
+  void PlotEtaPhiPtMap( std::vector< TH2* >& );
   
   //---------------------------
   //          Tools 
   //---------------------------  
-  void
-    CombineJZN( TH1*,
-		std::map< std::string, TH1*>& );
-  
-  void
-    CombineJZN( TH1*,
-		std::map< std::string, TH1*>&,
-		std::map< std::string, TH1*>& );
+  void PairJets( std::vector< TLorentzVector >&,
+		 std::vector< TLorentzVector >&,
+		 std::vector< JetPair >& );
 
-  TGraphAsymmErrors*
-    CombineJZN( std::map< std::string, TGraphAsymmErrors* >&,
-		std::map< std::string, TH1*>& );
+  void CombineJZN( TH1*,
+		   std::vector< TH1*>& );
+  
+  void CombineJZN( TH1*,
+		   std::vector< TH1*>&,
+		   std::vector< TH1*>& );
+
+  TGraphAsymmErrors* CombineJZN
+    ( std::vector< TGraphAsymmErrors* >&,
+      std::vector< TH1*>& );
   
   double GetJetWeight( double, double, double );
+
+  void GetTypeTitle( const std::string&,
+		     std::string&, std::string& );
   
  private:
   //============== cuts ===============
   double m_dRmax;
   
   //============ settings ============= 
-  std::vector< std::string > m_vUsedJZN;
-  std::map< std::string, std::string > m_mJznFnameIn;
+  std::vector< int > m_vJznUsed;
+  uint m_nJzn;
+  
+  std::vector< std::string > m_vJznLabel;
+  std::vector< std::string > m_vJznFnameIn;
 
-  std::map< std::string, double >  m_mJznSigma;
-  std::map< std::string, double >  m_mJznEff;
-  std::map< std::string, double >  m_mJznSumPowhegWeights;
-  std::map< std::string, double >  m_mJznPtThreshold;
+  std::vector< double >  m_vJznSigma;
+  std::vector< double >  m_vJznEff;
+  std::vector< double >  m_vJznSumPowhegWeights;
+  std::vector< double >  m_vJznPtThreshold;
  
-  std::map< std::string, int    >  m_mJznNev;
-  std::map< std::string, double >  m_mJznWeights;
+  std::vector< int    >  m_vJznNev;
+  std::vector< double >  m_vJznWeights;
 
   double m_sumSigmaEff;
 
   TH3* m_hPowhegWeights;
   //============ data =============
   // -------- maps ---------
-  std::map< std::string, TH2* > m_mJznEtaPhiMap;
-  std::map< std::string, TH2* > m_mJznEtaPtMap;
+  std::vector< TH2* > m_vHjznEtaPhiMap;
+  std::vector< TH2* > m_vHjznEtaPtMap;
 
   // -------- spect --------
-  std::map< std::string, TH2* > m_mJznEtaSpectReco;
-  std::map< std::string, TH2* > m_mJznEtaSpectTruth;
-  std::map< std::string, TH2* > m_mJznEtaSpectTruthNent; 
-  std::map< std::string, TH2* > m_mJznEtaSpectTruthPaired;
+  std::vector< TH2* > m_vHjznEtaSpectReco;
+  std::vector< TH2* > m_vHjznEtaSpectTruth;
+  std::vector< TH2* > m_vHjznEtaSpectTruthNent; 
+  std::vector< TH2* > m_vHjznEtaSpectTruthPaired;
 
   // --------- recoTruthRpt ---------
-  std::map< std::string, TH3* > m_mJznRecoTruthRpt;
-  std::map< std::string, TH2* > m_mJznRecoTruthRptNent;
+  std::vector< TH3* > m_vHjznRecoTruthRpt;
+  std::vector< TH2* > m_vHjznRecoTruthRptNent;
 
   // --------- recoTruthDeta ---------
-  std::map< std::string, TH3* > m_mJznRecoTruthDeta;
-  std::map< std::string, TH2* > m_mJznRecoTruthDetaNent;
+  std::vector< TH3* > m_vHjznRecoTruthDeta;
+  std::vector< TH2* > m_vHjznRecoTruthDetaNent;
 
   // --------- recoTruthDphi ---------
-  std::map< std::string, TH3* > m_mJznRecoTruthDphi;
-  std::map< std::string, TH2* > m_mJznRecoTruthDphiNent;
+  std::vector< TH3* > m_vHjznRecoTruthDphi;
+  std::vector< TH2* > m_vHjznRecoTruthDphiNent;
 
+  // -------------- dPhi -------------
+  std::vector< THnSparse* > m_vHjznDphiReco;
+  std::vector< THnSparse* > m_vHjznDphiTruth;
+  
   //========= histos binning ========
   // ------ truth binning --------
   double m_ptTruthWidth;
