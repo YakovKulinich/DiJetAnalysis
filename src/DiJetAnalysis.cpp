@@ -220,7 +220,7 @@ double DiJetAnalysis::AnalyzeDeltaPhi
   x.resize( hn->GetNdimensions() );
 
   // some min pt cut
-  for( int pt2Bin = 1; pt2Bin < hn->GetAxis(3)->GetNbins(); pt2Bin++ ){  
+  for( int pt2Bin = 1; pt2Bin <= hn->GetAxis(3)->GetNbins(); pt2Bin++ ){  
 
     if( jet2_pt < hn->GetAxis(3)->GetBinLowEdge ( pt2Bin ) ){ break; }
     
@@ -230,6 +230,15 @@ double DiJetAnalysis::AnalyzeDeltaPhi
     x[3] = hn->GetAxis(3)->GetBinCenter( pt2Bin );
     x[4] = deltaPhi;
       
+    hn->Fill( &x[0], weight );
+
+    // for pp, fill twice. once for each side
+    // since it is symmetric in pp
+    if( m_is_pPb ){ continue; }
+    
+    x[0] = jet1_eta;  
+    x[1] = jet2_eta;
+
     hn->Fill( &x[0], weight );
   }
   
@@ -280,8 +289,12 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
   std::vector< TH1* > vDphi;
   std::vector< TF1* > vFits;
 
+  std::vector< TH1* > vDphiFinal;
+
   std::string mcType = !type1.empty() ? "_" + type1 : "" ;
-  
+
+  // ---- loop over group  ----
+  // ---- (jzn or trigger) ----
   for( uint iG = 0; iG < vLabel.size(); iG++ ){
     THnSparse* hn = vhn[iG];
     std::string label = vLabel[iG];
@@ -293,40 +306,76 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
     int nEta2Bins = eta2Axis->GetNbins();
     int nPt1Bins  =  pt1Axis->GetNbins();
     int nPt2Bins  =  pt2Axis->GetNbins();
-    
+
+    // ---- loop over etas ----
     for( int eta1Bin = 1; eta1Bin <= nEta1Bins; eta1Bin++ ){
       eta1Axis->SetRange( eta1Bin, eta1Bin );
+      double eta1Low, eta1Up;
+      anaTool->GetBinRange
+	  ( eta1Axis, eta1Bin, eta1Bin, eta1Low, eta1Up );
+
       for( int eta2Bin = 1; eta2Bin <= nEta2Bins; eta2Bin++ ){
 	eta2Axis->SetRange( eta2Bin, eta2Bin );
+	double eta2Low, eta2Up;
+	anaTool->GetBinRange
+	  ( eta2Axis, eta2Bin, eta2Bin, eta2Low, eta2Up );
+
+	std::vector< TH1* > vDphiFinalTemp;
+	TCanvas cFinal("cFinal","cFinal",800,600);
+	TLegend leg(0.68, 0.64, 0.99, 0.77);
+	int style = 0;
+	styleTool->SetLegendStyle( &leg );
 	
+	// ---- loop over pt1 ----
 	for( int pt1Bin = 1; pt1Bin <= nPt1Bins; pt1Bin++ ){
 	  pt1Axis->SetRange( pt1Bin, pt1Bin );
+	  double pt1Low , pt1Up;
+	  anaTool->GetBinRange
+	    ( pt1Axis, pt1Bin, pt1Bin, pt1Low, pt1Up );
+
+	  std::vector< double > varPtBinningAdj = m_varPtBinning;
+	  if( varPtBinningAdj.size() > 1 ){
+	    varPtBinningAdj.back() =
+	      varPtBinningAdj[varPtBinningAdj.size() - 2] + 10;
+	  }
+	  
+	  TH1* hDphiFinal = new TH1D
+	    ( Form( "h_dPhi%s_%s_%s_%s_%s_final",
+		    mcType.c_str(),
+		    anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
+		    anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+		    anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
+		    label.c_str() ), "", m_nVarPtBins, 0, 1 );
+	  hDphiFinal->GetXaxis()->Set(m_nVarPtBins, &( varPtBinningAdj[0]) );
+	  hDphiFinal->GetXaxis()->SetTitle( "#it{p}_{T}^{2} Lower Bound" );
+	  hDphiFinal->GetYaxis()->SetTitle( "#Delta#phi width" );
+	  vDphiFinal.push_back( hDphiFinal );
+	  vDphiFinalTemp.push_back( hDphiFinal );
+
+	  styleTool->SetHStyle
+	    ( hDphiFinal, style++ );
+	  
+	  leg.AddEntry
+	    ( hDphiFinal, anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
+
+	  // ---- loop over pt2 ----
 	  for( int pt2Bin = 1; pt2Bin <= nPt2Bins; pt2Bin++ ){
 	    pt2Axis->SetRange( pt2Bin, nPt2Bins );
+	    double pt2Low , pt2Up;
+	    anaTool->GetBinRange
+	      ( pt2Axis, pt2Bin, pt2Bin, pt2Low, pt2Up );
 
 	    if( !anaTool->IsForward( eta1Axis->GetBinCenter( eta1Bin ) ) &&
 		!anaTool->IsForward( eta2Axis->GetBinCenter( eta2Bin ) ) )
 	      { continue; }
-	    if( eta1Axis->GetBinLowEdge( pt1Bin ) < 
-		eta2Axis->GetBinLowEdge( pt2Bin ) )
+	    if( pt1Axis->GetBinLowEdge( pt1Bin ) < 
+		pt2Axis->GetBinLowEdge( pt2Bin ) )
 	      { continue; }
 	    
 	    // Take projection onto the dPhi axis
 	    TH1* hDphi = hn->Projection( 4 );
 	    styleTool->SetHStyle( hDphi, 0 );
 	    vDphi.push_back( hDphi );
-
-	    double eta1Low, eta1Up, eta2Low, eta2Up;
-	    double pt1Low , pt1Up , pt2Low , pt2Up;
-
-	    anaTool->GetBinRange
-	      ( eta1Axis, eta1Bin, eta1Bin, eta1Low, eta1Up );
-	    anaTool->GetBinRange
-	      ( eta2Axis, eta2Bin, eta2Bin, eta2Low, eta2Up );
-	    anaTool->GetBinRange
-	      ( pt1Axis, pt1Bin, pt1Bin, pt1Low, pt1Up );
-	    anaTool->GetBinRange
-	      ( pt2Axis, pt2Bin, pt2Bin, pt2Low, pt2Up );
 
 	    hDphi->SetName
 	      ( Form( "h_dPhi%s_%s_%s_%s_%s_%s",
@@ -369,10 +418,46 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    fit->Draw("same");
 
 	    SaveAsROOT( c, hDphi->GetName() );
-	  }
-      	}
-      }      
-    }
+
+	    // Now, put results on histogram
+	    hDphiFinal->SetBinContent( pt2Bin, fit->GetParameter(1) );
+	    hDphiFinal->SetBinError  ( pt2Bin, fit->GetParError (1) );	    
+	  } // end loop over pt2
+      	} // end loop over pt1
+
+	if( !anaTool->IsForward( eta1Axis->GetBinCenter( eta1Bin ) ) &&
+	    !anaTool->IsForward( eta2Axis->GetBinCenter( eta2Bin ) ) )
+	  { continue; }
+	
+	cFinal.cd();
+	for( auto& h : vDphiFinalTemp ){
+	  h->SetMinimum( 1.0 );
+	  h->SetMaximum( 6.0 );
+	  h->Draw("epsame");
+	}
+	leg.Draw("same");
+
+	drawTool->DrawLeftLatex
+	  ( 0.13, 0.87,anaTool->GetLabel( eta1Low, eta1Up, "#eta_{1}" ) );
+	drawTool->DrawLeftLatex
+	  ( 0.13, 0.82,anaTool->GetLabel( eta2Low, eta2Up, "#eta_{2}" ) );
+
+	if( m_isData ){
+	  drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
+	} else {
+	  drawTool->DrawRightLatex( 0.88, 0.82, type1 );
+	  drawTool->DrawAtlasInternalMCRight( 0, 0, type2 );
+	}
+	
+	SaveAsAll
+	  ( cFinal, Form( "h_dPhi%s_%s_%s_%s_final",
+			  mcType.c_str(),
+			  anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
+			  anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+			  label.c_str() ) );
+	
+      } // end loop over eta2     
+    } // end loop over eta1
   } // end loop over iG
 }
 

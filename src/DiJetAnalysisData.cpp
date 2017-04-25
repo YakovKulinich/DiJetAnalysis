@@ -607,9 +607,10 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
     TLegend leg( lX0, lY0, lX1, lY1 );
     styleTool->SetLegendStyle( &leg  );
     
-    int style = 0;
+    int style = 1;
     for( uint iG = 0; iG < m_nTriggers + 1; iG++ ){
       TH1* h = vSpect[iG][iX];
+      if( iG == m_nTriggers ){ style = 0; }
       styleTool->SetHStyle( h, style++ );
       h->Draw("epsame");
       h->SetMinimum( 1 );
@@ -943,7 +944,8 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	    ( 0.13, 0.69,anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ) );
 
 	  drawTool->DrawAtlasInternal();
-	  
+
+	  c.SaveAs( Form("output/all/data/h_dPhi_%s.pdf", hTag.c_str() ));
 	  SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ) );
 
 	  delete h_pPb;

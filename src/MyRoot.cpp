@@ -92,7 +92,7 @@ std::vector<double> CT::AnalysisTools::vectoriseD
 
 TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
   auto expoFunction = [&]( double* x, double* par){
-    return par[0]*std::exp(-1*par[1]*(x[0]-constants::PI))+par[2];
+    return par[0]*std::exp(par[1]*(x[0]-constants::PI))+par[2];
   };
   
   TF1* fit = new TF1( Form("f_%s", hProj->GetName()),

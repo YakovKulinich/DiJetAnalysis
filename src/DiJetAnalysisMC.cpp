@@ -1035,8 +1035,9 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	      ( 0.13, 0.69,anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ) );
 
 	    drawTool->DrawAtlasInternal();
-	  
-	    SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ) );
+
+	    c.SaveAs( Form("output/all/mc/h_dPhi_%s_%s.pdf", hTag.c_str(), jznLabel.c_str() ));
+	    SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ));
 
 	    delete h_reco;
 	    delete h_truth;
