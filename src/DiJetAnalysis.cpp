@@ -1,9 +1,15 @@
-#include <TFile.h>
-#include <TTree.h>
-#include <TLorentzVector.h>
 #include <TROOT.h>
 #include <TEnv.h>
+#include <TGraphAsymmErrors.h>
+#include <TLorentzVector.h>
 #include <TCanvas.h>
+#include <TFile.h>
+#include <TTree.h>
+#include <TH1.h>
+#include <TH2.h>
+#include <TH3.h>
+#include <TF1.h>
+#include <THnSparse.h>
 
 #include <cmath>
 #include <iostream>
@@ -67,10 +73,21 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   m_nDphiDphiMin  = 0;
   m_nDphiDphiMax  = constants::PI;
 
+  // eta
   boost::assign::push_back( m_varEtaBinning )
     ( -4.4 )( -3.3 )( -2.8 )( 0 )( 2.8 )( 3.3 )( 4.4 );
   m_nVarEtaBins = m_varEtaBinning.size() - 1;
 
+  // ystarB
+  boost::assign::push_back( m_varYstarBinningA )
+    ( -4.2 )( -2.7 )( -1.8 )( 0 )( 2.8 )( 3.3 )( 4.4 );
+  m_nVarYstarBinsA = m_varYstarBinningA.size() - 1;
+
+  // ystarA
+  boost::assign::push_back( m_varYstarBinningB )
+    ( -4.2 )( -2.7 )( -1.8 )( 0 )( 2.8 )( 3.3 )( 4.4 );
+  m_nVarYstarBinsB = m_varYstarBinningB.size() - 1;
+  
   // --- variable pt binning ---
   boost::assign::push_back( m_varPtBinning )
     ( 20 )( 30 )(40)( 200 );
@@ -88,16 +105,30 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   anaTool   = new CT::AnalysisTools();
   drawTool  = new CT::DrawTools();
   styleTool = new CT::StyleTools();
+
+  //========= config file =========
+  std::string configName   = "config/configJetsFwd";
+  
+  std::string configDataType = m_is_pPb ? "_pPb" : "_pp";
+  configName += configDataType;
+
+  std::string configSuffix = m_isData ? "_data.cfg" : "_mc.cfg" ;
+  configName += configSuffix;
+
+  std::cout << "Reading " << configName << std::endl;
+
+  m_config = new TEnv();
+  m_config->ReadFile( configName.c_str(), EEnvLevel(0));
 }
 
 DiJetAnalysis::~DiJetAnalysis(){
   delete anaTool; delete drawTool; delete styleTool;
 }
 
-void DiJetAnalysis::Initialize(){
-  m_labelOut = m_isData ? "data" : "mc" ;
-  m_labelOut = m_is_pPb ? m_labelOut + "_pPb" : m_labelOut + "_pp";
-
+void DiJetAnalysis::Initialize(){  
+  m_labelOut = m_is_pPb ? "pPb" : "pp" ;
+  m_labelOut = m_isData ? m_labelOut + "_data" : m_labelOut + "_mc";
+  
   // Check if the directories exist.
   // If they don't, create them
   auto checkWriteDir = []( const char* c_dirOut ){
@@ -188,31 +219,29 @@ bool DiJetAnalysis::GetDiJets( const std::vector <TLorentzVector>& v_jets,
     { return false; }
 
   // Require one of the jets to be forward
-  if( !anaTool->IsForward( jet1.Eta() ) &&
-      !anaTool->IsForward( jet2.Eta() ) )
+  if( !IsForwardDetector( jet1.Eta() ) &&
+      !IsForwardDetector( jet2.Eta() ) )
     { return false; }
   
   // met all cuts, have two jets
   return true;
 }
 
-double DiJetAnalysis::AnalyzeDeltaPhi
-( THnSparse* hn,
-  const std::vector <TLorentzVector>& v_jets,
-  double weight  ){
-
+double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
+				       const std::vector <TLorentzVector>& v_jets,
+				       double weight  ){
   TLorentzVector jet1, jet2;
 
   if( !GetDiJets( v_jets, jet1, jet2 ) )
     { return -1; }
 
-  double jet1_pt  = jet1.Pt()/1000.;
-  double jet1_phi = jet1.Phi();
-  double jet1_eta = jet1.Eta();
-  
-  double jet2_pt  = jet2.Pt()/1000.;
-  double jet2_phi = jet2.Phi();
-  double jet2_eta = jet2.Eta();      
+  double jet1_pt    = jet1.Pt()/1000.;
+  double jet1_phi   = jet1.Phi();
+  double jet1_ystar = GetYstar( jet1 );
+
+  double jet2_pt    = jet2.Pt()/1000.;
+  double jet2_phi   = jet2.Phi();
+  double jet2_ystar = GetYstar( jet2 );
   
   double deltaPhi = anaTool->DeltaPhi( jet2_phi, jet1_phi );
   
@@ -224,20 +253,20 @@ double DiJetAnalysis::AnalyzeDeltaPhi
 
     if( jet2_pt < hn->GetAxis(3)->GetBinLowEdge ( pt2Bin ) ){ break; }
     
-    x[0] = jet1_eta;  
-    x[1] = jet2_eta;
+    x[0] = jet1_ystar;  
+    x[1] = jet2_ystar;
     x[2] = jet1_pt ;
     x[3] = hn->GetAxis(3)->GetBinCenter( pt2Bin );
     x[4] = deltaPhi;
       
     hn->Fill( &x[0], weight );
 
-    // for pp, fill twice. once for each side
-    // since it is symmetric in pp
+    // for pp, fill twice. once for each side since
+    // it is symmetric in pp, for pPb, continue
     if( m_is_pPb ){ continue; }
     
-    x[0] = jet1_eta;  
-    x[1] = jet2_eta;
+    x[0] = -jet1_ystar;  
+    x[1] = -jet2_ystar;
 
     hn->Fill( &x[0], weight );
   }
@@ -279,6 +308,23 @@ void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets,
 //       Tools
 //---------------------------
 
+double DiJetAnalysis::GetYstar( TLorentzVector& jet )
+{ return m_is_pPb ? jet.Rapidity() + constants::BETAZ : jet.Rapidity(); }
+
+bool DiJetAnalysis::IsForwardDetector( const double& eta )
+{ return ( TMath::Abs(eta) < constants::FETAMAX && 
+	   TMath::Abs(eta) > constants::FETAMIN ); }
+
+bool DiJetAnalysis::IsCentralDetector( const double& eta )
+{ return ( TMath::Abs(eta) < constants::CETAMAX ); }
+
+bool DiJetAnalysis::IsForwardYstar( const double& ystar )
+{ return ( TMath::Abs(ystar - constants::BETAZ) < constants::FETAMAX && 
+	   TMath::Abs(ystar - constants::BETAZ) > constants::FETAMIN ); }
+
+bool DiJetAnalysis::IsCentralYstar( const double& ystar )
+{ return ( TMath::Abs(ystar - constants::BETAZ) < constants::CETAMAX ); }
+
 //---------------------------
 //       Plotting
 //---------------------------
@@ -299,26 +345,26 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
     THnSparse* hn = vhn[iG];
     std::string label = vLabel[iG];
     
-    TAxis* eta1Axis = hn->GetAxis(0); TAxis* pt1Axis = hn->GetAxis(2);
-    TAxis* eta2Axis = hn->GetAxis(1); TAxis* pt2Axis = hn->GetAxis(3); 
+    TAxis* ystar1Axis = hn->GetAxis(0); TAxis* pt1Axis = hn->GetAxis(2);
+    TAxis* ystar2Axis = hn->GetAxis(1); TAxis* pt2Axis = hn->GetAxis(3); 
 
-    int nEta1Bins = eta1Axis->GetNbins();
-    int nEta2Bins = eta2Axis->GetNbins();
+    int nYstar1Bins = ystar1Axis->GetNbins();
+    int nYstar2Bins = ystar2Axis->GetNbins();
     int nPt1Bins  =  pt1Axis->GetNbins();
     int nPt2Bins  =  pt2Axis->GetNbins();
 
-    // ---- loop over etas ----
-    for( int eta1Bin = 1; eta1Bin <= nEta1Bins; eta1Bin++ ){
-      eta1Axis->SetRange( eta1Bin, eta1Bin );
-      double eta1Low, eta1Up;
+    // ---- loop over ystars ----
+    for( int ystar1Bin = 1; ystar1Bin <= nYstar1Bins; ystar1Bin++ ){
+      ystar1Axis->SetRange( ystar1Bin, ystar1Bin );
+      double ystar1Low, ystar1Up;
       anaTool->GetBinRange
-	  ( eta1Axis, eta1Bin, eta1Bin, eta1Low, eta1Up );
+	  ( ystar1Axis, ystar1Bin, ystar1Bin, ystar1Low, ystar1Up );
 
-      for( int eta2Bin = 1; eta2Bin <= nEta2Bins; eta2Bin++ ){
-	eta2Axis->SetRange( eta2Bin, eta2Bin );
-	double eta2Low, eta2Up;
+      for( int ystar2Bin = 1; ystar2Bin <= nYstar2Bins; ystar2Bin++ ){
+	ystar2Axis->SetRange( ystar2Bin, ystar2Bin );
+	double ystar2Low, ystar2Up;
 	anaTool->GetBinRange
-	  ( eta2Axis, eta2Bin, eta2Bin, eta2Low, eta2Up );
+	  ( ystar2Axis, ystar2Bin, ystar2Bin, ystar2Low, ystar2Up );
 
 	std::vector< TH1* > vDphiFinalTemp;
 	TCanvas cFinal("cFinal","cFinal",800,600);
@@ -342,8 +388,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	  TH1* hDphiFinal = new TH1D
 	    ( Form( "h_dPhi%s_%s_%s_%s_%s_final",
 		    mcType.c_str(),
-		    anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
-		    anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+		    anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+		    anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
 		    anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		    label.c_str() ), "", m_nVarPtBins, 0, 1 );
 	  hDphiFinal->GetXaxis()->Set(m_nVarPtBins, &( varPtBinningAdj[0]) );
@@ -365,8 +411,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    anaTool->GetBinRange
 	      ( pt2Axis, pt2Bin, pt2Bin, pt2Low, pt2Up );
 
-	    if( !anaTool->IsForward( eta1Axis->GetBinCenter( eta1Bin ) ) &&
-		!anaTool->IsForward( eta2Axis->GetBinCenter( eta2Bin ) ) )
+	    if( !IsForwardYstar( ystar1Axis->GetBinCenter( ystar1Bin ) ) &&
+		!IsForwardYstar( ystar2Axis->GetBinCenter( ystar2Bin ) ) )
 	      { continue; }
 	    if( pt1Axis->GetBinLowEdge( pt1Bin ) < 
 		pt2Axis->GetBinLowEdge( pt2Bin ) )
@@ -380,8 +426,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->SetName
 	      ( Form( "h_dPhi%s_%s_%s_%s_%s_%s",
 		      mcType.c_str(),
-		      anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
-		      anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+		      anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+		      anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
 		      anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		      anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str(),
 		      label.c_str() ) );
@@ -395,9 +441,9 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->SetTitle("");
 	    
 	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.87,anaTool->GetLabel( eta1Low, eta1Up, "#eta_{1}" ) );
+	      ( 0.13, 0.87,anaTool->GetLabel( ystar1Low, ystar1Up, "#it{y}*_{1}" ) );
 	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.82,anaTool->GetLabel( eta2Low, eta2Up, "#eta_{2}" ) );
+	      ( 0.13, 0.82,anaTool->GetLabel( ystar2Low, ystar2Up, "#it{y}*_{2}" ) );
 	    drawTool->DrawLeftLatex
 	      ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ) );
 	    drawTool->DrawLeftLatex
@@ -425,8 +471,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	  } // end loop over pt2
       	} // end loop over pt1
 
-	if( !anaTool->IsForward( eta1Axis->GetBinCenter( eta1Bin ) ) &&
-	    !anaTool->IsForward( eta2Axis->GetBinCenter( eta2Bin ) ) )
+	if( !IsForwardYstar( ystar1Axis->GetBinCenter( ystar1Bin ) ) &&
+	    !IsForwardYstar( ystar2Axis->GetBinCenter( ystar2Bin ) ) )
 	  { continue; }
 	
 	cFinal.cd();
@@ -438,9 +484,9 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	leg.Draw("same");
 
 	drawTool->DrawLeftLatex
-	  ( 0.13, 0.87,anaTool->GetLabel( eta1Low, eta1Up, "#eta_{1}" ) );
+	  ( 0.13, 0.87,anaTool->GetLabel( ystar1Low, ystar1Up, "#it{y}*_{1}" ) );
 	drawTool->DrawLeftLatex
-	  ( 0.13, 0.82,anaTool->GetLabel( eta2Low, eta2Up, "#eta_{2}" ) );
+	  ( 0.13, 0.82,anaTool->GetLabel( ystar2Low, ystar2Up, "#it{y}*_{2}" ) );
 
 	if( m_isData ){
 	  drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
@@ -452,12 +498,12 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	SaveAsAll
 	  ( cFinal, Form( "h_dPhi%s_%s_%s_%s_final",
 			  mcType.c_str(),
-			  anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
-			  anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+			  anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+			  anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
 			  label.c_str() ) );
 	
-      } // end loop over eta2     
-    } // end loop over eta1
+      } // end loop over ystar2     
+    } // end loop over ystar1
   } // end loop over iG
 }
 

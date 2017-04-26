@@ -1,16 +1,6 @@
 #ifndef DIJETANALYSIS_H
 #define DIJETANALYSIS_H
 
-#include <TLorentzVector.h>
-#include <TH1.h>
-#include <TH2.h>
-#include <TH3.h>
-#include <TF1.h>
-#include <TGraphAsymmErrors.h>
-#include <TFile.h>
-#include <TTree.h>
-#include <THnSparse.h>
-
 #include <string>
 #include <vector>
 #include <map>
@@ -22,6 +12,16 @@ namespace CS{
   class DrawTools;
   class StyleTools;
 }
+
+class TH1;
+class TH2;
+class TH3;
+class TF1;
+class THnSparse;
+class TLorentzVector;
+class TEnv;
+class TFile;
+class TTree;
 
 class DiJetAnalysis{
  public:
@@ -70,6 +70,15 @@ class DiJetAnalysis{
   //---------------------------
   //       Tools
   //---------------------------  
+  double GetYstar( TLorentzVector& );
+
+  bool IsForwardDetector( const double& eta );
+
+  bool IsCentralDetector( const double& eta );
+
+  bool IsForwardYstar( const double& ystar );
+
+  bool IsCentralYstar( const double& ystar );
   
   //---------------------------
   //       Plotting 
@@ -126,6 +135,10 @@ class DiJetAnalysis{
 			  const std::string& = "", double = 0, double = 0,
 			  const std::string& = "", double = 0, double = 0);
   
+
+ private:
+  //========== settings ===========
+  TEnv* m_config;
   
  protected:
   //============ cuts =============
@@ -135,6 +148,8 @@ class DiJetAnalysis{
 
   double m_dPhiThirdJetFraction;
   //========== settings ===========
+  TEnv* GetConfig(){ return m_config; }
+  
   bool m_isData;
   bool m_is_pPb;
 
@@ -202,6 +217,12 @@ class DiJetAnalysis{
   std::vector<double> m_varEtaBinning;
   unsigned int m_nVarEtaBins;
 
+  std::vector<double> m_varYstarBinningA;
+  unsigned int m_nVarYstarBinsA;
+
+  std::vector<double> m_varYstarBinningB;
+  unsigned int m_nVarYstarBinsB;
+  
   // ---- variable pt binning ---
   std::vector<double> m_varPtBinning;
   unsigned int m_nVarPtBins;

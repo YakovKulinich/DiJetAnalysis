@@ -86,7 +86,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   std::vector< double >  m_vJznSigma;
   std::vector< double >  m_vJznEff;
-  std::vector< double >  m_vJznSumPowhegWeights;
+  std::vector< double >  m_vJznSumOverlayWeights;
   std::vector< double >  m_vJznPtThreshold;
  
   std::vector< int    >  m_vJznNev;

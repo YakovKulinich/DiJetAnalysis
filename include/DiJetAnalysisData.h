@@ -30,7 +30,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
-  bool IsInTriggerRange( double, uint );
+  bool IsInTriggerRange( TLorentzVector&, uint );
   
   void AnalyzeEff( std::vector< TLorentzVector >&,
 		   std::vector< TLorentzVector >&,
@@ -58,9 +58,10 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::string m_fNameIn;
 
   std::vector< std::string > m_vTriggers;
-  std::vector< int    >      m_vRefTriggerIndex;
-  std::vector< double >      m_vTholdPtTriggers;
-  std::vector< double >      m_vEffPtTriggers;
+  std::vector< int    >      m_vTriggersRefIndex;
+  std::vector< double >      m_vTriggersTholdPt;
+  std::vector< double >      m_vTriggersEffPtLow;
+  std::vector< double >      m_vTriggersEffPtHigh;
 
   std::string m_mbTriggerName;
   std::string m_allName;

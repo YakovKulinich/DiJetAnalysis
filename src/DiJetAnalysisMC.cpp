@@ -1,10 +1,16 @@
-#include <TFile.h>
-#include <TTree.h>
-#include <TLorentzVector.h>
 #include <TROOT.h>
 #include <TEnv.h>
+#include <TGraphAsymmErrors.h>
+#include <TLorentzVector.h>
 #include <TCanvas.h>
-#include <TRandom.h>
+#include <TFile.h>
+#include <TTree.h>
+#include <TH1.h>
+#include <TH2.h>
+#include <TH3.h>
+#include <TF1.h>
+#include <THnSparse.h>
+
 
 #include <iostream>
 #include <sstream>
@@ -50,76 +56,44 @@ void DiJetAnalysisMC::Initialize(){
   m_labelOut = m_isData ? "data" : "mc" ;
   m_labelOut = m_is_pPb ? m_labelOut + "_pPb" : m_labelOut + "_pp";
 
-  if( m_mcType == 0 ){
-    m_labelOut += "_pythia8powheg";
-    m_mcTypeLabel = "Pythia8+Powheg";
+  std::string mcMenu;
+  if( m_mcType == 0 ){ mcMenu = "2015.pp.pythia8powheg"; }
+  else if( m_mcType == 1 ){ mcMenu = "2015.pp.pythia8"; }
+  else if( m_mcType == 2 ){ mcMenu = "2015.pp.herwig"; }
+  
+  std::string labelOut =
+    GetConfig()->GetValue( Form("labelOut.%s",mcMenu.c_str()), "");
+  m_labelOut += "_" + labelOut;
+  m_mcTypeLabel = GetConfig()->GetValue( Form("mcTypeLabel.%s",mcMenu.c_str()), "");
 
-    boost::assign::push_back( m_vJznUsed )
-      ( 1 )( 2 );
-    boost::assign::push_back( m_vJznLabel )
-      ( "jz1" )( "jz2" );
-    boost::assign::push_back( m_vJznFnameIn )
-      ( "/home/yakov/Projects/atlas/data/jz1_pythia8powheg.root" )
-      ( "/home/yakov/Projects/atlas/data/jz2_pythia8powheg.root" );
-    boost::assign::push_back( m_vJznSigma )
-      ( 1.2794E+08 )( 1.9648E+07 );
-    boost::assign::push_back( m_vJznEff )
-      ( 1.5857E-03 )( 1.2948E-04 );
-    boost::assign::push_back( m_vJznSumPowhegWeights )
-      ( 3.428918e+08 )( 4.656080e+06 );
-    boost::assign::push_back( m_vJznPtThreshold )
-      ( 20 )( 60 );
-    				 
+  std::vector< double > vJznUsedD = anaTool->vectoriseD
+    ( GetConfig()->GetValue( Form("jznUsed.%s",mcMenu.c_str()), "" ), " ");
+  // double -> int 
+  for( auto d : vJznUsedD ){ m_vJznUsed.push_back(d); }
+  m_vJznLabel =  anaTool->vectorise
+    ( GetConfig()->GetValue( Form("jznLabel.%s",mcMenu.c_str()), "" ), " ");
+  m_vJznFnameIn =  anaTool->vectorise
+    ( GetConfig()->GetValue( Form("jznFnameIn.%s",mcMenu.c_str()), "" ), " ");
+  m_vJznSigma = anaTool->vectoriseD
+    ( GetConfig()->GetValue( Form("jznSigma.%s",mcMenu.c_str()), "" ), " ");
+  m_vJznEff = anaTool->vectoriseD
+    ( GetConfig()->GetValue( Form("jznEff.%s",mcMenu.c_str()), "" ), " ");
+  m_vJznSumOverlayWeights = anaTool->vectoriseD
+    ( GetConfig()->GetValue( Form("jznSumOverlayWeights.%s",mcMenu.c_str()), "" ), " ");
+  m_vJznPtThreshold = anaTool->vectoriseD
+    ( GetConfig()->GetValue( Form("jznPtThreshold.%s",mcMenu.c_str()), "" ), " ");
+
+  std::string weightFile =
+    GetConfig()->GetValue( Form("weightFile.%s",mcMenu.c_str()), "");
+  if( !weightFile.empty() ){
     // Get Associated weights for powheg.
     // These need to be used at filling time (per event basis).
-    TFile* weight_file =
-      TFile::Open("/home/yakov/Projects/atlas/data/Powheg.reweight.root");
-    m_hPowhegWeights = static_cast< TH3D* >( weight_file->Get("h3_pT_y_phi_rw") );
+    TFile* file =
+      TFile::Open( weightFile.c_str() );
+    m_hPowhegWeights = static_cast< TH3D* >( file->Get("h3_pT_y_phi_rw") );
     m_hPowhegWeights->SetDirectory(0);
-    weight_file->Close();
-
-  } else if( m_mcType == 1 ){
-    m_labelOut += "_pythia8";
-    m_mcTypeLabel = "Pythia8";
-
-    boost::assign::push_back( m_vJznUsed )
-      ( 0 )( 1 )( 2 );
-    boost::assign::push_back( m_vJznLabel )
-      ( "jz0" )( "jz1" )( "jz2" );
-    boost::assign::push_back( m_vJznFnameIn )
-      ( "/home/yakov/Projects/atlas/data/jz0_pythia8.root" )
-      ( "/home/yakov/Projects/atlas/data/jz1_pythia8.root" )
-      ( "/home/yakov/Projects/atlas/data/jz2_pythia8.root" );
-    boost::assign::push_back( m_vJznSigma )
-      ( 6.7890E+07 )( 6.7890E+07*1.2 )( 6.3997E+05 );
-    boost::assign::push_back( m_vJznEff )
-      ( 8.6287E-02 )( 2.8289E-03 )( 4.2714E-03 );
-    boost::assign::push_back( m_vJznSumPowhegWeights )
-      ( 1 )( 1 )( 1 );   
-    boost::assign::push_back( m_vJznPtThreshold )
-      ( 10 )( 20 )( 60 );
-
-  } else if( m_mcType == 2 ){
-    m_labelOut += "_herwig";
-    m_mcTypeLabel = "Herwig";
-
-    boost::assign::push_back( m_vJznUsed )
-      ( 0 )( 1 )( 2 );
-    boost::assign::push_back( m_vJznLabel )
-      ( "jz0")( "jz1" )( "jz2" );
-    boost::assign::push_back( m_vJznFnameIn )
-      ( "/home/yakov/Projects/atlas/data/jz0_herwig.root" )
-      ( "/home/yakov/Projects/atlas/data/jz1_herwig.root" )
-      ( "/home/yakov/Projects/atlas/data/jz2_herwig.root" );
-    boost::assign::push_back( m_vJznSigma )
-      ( 69.2475E+06 )( 69.2475E+06 )( 4.2389E+05 );
-    boost::assign::push_back( m_vJznEff )
-      ( 5.713013E-04 )( 1.5088E-03 )( 3.21E-03 );
-    boost::assign::push_back( m_vJznSumPowhegWeights )
-      ( 1 )( 1 )( 1 );   
-    boost::assign::push_back( m_vJznPtThreshold )
-      ( 10 )( 20 )( 60 );
-  }  
+    file->Close();
+  }
 
   m_nJzn = m_vJznUsed.size();  
   
@@ -358,8 +332,8 @@ void DiJetAnalysisMC::SetupHistograms(){
     std::vector< double > dPhiMax;
 
     boost::assign::push_back( nDphiBins )
-      ( m_nVarEtaBins   )( m_nVarEtaBins )
-      ( m_nDphiPtBins   )( m_nDphiPtBins )
+      ( m_nVarYstarBinsA )( m_nVarYstarBinsB )
+      ( m_nDphiPtBins    )( m_nDphiPtBins    )
       ( m_nDphiDphiBins );
     
     boost::assign::push_back( dPhiMin  )
@@ -377,8 +351,8 @@ void DiJetAnalysisMC::SetupHistograms(){
     THnSparse* hnReco =
       new THnSparseD( Form("hn_dPhiReco_jz%d", jzn ), "",
 		      nDim, &nDphiBins[0], &dPhiMin[0], &dPhiMax[0] );
-    hnReco->GetAxis(0)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
-    hnReco->GetAxis(1)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+    hnReco->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
+    hnReco->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
     hnReco->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
     hnReco->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
 
@@ -388,8 +362,8 @@ void DiJetAnalysisMC::SetupHistograms(){
     THnSparse* hnTruth =
       new THnSparseD( Form("hn_dPhiTruth_jz%d", jzn ), "",
 		      nDim, &nDphiBins[0], &dPhiMin[0], &dPhiMax[0] );
-    hnTruth->GetAxis(0)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
-    hnTruth->GetAxis(1)->Set( m_nVarEtaBins, &( m_varEtaBinning[0] ) );
+    hnTruth->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
+    hnTruth->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
     hnTruth->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
     hnTruth->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
 
@@ -479,9 +453,8 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
 	// cut on pt corresponding to jz sample
 	if( jetPt > m_vJznPtThreshold[iG] ){
 	  nJetsTotal++;   
-	  if( jetEtaAdj < -constants::FETAMIN ){
-	    nJetsForward++;
-	  }
+	  if( IsForwardDetector( jetEtaAdj ) )
+	    { nJetsForward++; }
 	} 
       } // end loop over truth jets
 
@@ -940,18 +913,18 @@ void DiJetAnalysisMC::PlotDphiTogether(){
   for( uint iG = 0; iG < m_nJzn; iG++ ){
     std::string jznLabel = m_vJznLabel[iG];
     
-    for( uint eta1Bin = 0; eta1Bin < m_nVarEtaBins; eta1Bin++ ){
-      for( uint eta2Bin = 0; eta2Bin < m_nVarEtaBins; eta2Bin++ ){
+    for( uint ystar1Bin = 0; ystar1Bin < m_nVarYstarBinsA; ystar1Bin++ ){
+      for( uint ystar2Bin = 0; ystar2Bin < m_nVarYstarBinsB; ystar2Bin++ ){
 	for( uint pt1Bin = 0; pt1Bin < m_nVarPtBins; pt1Bin++ ){
 	  for( uint pt2Bin = 0; pt2Bin < m_nVarPtBins; pt2Bin++ ){
 	  
-	    double eta1Low = m_varEtaBinning[ eta1Bin ];
-	    double eta1Up  = m_varEtaBinning[ eta1Bin + 1 ];
-	    double eta1Center = eta1Low + 0.5 * ( eta1Up - eta1Low );
+	    double ystar1Low = m_varYstarBinningA[ ystar1Bin ];
+	    double ystar1Up  = m_varYstarBinningA[ ystar1Bin + 1 ];
+	    double ystar1Center = ystar1Low + 0.5 * ( ystar1Up - ystar1Low );
 	  
-	    double eta2Low = m_varEtaBinning[ eta2Bin ];
-	    double eta2Up  = m_varEtaBinning[ eta2Bin + 1 ];
-	    double eta2Center = eta2Low + 0.5 * ( eta2Up - eta2Low );
+	    double ystar2Low = m_varYstarBinningB[ ystar2Bin ];
+	    double ystar2Up  = m_varYstarBinningB[ ystar2Bin + 1 ];
+	    double ystar2Center = ystar2Low + 0.5 * ( ystar2Up - ystar2Low );
 
 	    double pt1Low  = m_varPtBinning[ pt1Bin ];
 	    double pt1Up   = m_varPtBinning[ pt1Bin + 1 ];
@@ -959,16 +932,16 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	    double pt2Low  = m_varPtBinning[ pt2Bin ];
 
 
-	    if( !anaTool->IsForward( eta1Center ) &&
-		!anaTool->IsForward( eta2Center ) )
+	    if( !IsForwardYstar( ystar1Center ) &&
+		!IsForwardYstar( ystar2Center ) )
 	      { continue; }
 	    if( pt1Low < pt2Low  )
 	      { continue; }
 	    
 	    std::string hTag =
 	      Form("%s_%s_%s_%s",
-		   anaTool->GetName( eta1Low, eta1Up, "Eta1").c_str(),
-		   anaTool->GetName( eta2Low, eta2Up, "Eta2").c_str(),
+		   anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+		   anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
 		   anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		   anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str() );
 
@@ -1026,11 +999,11 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	    }
 	    
 	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.87,anaTool->GetLabel( eta1Low, eta1Up, "#eta_{1}" ) );
+	      ( 0.13, 0.87,anaTool->GetLabel( ystar1Low, ystar1Up, "#it{y}*_{1}" ) );
 	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.82,anaTool->GetLabel( eta2Low, eta2Up, "#eta_{2}" ) );
+	      ( 0.13, 0.82,anaTool->GetLabel( ystar2Low, ystar2Up, "#it{y}*_{2}" ) );
 	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ) );
+	      ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up , "#it{p}_{T}^{1}" ) );
 	    drawTool->DrawLeftLatex
 	      ( 0.13, 0.69,anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ) );
 
@@ -1113,7 +1086,7 @@ void DiJetAnalysisMC::CombineJZN( TH1* h_res,
 				  std::vector< TH1* >& vJznHin){
   for( uint iG = 0; iG < m_nJzn; iG++ ){
     double scale = m_vJznEff[iG] * m_vJznSigma[iG] /
-      m_vJznSumPowhegWeights[iG];
+      m_vJznSumOverlayWeights[iG];
     h_res->Add( vJznHin[iG], scale );
   }
   h_res->Scale( 1./m_sumSigmaEff );
@@ -1132,7 +1105,7 @@ void DiJetAnalysisMC::CombineJZN( TH1* h_res,
       double valueBin    = vJznVIN      [iG]->GetBinContent( xBin );
       double valueBinErr = vJznVIN      [iG]->GetBinError( xBin );
       double nEntriesBin = vJznNentIN   [iG]->GetBinContent( xBin );
-      double weight      = m_vJznWeights[iG] / m_vJznSumPowhegWeights[iG];
+      double weight      = m_vJznWeights[iG] / m_vJznSumOverlayWeights[iG];
 
       if( nEntriesBin < m_nMinEntriesGausFit ){ continue; }
       

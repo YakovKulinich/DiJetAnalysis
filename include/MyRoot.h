@@ -33,9 +33,6 @@
 //===================================
 
 namespace constants{
-  // barrel range
-  const double CETAMAX = 2.8;
-
   // cut on the trigger
   // jet eta
   const double TETAMIN = 3.2;
@@ -43,20 +40,25 @@ namespace constants{
   // FCal eta ranges
   const double FETAMIN = 3.3;
   const double FETAMAX = 4.4;
- 
+  // barrel range
+  const double CETAMAX = 2.8;
+
+  // betaz shift in pPb
+  const double BETAZ = 0.5;
+  
+  // Forward ranges in ystar
+  const double FYSTARMIN = FETAMIN - BETAZ;
+  const double FYSTARMAX = FETAMAX - BETAZ;
+  // central range in ystar
+  const double CYSTARMAX = CETAMAX - BETAZ;
+  
   // atlas maximum eta
   const double ETAMIN = -5.0;
   const double ETAMAX = 5.0;
 
-  const double DELTAPHIMIN = 2.5;
-
-  const double DELTA = 0.001;
-
   const double PI = TMath::Pi();
 
   const double EPSILON = 1e-6;
-
-  const double JETPTCUT = 10;
 }
 
 namespace CT{
@@ -64,11 +66,7 @@ namespace CT{
   //         COMMON FUNCTIONS
   //===================================
   class AnalysisTools{
-  public:
-    bool IsForward( const double& eta );
-
-    bool IsCentral( const double& eta );
-
+  public:    
     bool EpsilonEqual( double a, double b );
 
     // returns dphi in range 0<dphi<2pi

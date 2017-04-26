@@ -10,13 +10,6 @@ const int ppLumi2015  = 26;  // pb
 //===================================
 //         COMMON FUNCTIONS
 //===================================
-bool CT::AnalysisTools::IsForward( const double& eta )
-{ return ( TMath::Abs(eta) < constants::FETAMAX && 
-	   TMath::Abs(eta) > constants::FETAMIN ); }
-
-bool CT::AnalysisTools::IsCentral( const double& eta )
-{ return ( TMath::Abs(eta) < constants::CETAMAX ); }
-
 bool CT::AnalysisTools::EpsilonEqual( double a, double b )
 { return fabs( a - b ) < constants::EPSILON; }
 
@@ -100,7 +93,9 @@ TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
 
   if( !hProj->GetEntries() )
     { return fit; }
-    
+
+  fit->SetParameters( 1, 1, 0 );
+  
   hProj->Fit( fit->GetName(), "NQR", "" , 0, constants::PI);
 
   return fit;
