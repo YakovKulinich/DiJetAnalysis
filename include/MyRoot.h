@@ -33,15 +33,11 @@
 //===================================
 
 namespace constants{
-  // cut on the trigger
-  // jet eta
-  const double TETAMIN = 3.2;
-  
   // FCal eta ranges
-  const double FETAMIN = 3.3;
-  const double FETAMAX = 4.4;
+  const double FETAMIN = 3.2;
+  const double FETAMAX = 4.5;
   // barrel range
-  const double CETAMAX = 2.8;
+  const double CETAMAX = 3.2;
 
   // betaz shift in pPb
   const double BETAZ = 0.5;
@@ -93,13 +89,13 @@ namespace CT{
 
     TF1* FitDphi( TH1* hProj, double = 0, double = 0 );
 
-    double AdjustEtaForPP( double, bool );
-    
     void GetBinRange( TAxis*, int, int, double&, double& );
 
     std::string GetName( double, double, const std::string& );
 
     std::string GetEtaLabel( double, double, bool = false );
+
+    std::string GetYstarLabel( double, double, bool = false, const std::string = "#it{y}*" );
 
     std::string GetLabel( double, double,
 			const std::string& = "",

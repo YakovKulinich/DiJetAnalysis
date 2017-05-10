@@ -46,6 +46,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			 std::vector< TH2* >&,
 			 const std::string& );
 
+  void PlotDeltaPhi( std::vector< THnSparse*>&,
+		     std::vector< THnSparse*>&,
+		     const std::vector< std::string >&,
+		     const std::string& = "" ,
+		     const std::string& = "" );
+
   void PlotDphiTogether();
   
   void PlotEtaPhiPtMap( std::vector< TH2* >& );
@@ -68,7 +74,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
     ( std::vector< TGraphAsymmErrors* >&,
       std::vector< TH1*>& );
   
-  double GetJetWeight( double, double, double );
+  static double GetJetWeight( double, double, double );
 
   void GetTypeTitle( const std::string&,
 		     std::string&, std::string& );
@@ -94,7 +100,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   double m_sumSigmaEff;
 
-  TH3* m_hPowhegWeights;
+  static TH3* m_hPowhegWeights;
   //============ data =============
   // -------- maps ---------
   std::vector< TH2* > m_vHjznEtaPhiMap;
@@ -120,7 +126,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   // -------------- dPhi -------------
   std::vector< THnSparse* > m_vHjznDphiReco;
+  std::vector< THnSparse* > m_vHjznDphiRecoNent;
   std::vector< THnSparse* > m_vHjznDphiTruth;
+  std::vector< THnSparse* > m_vHjznDphiTruthNent;
   
   //========= histos binning ========
   // ------ truth binning --------
@@ -138,6 +146,5 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   double m_dAngleRecoTruthMin;
   double m_dAngleRecoTruthMax;
 };
-
 
 #endif

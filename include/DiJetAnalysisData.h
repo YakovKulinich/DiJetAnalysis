@@ -30,7 +30,13 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
-  bool IsInTriggerRange( TLorentzVector&, uint );
+  bool IsInTriggerPtRange( double, int, double = 0);
+  
+  bool IsInTriggerEtaRange( double, int );
+  
+  bool IsInTriggerRange( TLorentzVector&, int );
+
+  bool TriggerJetAboveThreshold( TLorentzVector&, int );
   
   void AnalyzeEff( std::vector< TLorentzVector >&,
 		   std::vector< TLorentzVector >&,
@@ -48,10 +54,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 			 std::vector< TH2* >&,
 			 const std::string& );
 
-  void PlotEtaPhiPtMap( std::vector< TH2* >& );
+  void PlotDphiTogether();
   
-  virtual void PlotDphiTogether();
-
+  void PlotEtaPhiPtMap( std::vector< TH2* >& );
    
  private:
   //============ settings =============
@@ -62,11 +67,16 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< double >      m_vTriggersTholdPt;
   std::vector< double >      m_vTriggersEffPtLow;
   std::vector< double >      m_vTriggersEffPtHigh;
+  std::vector< double >      m_vTriggersEtaMin;
+  std::vector< double >      m_vTriggersEtaMax;
 
   std::string m_mbTriggerName;
   std::string m_allName;
 
   int m_mbTriggerI;
+  int m_lowestCentTriggerI;  
+
+  double m_centMbCorrection;
   
   uint m_nTriggers;
  
@@ -82,8 +92,10 @@ class DiJetAnalysisData : public DiJetAnalysis{
   TH2* m_hAllEtaSpect;
   // -------- dPhi ---------
   std::vector< THnSparse* > m_vHtriggerDphi;
+  std::vector< THnSparse* > m_vHtriggerDphiNent;
 
   THnSparse* m_hAllDphi;
+  THnSparse* m_hAllDphiNent;
   //========= histos binning ========
 };
 

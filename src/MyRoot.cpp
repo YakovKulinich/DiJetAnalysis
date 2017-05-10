@@ -85,7 +85,9 @@ std::vector<double> CT::AnalysisTools::vectoriseD
 
 TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
   auto expoFunction = [&]( double* x, double* par){
-    return par[0]*std::exp(par[1]*(x[0]-constants::PI))+par[2];
+    return par[0]*std::exp((x[0]-constants::PI)/par[1])+par[2];
+    /*return par[0]*std::exp((x[0]-constants::PI)/par[1])+par[2]
+      + par[3]*exp(-0.5*std::pow( ((x[0]-par[4])/par[5]) , 2 ));*/
   };
   
   TF1* fit = new TF1( Form("f_%s", hProj->GetName()),
@@ -94,8 +96,9 @@ TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
   if( !hProj->GetEntries() )
     { return fit; }
 
-  fit->SetParameters( 1, 1, 0 );
-  
+  fit->SetParameters( 0.3, 0.3, 0 );
+  //  fit->SetParameters( 1, 1, 0, 0.1, constants::PI, 0.01 );
+
   hProj->Fit( fit->GetName(), "NQR", "" , 0, constants::PI);
 
   return fit;
@@ -137,11 +140,6 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
   return fit;
 }
 
-double CT::AnalysisTools::AdjustEtaForPP( double jetEta, bool is_pPb){
-  if( is_pPb ) return jetEta;
-  return jetEta  > 0 ? -1 * jetEta  : jetEta;
-}
-
 void CT::AnalysisTools::GetBinRange( TAxis* a,
 				 int b1, int b2,
 				 double& x1, double& x2){
@@ -181,6 +179,24 @@ std::string CT::AnalysisTools::GetEtaLabel( double etaMin,
     else
       { ss << boost::format("%3.1f<|#eta|<%3.1f")
 	  % std::abs(etaMin) % std::abs(etaMax); }
+  }
+  return ss.str();
+}
+
+std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
+					      double ystarMax,
+					      bool is_pPb,
+					      std::string label ){
+  std::stringstream ss;
+  if( is_pPb )
+    { ss << boost::format("%3.1f<%s<%3.1f") % ystarMin % label % ystarMax;}
+  else {
+    if( std::abs(ystarMin) > std::abs(ystarMax) )
+      { ss << boost::format("%3.1f<|%s|<%3.1f")
+	  % std::abs(ystarMax) % label % std::abs(ystarMin); }
+    else
+      { ss << boost::format("%3.1f<|%s|<%3.1f")
+	  % std::abs(ystarMin) % label % std::abs(ystarMax); }
   }
   return ss.str();
 }

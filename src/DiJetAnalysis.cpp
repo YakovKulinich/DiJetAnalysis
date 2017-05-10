@@ -51,54 +51,65 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   m_ptSpectMax   = 110;
 
   // ---- JES/PRes/Etc ----- 
-  m_nEtaForwardBinsFine   = 11;
-  m_etaForwardMin   = -constants::FETAMAX;
-  m_etaForwardMax   = -constants::FETAMIN;
-
+  m_etaForwardMin = -constants::FETAMAX;
+  m_etaForwardMax = -constants::FYSTARMIN;
+  m_nEtaForwardBinsFine = 10 * ( m_etaForwardMax - m_etaForwardMin );
+  
   // ---- forward eta binning ---
   boost::assign::push_back( m_varFwdEtaBinning )
-    ( -4.4 )( -4.0 )( -3.6 )( -3.3 );
+    ( m_etaForwardMin )( -3.9 )( -3.5 )
+    ( -constants::FETAMIN )( -3.1 )( m_etaForwardMax );
   m_nVarFwdEtaBins = m_varFwdEtaBinning.size() - 1;
-
+  
   // -------- eff ---------
   m_effMin = 0.;
   m_effMax = 1.3;
 
   // -------- dphi- --------
-  m_nDphiPtBins = 5; 
-  m_nDphiPtMin  = 10;
-  m_nDphiPtMax  = 60;
-  
   m_nDphiDphiBins = 60;
   m_nDphiDphiMin  = 0;
   m_nDphiDphiMax  = constants::PI;
 
-  // eta
-  boost::assign::push_back( m_varEtaBinning )
-    ( -4.4 )( -3.3 )( -2.8 )( 0 )( 2.8 )( 3.3 )( 4.4 );
-  m_nVarEtaBins = m_varEtaBinning.size() - 1;
-
+  // --- variable eta/ystar binning ---
   // ystarB
   boost::assign::push_back( m_varYstarBinningA )
-    ( -4.2 )( -2.7 )( -1.8 )( 0 )( 2.8 )( 3.3 )( 4.4 );
+    ( -constants::FETAMAX )( -2.7 )( -1.8 )( 0 )
+    ( 2.8 )( 3.3 )( constants::FETAMAX );
   m_nVarYstarBinsA = m_varYstarBinningA.size() - 1;
 
   // ystarA
   boost::assign::push_back( m_varYstarBinningB )
-    ( -4.2 )( -2.7 )( -1.8 )( 0 )( 2.8 )( 3.3 )( 4.4 );
+    ( -constants::FETAMAX )( -3.3 )( -2.8 )( 0 )
+    ( 2.8 )( 3.3 )( constants::FETAMAX );
   m_nVarYstarBinsB = m_varYstarBinningB.size() - 1;
   
   // --- variable pt binning ---
   boost::assign::push_back( m_varPtBinning )
     ( 20 )( 30 )(40)( 200 );
   m_nVarPtBins = m_varPtBinning.size() - 1;
+
+  // --- dPhiBins ---  
+  boost::assign::push_back( m_nDphiBins )
+    ( m_nVarYstarBinsA )( m_nVarYstarBinsB )
+    ( m_nVarPtBins     )( m_nVarPtBins     )
+    ( m_nDphiDphiBins  );
+    
+  boost::assign::push_back( m_dPhiMin  )
+    ( 0 )( 0 )( 0 )( 0 )( m_nDphiDphiMin );
+
+  boost::assign::push_back( m_dPhiMax  )
+    ( 1 )( 1 ) ( 1 )( 1 )( m_nDphiDphiMax );
+    
+  m_nDphiNentBins.assign( m_nDphiBins.begin(), m_nDphiBins.end() - 1 );
+  m_dPhiNentMin.  assign( m_dPhiMin.begin()  , m_dPhiMin.end() - 1 );
+  m_dPhiNentMax.  assign( m_dPhiMax.begin()  , m_dPhiMax.end() - 1 );
+
+  m_dPhiWidthMin = 0.05;
+  m_dPhiWidthMax = 0.5;
   
   //==================== Cuts ====================
-  m_nMinEntriesGausFit = 20;
-  m_nMinEntriesExpFit  = 20;
+  m_nMinEntriesFit = 20;
 
-  m_ptFitMin           = 20.;
-  
   m_dPhiThirdJetFraction = 0.4;
 
   //========= common tools ========
@@ -175,7 +186,7 @@ void DiJetAnalysis::AddHistogram( THnSparse* hn ){
   hn->GetAxis(1)->SetTitle("#eta_{2}");
   hn->GetAxis(2)->SetTitle("#it{p}_{T}^{1}");
   hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
-  hn->GetAxis(4)->SetTitle("#Delta#phi");  
+  if( hn->GetNdimensions() > 4 ){ hn->GetAxis(4)->SetTitle("#Delta#phi"); }  
 }
 
 
@@ -217,26 +228,23 @@ bool DiJetAnalysis::GetDiJets( const std::vector <TLorentzVector>& v_jets,
   // make sure we have two jets
   if( !haveFirstJet || !haveSecondJet )
     { return false; }
-
-  // Require one of the jets to be forward
-  if( !IsForwardDetector( jet1.Eta() ) &&
-      !IsForwardDetector( jet2.Eta() ) )
-    { return false; }
   
   // met all cuts, have two jets
   return true;
 }
 
-double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
+double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
 				       const std::vector <TLorentzVector>& v_jets,
-				       double weight  ){
+				       double weightIn,
+				       WeightFcn weightFcn ){
   TLorentzVector jet1, jet2;
 
   if( !GetDiJets( v_jets, jet1, jet2 ) )
     { return -1; }
-
+  
   double jet1_pt    = jet1.Pt()/1000.;
   double jet1_phi   = jet1.Phi();
+  double jet1_eta   = jet1.Eta();
   double jet1_ystar = GetYstar( jet1 );
 
   double jet2_pt    = jet2.Pt()/1000.;
@@ -248,6 +256,12 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
   std::vector< double > x;
   x.resize( hn->GetNdimensions() );
 
+  std::vector< double > xNent;
+  xNent.resize( hnNent->GetNdimensions() );
+
+  // wont change unless we have a weightFcn
+  // and then it varys depending on eta, phi, pt.
+  double weight = weightFcn ? weightFcn( jet1_eta, jet1_phi, jet1_pt ) : weightIn;   
   // some min pt cut
   for( int pt2Bin = 1; pt2Bin <= hn->GetAxis(3)->GetNbins(); pt2Bin++ ){  
 
@@ -258,17 +272,25 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
     x[2] = jet1_pt ;
     x[3] = hn->GetAxis(3)->GetBinCenter( pt2Bin );
     x[4] = deltaPhi;
-      
     hn->Fill( &x[0], weight );
-
+ 
+    xNent[0] = jet1_ystar;  
+    xNent[1] = jet2_ystar;
+    xNent[2] = jet1_pt ;
+    xNent[3] = hn->GetAxis(3)->GetBinCenter( pt2Bin );
+    hnNent->Fill( &xNent[0], 1 );
+    
     // for pp, fill twice. once for each side since
-    // it is symmetric in pp, for pPb, continue
+    // it is symmetric in pp. For pPb, continue
     if( m_is_pPb ){ continue; }
     
     x[0] = -jet1_ystar;  
     x[1] = -jet2_ystar;
-
     hn->Fill( &x[0], weight );
+    
+    xNent[0] = -jet1_ystar;  
+    xNent[1] = -jet2_ystar;    
+    hnNent->Fill( &xNent[0], 1 );
   }
   
   return deltaPhi;
@@ -308,19 +330,30 @@ void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets,
 //       Tools
 //---------------------------
 
+double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
+  if( m_is_pPb ) return jetEta;
+  return jetEta  > 0 ? -1 * jetEta  : jetEta;
+}
+
 double DiJetAnalysis::GetYstar( TLorentzVector& jet )
 { return m_is_pPb ? jet.Rapidity() + constants::BETAZ : jet.Rapidity(); }
 
-bool DiJetAnalysis::IsForwardDetector( const double& eta )
-{ return ( TMath::Abs(eta) < constants::FETAMAX && 
-	   TMath::Abs(eta) > constants::FETAMIN ); }
+bool DiJetAnalysis::IsForwardDetector( const double& eta ){
+  double etaAdj = AdjustEtaForPP( eta );
+  if( etaAdj > -constants::FETAMAX && etaAdj < -constants::FETAMIN )
+    { return true; }
+  return false;
+}
 
 bool DiJetAnalysis::IsCentralDetector( const double& eta )
 { return ( TMath::Abs(eta) < constants::CETAMAX ); }
 
+// These two are just used to see which histograms to draw
+// for delta Phi plots, side doesnt really matter
+// because can have forward backward correlation.
 bool DiJetAnalysis::IsForwardYstar( const double& ystar )
 { return ( TMath::Abs(ystar - constants::BETAZ) < constants::FETAMAX && 
-	   TMath::Abs(ystar - constants::BETAZ) > constants::FETAMIN ); }
+	       TMath::Abs(ystar - constants::BETAZ) > constants::FETAMIN ); }
 
 bool DiJetAnalysis::IsCentralYstar( const double& ystar )
 { return ( TMath::Abs(ystar - constants::BETAZ) < constants::CETAMAX ); }
@@ -329,52 +362,89 @@ bool DiJetAnalysis::IsCentralYstar( const double& ystar )
 //       Plotting
 //---------------------------
 void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
+				  std::vector< THnSparse* >& vhnNent,
+				  const std::vector< std::string >& vLabel,
+				  const std::string& type1,
+				  const std::string& type2 ){
+  fourDTH1vector vDphiWidths;
+  fourDTH1vector vDphiNent;
+
+  PlotDeltaPhi( vhn, vhnNent, vDphiWidths, vDphiNent, vLabel, type1, type2 );
+}
+
+void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
+				  std::vector< THnSparse* >& vhnNent,
+				  fourDTH1vector& vDphiWidths,
+				  fourDTH1vector& vDphiNent,
 				  const std::vector< std::string >& vLabel,
 				  const std::string& type1,
 				  const std::string& type2 ){
   std::vector< TH1* > vDphi;
   std::vector< TF1* > vFits;
 
-  std::vector< TH1* > vDphiFinal;
-
   std::string mcType = !type1.empty() ? "_" + type1 : "" ;
-
+  
   // ---- loop over group  ----
   // ---- (jzn or trigger) ----
-  for( uint iG = 0; iG < vLabel.size(); iG++ ){
+  vDphiWidths.resize( vLabel.size() );
+  vDphiNent  .resize( vLabel.size() );
+  for( uint iG = 0; iG < vLabel.size(); iG++ ){      
     THnSparse* hn = vhn[iG];
     std::string label = vLabel[iG];
-    
+
+    // in data only draw for all
+    if( m_isData && label.compare("All") ){ continue; } 
+
     TAxis* ystar1Axis = hn->GetAxis(0); TAxis* pt1Axis = hn->GetAxis(2);
     TAxis* ystar2Axis = hn->GetAxis(1); TAxis* pt2Axis = hn->GetAxis(3); 
 
     int nYstar1Bins = ystar1Axis->GetNbins();
     int nYstar2Bins = ystar2Axis->GetNbins();
-    int nPt1Bins  =  pt1Axis->GetNbins();
-    int nPt2Bins  =  pt2Axis->GetNbins();
+    int nPt1Bins = pt1Axis->GetNbins();
+    int nPt2Bins = pt2Axis->GetNbins();
 
+    TAxis* ystar1AxisNent = hn->GetAxis(0); 
+    TAxis* ystar2AxisNent = hn->GetAxis(1);
+    TAxis* pt1AxisNent    = hn->GetAxis(2);
     // ---- loop over ystars ----
+    // resize collections
+    vDphiWidths[iG].resize( nYstar1Bins );
+    vDphiNent  [iG].resize( nYstar1Bins );
+
     for( int ystar1Bin = 1; ystar1Bin <= nYstar1Bins; ystar1Bin++ ){
+      // set ranges
       ystar1Axis->SetRange( ystar1Bin, ystar1Bin );
+      ystar1AxisNent->SetRange( ystar1Bin, ystar1Bin );
+      
       double ystar1Low, ystar1Up;
       anaTool->GetBinRange
-	  ( ystar1Axis, ystar1Bin, ystar1Bin, ystar1Low, ystar1Up );
+	( ystar1Axis, ystar1Bin, ystar1Bin, ystar1Low, ystar1Up );
+
+      // resize collections
+      vDphiWidths[iG][ ystar1Bin - 1 ].resize( nYstar2Bins );
+      vDphiNent  [iG][ ystar1Bin - 1 ].resize( nYstar2Bins );
 
       for( int ystar2Bin = 1; ystar2Bin <= nYstar2Bins; ystar2Bin++ ){
+	// set ranges
 	ystar2Axis->SetRange( ystar2Bin, ystar2Bin );
+	ystar2AxisNent->SetRange( ystar2Bin, ystar2Bin );
+ 
 	double ystar2Low, ystar2Up;
 	anaTool->GetBinRange
 	  ( ystar2Axis, ystar2Bin, ystar2Bin, ystar2Low, ystar2Up );
 
-	std::vector< TH1* > vDphiFinalTemp;
-	TCanvas cFinal("cFinal","cFinal",800,600);
+	std::vector< TH1* > vDphiWidthsTemp;
+	TCanvas cWidths("cWidths","cWidths",800,600);
 	TLegend leg(0.68, 0.64, 0.99, 0.77);
 	int style = 0;
 	styleTool->SetLegendStyle( &leg );
 	
 	// ---- loop over pt1 ----
 	for( int pt1Bin = 1; pt1Bin <= nPt1Bins; pt1Bin++ ){
+	  // set ranges
 	  pt1Axis->SetRange( pt1Bin, pt1Bin );
+	  pt1AxisNent->SetRange( pt1Bin, pt1Bin );
+	  
 	  double pt1Low , pt1Up;
 	  anaTool->GetBinRange
 	    ( pt1Axis, pt1Bin, pt1Bin, pt1Low, pt1Up );
@@ -385,24 +455,35 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	      varPtBinningAdj[varPtBinningAdj.size() - 2] + 10;
 	  }
 	  
-	  TH1* hDphiFinal = new TH1D
-	    ( Form( "h_dPhi%s_%s_%s_%s_%s_final",
+	  TH1* hDphiWidths = new TH1D
+	    ( Form( "h_dPhi%s_%s_%s_%s_%s",
 		    mcType.c_str(),
 		    anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
 		    anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
 		    anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
-		    label.c_str() ), "", m_nVarPtBins, 0, 1 );
-	  hDphiFinal->GetXaxis()->Set(m_nVarPtBins, &( varPtBinningAdj[0]) );
-	  hDphiFinal->GetXaxis()->SetTitle( "#it{p}_{T}^{2} Lower Bound" );
-	  hDphiFinal->GetYaxis()->SetTitle( "#Delta#phi width" );
-	  vDphiFinal.push_back( hDphiFinal );
-	  vDphiFinalTemp.push_back( hDphiFinal );
+		    label.c_str() ),
+	      "", m_nVarPtBins, 0, 1 );
+	  hDphiWidths->GetXaxis()->Set(m_nVarPtBins, &( varPtBinningAdj[0]) );
+	  hDphiWidths->GetXaxis()->SetTitle( "#it{p}_{T}^{2} Lower Bound" );
+	  hDphiWidths->GetYaxis()->SetTitle( "#Delta#phi width" );
+	  vDphiWidths[iG][ ystar1Bin - 1 ][ ystar2Bin - 1 ].push_back( hDphiWidths );
+	  vDphiWidthsTemp.push_back( hDphiWidths );
 
+	  TH1* hNent = vhnNent[iG]->Projection( 3 );
+	  hNent->SetName
+	    ( Form( "h_dPhiNent%s_%s_%s_%s_%s",
+		    mcType.c_str(),
+		    anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+		    anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
+		    anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
+		    label.c_str() ) );
+	  vDphiNent[iG][ ystar1Bin - 1 ][ ystar2Bin - 1 ].push_back( hNent );
+	  
 	  styleTool->SetHStyle
-	    ( hDphiFinal, style++ );
+	    ( hDphiWidths, style++ );
 	  
 	  leg.AddEntry
-	    ( hDphiFinal, anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
+	    ( hDphiWidths, anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
 
 	  // ---- loop over pt2 ----
 	  for( int pt2Bin = 1; pt2Bin <= nPt2Bins; pt2Bin++ ){
@@ -420,9 +501,6 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    
 	    // Take projection onto the dPhi axis
 	    TH1* hDphi = hn->Projection( 4 );
-	    styleTool->SetHStyle( hDphi, 0 );
-	    vDphi.push_back( hDphi );
-
 	    hDphi->SetName
 	      ( Form( "h_dPhi%s_%s_%s_%s_%s_%s",
 		      mcType.c_str(),
@@ -431,7 +509,9 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 		      anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		      anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str(),
 		      label.c_str() ) );
-
+	    styleTool->SetHStyle( hDphi, 0 );
+	    vDphi.push_back( hDphi );
+	    
 	    TCanvas c( "c", hDphi->GetName(), 800, 600 );
 
 	    hDphi->Draw();
@@ -441,9 +521,11 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->SetTitle("");
 	    
 	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.87,anaTool->GetLabel( ystar1Low, ystar1Up, "#it{y}*_{1}" ) );
+	      ( 0.13, 0.87,anaTool->GetYstarLabel( ystar1Low, ystar1Up,
+						   m_is_pPb , "#it{y}*_{1}" ) );
 	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.82,anaTool->GetLabel( ystar2Low, ystar2Up, "#it{y}*_{2}" ) );
+	      ( 0.13, 0.82,anaTool->GetYstarLabel( ystar2Low, ystar2Up,
+						   m_is_pPb , "#it{y}*_{2}" ) );
 	    drawTool->DrawLeftLatex
 	      ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ) );
 	    drawTool->DrawLeftLatex
@@ -465,47 +547,70 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	    SaveAsROOT( c, hDphi->GetName() );
 
+	    std::cout << fit->GetName() << std::endl;
+	    std::cout << fit->GetChisquare()/fit->GetNDF() << std::endl;
+	    
+	    if( fit->GetParameter(1) < 0 || fit->GetParameter(1) > 1 )
+	      { continue; }
+
+	    if( fit->GetParError(1) > 0.3 ){ continue; }
+	    
 	    // Now, put results on histogram
-	    hDphiFinal->SetBinContent( pt2Bin, fit->GetParameter(1) );
-	    hDphiFinal->SetBinError  ( pt2Bin, fit->GetParError (1) );	    
+	    hDphiWidths->SetBinContent( pt2Bin, fit->GetParameter(1) );
+	    hDphiWidths->SetBinError  ( pt2Bin, fit->GetParError (1) );	    
 	  } // end loop over pt2
       	} // end loop over pt1
 
+	// if both jets arent forward, we continue
 	if( !IsForwardYstar( ystar1Axis->GetBinCenter( ystar1Bin ) ) &&
 	    !IsForwardYstar( ystar2Axis->GetBinCenter( ystar2Bin ) ) )
 	  { continue; }
 	
-	cFinal.cd();
-	for( auto& h : vDphiFinalTemp ){
-	  h->SetMinimum( 1.0 );
-	  h->SetMaximum( 6.0 );
+	cWidths.cd();
+	for( auto& h : vDphiWidthsTemp ){
+	  h->SetMinimum( m_dPhiWidthMin );
+	  h->SetMaximum( m_dPhiWidthMax );
 	  h->Draw("epsame");
 	}
 	leg.Draw("same");
 
 	drawTool->DrawLeftLatex
-	  ( 0.13, 0.87,anaTool->GetLabel( ystar1Low, ystar1Up, "#it{y}*_{1}" ) );
+	  ( 0.13, 0.87,anaTool->GetYstarLabel
+	    ( ystar1Low, ystar1Up, m_is_pPb, "#it{y}*_{1}" ) );
 	drawTool->DrawLeftLatex
-	  ( 0.13, 0.82,anaTool->GetLabel( ystar2Low, ystar2Up, "#it{y}*_{2}" ) );
+	  ( 0.13, 0.82,anaTool->GetYstarLabel
+	    ( ystar2Low, ystar2Up, m_is_pPb,  "#it{y}*_{2}" ) );
 
 	if( m_isData ){
 	  drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
-	} else {
+	}
+	else {
 	  drawTool->DrawRightLatex( 0.88, 0.82, type1 );
 	  drawTool->DrawAtlasInternalMCRight( 0, 0, type2 );
 	}
-	
+
 	SaveAsAll
-	  ( cFinal, Form( "h_dPhi%s_%s_%s_%s_final",
-			  mcType.c_str(),
-			  anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-			  anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
-			  label.c_str() ) );
+	  ( cWidths, Form( "dPhi%s_%s_%s_%s",
+			   mcType.c_str(),
+			   anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+			   anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
+			   label.c_str() ) );
 	
+	// dont draw jzn, later draw finals only
+	if( !m_isData ){ continue; }
+
+	SaveAsPdfPng
+	  ( cWidths, Form( "dPhi%s_%s_%s_%s",
+			   mcType.c_str(),
+			   anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+			   anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
+			   label.c_str() ) );
       } // end loop over ystar2     
     } // end loop over ystar1
   } // end loop over iG
 }
+
+void DiJetAnalysis::PlotDphiTogether(){}
 
 //---------------------------
 //        Drawing
@@ -701,7 +806,7 @@ void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
   std::string sPng = ss.str() + ".png";
 
   c.SaveAs( sPdf.c_str() );
-  c.SaveAs( sPng.c_str() );
+  // c.SaveAs( sPng.c_str() );
 }
 
 void DiJetAnalysis::SaveAsROOT( const TCanvas& c,

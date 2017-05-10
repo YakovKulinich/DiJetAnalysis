@@ -23,6 +23,9 @@ class TEnv;
 class TFile;
 class TTree;
 
+typedef double (*WeightFcn)( double, double, double );
+typedef std::vector<std::vector<std::vector<std::vector<TH1*>>>> fourDTH1vector;
+
 class DiJetAnalysis{
  public:
   DiJetAnalysis();
@@ -59,9 +62,10 @@ class DiJetAnalysis{
 			  TLorentzVector&,
 			  TLorentzVector& );
   
-  virtual double AnalyzeDeltaPhi( THnSparse*,
+  virtual double AnalyzeDeltaPhi( THnSparse*, THnSparse*,
 				  const std::vector <TLorentzVector>&,
-				  double = 1 );
+				  double = 1,
+				  WeightFcn = NULL );
   
   virtual void  ApplyIsolation( double, std::vector<TLorentzVector>& );
     
@@ -70,6 +74,8 @@ class DiJetAnalysis{
   //---------------------------
   //       Tools
   //---------------------------  
+  double AdjustEtaForPP( double );  
+
   double GetYstar( TLorentzVector& );
 
   bool IsForwardDetector( const double& eta );
@@ -79,19 +85,37 @@ class DiJetAnalysis{
   bool IsForwardYstar( const double& ystar );
 
   bool IsCentralYstar( const double& ystar );
+
+  virtual void CombineJZN( TH1*,
+			   std::vector< TH1*>& ){};
+  
+  virtual void CombineJZN( TH1*,
+			   std::vector< TH1*>&,
+			   std::vector< TH1*>& ){};
+
   
   //---------------------------
   //       Plotting 
   //---------------------------
   virtual void LoadHistograms() = 0;
-
-  virtual void PlotDeltaPhi( std::vector< THnSparse*>&,
+ 
+  virtual void PlotDphiTogether();
+  
+  virtual void PlotDeltaPhi( std::vector<THnSparse*>&,
+			     std::vector<THnSparse*>&,
+			     fourDTH1vector&,
+			     fourDTH1vector&,
 			     const std::vector< std::string >&,
 			     const std::string& = "" ,
 			     const std::string& = "" );
-  
-  virtual void PlotDphiTogether(){};
 
+  virtual void PlotDeltaPhi( std::vector<THnSparse*>&,
+			     std::vector<THnSparse*>&,
+			     const std::vector< std::string >&,
+			     const std::string& = "" ,
+			     const std::string& = "" );
+
+  
   //---------------------------
   //        Drawing
   //---------------------------
@@ -142,9 +166,7 @@ class DiJetAnalysis{
   
  protected:
   //============ cuts =============
-  int    m_nMinEntriesGausFit;
-  int    m_nMinEntriesExpFit;
-  double m_ptFitMin;
+  int    m_nMinEntriesFit;
 
   double m_dPhiThirdJetFraction;
   //========== settings ===========
@@ -173,11 +195,8 @@ class DiJetAnalysis{
   std::vector< THnSparse* > v_hns;    // for writing
   std::vector< TF1*       > v_functs; // for writing
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
-
+  
  protected:
-  // -------- dPhi --------
-  std::map< std::string, THnSparse* > m_mDphi;
-
   //========= common tools ========
   CT::AnalysisTools* anaTool;
   CT::DrawTools*     drawTool;
@@ -213,10 +232,7 @@ class DiJetAnalysis{
   unsigned int m_nVarFwdEtaBins;
 
   // --- whole range variable ---
-  // ------- eta binning --------
-  std::vector<double> m_varEtaBinning;
-  unsigned int m_nVarEtaBins;
-
+  // ------- eta/ystar binning --------
   std::vector<double> m_varYstarBinningA;
   unsigned int m_nVarYstarBinsA;
 
@@ -232,14 +248,19 @@ class DiJetAnalysis{
   double m_effMax;
 
   // -------- dphi- --------
-  int    m_nDphiPtBins;
-  double m_nDphiPtMin;
-  double m_nDphiPtMax;
+  uint   m_nDphiDim;
+  uint   m_nDphiNentDim;
   
   int    m_nDphiDphiBins;
   double m_nDphiDphiMin;
   double m_nDphiDphiMax;
 
+  std::vector< int >    m_nDphiBins;
+  std::vector< double > m_dPhiMin;
+  std::vector< double > m_dPhiMax;
+    
+  double m_dPhiWidthMin;
+  double m_dPhiWidthMax;
 };
 
 #endif
