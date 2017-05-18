@@ -9,10 +9,10 @@
 #include <TH2D.h>
 #include <TH3D.h>
 #include <THStack.h>
+#include <THnSparse.h>
 #include <TF1.h>
 #include <TPad.h>
 #include <TCanvas.h>
-#include <iostream>
 #include <TStyle.h>
 #include <TMarker.h>
 #include <TLine.h>
@@ -25,8 +25,11 @@
 #include <TGraph.h>
 #include <TGraphErrors.h>
 #include <TGraphAsymmErrors.h>
+
+#include <iostream>
 #include <string>
 #include <sstream>
+
 
 //===================================
 //         CONSTANTS
@@ -77,6 +80,8 @@ namespace CT{
       ( const TLorentzVector& jet1,
 	const TLorentzVector& jet2 );
 
+    bool TruncateHistoBins( THnSparse* , THnSparse* );
+    
     bool TruncateHistoBins( TH3* h3 );
 
     bool DoPrint( int ev );

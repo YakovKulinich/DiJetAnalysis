@@ -41,11 +41,42 @@ bool CT::AnalysisTools::sortByDecendingPt
   return ( jet1.Pt() > jet2.Pt() );
 }
 
+
+bool CT::AnalysisTools::TruncateHistoBins( THnSparse* hn,
+					   THnSparse* hnNent){
+  TAxis* aAxis = hn->GetAxis(0); TAxis* cAxis = hn->GetAxis(2);
+  TAxis* bAxis = hn->GetAxis(1); TAxis* dAxis = hn->GetAxis(3); 
+
+  int nAbins = aAxis->GetNbins();
+  int nBbins = bAxis->GetNbins();
+  int nCbins = cAxis->GetNbins();
+  int nDbins = dAxis->GetNbins();
+
+  std::vector< int > x;
+  x.resize( hn->GetNdimensions() );
+  
+  for( int aBin = 1; aBin <= nAbins; aBin++ ){
+    for( int bBin = 1; bBin <= nBbins; bBin++ ){
+      for( int cBin = 1; cBin <= nCbins; cBin++ ){
+	for( int dBin = 1; dBin <= nDbins; dBin++ ){
+	  x[0] = aBin; x[1] = bBin; x[2] = cBin; x[3] = dBin;
+	  if( hnNent->GetBinContent( &x[0] )  < 5. )
+	    { hn->SetBinContent( &x[0], 0. ); }
+	}
+      }
+    }
+  }
+  
+  return true;
+}
+
+
 bool CT::AnalysisTools::TruncateHistoBins( TH3* h3 ){
   for( int z = 1; z <= h3->GetZaxis()->GetNbins(); z++ ){
     for( int y = 1; y <= h3->GetYaxis()->GetNbins(); y++ ){    
       for( int x = 1; x <= h3->GetXaxis()->GetNbins(); x++ ){
-	if( h3->GetBinContent( x, y, z ) < 3 ) h3->SetBinContent( x, y, z, 0 );
+	if( h3->GetBinContent( x, y, z ) < 3 )
+	  { h3->SetBinContent( x, y, z, 0 ); }
       }
     }
   }

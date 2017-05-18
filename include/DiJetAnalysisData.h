@@ -64,6 +64,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   std::vector< std::string > m_vTriggers;
   std::vector< int    >      m_vTriggersRefIndex;
+  std::vector< double >      m_vTriggersPrescale;
   std::vector< double >      m_vTriggersTholdPt;
   std::vector< double >      m_vTriggersEffPtLow;
   std::vector< double >      m_vTriggersEffPtHigh;

@@ -53,7 +53,7 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   // ---- JES/PRes/Etc ----- 
   m_etaForwardMin = -constants::FETAMAX;
   m_etaForwardMax = -constants::FYSTARMIN;
-  m_nEtaForwardBinsFine = 10 * ( m_etaForwardMax - m_etaForwardMin );
+  m_nEtaForwardBinsFine = ( m_etaForwardMax - m_etaForwardMin ) / 0.2 ;
   
   // ---- forward eta binning ---
   boost::assign::push_back( m_varFwdEtaBinning )
@@ -63,7 +63,7 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   
   // -------- eff ---------
   m_effMin = 0.;
-  m_effMax = 1.3;
+  m_effMax = 1.34;
 
   // -------- dphi- --------
   m_nDphiDphiBins = 60;
@@ -100,10 +100,6 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   boost::assign::push_back( m_dPhiMax  )
     ( 1 )( 1 ) ( 1 )( 1 )( m_nDphiDphiMax );
     
-  m_nDphiNentBins.assign( m_nDphiBins.begin(), m_nDphiBins.end() - 1 );
-  m_dPhiNentMin.  assign( m_dPhiMin.begin()  , m_dPhiMin.end() - 1 );
-  m_dPhiNentMax.  assign( m_dPhiMax.begin()  , m_dPhiMax.end() - 1 );
-
   m_dPhiWidthMin = 0.05;
   m_dPhiWidthMax = 0.5;
   
@@ -186,7 +182,6 @@ void DiJetAnalysis::AddHistogram( THnSparse* hn ){
   hn->GetAxis(1)->SetTitle("#eta_{2}");
   hn->GetAxis(2)->SetTitle("#it{p}_{T}^{1}");
   hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
-  if( hn->GetNdimensions() > 4 ){ hn->GetAxis(4)->SetTitle("#Delta#phi"); }  
 }
 
 
@@ -256,9 +251,6 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
   std::vector< double > x;
   x.resize( hn->GetNdimensions() );
 
-  std::vector< double > xNent;
-  xNent.resize( hnNent->GetNdimensions() );
-
   // wont change unless we have a weightFcn
   // and then it varys depending on eta, phi, pt.
   double weight = weightFcn ? weightFcn( jet1_eta, jet1_phi, jet1_pt ) : weightIn;   
@@ -272,13 +264,8 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
     x[2] = jet1_pt ;
     x[3] = hn->GetAxis(3)->GetBinCenter( pt2Bin );
     x[4] = deltaPhi;
-    hn->Fill( &x[0], weight );
- 
-    xNent[0] = jet1_ystar;  
-    xNent[1] = jet2_ystar;
-    xNent[2] = jet1_pt ;
-    xNent[3] = hn->GetAxis(3)->GetBinCenter( pt2Bin );
-    hnNent->Fill( &xNent[0], 1 );
+    hn    ->Fill( &x[0], weight );
+    hnNent->Fill( &x[0], 1 );
     
     // for pp, fill twice. once for each side since
     // it is symmetric in pp. For pPb, continue
@@ -286,11 +273,8 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
     
     x[0] = -jet1_ystar;  
     x[1] = -jet2_ystar;
-    hn->Fill( &x[0], weight );
-    
-    xNent[0] = -jet1_ystar;  
-    xNent[1] = -jet2_ystar;    
-    hnNent->Fill( &xNent[0], 1 );
+    hn    ->Fill( &x[0], weight );
+    hnNent->Fill( &x[0], 1 );    
   }
   
   return deltaPhi;
@@ -389,7 +373,12 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
   vDphiWidths.resize( vLabel.size() );
   vDphiNent  .resize( vLabel.size() );
   for( uint iG = 0; iG < vLabel.size(); iG++ ){      
-    THnSparse* hn = vhn[iG];
+    THnSparse* hn     = vhn[iG];
+    THnSparse* hnNent = vhnNent[iG];
+
+    // truncate dphi bins with not many contents.
+    // anaTool->TruncateHistoBins( hn, hnNent );
+
     std::string label = vLabel[iG];
 
     // in data only draw for all
@@ -469,7 +458,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	  vDphiWidths[iG][ ystar1Bin - 1 ][ ystar2Bin - 1 ].push_back( hDphiWidths );
 	  vDphiWidthsTemp.push_back( hDphiWidths );
 
-	  TH1* hNent = vhnNent[iG]->Projection( 3 );
+	  TH1* hNent = hnNent->Projection( 3 );
 	  hNent->SetName
 	    ( Form( "h_dPhiNent%s_%s_%s_%s_%s",
 		    mcType.c_str(),
@@ -538,7 +527,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	      drawTool->DrawRightLatex( 0.88, 0.82, type1 );
 	      drawTool->DrawAtlasInternalMCRight( 0, 0, type2 );
 	    }
-	    
+
+	    // now fit
 	    TF1* fit = anaTool->FitDphi( hDphi );
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
@@ -806,7 +796,7 @@ void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
   std::string sPng = ss.str() + ".png";
 
   c.SaveAs( sPdf.c_str() );
-  // c.SaveAs( sPng.c_str() );
+  c.SaveAs( sPng.c_str() );
 }
 
 void DiJetAnalysis::SaveAsROOT( const TCanvas& c,

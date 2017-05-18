@@ -175,10 +175,10 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   PlotSpectra( m_vHjznEtaSpectReco , "spect", sReco );
   PlotSpectra( m_vHjznEtaSpectTruth, "spect", sTruth );
 
-  PlotDeltaPhi( m_vHjznDphiReco , m_vHjznDphiRecoNent , m_vJznLabel, sReco , m_mcTypeLabel );
-  PlotDeltaPhi( m_vHjznDphiTruth, m_vHjznDphiTruthNent, m_vJznLabel, sTruth, m_mcTypeLabel );
+  // PlotDeltaPhi( m_vHjznDphiReco , m_vHjznDphiRecoNent , m_vJznLabel, sReco , m_mcTypeLabel );
+  // PlotDeltaPhi( m_vHjznDphiTruth, m_vHjznDphiTruthNent, m_vJznLabel, sTruth, m_mcTypeLabel );
   
-  // PlotVsEtaPt( m_vHjznRecoTruthRpt , m_vHjznRecoTruthRptNent, "recoTruthRpt");
+  PlotVsEtaPt( m_vHjznRecoTruthRpt , m_vHjznRecoTruthRptNent, "recoTruthRpt");
   // PlotVsEtaPt( m_vHjznRecoTruthDeta, m_vHjznRecoTruthDetaNent, "recoTruthDeta");
   // PlotVsEtaPt( m_vHjznRecoTruthDphi, m_vHjznRecoTruthDphiNent, "recoTruthDphi");
 
@@ -324,7 +324,6 @@ void DiJetAnalysisMC::SetupHistograms(){
 
      // -------- dPhi --------
     m_nDphiDim     = m_nDphiBins.size();
-    m_nDphiNentDim = m_nDphiDim - 1;
      
     THnSparse* hnReco =
       new THnSparseD( Form("hn_dPhiReco_jz%d", jzn ), "",
@@ -340,8 +339,8 @@ void DiJetAnalysisMC::SetupHistograms(){
 
     THnSparse* hnRecoNent =
       new THnSparseD( Form("hn_dPhiRecoNent_jz%d", jzn ), "",
-		      m_nDphiNentDim, &m_nDphiNentBins[0],
-		      &m_dPhiNentMin[0], &m_dPhiNentMax[0]);
+		      m_nDphiDim, &m_nDphiBins[0],
+		      &m_dPhiMin[0], &m_dPhiMax[0]);
     hnRecoNent->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnRecoNent->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
     hnRecoNent->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
@@ -364,8 +363,8 @@ void DiJetAnalysisMC::SetupHistograms(){
 
     THnSparse* hnTruthNent =
       new THnSparseD( Form("hn_dPhiTruthNent_jz%d", jzn ), "",
-		      m_nDphiNentDim, &m_nDphiNentBins[0],
-		      &m_dPhiNentMin[0], &m_dPhiNentMax[0]);
+		      m_nDphiDim, &m_nDphiBins[0],
+		      &m_dPhiMin[0], &m_dPhiMax[0]);
     hnTruthNent->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnTruthNent->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
     hnTruthNent->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
@@ -1171,6 +1170,7 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	    drawTool->DrawAtlasInternal();
 
 	    c.SaveAs( Form("output/all/mc/h_dPhi_%s_%s.pdf", hTag.c_str(), jznLabel.c_str() ));
+	    c.SaveAs( Form("output/all/mc/h_dPhi_%s_%s.png", hTag.c_str(), jznLabel.c_str() ));
 	    SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ));
 
 	    delete h_reco;
@@ -1310,12 +1310,12 @@ void DiJetAnalysisMC::GetTypeTitle( const std::string& type,
 				    std::string& yTitleSigma ){ 
   if( !type.compare("recoTruthRpt") ){
     yTitleMean  = "#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth}";
-    yTitleSigma = "#sigma" + yTitleMean;
+    yTitleSigma = "(#sigma" + yTitleMean + ")";
   } else if( !type.compare("recoTruthDeta") ){
     yTitleMean  = "#Delta#eta";
-    yTitleSigma = "#sigma" + yTitleMean;
+    yTitleSigma = "(#sigma" + yTitleMean + ")";
   } else if( !type.compare("recoTruthDphi") ){
     yTitleMean  = "#Delta#phi";
-    yTitleSigma = "#sigma" + yTitleMean;
+    yTitleSigma = "(#sigma" + yTitleMean + ")";
   } 
 }

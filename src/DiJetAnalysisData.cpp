@@ -80,7 +80,7 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   PlotEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpect, "eff" );
 
   std::vector< std::string > all{ m_allName };
-  PlotDeltaPhi( m_vHtriggerDphi, m_vHtriggerDphiNent, m_vTriggers );
+  // PlotDeltaPhi( m_vHtriggerDphi, m_vHtriggerDphiNent, m_vTriggers );
   
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -115,6 +115,11 @@ void DiJetAnalysisData::LoadTriggers(){
 	      << std::endl;      
   }
 
+  m_vTriggersPrescale =  anaTool->vectoriseD
+    ( GetConfig()->GetValue
+      ( Form("triggersPrescale.%s",triggerMenu.c_str()), "" ), " ");
+  
+
   m_vTriggersTholdPt =  anaTool->vectoriseD
     ( GetConfig()->GetValue
       ( Form("triggersThold.%s",triggerMenu.c_str()), "" ), " ");
@@ -135,6 +140,9 @@ void DiJetAnalysisData::LoadTriggers(){
     ( GetConfig()->GetValue
       ( Form("triggersEtaMax.%s",triggerMenu.c_str()), "" ), " ");
 
+  // total number of real triggers.
+  // later, we add All to vTriggers
+  // only for reading and writing purposes
   m_nTriggers = m_vTriggers.size();
   
   // find MB trigger, and lowest pp trigger
@@ -161,11 +169,16 @@ void DiJetAnalysisData::LoadTriggers(){
       m_vTriggersEffPtLow[ m_lowestCentTriggerI ] -
       m_vTriggersEffPtHigh[ m_mbTriggerI ];
   }
+
+  std::cout << "Ref Trigger for " << m_vTriggers[9] << " is "
+	    << m_vTriggers[ m_vTriggersRefIndex[9] ] << std::endl; 
+
   
   // This is an artificial one. We never loop over m_vTriggers
   // unless reading / writing histos.
   // So its ok to put this at the end, just as long as it gets
   // included in the writing/reading of histos.
+  // this does not alter m_nTriggers
   m_vTriggers.push_back("All");
 }
 
@@ -215,8 +228,7 @@ void DiJetAnalysisData::SetupHistograms(){
 
     // -------- dPhi --------
     m_nDphiDim     = m_nDphiBins.size();
-    m_nDphiNentDim = m_nDphiDim - 1;
-
+   
     THnSparse* hn =
       new THnSparseD( Form("hn_dPhi_%s", trigger.c_str() ), "",
 		      m_nDphiDim, &m_nDphiBins[0],
@@ -231,8 +243,8 @@ void DiJetAnalysisData::SetupHistograms(){
     
     THnSparse* hnNent =
       new THnSparseD( Form("hn_dPhiNent_%s", trigger.c_str() ), "",
-		      m_nDphiNentDim, &m_nDphiNentBins[0],
-		      &m_dPhiNentMin[0], &m_dPhiNentMax[0] );
+		      m_nDphiDim, &m_nDphiBins[0],
+		      &m_dPhiMin[0], &m_dPhiMax[0] );
     hnNent->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnNent->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
     hnNent->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
@@ -260,7 +272,6 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   std::vector< bool >* p_v_isCleanJet = &v_isCleanJet;
 
   std::vector< bool  > vTriggerFired;
-  std::vector< float > vTriggerPrescale;
 
   // because vector bool doesnt return lvalue
   std::map< int, bool > mTriggerFired; 
@@ -280,13 +291,10 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   m_tree->SetBranchAddress( "v_isCleanJet", &p_v_isCleanJet );
 
   vTriggerFired.resize   ( m_nTriggers );
-  vTriggerPrescale.resize( m_nTriggers );
 
   for( uint iG = 0; iG < m_nTriggers; iG++ ){
     m_tree->SetBranchAddress
       ( Form("passed_%s", m_vTriggers[iG].c_str() ), &mTriggerFired[iG] );
-    m_tree->SetBranchAddress
-      ( Form("prescale_%s", m_vTriggers[iG].c_str() ),&vTriggerPrescale[iG] );
   }
 
   m_tree->SetBranchAddress( "runNumber", &runNumber );  
@@ -350,7 +358,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	    IsInTriggerRange( jet2, iG ) )
 	  { AnalyzeDeltaPhi
 	      ( m_hAllDphi, m_hAllDphiNent,
-		vR_jets, vTriggerPrescale[iG]); }
+		vR_jets, m_vTriggersPrescale[iG]); }
       }
       
       // loop over jets 
@@ -382,7 +390,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	// for the trigger fired
 	if( !IsInTriggerRange( jet, iG ) ){ continue; };
 	
-	m_hAllEtaSpect->Fill( jetEtaAdj, jetPt, vTriggerPrescale[iG] );
+	m_hAllEtaSpect->Fill( jetEtaAdj, jetPt, m_vTriggersPrescale[iG] );
 	mTrigJetsForward[iG]++;
       } // end loop over jets
       mTrigPassed[iG]++;
@@ -480,9 +488,38 @@ void DiJetAnalysisData::AnalyzeEff( std::vector< TLorentzVector >& vTrig_jets,
     if( tJetFwd && tJetCent )
       { break; } 
   }    
+
+  // a 60 GeV jet should be seen for a 40 GeV trigger (emulatd)
+  // requirement for haveing jet which should
+  // be on trigger plateu of emulated trigger.
+  bool haveJet = false;
+  for( auto jet : vR_jets ){
+    if( jet.Pt()/1000. > 60 ){ haveJet = true; break; }
+  }
+  // requirement for emulated trigger not fired
+  bool dontHaveTjet = true;
+  for( auto& jet : vTrig_jets ){
+    if( jet.Pt()/1000. > 40 ){ dontHaveTjet = false; break; }
+  }
+  // check if reference trigger for HLT_j40_blah exists
+  bool haveRefTrigger = false;
+  if( mTriggerFired[ m_vTriggersRefIndex[9] ] )
+    { haveRefTrigger = true; }
+  
+  if( haveJet && dontHaveTjet && haveRefTrigger ){
+    std::cout << "\n\n\nc-" << tJetCent << " f-" << tJetFwd << std::endl;
+    std::cout << "\nReco Jets -- " << std::endl;
+    for( auto& jet : vR_jets ){
+      std::cout << jet.Pt()/1000. << " " << jet.Eta() << std::endl;
+    }
+    std::cout << "\nTrig Jets -- " << std::endl;
+    for( auto& jet : vTrig_jets ){
+      std::cout << jet.Pt()/1000. << " " << jet.Eta() << std::endl;
+    }
+  }
   
   // didnt find a trigger jet in either eta range
-  if( !tJetFwd && !tJetCent ) return;
+  if( !tJetFwd && !tJetCent ){ return; }
 
   // now fill histos for triggers that could have passed
   for( uint iG = 0; iG < m_nTriggers; iG++ ){
@@ -495,9 +532,9 @@ void DiJetAnalysisData::AnalyzeEff( std::vector< TLorentzVector >& vTrig_jets,
     // and in eta range for that trigger
     // if we had both a forward and central jet for example, and
     // a forward and central trigger, this will pass on two occasions
-    if( tJetFwd  ? !TriggerJetAboveThreshold( *tJetFwd , iG ) : true &&
-	tJetCent ? !TriggerJetAboveThreshold( *tJetCent, iG ) : true )
-      {	continue; }
+    if( ( tJetFwd  ? !TriggerJetAboveThreshold( *tJetFwd , iG ) : true ) &&
+	( tJetCent ? !TriggerJetAboveThreshold( *tJetCent, iG ) : true ) )
+      { continue; }
 
     // fill jets for that trigger
     for( auto& jet : vR_jets ){
