@@ -46,10 +46,10 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   m_ptMapMax    = 100;
   
   // -------- spect --------
-  m_nPtSpectBins = 40; 
   m_ptSpectMin   = 10;
   m_ptSpectMax   = 110;
-
+  m_nPtSpectBins = ( m_ptSpectMax - m_ptSpectMin ) / 2 ; 
+  
   // ---- JES/PRes/Etc ----- 
   m_etaForwardMin = -constants::FETAMAX;
   m_etaForwardMax = -constants::FYSTARMIN;
@@ -57,8 +57,8 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   
   // ---- forward eta binning ---
   boost::assign::push_back( m_varFwdEtaBinning )
-    ( m_etaForwardMin )( -3.9 )( -3.5 )
-    ( -constants::FETAMIN )( -3.1 )( m_etaForwardMax );
+    ( -constants::FETAMAX )( -3.9 )( -3.5 )
+    ( -constants::FETAMIN )( -3.1 )( -constants::FYSTARMIN );
   m_nVarFwdEtaBins = m_varFwdEtaBinning.size() - 1;
   
   // -------- eff ---------
@@ -136,21 +136,10 @@ void DiJetAnalysis::Initialize(){
   m_labelOut = m_is_pPb ? "pPb" : "pp" ;
   m_labelOut = m_isData ? m_labelOut + "_data" : m_labelOut + "_mc";
   
-  // Check if the directories exist.
-  // If they don't, create them
-  auto checkWriteDir = []( const char* c_dirOut ){
-    boost::filesystem::path dir( c_dirOut );  
-    if(!(boost::filesystem::exists(dir))){
-      std::cout<< c_dirOut << " doesn't Exist."<<std::endl;
-      if (boost::filesystem::create_directory(dir))
-	std::cout << "....Successfully Created !" << std::endl;
-    }
-  };
-
   m_dirOut   = "output";
-  checkWriteDir( m_dirOut.c_str() );
+  anaTool->CheckWriteDir( m_dirOut.c_str() );
   m_dirOut   += "/output_" + m_labelOut;
-  checkWriteDir( m_dirOut.c_str() );
+  anaTool->CheckWriteDir( m_dirOut.c_str() );
 
   m_rootFname = m_dirOut + "/myOut_" + m_labelOut + ".root";
   
@@ -203,54 +192,62 @@ void DiJetAnalysis::SaveOutputsFromTree(){
 //       Analysis
 //---------------------------
 
-bool DiJetAnalysis::GetDiJets( const std::vector <TLorentzVector>& v_jets, 
-			       TLorentzVector& jet1,
-			       TLorentzVector& jet2 ){
-  bool haveFirstJet   = false;
-  bool haveSecondJet  = false;
-
-  for( const auto& jet : v_jets ){
-    if( !haveFirstJet && jet.Pt() > 0 ){
-      jet1 = jet;
-      haveFirstJet  = true;
-    } else if( haveFirstJet && jet.Pt() > 0 ){
-      jet2 = jet;
-      haveSecondJet = true;
-      break;
-    }
+bool DiJetAnalysis::GetFwdCentJets( const std::vector< TLorentzVector>& v_jets, 
+				    const TLorentzVector*& jetFwd,
+				    const TLorentzVector*& jetCent ){
+  for( auto& jet : v_jets ){
+    if( !jetFwd && IsForwardDetector( jet.Eta() ) && jet.Pt() > 0 )
+      { jetFwd  = &jet; }
+    else if( !jetCent && IsCentralDetector( jet.Eta() ) && jet.Pt() > 0 )
+      { jetCent = &jet; }
+    if( jetFwd && jetCent )
+      { break; }
   }
+  // check we have at least one jet 
+  if( !jetFwd && !jetCent ){ return false; }
+  return true;
+}
 
-  // make sure we have two jets
-  if( !haveFirstJet || !haveSecondJet )
-    { return false; }
+bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets, 
+			       const TLorentzVector*& jet1,
+			       const TLorentzVector*& jet2 ){
+  for( auto& jet : v_jets ){
+    if( !jet1 && jet.Pt() > 0 )
+      { jet1 = &jet; } 
+    else if( jet1 && jet.Pt() > 0 )
+      { jet2 = &jet;
+	break; }
+  }
   
-  // met all cuts, have two jets
+  // make sure we have two jets
+  if( !jet1 || !jet2 )
+    { return false; }
   return true;
 }
 
 double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
-				       const std::vector <TLorentzVector>& v_jets,
+				       const std::vector< TLorentzVector >& v_jets,
 				       double weightIn,
 				       WeightFcn weightFcn ){
-  TLorentzVector jet1, jet2;
+  const TLorentzVector* jet1 = NULL; const TLorentzVector* jet2 = NULL;
 
   if( !GetDiJets( v_jets, jet1, jet2 ) )
     { return -1; }
-  
-  double jet1_pt    = jet1.Pt()/1000.;
-  double jet1_phi   = jet1.Phi();
-  double jet1_eta   = jet1.Eta();
-  double jet1_ystar = GetYstar( jet1 );
 
-  double jet2_pt    = jet2.Pt()/1000.;
-  double jet2_phi   = jet2.Phi();
-  double jet2_ystar = GetYstar( jet2 );
+  double jet1_pt    = jet1->Pt()/1000.;
+  double jet1_phi   = jet1->Phi();
+  double jet1_eta   = jet1->Eta();
+  double jet1_ystar = GetYstar( *jet1 );
+
+  double jet2_pt    = jet2->Pt()/1000.;
+  double jet2_phi   = jet2->Phi();
+  double jet2_ystar = GetYstar( *jet2 );
   
   double deltaPhi = anaTool->DeltaPhi( jet2_phi, jet1_phi );
   
   std::vector< double > x;
   x.resize( hn->GetNdimensions() );
-
+    
   // wont change unless we have a weightFcn
   // and then it varys depending on eta, phi, pt.
   double weight = weightFcn ? weightFcn( jet1_eta, jet1_phi, jet1_pt ) : weightIn;   
@@ -280,7 +277,8 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
   return deltaPhi;
 }
 
-void DiJetAnalysis::ApplyIsolation( double Rmin, std::vector<TLorentzVector>& v_jets ){
+void DiJetAnalysis::ApplyIsolation( std::vector<TLorentzVector>& v_jets,
+				    double Rmin ){
   
   std::vector<bool> isIsolated;
 
@@ -313,34 +311,41 @@ void DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets,
 //---------------------------
 //       Tools
 //---------------------------
+void  DiJetAnalysis::FillHistoWithJets( const TLorentzVector* jet1,
+					const TLorentzVector* jet2,
+					TH2* h, double weight ){
+  if( jet1 )
+    { h->Fill( AdjustEtaForPP( jet1->Eta() ), jet1->Pt()/1000., weight ); }
+  if( jet2 )
+    { h->Fill( AdjustEtaForPP( jet2->Eta() ), jet2->Pt()/1000., weight ); }
+} 
 
 double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
   if( m_is_pPb ) return jetEta;
   return jetEta  > 0 ? -1 * jetEta  : jetEta;
 }
 
-double DiJetAnalysis::GetYstar( TLorentzVector& jet )
+double DiJetAnalysis::GetYstar( const TLorentzVector& jet )
 { return m_is_pPb ? jet.Rapidity() + constants::BETAZ : jet.Rapidity(); }
 
 bool DiJetAnalysis::IsForwardDetector( const double& eta ){
-  double etaAdj = AdjustEtaForPP( eta );
-  if( etaAdj > -constants::FETAMAX && etaAdj < -constants::FETAMIN )
-    { return true; }
+  if( std::abs( eta ) < constants::FETAMAX &&
+      std::abs( eta ) > constants::FETAMIN ){ return true; }
   return false;
 }
 
 bool DiJetAnalysis::IsCentralDetector( const double& eta )
-{ return ( TMath::Abs(eta) < constants::CETAMAX ); }
+{ return ( std::abs(eta) < constants::CETAMAX ); }
 
 // These two are just used to see which histograms to draw
 // for delta Phi plots, side doesnt really matter
 // because can have forward backward correlation.
 bool DiJetAnalysis::IsForwardYstar( const double& ystar )
-{ return ( TMath::Abs(ystar - constants::BETAZ) < constants::FETAMAX && 
-	       TMath::Abs(ystar - constants::BETAZ) > constants::FETAMIN ); }
+{ return ( std::abs(ystar - constants::BETAZ) < constants::FETAMAX && 
+	       std::abs(ystar - constants::BETAZ) > constants::FETAMIN ); }
 
 bool DiJetAnalysis::IsCentralYstar( const double& ystar )
-{ return ( TMath::Abs(ystar - constants::BETAZ) < constants::CETAMAX ); }
+{ return ( std::abs(ystar - constants::BETAZ) < constants::CETAMAX ); }
 
 //---------------------------
 //       Plotting
@@ -427,7 +432,15 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	TLegend leg(0.68, 0.64, 0.99, 0.77);
 	int style = 0;
 	styleTool->SetLegendStyle( &leg );
-	
+
+	// general name for final canvas. This is used in
+	// naming other histograms also.
+	std::string cName =
+	  Form( "dPhi%s_%s_%s",
+		mcType.c_str(),
+		anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+		anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str() ); 
+	  
 	// ---- loop over pt1 ----
 	for( int pt1Bin = 1; pt1Bin <= nPt1Bins; pt1Bin++ ){
 	  // set ranges
@@ -445,10 +458,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	  }
 	  
 	  TH1* hDphiWidths = new TH1D
-	    ( Form( "h_dPhi%s_%s_%s_%s_%s",
-		    mcType.c_str(),
-		    anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-		    anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
+	    ( Form( "h_%s_%s_%s",
+		    cName.c_str(),
 		    anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		    label.c_str() ),
 	      "", m_nVarPtBins, 0, 1 );
@@ -491,16 +502,14 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    // Take projection onto the dPhi axis
 	    TH1* hDphi = hn->Projection( 4 );
 	    hDphi->SetName
-	      ( Form( "h_dPhi%s_%s_%s_%s_%s_%s",
-		      mcType.c_str(),
-		      anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-		      anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
+	      ( Form( "h_%s_%s_%s_%s",
+		      cName.c_str(),
 		      anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		      anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str(),
 		      label.c_str() ) );
 	    styleTool->SetHStyle( hDphi, 0 );
 	    vDphi.push_back( hDphi );
-	    
+
 	    TCanvas c( "c", hDphi->GetName(), 800, 600 );
 
 	    hDphi->Draw();
@@ -537,9 +546,6 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	    SaveAsROOT( c, hDphi->GetName() );
 
-	    std::cout << fit->GetName() << std::endl;
-	    std::cout << fit->GetChisquare()/fit->GetNDF() << std::endl;
-	    
 	    if( fit->GetParameter(1) < 0 || fit->GetParameter(1) > 1 )
 	      { continue; }
 
@@ -580,21 +586,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	}
 
 	SaveAsAll
-	  ( cWidths, Form( "dPhi%s_%s_%s_%s",
-			   mcType.c_str(),
-			   anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-			   anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
-			   label.c_str() ) );
-	
-	// dont draw jzn, later draw finals only
-	if( !m_isData ){ continue; }
-
-	SaveAsPdfPng
-	  ( cWidths, Form( "dPhi%s_%s_%s_%s",
-			   mcType.c_str(),
-			   anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-			   anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
-			   label.c_str() ) );
+	  ( cWidths, Form("h_%s_%s", cName.c_str(), label.c_str() ) );
       } // end loop over ystar2     
     } // end loop over ystar1
   } // end loop over iG

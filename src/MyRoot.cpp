@@ -251,6 +251,15 @@ std::string CT::AnalysisTools::GetLabel
   return ss.str();
 }
 
+// should be in miscallaneous
+void CT::AnalysisTools::CheckWriteDir( const char* c_dirOut ){
+  boost::filesystem::path dir( c_dirOut );  
+  if(!(boost::filesystem::exists(dir))){
+    std::cout<< c_dirOut << " doesn't Exist."<<std::endl;
+    if (boost::filesystem::create_directory(dir))
+      std::cout << "....Successfully Created !" << std::endl;
+  }
+}
 
 //===================================
 //          STYLE STUFF
@@ -285,36 +294,29 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
     his->SetMarkerSize(1.5);
   }
   else if(iflag == 4 ){
-    his->SetLineColor(kOrange+1);
-    his->SetLineWidth(2);
-    his->SetMarkerColor(kOrange+1);
-    his->SetMarkerStyle(29);
-    his->SetMarkerSize(1.6);
+    his->SetLineColor(kBlack);
+    his->SetMarkerColor(kBlack);
+    his->SetMarkerStyle(24);
+    his->SetMarkerSize(1.1);
   }
   else if(iflag == 5 ){
-    his->SetLineColor(kViolet);
-    his->SetMarkerColor(kViolet);
-    his->SetMarkerStyle(22);
-    his->SetMarkerSize(1.6);
-  }
-  else if(iflag == 6 ){
-    his->SetLineColor(kCyan+1);
-    his->SetMarkerColor(kCyan+1);
-    his->SetMarkerStyle(23);
-    his->SetMarkerSize(1.6);
-  }
-  else if(iflag == 7 ){
-    his->SetLineColor(46);
-    his->SetMarkerColor(46);
-    his->SetMarkerStyle(21);
-    his->SetMarkerSize(1.4);
-  }
-  else if(iflag == 8 ){
-    his->SetLineColor(kRed+3);
-    his->SetMarkerColor(kRed+3);
+    his->SetLineColor(kRed);
+    his->SetMarkerColor(kRed);
     his->SetMarkerStyle(25);
     his->SetMarkerSize(1.4);
-  } 
+  }  
+  else if(iflag == 6 ){
+    his->SetLineColor(kAzure-3);
+    his->SetMarkerColor(kAzure-3);
+    his->SetMarkerStyle(27);
+    his->SetMarkerSize(1.8);
+  }
+  else if(iflag == 7 ){
+    his->SetLineColor(kSpring-6);
+    his->SetMarkerColor(kSpring-6);
+    his->SetMarkerStyle(28);
+    his->SetMarkerSize(1.5);
+  }
 }
 
 void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
@@ -346,35 +348,29 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetMarkerSize(1.5);
   }
   else if(iflag == 4 ){
-    graph->SetLineColor(kOrange+1);
-    graph->SetMarkerColor(kOrange+1);
-    graph->SetMarkerStyle(29);
-    graph->SetMarkerSize(1.6);
+    graph->SetLineColor(kBlack);
+    graph->SetMarkerColor(kBlack);
+    graph->SetMarkerStyle(24);
+    graph->SetMarkerSize(1.1);
   }
   else if(iflag == 5 ){
-    graph->SetLineColor(kViolet);
-    graph->SetMarkerColor(kViolet);
-    graph->SetMarkerStyle(22);
-    graph->SetMarkerSize(1.6);
-  }
-  else if(iflag == 6 ){
-    graph->SetLineColor(kCyan+1);
-    graph->SetMarkerColor(kCyan+1);
-    graph->SetMarkerStyle(23);
-    graph->SetMarkerSize(1.6);
-  }
-  else if(iflag == 7 ){
-    graph->SetLineColor(46);
-    graph->SetMarkerColor(46);
-    graph->SetMarkerStyle(21);
-    graph->SetMarkerSize(1.4);
-  }
-  else if(iflag == 8 ){
-    graph->SetLineColor(kRed+3);
-    graph->SetMarkerColor(kRed+3);
+    graph->SetLineColor(kRed);
+    graph->SetMarkerColor(kRed);
     graph->SetMarkerStyle(25);
     graph->SetMarkerSize(1.4);
   }  
+  else if(iflag == 6 ){
+    graph->SetLineColor(kAzure-3);
+    graph->SetMarkerColor(kAzure-3);
+    graph->SetMarkerStyle(27);
+    graph->SetMarkerSize(1.8);
+  }
+  else if(iflag == 7 ){
+    graph->SetLineColor(kSpring-6);
+    graph->SetMarkerColor(kSpring-6);
+    graph->SetMarkerStyle(28);
+    graph->SetMarkerSize(1.5);
+  }
 }
 
 void CT::StyleTools::SetHStyle( TH1* his, int iflag, double scale)

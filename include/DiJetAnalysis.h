@@ -17,6 +17,7 @@ class TH1;
 class TH2;
 class TH3;
 class TF1;
+class TGraphAsymmErrors;
 class THnSparse;
 class TLorentzVector;
 class TEnv;
@@ -57,26 +58,35 @@ class DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
-  virtual bool GetDiJets( const std::vector
-			  <TLorentzVector>&,
-			  TLorentzVector&,
-			  TLorentzVector& );
+  virtual bool GetFwdCentJets( const std::vector<TLorentzVector>&,
+			       const TLorentzVector*&,
+			       const TLorentzVector*& );
+
+
+  virtual bool GetDiJets( const std::vector<TLorentzVector>&,
+			  const TLorentzVector*&,
+			  const TLorentzVector*& );
   
   virtual double AnalyzeDeltaPhi( THnSparse*, THnSparse*,
 				  const std::vector <TLorentzVector>&,
 				  double = 1,
 				  WeightFcn = NULL );
   
-  virtual void  ApplyIsolation( double, std::vector<TLorentzVector>& );
+  virtual void  ApplyIsolation( std::vector<TLorentzVector>&,
+				double );
     
   virtual void  ApplyCleaning ( std::vector<TLorentzVector>&, 
 			        std::vector<bool>& );
   //---------------------------
   //       Tools
   //---------------------------  
+  void FillHistoWithJets( const TLorentzVector*,
+			  const TLorentzVector*,
+			  TH2*, double = 1.);
+  
   double AdjustEtaForPP( double );  
 
-  double GetYstar( TLorentzVector& );
+  double GetYstar( const TLorentzVector& );
 
   bool IsForwardDetector( const double& eta );
 
@@ -93,7 +103,6 @@ class DiJetAnalysis{
 			   std::vector< TH1*>&,
 			   std::vector< TH1*>& ){};
 
-  
   //---------------------------
   //       Plotting 
   //---------------------------

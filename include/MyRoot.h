@@ -38,7 +38,7 @@
 namespace constants{
   // FCal eta ranges
   const double FETAMIN = 3.2;
-  const double FETAMAX = 4.5;
+  const double FETAMAX = 4.9;
   // barrel range
   const double CETAMAX = 3.2;
 
@@ -65,7 +65,7 @@ namespace CT{
   //         COMMON FUNCTIONS
   //===================================
   class AnalysisTools{
-  public:    
+  public:
     bool EpsilonEqual( double a, double b );
 
     // returns dphi in range 0<dphi<2pi
@@ -105,6 +105,9 @@ namespace CT{
     std::string GetLabel( double, double,
 			const std::string& = "",
 			const std::string& = "" );
+
+    // this shuold be in miscallaneous
+    void CheckWriteDir( const char* ); 
   };
 
   //===================================

@@ -30,17 +30,22 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
-  bool IsInTriggerPtRange( double, int, double = 0);
+  bool JetInTrigPtRange  ( const TLorentzVector&, int,
+			   double = 0);
   
-  bool IsInTriggerEtaRange( double, int );
+  bool JetInTrigEtaRange ( const TLorentzVector&, int );
   
-  bool IsInTriggerRange( TLorentzVector&, int );
+  bool JetInTrigRange    ( const TLorentzVector&, int );
 
-  bool TriggerJetAboveThreshold( TLorentzVector&, int );
+  bool TrigJetAboveThold ( const TLorentzVector&, int );
+  
+  bool TrigJetInTrigRange( const TLorentzVector&, int );
   
   void AnalyzeEff( std::vector< TLorentzVector >&,
 		   std::vector< TLorentzVector >&,
 		   std::map< int, bool >&);
+
+  void CleanEfficiency( TGraphAsymmErrors*, int );
   
   //---------------------------
   //       Plot Data 
@@ -88,8 +93,11 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   // -------- spect --------
   std::vector< TH2* > m_vHtriggerEtaSpect;
-  std::vector< TH2* > m_vHtriggerEtaSpectSim;
 
+  // ----- efficiencies ----
+  std::vector< TH2* > m_vHtriggerEtaSpectSim;
+  std::vector< TH2* > m_vHtriggerEtaSpectDenom;
+  
   TH2* m_hAllEtaSpect;
   // -------- dPhi ---------
   std::vector< THnSparse* > m_vHtriggerDphi;

@@ -100,21 +100,12 @@ void DiJetAnalysisMC::Initialize(){
 
   m_nJzn = m_vJznUsed.size();  
   
-  auto checkWriteDir = []( const char* c_dirOut ){
-    boost::filesystem::path dir( c_dirOut );  
-    if(!(boost::filesystem::exists(dir))){
-      std::cout<< c_dirOut << " doesn't Exist."<<std::endl;
-      if (boost::filesystem::create_directory(dir))
-	std::cout << "....Successfully Created !" << std::endl;
-    }
-  };
-
   // Check if the directories exist.
   // If they don't, create them
   m_dirOut   = "output";
-  checkWriteDir( m_dirOut.c_str() );
+  anaTool->CheckWriteDir( m_dirOut.c_str() );
   m_dirOut   += "/output_" + m_labelOut;
-  checkWriteDir( m_dirOut.c_str() );
+  anaTool->CheckWriteDir( m_dirOut.c_str() );
 
   m_rootFname = m_dirOut + "/myOut_" + m_labelOut + ".root";
   
@@ -415,7 +406,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
       m_tree->GetEntry( m_ev );
 
       ApplyCleaning ( vR_jets, v_isCleanJet );
-      ApplyIsolation( 1.0, vR_jets );
+      ApplyIsolation( vR_jets, 1.0 );
       
       std::vector< JetPair > v_paired_jets;
       PairJets( vR_jets, vT_jets, v_paired_jets );
@@ -917,6 +908,12 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::vector< TH3* >& vJznHin,
     }
   }
 }
+/* In MC have to combine JZN samples
+ * Use the standard PlotDeltaPhi from parent class
+ * and then combine jzn samples here.
+ * Data just uses standard PlotDeltaPhi
+ * since no recombination is necassary.
+ */ 
 
 void DiJetAnalysisMC::PlotDeltaPhi(  std::vector< THnSparse* >& vhn,
 				     std::vector< THnSparse* >& vhnNent,
@@ -1041,26 +1038,20 @@ void DiJetAnalysisMC::PlotDeltaPhi(  std::vector< THnSparse* >& vhn,
 
 
 void DiJetAnalysisMC::PlotDphiTogether(){
-
   // Check if the directories exist.
   // If they don't, create them
-  auto checkWriteDir = []( const char* dirOut ){
-    boost::filesystem::path dir( dirOut );  
-    if(!(boost::filesystem::exists(dir))){
-      std::cout<< dirOut << " doesn't Exist."<<std::endl;
-      if (boost::filesystem::create_directory(dir))
-	std::cout << "....Successfully Created !" << std::endl;
-    }
-  };
-
   std::string outDir = "output";
-  checkWriteDir( outDir.c_str() );
+  anaTool->CheckWriteDir( outDir.c_str() );
   outDir += "/all";
-  checkWriteDir( outDir.c_str() );
+  anaTool->CheckWriteDir( outDir.c_str() );
   outDir += "/mc";
-  checkWriteDir( outDir.c_str() );
-  
-  std::string particles = m_is_pPb ? "pPb" : "pp";
+  anaTool->CheckWriteDir( outDir.c_str() );
+ 
+  TCanvas* c_reco = NULL; TCanvas* c_truth = NULL;
+  TH1*     h_reco = NULL; TH1*     h_truth = NULL;
+  TF1*     f_reco = NULL; TF1*     f_truth = NULL;
+
+  std::string hName_reco, hName_truth, hTag;
   
   TFile* fIn  = TFile::Open( Form("output/output_%s/c_myOut_%s.root",
 				  m_labelOut.c_str(), m_labelOut.c_str() ) );
@@ -1075,12 +1066,12 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	for( uint pt1Bin = 0; pt1Bin < m_nVarPtBins; pt1Bin++ ){
 	  for( uint pt2Bin = 0; pt2Bin < m_nVarPtBins; pt2Bin++ ){
 	  
-	    double ystar1Low = m_varYstarBinningA[ ystar1Bin ];
-	    double ystar1Up  = m_varYstarBinningA[ ystar1Bin + 1 ];
+	    double ystar1Low    = m_varYstarBinningA[ ystar1Bin ];
+	    double ystar1Up     = m_varYstarBinningA[ ystar1Bin + 1 ];
 	    double ystar1Center = ystar1Low + 0.5 * ( ystar1Up - ystar1Low );
 	  
-	    double ystar2Low = m_varYstarBinningB[ ystar2Bin ];
-	    double ystar2Up  = m_varYstarBinningB[ ystar2Bin + 1 ];
+	    double ystar2Low    = m_varYstarBinningB[ ystar2Bin ];
+	    double ystar2Up     = m_varYstarBinningB[ ystar2Bin + 1 ];
 	    double ystar2Center = ystar2Low + 0.5 * ( ystar2Up - ystar2Low );
 
 	    double pt1Low  = m_varPtBinning[ pt1Bin ];
@@ -1101,38 +1092,30 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 		   anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		   anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str() );
 
-	    std::string hName_reco =
-	      Form("h_dPhi_reco_%s_%s", hTag.c_str(), jznLabel.c_str() );
-	    std::string hName_truth =
-	      Form("h_dPhi_truth_%s_%s", hTag.c_str(), jznLabel.c_str() );
+	    hName_reco  = Form("h_dPhi_reco_%s_%s", hTag.c_str() , jznLabel.c_str() );
+	    hName_truth = Form("h_dPhi_truth_%s_%s", hTag.c_str(), jznLabel.c_str() );
 
 	    std::cout << ( Form("c_%s_%s", hName_reco.c_str(), m_labelOut.c_str())) << std::endl; 
 	    
-	    TCanvas* c_reco =
-	      static_cast<TCanvas*>
+	    c_reco  = static_cast<TCanvas*>
 	      ( fIn->Get( Form("c_%s_%s", hName_reco.c_str(), m_labelOut.c_str())) );
-	    TCanvas* c_truth  =
-	      static_cast<TCanvas*>
+	    c_truth = static_cast<TCanvas*>
 	      ( fIn->Get( Form("c_%s_%s", hName_truth.c_str(), m_labelOut.c_str())));
-
-	    TH1* h_reco =
-	      static_cast<TH1D*>( c_reco->GetPrimitive( hName_reco.c_str() ) );
+	   
+	    h_reco  = static_cast<TH1D*>( c_reco->GetPrimitive( hName_reco.c_str() ) );
 	    styleTool->SetHStyle( h_reco, 0 );
-	    TH1* h_truth  =
-	      static_cast<TH1D*>( c_truth->GetPrimitive( hName_truth.c_str() ) );
+	    h_truth = static_cast<TH1D*>( c_truth->GetPrimitive( hName_truth.c_str() ) );
 	    styleTool->SetHStyle( h_truth, 1 );
-	  
-	    TF1* f_reco =
-	      static_cast<TF1*>( c_reco->GetPrimitive
-				 ( Form("f_%s", hName_reco.c_str())));
+	   
+	    f_reco  = static_cast<TF1*>
+	      ( c_reco->GetPrimitive( Form("f_%s", hName_reco.c_str())));
 	    styleTool->SetHStyle( f_reco, 0 );
 	    f_reco->SetLineColor( h_reco->GetLineColor() );
-	    TF1* f_truth  =
-	      static_cast<TF1*>( c_truth->GetPrimitive
-				 ( Form("f_%s", hName_truth.c_str())));
+	    f_truth = static_cast<TF1*>
+	      ( c_truth->GetPrimitive( Form("f_%s", hName_truth.c_str())));
 	    styleTool->SetHStyle( f_truth, 1 );
 	    f_truth->SetLineColor( h_truth->GetLineColor() );
-	  
+	    
 	    TCanvas c("c","c", 800, 600 );
 	    
 	    TLegend leg( 0.27, 0.41, 0.38, 0.52 );
@@ -1179,12 +1162,12 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	    delete f_truth;
 	    delete c_reco;
 	    delete c_truth;
-	  }
-	}
-      } 
-    }
-  }
-  
+	  } // end loop over p2
+	} // end loop over p1 
+      } // end loop over ystar2 
+    } // end loop over ystar1
+  } // end loop over iG
+
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
   std::cout << "......Closed  " << fOut->GetName() << std::endl;
