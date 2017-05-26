@@ -166,12 +166,12 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   PlotSpectra( m_vHjznEtaSpectReco , "spect", sReco );
   PlotSpectra( m_vHjznEtaSpectTruth, "spect", sTruth );
 
-  // PlotDeltaPhi( m_vHjznDphiReco , m_vHjznDphiRecoNent , m_vJznLabel, sReco , m_mcTypeLabel );
-  // PlotDeltaPhi( m_vHjznDphiTruth, m_vHjznDphiTruthNent, m_vJznLabel, sTruth, m_mcTypeLabel );
+  PlotDeltaPhi( m_vHjznDphiReco , m_vHjznDphiRecoNent , m_vJznLabel, sReco , m_mcTypeLabel );
+  PlotDeltaPhi( m_vHjznDphiTruth, m_vHjznDphiTruthNent, m_vJznLabel, sTruth, m_mcTypeLabel );
   
   PlotVsEtaPt( m_vHjznRecoTruthRpt , m_vHjznRecoTruthRptNent, "recoTruthRpt");
-  // PlotVsEtaPt( m_vHjznRecoTruthDeta, m_vHjznRecoTruthDetaNent, "recoTruthDeta");
-  // PlotVsEtaPt( m_vHjznRecoTruthDphi, m_vHjznRecoTruthDphiNent, "recoTruthDphi");
+  PlotVsEtaPt( m_vHjznRecoTruthDeta, m_vHjznRecoTruthDetaNent, "recoTruthDeta");
+  PlotVsEtaPt( m_vHjznRecoTruthDphi, m_vHjznRecoTruthDphiNent, "recoTruthDphi");
 
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -313,7 +313,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     AddHistogram( m_vHjznRecoTruthDphiNent.back() );
 
 
-     // -------- dPhi --------
+    // -------- dPhi --------
     m_nDphiDim     = m_nDphiBins.size();
      
     THnSparse* hnReco =
@@ -672,7 +672,7 @@ void DiJetAnalysisMC::PlotSpectra( std::vector< TH2*>& vJznSpect,
     if( std::abs(xBinCenter) < 3.2 && std::abs(xBinCenter) > 3.1 ){ continue; }
     
     TH1* hSpectFinal =
-      new TH1D( Form("h_%s_%s_%s_final",
+      new TH1D( Form("h_%s_%s_%s",
 		     type.c_str(),
 		     level.c_str(),
 		     anaTool->GetName(xBinMin, xBinMax,"Eta").c_str() ),
@@ -830,6 +830,9 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::vector< TH3* >& vJznHin,
 	// final histograms
 	if( hProj->GetEntries() < m_nMinEntriesFit ){ continue; }
 
+	if( fit->GetParError(1) > 0.25 ){ continue; }
+	if( fit->GetParError(2) > 0.03 ){ continue; }
+	
 	hMean->SetBinContent( yBin, fit->GetParameter(1) );
 	hMean->SetBinError  ( yBin, fit->GetParError (1) );
 
@@ -864,7 +867,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::vector< TH3* >& vJznHin,
 
     // build mean, sigma, project nev
     TH1* hMeanFinal = new TH1D
-      ( Form("h_%s_%s_%s_final",
+      ( Form("h_%s_%s_%s",
 	     type.c_str(),
 	     anaTool->GetName(xBinMin, xBinMax, "Eta").c_str(),
 	     sMean.c_str() ),
@@ -876,7 +879,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::vector< TH3* >& vJznHin,
     vMeansFinal.push_back( hMeanFinal );
       
     TH1* hSigmaFinal = new TH1D
-      ( Form("h_%s_%s_%s_final",
+      ( Form("h_%s_%s_%s",
 	     type.c_str(),
 	     anaTool->GetName(xBinMin, xBinMax, "Eta").c_str(),
 	     sSigma.c_str() ),
@@ -952,7 +955,11 @@ void DiJetAnalysisMC::PlotDeltaPhi(  std::vector< THnSparse* >& vhn,
       TLegend leg(0.68, 0.64, 0.99, 0.77);
       int style = 0;
       styleTool->SetLegendStyle( &leg );
-	
+
+      std::string hTag = Form( "dPhi%s_%s_%s", mcType.c_str(),
+			       anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+			       anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str() );
+      
       // ---- loop over pt1 ----
       for( int pt1Bin = 1; pt1Bin <= nPt1Bins; pt1Bin++ ){
 	double pt1Low , pt1Up;
@@ -966,10 +973,7 @@ void DiJetAnalysisMC::PlotDeltaPhi(  std::vector< THnSparse* >& vhn,
 	}
 	  
 	TH1* hDphiWidthsFinal = new TH1D
-	  ( Form( "h_dPhi%s_%s_%s_%s_final",
-		  mcType.c_str(),
-		  anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-		  anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
+	  ( Form( "h_%s_%s", hTag.c_str(),
 		  anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str() ),
 	    "", m_nVarPtBins, 0, 1 );
 	hDphiWidthsFinal->GetXaxis()->Set(m_nVarPtBins, &( varPtBinningAdj[0]) );
@@ -977,9 +981,9 @@ void DiJetAnalysisMC::PlotDeltaPhi(  std::vector< THnSparse* >& vhn,
 	hDphiWidthsFinal->GetYaxis()->SetTitle( "#Delta#phi width" );
 	vDphiWidthsFinalTemp.push_back( hDphiWidthsFinal );
 	
-	styleTool->SetHStyle
-	  ( hDphiWidthsFinal, style++ );
-	  
+	styleTool->SetHStyle( hDphiWidthsFinal, style++ );
+	hDphiWidthsFinal->SetMarkerSize( hDphiWidthsFinal->GetMarkerSize() * 1.5 );
+	
 	leg.AddEntry
 	  ( hDphiWidthsFinal, anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
 
@@ -1023,15 +1027,8 @@ void DiJetAnalysisMC::PlotDeltaPhi(  std::vector< THnSparse* >& vhn,
       
       drawTool->DrawRightLatex( 0.88, 0.82, type1 );
       drawTool->DrawAtlasInternalMCRight( 0, 0, type2 );
-      
-      // if it is mc, we continue since we
-      // need to recombine the jzn samples
-      // if( !m_isData ){ continue; }
 	
-      SaveAsAll
-	( cFinal, Form( "dPhi%s_%s_%s_final", mcType.c_str(),
-			anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-			anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str() ) );
+      SaveAsAll( cFinal, Form("h_%s", hTag.c_str() ) );
     } // end loop over ystar2
   } // end loop over ystar1
 }
@@ -1046,13 +1043,12 @@ void DiJetAnalysisMC::PlotDphiTogether(){
   anaTool->CheckWriteDir( outDir.c_str() );
   outDir += "/mc";
   anaTool->CheckWriteDir( outDir.c_str() );
- 
+
+  // for dPhi distributions
   TCanvas* c_reco = NULL; TCanvas* c_truth = NULL;
   TH1*     h_reco = NULL; TH1*     h_truth = NULL;
   TF1*     f_reco = NULL; TF1*     f_truth = NULL;
-
-  std::string hName_reco, hName_truth, hTag;
-  
+    
   TFile* fIn  = TFile::Open( Form("output/output_%s/c_myOut_%s.root",
 				  m_labelOut.c_str(), m_labelOut.c_str() ) );
   TFile* fOut = new TFile("output/all/mc/c_myOut_mc.root","recreate");
@@ -1062,26 +1058,25 @@ void DiJetAnalysisMC::PlotDphiTogether(){
     std::string jznLabel = m_vJznLabel[iG];
     
     for( uint ystar1Bin = 0; ystar1Bin < m_nVarYstarBinsA; ystar1Bin++ ){
+      double ystar1Low    = m_varYstarBinningA[ ystar1Bin ];
+      double ystar1Up     = m_varYstarBinningA[ ystar1Bin + 1 ];
+      double ystar1Center = ystar1Low + 0.5 * ( ystar1Up - ystar1Low );
+	
       for( uint ystar2Bin = 0; ystar2Bin < m_nVarYstarBinsB; ystar2Bin++ ){
+	double ystar2Low    = m_varYstarBinningB[ ystar2Bin ];
+	double ystar2Up     = m_varYstarBinningB[ ystar2Bin + 1 ];
+	double ystar2Center = ystar2Low + 0.5 * ( ystar2Up - ystar2Low );
+
+	if( !IsForwardYstar( ystar1Center ) &&
+	    !IsForwardYstar( ystar2Center ) )
+	  { continue; }
+	    
 	for( uint pt1Bin = 0; pt1Bin < m_nVarPtBins; pt1Bin++ ){
-	  for( uint pt2Bin = 0; pt2Bin < m_nVarPtBins; pt2Bin++ ){
-	  
-	    double ystar1Low    = m_varYstarBinningA[ ystar1Bin ];
-	    double ystar1Up     = m_varYstarBinningA[ ystar1Bin + 1 ];
-	    double ystar1Center = ystar1Low + 0.5 * ( ystar1Up - ystar1Low );
-	  
-	    double ystar2Low    = m_varYstarBinningB[ ystar2Bin ];
-	    double ystar2Up     = m_varYstarBinningB[ ystar2Bin + 1 ];
-	    double ystar2Center = ystar2Low + 0.5 * ( ystar2Up - ystar2Low );
+	  double pt1Low  = m_varPtBinning[ pt1Bin ];
+	  double pt1Up   = m_varPtBinning[ pt1Bin + 1 ];
 
-	    double pt1Low  = m_varPtBinning[ pt1Bin ];
-	    double pt1Up   = m_varPtBinning[ pt1Bin + 1 ];
-
+	  for( uint pt2Bin = 0; pt2Bin < m_nVarPtBins; pt2Bin++ ){	    
 	    double pt2Low  = m_varPtBinning[ pt2Bin ];
-
-	    if( !IsForwardYstar( ystar1Center ) &&
-		!IsForwardYstar( ystar2Center ) )
-	      { continue; }
 	    if( pt1Low < pt2Low  )
 	      { continue; }
 	    
@@ -1092,10 +1087,9 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 		   anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		   anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str() );
 
-	    hName_reco  = Form("h_dPhi_reco_%s_%s", hTag.c_str() , jznLabel.c_str() );
-	    hName_truth = Form("h_dPhi_truth_%s_%s", hTag.c_str(), jznLabel.c_str() );
-
-	    std::cout << ( Form("c_%s_%s", hName_reco.c_str(), m_labelOut.c_str())) << std::endl; 
+	    std::string hName_reco  = Form("h_dPhi_reco_%s_%s", hTag.c_str() , jznLabel.c_str() );
+	    std::string hName_truth = Form("h_dPhi_truth_%s_%s", hTag.c_str(), jznLabel.c_str() );
+	    std::string hName_ratio = Form("h_dPhi_ratio_%s_%s", hTag.c_str(), jznLabel.c_str() );
 	    
 	    c_reco  = static_cast<TCanvas*>
 	      ( fIn->Get( Form("c_%s_%s", hName_reco.c_str(), m_labelOut.c_str())) );
@@ -1116,17 +1110,17 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	    styleTool->SetHStyle( f_truth, 1 );
 	    f_truth->SetLineColor( h_truth->GetLineColor() );
 	    
-	    TCanvas c("c","c", 800, 600 );
-	    
+	    TCanvas c ("c" ,"c" , 800, 600 );
+      
 	    TLegend leg( 0.27, 0.41, 0.38, 0.52 );
-	    styleTool->SetLegendStyle( &leg );
-	    leg.AddEntry( h_reco, "Reco");
-	    leg.AddEntry( h_truth , "Truth");
+	    styleTool->SetLegendStyle( &leg, 0.85 );
+	    leg.AddEntry( h_reco  , "Reco"  );
+	    leg.AddEntry( h_truth , "Truth" );
 
-	    h_reco->Draw("epsame");
+	    h_reco->Draw ("epsame");
 	    h_truth->Draw("epsame");
 
-	    f_reco->Draw("same");
+	    f_reco->Draw ("same");
 	    f_truth->Draw("same");
 
 	    leg.Draw("same");
@@ -1138,24 +1132,46 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	      h_reco->SetMaximum( h_truth->GetMaximum() * 1.1 );
 	      h_truth->SetMaximum ( h_truth->GetMaximum() * 1.1 );
 	    }
+
+	    TCanvas cR("cR","cR", 800, 600 );
+
+	    /*
+	    TH1* h_R = new TH1D( hName_ratio.c_str(), "Reco/Truth;|#Delta#phi#",
+				 m_nDphiDphiBins, m_dPhiDphiMin, m_dPhiDphiMax );
+	    */
 	    
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.87,anaTool->GetYstarLabel( ystar1Low, ystar1Up,
-						   m_is_pPb , "#it{y}*_{1}" ) );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.82,anaTool->GetYstarLabel( ystar2Low, ystar2Up,
-						   m_is_pPb , "#it{y}*_{2}" ) );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up , "#it{p}_{T}^{1}" ) );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.69,anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ) );
+	    TH1* h_R = static_cast<TH1D*>( h_reco->Clone( hName_ratio.c_str() ) );
+	    styleTool->SetHStyle( h_R, 0 );
+	    h_R->SetTitle("|#Delta#phi| Reco/Truth");
+	    h_R->Divide( h_truth );
+	    h_R->Draw("ep");
+	    h_R->SetMaximum( 2 );
+	    h_R->SetMinimum( 0 );
 
-	    drawTool->DrawAtlasInternal();
+	    TLine line( m_dPhiDphiMin, 1, m_dPhiDphiMax, 1 );
+	    line.Draw();
 
-	    c.SaveAs( Form("output/all/mc/h_dPhi_%s_%s.pdf", hTag.c_str(), jznLabel.c_str() ));
-	    c.SaveAs( Form("output/all/mc/h_dPhi_%s_%s.png", hTag.c_str(), jznLabel.c_str() ));
-	    SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ));
+	    std::vector< std::string > vClabel{ "", "_ratio"};
+	    std::vector< TCanvas* > vC;
+	    vC.push_back( &c  );
+	    vC.push_back( &cR );
 
+	    for( uint iC = 0; iC < vC.size(); iC++ ){
+	      vC[iC]->cd();
+
+	      DrawTopLeftLabelsYstarPt( ystar1Low, ystar1Up, ystar2Low, ystar2Up,
+				    pt1Low, pt1Up, pt2Low, pt2Low, 0.8 );
+
+	      drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel );
+
+	      vC[iC]->SaveAs( Form("output/all/mc/h_%s_%s%s.pdf",
+			     hTag.c_str(), jznLabel.c_str(), vClabel[iC].c_str()  ));
+	      vC[iC]->SaveAs( Form("output/all/mc/h_%s_%s%s.png",
+			     hTag.c_str(), jznLabel.c_str(), vClabel[iC].c_str()  ));
+	      SaveAsROOT( *vC[iC] , Form("h_dPhi_%s%s", hTag.c_str(), vClabel[iC].c_str() ));
+	    }
+
+	    delete h_R;
 	    delete h_reco;
 	    delete h_truth;
 	    delete f_reco;
@@ -1171,7 +1187,118 @@ void DiJetAnalysisMC::PlotDphiTogether(){
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
   std::cout << "......Closed  " << fOut->GetName() << std::endl;
+
+  PlotCombinedDphiWidthsTogether();
 }
+
+void DiJetAnalysisMC::PlotCombinedDphiWidthsTogether(){
+  // for widths  
+  TCanvas* cW_reco = NULL; TCanvas* cW_truth = NULL;
+  TH1*     hW_reco = NULL; TH1*     hW_truth = NULL;
+
+  TFile* fIn  = TFile::Open( Form("output/output_%s/c_myOut_%s.root",
+				  m_labelOut.c_str(), m_labelOut.c_str() ) );
+  TFile* fOut = new TFile("output/all/mc/c_myOut_mc.root","update");
+  
+  for( uint ystar1Bin = 0; ystar1Bin < m_nVarYstarBinsA; ystar1Bin++ ){
+    double ystar1Low    = m_varYstarBinningA[ ystar1Bin ];
+    double ystar1Up     = m_varYstarBinningA[ ystar1Bin + 1 ];
+    double ystar1Center = ystar1Low + 0.5 * ( ystar1Up - ystar1Low );
+
+    for( uint ystar2Bin = 0; ystar2Bin < m_nVarYstarBinsB; ystar2Bin++ ){
+      double ystar2Low    = m_varYstarBinningB[ ystar2Bin ];
+      double ystar2Up     = m_varYstarBinningB[ ystar2Bin + 1 ];
+      double ystar2Center = ystar2Low + 0.5 * ( ystar2Up - ystar2Low );
+      
+      if( !IsForwardYstar( ystar1Center ) &&
+	  !IsForwardYstar( ystar2Center ) )
+	{ continue; }
+
+      // get widths canvases
+      std::string hTagW =
+	Form ("%s_%s",
+	      anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+	      anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str() );
+
+      std::string hNameW_reco  = Form("h_dPhi_reco_%s" , hTagW.c_str() );
+      std::string hNameW_truth = Form("h_dPhi_truth_%s", hTagW.c_str() );
+   
+      cW_reco  = static_cast<TCanvas*>
+	( fIn->Get( Form("c_%s_%s", hNameW_reco.c_str(), m_labelOut.c_str())) );
+      cW_truth = static_cast<TCanvas*>
+	 ( fIn->Get( Form("c_%s_%s", hNameW_truth.c_str(), m_labelOut.c_str())));
+    
+      // Make canvas+leg for widths
+      TCanvas cW("cW","cW", 800, 600 );
+      
+      TLegend legW( 0.63, 0.59, 0.78, 0.83 );
+      styleTool->SetLegendStyle( &legW );
+
+      int style = 0;
+      
+      for( uint pt1Bin = 0; pt1Bin < m_nVarPtBins; pt1Bin++ ){
+	double pt1Low  = m_varPtBinning[ pt1Bin ];
+	double pt1Up   = m_varPtBinning[ pt1Bin + 1 ];
+
+	// get widths histos
+	std::string hTagH =
+	  Form("%s_%s_%s",
+	       anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
+	       anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
+	       anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str() );
+	
+	std::string hNameH_reco  = Form("h_dPhi_reco_%s" , hTagH.c_str() );
+	std::string hNameH_truth = Form("h_dPhi_truth_%s", hTagH.c_str() );
+	   
+	hW_reco  = static_cast<TH1D*>( cW_reco-> GetPrimitive( hNameH_reco.c_str() ) );
+	hW_truth = static_cast<TH1D*>( cW_truth->GetPrimitive( hNameH_truth.c_str() ) );
+	styleTool->SetHStyle( hW_reco , style );
+	styleTool->SetHStyle( hW_truth, style + 5 );
+	hW_reco-> SetMarkerSize( hW_reco-> GetMarkerSize() * 1.5 );
+	hW_truth->SetMarkerSize( hW_truth->GetMarkerSize() * 1.5 );
+	style++;
+	
+	legW.AddEntry
+	  ( hW_reco , Form( "reco %s" , anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() ) );	
+	legW.AddEntry
+	  ( hW_truth, Form( "truth %s", anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() ) );	
+	
+	hW_reco->Draw("epsame");
+	hW_truth->Draw("epsame");
+
+	if( hW_reco->GetMaximum() > hW_truth->GetMaximum() ){
+	  hW_reco->SetMaximum( hW_reco->GetMaximum() * 1.1 );
+	  hW_truth->SetMaximum ( hW_reco->GetMaximum() * 1.1 );
+	} else {
+	  hW_reco->SetMaximum( hW_truth->GetMaximum() * 1.1 );
+	  hW_truth->SetMaximum ( hW_truth->GetMaximum() * 1.1 );
+	}	    	
+      } // end loop over pt1
+
+      // back to cW canvas
+      cW.cd();
+
+      legW.Draw("same");
+      
+      DrawTopLeftLabelsYstarPt( ystar1Low, ystar1Up, ystar2Low, ystar2Up,
+				0, 0, 0, 0, 0.8 );
+
+      drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel );
+      
+      //      cW.SaveAs( Form("output/all/mc/h_dPhi_%s_mc.png", hTagW.c_str() ));
+      cW.SaveAs( Form("output/all/mc/h_dPhi_%s_mc.pdf", hTagW.c_str() ));
+      SaveAsROOT( cW, Form("h_dPhi_%s", hTagW.c_str() ) );
+
+      delete  hW_reco; delete  hW_truth;
+      delete  cW_reco; delete  cW_truth;
+    } // end loop over ystar2
+  } // end loop over ystar2
+  
+  std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
+  fOut->Close();
+  std::cout << "......Closed  " << fOut->GetName() << std::endl;
+}
+
 
 void DiJetAnalysisMC::PlotEtaPhiPtMap( std::vector< TH2* >& vJznHin ){
   TCanvas c_map("c_map","c_map",800,600);
@@ -1293,12 +1420,12 @@ void DiJetAnalysisMC::GetTypeTitle( const std::string& type,
 				    std::string& yTitleSigma ){ 
   if( !type.compare("recoTruthRpt") ){
     yTitleMean  = "#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth}";
-    yTitleSigma = "(#sigma" + yTitleMean + ")";
+    yTitleSigma = "#sigma(" + yTitleMean + ")";
   } else if( !type.compare("recoTruthDeta") ){
     yTitleMean  = "#Delta#eta";
-    yTitleSigma = "(#sigma" + yTitleMean + ")";
+    yTitleSigma = "#sigma(" + yTitleMean + ")";
   } else if( !type.compare("recoTruthDphi") ){
     yTitleMean  = "#Delta#phi";
-    yTitleSigma = "(#sigma" + yTitleMean + ")";
+    yTitleSigma = "#sigma(" + yTitleMean + ")";
   } 
 }

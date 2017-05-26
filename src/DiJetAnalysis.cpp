@@ -57,35 +57,35 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   
   // ---- forward eta binning ---
   boost::assign::push_back( m_varFwdEtaBinning )
-    ( -constants::FETAMAX )( -3.9 )( -3.5 )
+    ( -constants::FYSTARMAX )( -3.9 )( -3.5 )
     ( -constants::FETAMIN )( -3.1 )( -constants::FYSTARMIN );
   m_nVarFwdEtaBins = m_varFwdEtaBinning.size() - 1;
   
   // -------- eff ---------
   m_effMin = 0.;
-  m_effMax = 1.34;
+  m_effMax = 1.4;
 
   // -------- dphi- --------
   m_nDphiDphiBins = 60;
-  m_nDphiDphiMin  = 0;
-  m_nDphiDphiMax  = constants::PI;
+  m_dPhiDphiMin  = 0;
+  m_dPhiDphiMax  = constants::PI;
 
   // --- variable eta/ystar binning ---
   // ystarB
   boost::assign::push_back( m_varYstarBinningA )
-    ( -constants::FETAMAX )( -2.7 )( -1.8 )( 0 )
-    ( 2.8 )( 3.3 )( constants::FETAMAX );
+    ( -4.0 )( -2.7 )( -1.8 )( 0 )
+    ( 1.8 )( 2.7 )( 4.0 );
   m_nVarYstarBinsA = m_varYstarBinningA.size() - 1;
 
   // ystarA
   boost::assign::push_back( m_varYstarBinningB )
-    ( -constants::FETAMAX )( -3.3 )( -2.8 )( 0 )
-    ( 2.8 )( 3.3 )( constants::FETAMAX );
+    ( -4.0 )( -2.7 )( -1.8 )( 0 )
+    ( 1.8 )( 2.7 )( 4.0 );
   m_nVarYstarBinsB = m_varYstarBinningB.size() - 1;
   
   // --- variable pt binning ---
   boost::assign::push_back( m_varPtBinning )
-    ( 20 )( 30 )(40)( 200 );
+    ( 25 )( 35 )( 45 )( 200 );
   m_nVarPtBins = m_varPtBinning.size() - 1;
 
   // --- dPhiBins ---  
@@ -95,13 +95,13 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
     ( m_nDphiDphiBins  );
     
   boost::assign::push_back( m_dPhiMin  )
-    ( 0 )( 0 )( 0 )( 0 )( m_nDphiDphiMin );
+    ( 0 )( 0 )( 0 )( 0 )( m_dPhiDphiMin );
 
   boost::assign::push_back( m_dPhiMax  )
-    ( 1 )( 1 ) ( 1 )( 1 )( m_nDphiDphiMax );
+    ( 1 )( 1 ) ( 1 )( 1 )( m_dPhiDphiMax );
     
-  m_dPhiWidthMin = 0.05;
-  m_dPhiWidthMax = 0.5;
+  m_dPhiWidthMin = 0.1;
+  m_dPhiWidthMax = 0.4;
   
   //==================== Cuts ====================
   m_nMinEntriesFit = 20;
@@ -171,6 +171,8 @@ void DiJetAnalysis::AddHistogram( THnSparse* hn ){
   hn->GetAxis(1)->SetTitle("#eta_{2}");
   hn->GetAxis(2)->SetTitle("#it{p}_{T}^{1}");
   hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
+  if( hn->GetNdimensions() == 5 )
+    { hn->GetAxis(4)->SetTitle("|#Delta#phi|"); }
 }
 
 
@@ -435,7 +437,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	// general name for final canvas. This is used in
 	// naming other histograms also.
-	std::string cName =
+	std::string hTag =
 	  Form( "dPhi%s_%s_%s",
 		mcType.c_str(),
 		anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
@@ -459,7 +461,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	  
 	  TH1* hDphiWidths = new TH1D
 	    ( Form( "h_%s_%s_%s",
-		    cName.c_str(),
+		    hTag.c_str(),
 		    anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		    label.c_str() ),
 	      "", m_nVarPtBins, 0, 1 );
@@ -479,8 +481,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 		    label.c_str() ) );
 	  vDphiNent[iG][ ystar1Bin - 1 ][ ystar2Bin - 1 ].push_back( hNent );
 	  
-	  styleTool->SetHStyle
-	    ( hDphiWidths, style++ );
+	  styleTool->SetHStyle( hDphiWidths, style++ );
+	  hDphiWidths->SetMarkerSize( hDphiWidths->GetMarkerSize() * 1.5 );
 	  
 	  leg.AddEntry
 	    ( hDphiWidths, anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() );
@@ -503,7 +505,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    TH1* hDphi = hn->Projection( 4 );
 	    hDphi->SetName
 	      ( Form( "h_%s_%s_%s_%s",
-		      cName.c_str(),
+		      hTag.c_str(),
 		      anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
 		      anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str(),
 		      label.c_str() ) );
@@ -518,18 +520,10 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->GetYaxis()->SetTitle("Normalized Count");
 	    hDphi->SetTitle("");
 	    
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.87,anaTool->GetYstarLabel( ystar1Low, ystar1Up,
-						   m_is_pPb , "#it{y}*_{1}" ) );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.82,anaTool->GetYstarLabel( ystar2Low, ystar2Up,
-						   m_is_pPb , "#it{y}*_{2}" ) );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ) );
-	    drawTool->DrawLeftLatex
-	      ( 0.13, 0.69,anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ) );
-	    drawTool->DrawLeftLatex( 0.13, 0.62, label );
-
+	    DrawTopLeftLabelsYstarPt( ystar1Low, ystar1Up, ystar2Low, ystar2Up,
+				      pt1Low, pt1Up, pt2Low, pt2Low, 0.8 );
+		  
+	    
 	    if( m_isData ){
 	      drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
 	    } else {
@@ -546,11 +540,9 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	    SaveAsROOT( c, hDphi->GetName() );
 
-	    if( fit->GetParameter(1) < 0 || fit->GetParameter(1) > 1 )
+	    if( fit->GetParameter(1) < 0 )
 	      { continue; }
 
-	    if( fit->GetParError(1) > 0.3 ){ continue; }
-	    
 	    // Now, put results on histogram
 	    hDphiWidths->SetBinContent( pt2Bin, fit->GetParameter(1) );
 	    hDphiWidths->SetBinError  ( pt2Bin, fit->GetParError (1) );	    
@@ -586,7 +578,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	}
 
 	SaveAsAll
-	  ( cWidths, Form("h_%s_%s", cName.c_str(), label.c_str() ) );
+	  ( cWidths, Form("h_%s_%s", hTag.c_str(), label.c_str() ) );
       } // end loop over ystar2     
     } // end loop over ystar1
   } // end loop over iG
@@ -603,8 +595,8 @@ void DiJetAnalysis::DrawCanvas( std::vector< TH1* >& vHIN,
 				int spacing ){
   TCanvas c("c","c",800,600);
   
-  TLegend leg(0.68, 0.64, 0.99, 0.77);
-  styleTool->SetLegendStyle( &leg );
+  TLegend leg(0.64, 0.61, 0.99, 0.82);
+  styleTool->SetLegendStyle( &leg, 0.8 );
   leg.SetFillStyle(0);
 
   int style = 0;
@@ -613,9 +605,7 @@ void DiJetAnalysis::DrawCanvas( std::vector< TH1* >& vHIN,
   // plot every single bin 
   // plot every n on canvas
   int dX = vHIN.size()/spacing; // plot every n
-  for( unsigned int xRange = 0;
-       xRange < vHIN.size();
-       xRange += dX){
+  for( uint xRange = 2; xRange < vHIN.size(); xRange += dX){
     styleTool->SetHStyle( vHIN[ xRange], style++ );
     leg.AddEntry( vHIN[ xRange ], vHIN[ xRange ]->GetTitle() );
     vHIN[ xRange ]->SetTitle("");
@@ -648,8 +638,8 @@ void DiJetAnalysis::DrawCanvas( std::vector< TH1* >& vHIN,
   TCanvas c("c","c",800,600);
   if( logY ) { c.SetLogy(); }
   
-  TLegend leg(0.68, 0.64, 0.99, 0.77);
-  styleTool->SetLegendStyle( &leg );
+  TLegend leg(0.64, 0.63, 0.99, 0.8);
+  styleTool->SetLegendStyle( &leg, 0.7 );
   leg.SetFillStyle(0);
 
   double max = -1;
@@ -716,6 +706,29 @@ void DiJetAnalysis::DrawCanvas( std::vector< TGraphAsymmErrors* >& vGIN,
   SaveAsAll( c, type ); 
 }
 
+//==== Latex Labels for Pt Angle ====
+
+void DiJetAnalysis::DrawTopLeftLabelsYstarPt( double ystar1Low, double ystar1Up,
+					      double ystar2Low, double ystar2Up,
+					      double pt1Low   , double pt1Up,
+					      double pt2Low   , double pt2Up,
+					      double scale ){
+  drawTool->DrawLeftLatex
+    ( 0.13, 0.86,anaTool->GetYstarLabel( ystar1Low, ystar1Up,
+					 m_is_pPb , "#it{y}*_{1}" ), scale );
+  drawTool->DrawLeftLatex
+    ( 0.13, 0.79,anaTool->GetYstarLabel( ystar2Low, ystar2Up,
+					 m_is_pPb , "#it{y}*_{2}" ), scale );
+
+  // for now, modify later to be more dynamic
+  // to the variables present 
+  if( !( pt1Low && pt1Up && pt2Low && pt2Up ) ){ return ; }
+  
+  drawTool->DrawLeftLatex
+    ( 0.13, 0.73, anaTool->GetLabel( pt1Low, pt1Up , "#it{p}_{T}^{1}" ), scale );
+  drawTool->DrawLeftLatex
+    ( 0.13, 0.66, anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ), scale );
+}
 
 //===== MinMax and line drawing =====
 

@@ -102,7 +102,7 @@ class DiJetAnalysis{
   virtual void CombineJZN( TH1*,
 			   std::vector< TH1*>&,
 			   std::vector< TH1*>& ){};
-
+  
   //---------------------------
   //       Plotting 
   //---------------------------
@@ -142,6 +142,13 @@ class DiJetAnalysis{
 		   const std::string& = "",
 		   const std::string& = "",
 		   double = 0, double = 0);
+
+  //==== Latex Labels for Pt Angle ====
+  void DrawTopLeftLabelsYstarPt( double = 0, double = 0,
+				 double = 0, double = 0,
+				 double = 0, double = 0,
+				 double = 0, double = 0,
+				 double = CT::StyleTools::lSS );
   
   //===== MinMax and line drawing =====
   void SetMinMax( TH1*,
@@ -261,8 +268,8 @@ class DiJetAnalysis{
   uint   m_nDphiNentDim;
   
   int    m_nDphiDphiBins;
-  double m_nDphiDphiMin;
-  double m_nDphiDphiMax;
+  double m_dPhiDphiMin;
+  double m_dPhiDphiMax;
 
   std::vector< int >    m_nDphiBins;
   std::vector< double > m_dPhiMin;

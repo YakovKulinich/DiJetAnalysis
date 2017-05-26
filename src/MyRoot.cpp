@@ -117,19 +117,16 @@ std::vector<double> CT::AnalysisTools::vectoriseD
 TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
   auto expoFunction = [&]( double* x, double* par){
     return par[0]*std::exp((x[0]-constants::PI)/par[1])+par[2];
-    /*return par[0]*std::exp((x[0]-constants::PI)/par[1])+par[2]
-      + par[3]*exp(-0.5*std::pow( ((x[0]-par[4])/par[5]) , 2 ));*/
   };
   
   TF1* fit = new TF1( Form("f_%s", hProj->GetName()),
 		      expoFunction, 0, constants::PI, 3);
-
+  
   if( !hProj->GetEntries() )
     { return fit; }
 
   fit->SetParameters( 0.3, 0.3, 0 );
-  //  fit->SetParameters( 1, 1, 0, 0.1, constants::PI, 0.01 );
-
+  
   hProj->Fit( fit->GetName(), "NQR", "" , 0, constants::PI);
 
   return fit;
@@ -169,6 +166,18 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
   hProj->Fit( fit->GetName(), "NQR", "", fitMin, fitMax );
 
   return fit;
+}
+
+bool CT::AnalysisTools::GetRatioFromFits( TH1* hR, TF1* f1, TF1* f2 ){
+  /*
+  // histos need to have same binning...
+  for( int xBin = 1; xBin <= h1->GetNbinsX(); xBin++ ){
+    double binCenter = hR->GetBinCenter( xBin );
+    double ratio = f1->Eval( binCenter )/f2->Eval( binCenter );
+    hR->SetBinContent( xBin, ratio );
+  }
+  */
+  return true;
 }
 
 void CT::AnalysisTools::GetBinRange( TAxis* a,
@@ -294,29 +303,44 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
     his->SetMarkerSize(1.5);
   }
   else if(iflag == 4 ){
+    his->SetLineColor(kOrange+1);
+    his->SetLineWidth(2);
+    his->SetMarkerColor(kOrange+1);
+    his->SetMarkerStyle(29);
+    his->SetMarkerSize(1.6);
+  }
+  else if(iflag == 5 ){
     his->SetLineColor(kBlack);
     his->SetMarkerColor(kBlack);
     his->SetMarkerStyle(24);
-    his->SetMarkerSize(1.1);
+    his->SetMarkerSize(1.3);
   }
-  else if(iflag == 5 ){
+  else if(iflag == 6 ){
     his->SetLineColor(kRed);
     his->SetMarkerColor(kRed);
     his->SetMarkerStyle(25);
-    his->SetMarkerSize(1.4);
+    his->SetMarkerSize(1.2);
   }  
-  else if(iflag == 6 ){
+  else if(iflag == 7 ){
     his->SetLineColor(kAzure-3);
     his->SetMarkerColor(kAzure-3);
     his->SetMarkerStyle(27);
-    his->SetMarkerSize(1.8);
+    his->SetMarkerSize(1.9);
   }
-  else if(iflag == 7 ){
+  else if(iflag == 8 ){
     his->SetLineColor(kSpring-6);
     his->SetMarkerColor(kSpring-6);
     his->SetMarkerStyle(28);
-    his->SetMarkerSize(1.5);
+    his->SetMarkerSize(1.6);
   }
+  else if(iflag == 9 ){
+    his->SetLineColor(kOrange+1);
+    his->SetLineWidth(2);
+    his->SetMarkerColor(kOrange+1);
+    his->SetMarkerStyle(30);
+    his->SetMarkerSize(1.7);
+  }
+
 }
 
 void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
@@ -383,7 +407,7 @@ void CT::StyleTools::SetHStyle( TH1* his, int iflag, double scale)
 
   his->SetTitleFont( 43, "xyz");
   his->SetTitleSize( (int)(32 * scale), "xyz");
-  his->SetTitleOffset(1.2, "xyz");
+  his->SetTitleOffset(1.1, "xyz");
   
   his->SetLabelFont( 43, "xyz");
   his->SetLabelSize( (int)(30 * scale), "xyz");
@@ -397,14 +421,14 @@ void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, double scale)
 
   graph->GetXaxis()->SetTitleFont( 43 );
   graph->GetXaxis()->SetTitleSize( (int)(32 * scale) );  
-  graph->GetXaxis()->SetTitleOffset(1.2);
+  graph->GetXaxis()->SetTitleOffset(1.1);
 
   graph->GetXaxis()->SetLabelFont( 43 );
   graph->GetXaxis()->SetLabelSize( (int)(30 * scale) );
 
   graph->GetYaxis()->SetTitleFont( 43 );
   graph->GetYaxis()->SetTitleSize( (int)(32 * scale) );
-  graph->GetYaxis()->SetTitleOffset(1.2);
+  graph->GetYaxis()->SetTitleOffset(1.1);
 
   graph->GetYaxis()->SetLabelFont( 43 );
   graph->GetYaxis()->SetLabelSize( (int)(30 * scale) );
@@ -419,14 +443,14 @@ void CT::StyleTools::SetHStyle( TF1* funct, int iflag, double scale)
   
   funct->GetXaxis()->SetTitleFont( 43 );
   funct->GetXaxis()->SetTitleSize( (int)(32 * scale) );  
-  funct->GetXaxis()->SetTitleOffset(1.2);
+  funct->GetXaxis()->SetTitleOffset(1.1);
 
   funct->GetXaxis()->SetLabelFont( 43 );
   funct->GetXaxis()->SetLabelSize( (int)(30 * scale) );
 
   funct->GetYaxis()->SetTitleFont( 43 );
   funct->GetYaxis()->SetTitleSize( (int)(32 * scale) );
-  funct->GetYaxis()->SetTitleOffset(1.2);
+  funct->GetYaxis()->SetTitleOffset(1.1);
 
   funct->GetYaxis()->SetLabelFont( 43 );
   funct->GetYaxis()->SetLabelSize( (int)(30 * scale) );
@@ -460,7 +484,7 @@ void CT::StyleTools::SetLegendStyle(TLegend * legend, double scale)
 
 const double CT::StyleTools::lSS = 0.60;
 
-const double CT::StyleTools::hSS = 0.75;
+const double CT::StyleTools::hSS = 0.80;
 
 //===================================
 //          DRAWING STUFF

@@ -374,8 +374,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
       const TLorentzVector* jet1 = NULL; const TLorentzVector* jet2 = NULL;
       // dPhi for all triggers, matched
       if( GetDiJets( vR_jets, jet1, jet2 ) ){
-	if( JetInTrigRange( *jet1, iG ) ||
-	    JetInTrigRange( *jet2, iG ) )
+	if( JetInTrigRange( *jet1, iG ) )
 	  { AnalyzeDeltaPhi
 	      ( m_hAllDphi, m_hAllDphiNent,
 		vR_jets, m_vTriggersPrescale[iG]); }
@@ -409,7 +408,12 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	
 	// check if the jet is in appropriate range
 	// for the trigger fired
-	if( !JetInTrigRange( jet, iG ) ){ continue; };
+	if( !JetInTrigRange( jet, iG ) ){/*
+	  std::cout << m_vTriggers[iG] << std::endl;
+	  std::cout << jet.Eta() << " " << jet.Pt()/1000. << std::endl;
+	  std::cout << JetInTrigPtRange( jet, iG, 0) << std::endl;
+	  std::cout << JetInTrigEtaRange( jet, iG ) << std::endl;*/
+	  continue; };
 	
 	m_hAllEtaSpect->Fill( jetEtaAdj, jetPt, m_vTriggersPrescale[iG] );
 	mTrigJetsForward[iG]++;
@@ -424,11 +428,11 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 
   for( unsigned iG = 0; iG < m_vTriggers.size(); iG++ ){
     std::cout <<  m_vTriggers[iG]
-	      << "  has: " << mTrigJetsForward[iG]
-	      << "  FWD jets, " << mTrigJetsTotal[iG]
-	      << "  TOTAL jets, with " << mTrigPassed[iG]
-	      << "  evPassed and "<< mTrigFailed[iG]
-	      << "  failed. Total = "
+	      << " has: " << mTrigJetsForward[iG]
+	      << " FWD jets,  " << mTrigJetsTotal[iG]
+	      << " TOTAL jets, with  " << mTrigPassed[iG]
+	      << " evPassed and  "<< mTrigFailed[iG]
+	      << " failed. Total = "
 	      << mTrigPassed[iG] + mTrigFailed[iG]
 	      << std::endl;
   }
@@ -441,7 +445,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 //---------------------------
 bool DiJetAnalysisData::JetInTrigPtRange( const TLorentzVector& jet, int iG,
 					  double ptHighExtra ){  
-  double jetPt = jet.Pt();
+  double jetPt = jet.Pt() / 1000.;
   if( jetPt > m_vTriggersEffPtLow[iG] &&
       ( jetPt < m_vTriggersEffPtHigh[iG] + ptHighExtra ||
 	m_vTriggersEffPtHigh[iG] < 0 ) )
@@ -662,20 +666,22 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
   //------------------------------------------------
   double lX0, lY0, lX1, lY1;
   
-  if( m_is_pPb ){ lX0 = 0.45; lY0 = 0.54; lX1 = 0.76; lY1 = 0.67; }
-  else          { lX0 = 0.56; lY0 = 0.54; lX1 = 0.86; lY1 = 0.67; }
+  if( m_is_pPb ){ lX0 = 0.70; lY0 = 0.54; lX1 = 0.85; lY1 = 0.71; }
+  else          { lX0 = 0.20; lY0 = 0.23; lX1 = 0.47; lY1 = 0.40; }
   
   for( uint iG = 0; iG < m_nTriggers + 1; iG++ ){
     std::string trigger = m_vTriggers[iG];
 
+    if( trigger.compare( m_allName ) ){ continue; };
+    
     std::string cName  = trigger;
     std::string cLabel = trigger;
 
     TCanvas c( "c", cLabel.c_str(), 800, 600 );
     c.SetLogy();
     
-    TLegend leg( 0.7, lY0, lX1, lY1 );
-    styleTool->SetLegendStyle( &leg  );
+    TLegend leg( lX0, lY0, lX1, lY1 );
+    styleTool->SetLegendStyle( &leg, 0.65 );
 
     int style = 0;
     for( int iX = 0; iX < nXbins; iX++ ){
@@ -730,7 +736,7 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
 
     // for pPb, dont draw at anything above -3.2
     if( m_is_pPb && etaCenter > -constants::FETAMIN ){ continue; }
-    
+     
     std::string cName  = anaTool->GetName( etaMin, etaMax, "Eta" );
     std::string cLabel = anaTool->GetEtaLabel( etaMin, etaMax, m_is_pPb );
     
@@ -743,7 +749,7 @@ void DiJetAnalysisData::PlotSpectra( std::vector< TH2* >& vTrigSpect,
     int style = 1;
     for( uint iG = 0; iG < m_nTriggers + 1; iG++ ){
       std::string trigger = m_vTriggers[iG];
-
+      
       // for pp, dont draw central triggers below -3.2
       // or forward triggers above -3.2
       // for mb, and total draw everything
@@ -785,7 +791,7 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
   double lX0, lY0, lX1, lY1;
 
   if( m_is_pPb ){ lX0 = 0.13; lY0 = 0.75; lX1 = 0.39; lY1 = 0.87; }
-  else          { lX0 = 0.13; lY0 = 0.71; lX1 = 0.39; lY1 = 0.89; }
+  else          { lX0 = 0.13; lY0 = 0.68; lX1 = 0.39; lY1 = 0.89; }
   
   // us m_hAllEtaSpect because its always there
   double xMin = m_hAllEtaSpect->GetYaxis()->GetXmin() - 10;
@@ -1019,11 +1025,11 @@ void DiJetAnalysisData::PlotDphiTogether(){
   TCanvas* c_pPb = NULL; TCanvas* c_pp = NULL;
   TH1*     h_pPb = NULL; TH1*     h_pp = NULL;
   TF1*     f_pPb = NULL; TF1*     f_pp = NULL;
-
+ 
   // for widths  
   TCanvas* cW_pPb = NULL; TCanvas* cW_pp = NULL;
   TH1*     hW_pPb = NULL; TH1*     hW_pp = NULL;
-  
+ 
   std::string trigger_pPb = m_allName;
   std::string trigger_pp  = m_allName;
 
@@ -1061,8 +1067,8 @@ void DiJetAnalysisData::PlotDphiTogether(){
     
       // Make canvas+leg for widths
       TCanvas cW("cW","cW", 800, 600 );
-	    
-      TLegend legW( 0.67, 0.68, 0.78, 0.87 );
+
+      TLegend legW( 0.63, 0.59, 0.78, 0.83 );
       styleTool->SetLegendStyle( &legW );
 
       int style = 0;
@@ -1088,13 +1094,16 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	hW_pPb = static_cast<TH1D*>( cW_pPb->GetPrimitive( hNameH_pPb.c_str() ) );
 	hW_pp  = static_cast<TH1D*>( cW_pp ->GetPrimitive( hNameH_pp. c_str() ) );
 	styleTool->SetHStyle( hW_pPb, style );
-	styleTool->SetHStyle( hW_pp , style + 4 );
+	styleTool->SetHStyle( hW_pp , style + 5 );
+	hW_pPb->SetMarkerSize( hW_pPb->GetMarkerSize() * 1.5 );
+	hW_pp-> SetMarkerSize( hW_pp-> GetMarkerSize() * 1.5 );
+	
 	style++;
 	
 	legW.AddEntry
 	  ( hW_pPb, Form( "p+Pb %s", anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() ) );	
 	legW.AddEntry
-	  ( hW_pp , Form( "  pp %s" , anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() ) );	
+	  ( hW_pp , Form( "pp %s" , anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() ) );	
 	
 	hW_pPb->Draw("epsame");
 	hW_pp->Draw("epsame");
@@ -1145,7 +1154,7 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	  TCanvas c("c","c", 800, 600 );
 	    
 	  TLegend leg( 0.27, 0.41, 0.38, 0.52 );
-	  styleTool->SetLegendStyle( &leg );
+	  styleTool->SetLegendStyle( &leg , 0.85 );
 	  leg.AddEntry( h_pPb, "p+Pb");
 	  leg.AddEntry( h_pp , "pp");
 
@@ -1165,20 +1174,14 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	    h_pp->SetMaximum ( h_pp->GetMaximum() * 1.1 );
 	  }
 	    
-	  drawTool->DrawLeftLatex
-	    ( 0.13, 0.87,anaTool->GetYstarLabel( ystar1Low, ystar1Up,
-						 m_is_pPb , "#it{y}*_{1}" ) );
-	  drawTool->DrawLeftLatex
-	    ( 0.13, 0.82,anaTool->GetYstarLabel( ystar2Low, ystar2Up,
-						 m_is_pPb , "#it{y}*_{1}" ) );
-	  drawTool->DrawLeftLatex
-	    ( 0.13, 0.76,anaTool->GetLabel( pt1Low, pt1Up , "#it{p}_{T}^{1}" ) );
-	  drawTool->DrawLeftLatex
-	    ( 0.13, 0.69,anaTool->GetLabel( pt2Low, pt2Low, "#it{p}_{T}^{2}" ) );
+	  DrawTopLeftLabelsYstarPt( ystar1Low, ystar1Up, ystar2Low, ystar2Up,
+				    pt1Low, pt1Up, pt2Low, pt2Low, 0.8 );
 
+	  drawTool->DrawRightLatex( 0.88, 0.87, "Data", 0.8 );	  
 	  drawTool->DrawAtlasInternal();
 
-	  // c.SaveAs( Form("output/all/data/h_dPhi_%s.png", hTag.c_str() ));
+	  // c.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTag.c_str() ));
+	  c.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTag.c_str() ));
 	  SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ) );
 
 	  delete  h_pPb; delete  h_pp;
@@ -1192,14 +1195,14 @@ void DiJetAnalysisData::PlotDphiTogether(){
 
       legW.Draw("same");
       
-      drawTool->DrawLeftLatex
-	( 0.13, 0.87,anaTool->GetYstarLabel( ystar1Low, ystar1Up,
-					     m_is_pPb , "#it{y}*_{1}" ) );
-      drawTool->DrawLeftLatex
-	( 0.13, 0.82,anaTool->GetYstarLabel( ystar2Low, ystar2Up,
-					     m_is_pPb , "#it{y}*_{1}" ) );
+      DrawTopLeftLabelsYstarPt( ystar1Low, ystar1Up, ystar2Low, ystar2Up,
+				0, 0, 0, 0, 0.8 );
 
-      cW.SaveAs( Form("output/all/data/h_dPhi_%s.png", hTagW.c_str() ));
+      drawTool->DrawRightLatex( 0.88, 0.87, "Data", 0.8 );     
+      drawTool->DrawAtlasInternal();
+
+      // cW.SaveAs( Form("output/all/data/h_dPhi_%s_data.png", hTagW.c_str() ));
+      cW.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTagW.c_str() ));
       SaveAsROOT( cW, Form("h_dPhi_%s", hTagW.c_str() ) );
 
       delete  hW_pPb; delete  hW_pp;

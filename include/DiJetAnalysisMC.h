@@ -53,6 +53,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		     const std::string& = "" );
 
   void PlotDphiTogether();
+
+  void PlotCombinedDphiWidthsTogether();
   
   void PlotEtaPhiPtMap( std::vector< TH2* >& );
   
