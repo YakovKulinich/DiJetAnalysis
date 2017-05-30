@@ -2,6 +2,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/assign.hpp>
 
+#include <TVirtualFitter.h>
+
 #include "MyRoot.h"
 
 const int pPbLumi2016 = 437; // ub
@@ -127,7 +129,7 @@ TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
 
   fit->SetParameters( 0.3, 0.3, 0 );
   
-  hProj->Fit( fit->GetName(), "NQR", "" , 0, constants::PI);
+  hProj->Fit( fit->GetName(), "Q", "" , 0, constants::PI);
 
   return fit;
 }
@@ -149,7 +151,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
   if( hProj->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
     { return fit; }
   
-  hProj->Fit( fit->GetName(), "NQR", "", fitMin, fitMax );
+  hProj->Fit( fit->GetName(), "Q", "", fitMin, fitMax );
 
   // fit second time with better parameters
   mean   = fit->GetParameter(1);
@@ -163,21 +165,9 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
   
   fit->SetRange( fitMin, fitMax );
   
-  hProj->Fit( fit->GetName(), "NQR", "", fitMin, fitMax );
+  hProj->Fit( fit->GetName(), "Q", "", fitMin, fitMax );
 
   return fit;
-}
-
-bool CT::AnalysisTools::GetRatioFromFits( TH1* hR, TF1* f1, TF1* f2 ){
-  /*
-  // histos need to have same binning...
-  for( int xBin = 1; xBin <= h1->GetNbinsX(); xBin++ ){
-    double binCenter = hR->GetBinCenter( xBin );
-    double ratio = f1->Eval( binCenter )/f2->Eval( binCenter );
-    hR->SetBinContent( xBin, ratio );
-  }
-  */
-  return true;
 }
 
 void CT::AnalysisTools::GetBinRange( TAxis* a,

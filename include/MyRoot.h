@@ -94,8 +94,6 @@ namespace CT{
 
     TF1* FitDphi( TH1* hProj, double = 0, double = 0 );
 
-    bool GetRatioFromFits( TH1*, TF1*, TF1* );
-    
     void GetBinRange( TAxis*, int, int, double&, double& );
 
     std::string GetName( double, double, const std::string& );

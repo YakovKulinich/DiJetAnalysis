@@ -1134,20 +1134,28 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	    }
 
 	    TCanvas cR("cR","cR", 800, 600 );
-
-	    /*
-	    TH1* h_R = new TH1D( hName_ratio.c_str(), "Reco/Truth;|#Delta#phi#",
-				 m_nDphiDphiBins, m_dPhiDphiMin, m_dPhiDphiMax );
-	    */
 	    
-	    TH1* h_R = static_cast<TH1D*>( h_reco->Clone( hName_ratio.c_str() ) );
-	    styleTool->SetHStyle( h_R, 0 );
-	    h_R->SetTitle("|#Delta#phi| Reco/Truth");
-	    h_R->Divide( h_truth );
-	    h_R->Draw("ep");
-	    h_R->SetMaximum( 2 );
-	    h_R->SetMinimum( 0 );
+	    TH1* h_Rtemp = static_cast<TH1D*>
+	      ( fIn->Get( Form("%s_CI", hName_reco.c_str() ) ) );
+	    TH1* h_Denom = static_cast<TH1D*>
+	      ( fIn->Get( Form("%s_CI", hName_truth.c_str() ) ) );
 
+	    h_Rtemp->Divide( h_Denom );
+
+	    TH1* h_R = new TH1D( hName_ratio.c_str(), "",
+				 m_nDphiDphiBins, m_dPhiDphiMin, m_dPhiDphiMax );
+	    styleTool->SetHStyle( h_R, 0 );
+	    h_R->Add( h_Rtemp );
+	    
+	    h_R->SetStats(kFALSE);
+	    h_R->SetFillColor(46);
+	    h_R->SetName( hName_ratio.c_str() );
+	    h_R->GetYaxis()->SetTitle("|#Delta#phi| Reco/Truth");
+	    h_R->GetXaxis()->SetTitle("|#Delta#phi|");
+	    h_R->Draw("e2p");
+	    h_R->SetMaximum( 2.5 );
+	    h_R->SetMinimum( 0.5 );
+	    
 	    TLine line( m_dPhiDphiMin, 1, m_dPhiDphiMax, 1 );
 	    line.Draw();
 
@@ -1166,16 +1174,18 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 
 	      vC[iC]->SaveAs( Form("output/all/mc/h_%s_%s%s.pdf",
 			     hTag.c_str(), jznLabel.c_str(), vClabel[iC].c_str()  ));
-	      vC[iC]->SaveAs( Form("output/all/mc/h_%s_%s%s.png",
-			     hTag.c_str(), jznLabel.c_str(), vClabel[iC].c_str()  ));
+	      //vC[iC]->SaveAs( Form("output/all/mc/h_%s_%s%s.png",
+	      //		     hTag.c_str(), jznLabel.c_str(), vClabel[iC].c_str()  ));
 	      SaveAsROOT( *vC[iC] , Form("h_dPhi_%s%s", hTag.c_str(), vClabel[iC].c_str() ));
 	    }
 
 	    delete h_R;
-	    delete h_reco;
-	    delete h_truth;
+	    delete h_Rtemp;
+	    delete h_Denom;
 	    delete f_reco;
 	    delete f_truth;
+	    delete h_reco;
+	    delete h_truth;
 	    delete c_reco;
 	    delete c_truth;
 	  } // end loop over p2

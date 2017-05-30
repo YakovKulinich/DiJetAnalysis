@@ -10,6 +10,7 @@
 #include <TH3.h>
 #include <TF1.h>
 #include <THnSparse.h>
+#include <TVirtualFitter.h>
 
 #include <cmath>
 #include <iostream>
@@ -85,7 +86,7 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   
   // --- variable pt binning ---
   boost::assign::push_back( m_varPtBinning )
-    ( 25 )( 35 )( 45 )( 200 );
+    ( 25 )( 35 )( 45 )( 90 );
   m_nVarPtBins = m_varPtBinning.size() - 1;
 
   // --- dPhiBins ---  
@@ -535,6 +536,14 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    TF1* fit = anaTool->FitDphi( hDphi );
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
+
+	    // save the confidence intervals
+	    // this is fit results + errors as histo.
+	    TH1* hDphiCI = static_cast<TH1D*>
+	      ( hDphi->Clone( Form("%s_CI", hDphi->GetName() ) ) );
+	    
+	    (TVirtualFitter::GetFitter())->GetConfidenceIntervals(hDphiCI);
+	    hDphiCI->Write();
 	    
 	    fit->Draw("same");
 
