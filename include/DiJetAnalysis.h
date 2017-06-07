@@ -24,8 +24,10 @@ class TEnv;
 class TFile;
 class TTree;
 
+class DeltaPhiProj;
+
 typedef double (*WeightFcn)( double, double, double );
-typedef std::vector<std::vector<std::vector<std::vector<TH1*>>>> fourDTH1vector;
+typedef std::vector<std::vector<std::vector<std::vector<TH1*>>>> FourDTH1vector;
 
 class DiJetAnalysis{
  public:
@@ -72,10 +74,10 @@ class DiJetAnalysis{
 				  double = 1,
 				  WeightFcn = NULL );
   
-  virtual void  ApplyIsolation( std::vector<TLorentzVector>&,
+  virtual bool  ApplyIsolation( std::vector<TLorentzVector>&,
 				double );
     
-  virtual void  ApplyCleaning ( std::vector<TLorentzVector>&, 
+  virtual bool  ApplyCleaning ( std::vector<TLorentzVector>&, 
 			        std::vector<bool>& );
   //---------------------------
   //       Tools
@@ -112,8 +114,8 @@ class DiJetAnalysis{
   
   virtual void PlotDeltaPhi( std::vector<THnSparse*>&,
 			     std::vector<THnSparse*>&,
-			     fourDTH1vector&,
-			     fourDTH1vector&,
+			     FourDTH1vector&,
+			     FourDTH1vector&,
 			     const std::vector< std::string >&,
 			     const std::string& = "" ,
 			     const std::string& = "" );
@@ -142,13 +144,6 @@ class DiJetAnalysis{
 		   const std::string& = "",
 		   const std::string& = "",
 		   double = 0, double = 0);
-
-  //==== Latex Labels for Pt Angle ====
-  void DrawTopLeftLabelsYstarPt( double = 0, double = 0,
-				 double = 0, double = 0,
-				 double = 0, double = 0,
-				 double = 0, double = 0,
-				 double = CT::StyleTools::lSS );
   
   //===== MinMax and line drawing =====
   void SetMinMax( TH1*,
@@ -197,6 +192,8 @@ class DiJetAnalysis{
   std::string m_labelOut;
   std::string m_dirOut;
   std::string m_rootFname;
+
+  DeltaPhiProj* m_dPP;
   // -------- eventCounter --------
   int m_ev;
   

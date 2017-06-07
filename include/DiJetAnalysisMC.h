@@ -3,7 +3,6 @@
 
 #include "DiJetAnalysis.h"
 
-class JetPair;
 class TLegend;
 
 class DiJetAnalysisMC : public DiJetAnalysis{
@@ -26,7 +25,14 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   void SetupHistograms();
 
-  void ProcessEvents( int, int );  
+  void ProcessEvents( int, int );
+
+  //---------------------------
+  //       Analysis
+  //---------------------------
+  void AnalyzeScaleResolution( const std::vector< TLorentzVector >&,
+			       const std::vector< TLorentzVector >&,
+			       const int );
   
   //---------------------------
   //       Plot Data 
@@ -63,7 +69,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------  
   void PairJets( std::vector< TLorentzVector >&,
 		 std::vector< TLorentzVector >&,
-		 std::vector< JetPair >& );
+		 std::vector< TLorentzVector >&,
+		 std::vector< TLorentzVector >& );
+		 
 
   void CombineJZN( TH1*,
 		   std::vector< TH1*>& );

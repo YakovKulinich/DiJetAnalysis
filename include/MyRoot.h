@@ -30,6 +30,7 @@
 #include <string>
 #include <sstream>
 
+class DeltaPhiProj;
 
 //===================================
 //         CONSTANTS
@@ -69,12 +70,14 @@ namespace CT{
     bool EpsilonEqual( double a, double b );
 
     // returns dphi in range 0<dphi<2pi
-    double DPhiFC( double phi1, double phi2 );
+    double DPhiFC( const TLorentzVector& jet1,
+		   const TLorentzVector& jet2 );
 
-    double DeltaPhi( double phi1, double phi2 );
+    double DeltaPhi( const TLorentzVector& jet1,
+		     const TLorentzVector& jet2 );
 
-    double DeltaR(  const TLorentzVector& jet1,
-		    const TLorentzVector& jet2 );
+    double DeltaR( const TLorentzVector& jet1,
+		   const TLorentzVector& jet2 );
 
     static bool sortByDecendingPt
       ( const TLorentzVector& jet1,
@@ -98,13 +101,16 @@ namespace CT{
 
     std::string GetName( double, double, const std::string& );
 
-    std::string GetEtaLabel( double, double, bool = false );
+    static std::string GetEtaLabel  ( double, double,
+				      bool = false );
 
-    std::string GetYstarLabel( double, double, bool = false, const std::string = "#it{y}*" );
+    static std::string GetYstarLabel( double, double,
+				      const std::string = "#it{y}*",
+				      bool = false );
 
-    std::string GetLabel( double, double,
-			const std::string& = "",
-			const std::string& = "" );
+    static std::string GetLabel( double, double,
+				 const std::string& = "",
+				 const std::string& = "" );
 
     // this shuold be in miscallaneous
     void CheckWriteDir( const char* ); 
@@ -160,6 +166,14 @@ namespace CT{
     void DrawAtlasInternalMCLeft   ( double x0, double y0,
 				     const std::string& mcType,
 				     double scale = StyleTools::lSS );
+
+    void DrawTopLeftLabels( DeltaPhiProj*, 
+			    double = 0, double = 0,
+			    double = 0, double = 0,
+			    double = 0, double = 0,
+			    double = 0, double = 0,
+			    double = CT::StyleTools::lSS );
+
   };
 }
 

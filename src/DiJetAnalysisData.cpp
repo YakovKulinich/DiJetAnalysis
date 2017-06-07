@@ -22,6 +22,7 @@
 #include "MyRoot.h"
 
 #include "DiJetAnalysisData.h"
+#include "DeltaPhiProj.h"
 
 DiJetAnalysisData::DiJetAnalysisData() : DiJetAnalysisData( true, true )
 {}
@@ -79,8 +80,7 @@ void DiJetAnalysisData::ProcessPlotHistos(){
 
   PlotEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, "eff" );
 
-  std::vector< std::string > all{ m_allName };
-  PlotDeltaPhi( m_vHtriggerDphi, m_vHtriggerDphiNent, m_vTriggers );
+  PlotDeltaPhi(  m_vHtriggerDphi, m_vHtriggerDphiNent, m_vTriggers );
   
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -329,9 +329,6 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   // event loop
   for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
     m_tree->GetEntry( m_ev );
-   
-    ApplyCleaning ( vR_jets, v_isCleanJet );
-    ApplyIsolation( vR_jets, 1.0 );
 
     if( anaTool->DoPrint(m_ev) ) {
       std::cout << "\nEvent : " << m_ev << "    runN : " << runNumber
@@ -339,10 +336,12 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 		<< "    and : " << vTrig_jets.size() << " trig jets" 
 		<< std::endl; 
     }
-    
-    std::sort( vR_jets.begin(), vR_jets.end(),
-	       anaTool->sortByDecendingPt );
 
+    ApplyCleaning ( vR_jets, v_isCleanJet );
+    ApplyIsolation( vR_jets, 1.0 );
+    
+    std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
+    
     // some runs and lbn are bad
     // for efficiency plots
     bool goodRunLBN = true;
@@ -365,28 +364,30 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	mTrigFailed[iG]++;
 	continue;	
       }
-
+      
+      /*
       // dPhi for trigger without matching
       AnalyzeDeltaPhi
 	( m_vHtriggerDphi[iG], m_vHtriggerDphiNent[iG],
 	  vR_jets, 1 );
-
+      */ 
       const TLorentzVector* jet1 = NULL; const TLorentzVector* jet2 = NULL;
       // dPhi for all triggers, matched
       if( GetDiJets( vR_jets, jet1, jet2 ) ){
-	if( JetInTrigRange( *jet1, iG ) )
-	  { AnalyzeDeltaPhi
+	if( JetInTrigRange( *jet1, iG ) ) {
+	    AnalyzeDeltaPhi
 	      ( m_hAllDphi, m_hAllDphiNent,
-		vR_jets, m_vTriggersPrescale[iG]); }
+		vR_jets, m_vTriggersPrescale[iG]);
+	    AnalyzeDeltaPhi
+	      ( m_vHtriggerDphi[iG], m_vHtriggerDphiNent[iG],
+		vR_jets, 1 );
+	  }
       }
   
       // loop over jets 
       for( auto& jet : vR_jets ){
 	// cleaned jets have px, py, pz set to 0
 	if( jet.Pt() == 0 ) continue;
-
-	if( TrigJetAboveThold( jet, iG ) )
-	  { mTrigJetsTotal[iG] ++; }
 	
 	// ETA-PHI
 	double jetEta = jet.Eta();
@@ -408,34 +409,15 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	
 	// check if the jet is in appropriate range
 	// for the trigger fired
-	if( !JetInTrigRange( jet, iG ) ){/*
-	  std::cout << m_vTriggers[iG] << std::endl;
-	  std::cout << jet.Eta() << " " << jet.Pt()/1000. << std::endl;
-	  std::cout << JetInTrigPtRange( jet, iG, 0) << std::endl;
-	  std::cout << JetInTrigEtaRange( jet, iG ) << std::endl;*/
-	  continue; };
+	if( !JetInTrigRange( jet, iG ) ){ continue; };
 	
 	m_hAllEtaSpect->Fill( jetEtaAdj, jetPt, m_vTriggersPrescale[iG] );
-	mTrigJetsForward[iG]++;
       } // end loop over jets
-      mTrigPassed[iG]++;
     } // end loop over iG
-    // EFFICIENCIES
-    // only for good run and LBN
+    // EFFICIENCIES - only for good run and LBN
     if( goodRunLBN ){ AnalyzeEff( vR_jets, vTrig_jets, mTriggerFired ); }    
   } // end event loop
   std::cout << "DONE! Has: " << nEventsTotal << " events." << std::endl;
-
-  for( unsigned iG = 0; iG < m_vTriggers.size(); iG++ ){
-    std::cout <<  m_vTriggers[iG]
-	      << " has: " << mTrigJetsForward[iG]
-	      << " FWD jets,  " << mTrigJetsTotal[iG]
-	      << " TOTAL jets, with  " << mTrigPassed[iG]
-	      << " evPassed and  "<< mTrigFailed[iG]
-	      << " failed. Total = "
-	      << mTrigPassed[iG] + mTrigFailed[iG]
-	      << std::endl;
-  }
 
   m_fIn->Close();
 }
@@ -981,7 +963,7 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
     line.Draw();    
     
     drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); 
-    drawTool->DrawRightLatex( 0.88, 0.76, cLabel );
+   drawTool->DrawRightLatex( 0.88, 0.76, cLabel );
 
     SaveAsAll( c, type, cName );
   } // end loop over iX
@@ -1021,6 +1003,16 @@ void DiJetAnalysisData::PlotDphiTogether(){
   outDir += "/data";
   anaTool->CheckWriteDir( outDir.c_str() );
 
+  TAxis* axis0 = m_dPP->GetTAxis( 0 );
+  TAxis* axis1 = m_dPP->GetTAxis( 1 );
+  TAxis* axis2 = m_dPP->GetTAxis( 2 );
+  TAxis* axis3 = m_dPP->GetTAxis( 3 );
+  
+  int nAxis0Bins = axis0->GetNbins();
+  int nAxis1Bins = axis1->GetNbins();
+  int nAxis2Bins = axis2->GetNbins();
+  int nAxis3Bins = axis3->GetNbins();
+
   // for dPhi distributions
   TCanvas* c_pPb = NULL; TCanvas* c_pp = NULL;
   TH1*     h_pPb = NULL; TH1*     h_pp = NULL;
@@ -1037,25 +1029,22 @@ void DiJetAnalysisData::PlotDphiTogether(){
   TFile* fIn_pp  = TFile::Open("output/output_pp_data/c_myOut_pp_data.root");
   TFile* fOut    = new TFile  ("output/all/data/c_myOut_data.root","recreate");
   
-  for( uint ystar1Bin = 0; ystar1Bin < m_nVarYstarBinsA; ystar1Bin++ ){
-    double ystar1Low    = m_varYstarBinningA[ ystar1Bin ];
-    double ystar1Up     = m_varYstarBinningA[ ystar1Bin + 1 ];
-    double ystar1Center = ystar1Low + 0.5 * ( ystar1Up - ystar1Low );
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+     // set ranges
+    double axis0Low, axis0Up;
+    anaTool->GetBinRange
+      ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
 
-    for( uint ystar2Bin = 0; ystar2Bin < m_nVarYstarBinsB; ystar2Bin++ ){
-      double ystar2Low    = m_varYstarBinningB[ ystar2Bin ];
-      double ystar2Up     = m_varYstarBinningB[ ystar2Bin + 1 ];
-      double ystar2Center = ystar2Low + 0.5 * ( ystar2Up - ystar2Low );
-      
-      if( !IsForwardYstar( ystar1Center ) &&
-	  !IsForwardYstar( ystar2Center ) )
-	{ continue; }
+    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      double axis1Low, axis1Up;
+      anaTool->GetBinRange
+	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
       // get widths canvases
       std::string hTagW =
 	Form ("%s_%s",
-	      anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-	      anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str() );
+	      	anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
 
       std::string hNameW_pPb = Form("h_dPhi_%s_%s", hTagW.c_str(), trigger_pPb.c_str() );
       std::string hNameW_pp  = Form("h_dPhi_%s_%s", hTagW.c_str(), trigger_pp.c_str() );
@@ -1068,66 +1057,65 @@ void DiJetAnalysisData::PlotDphiTogether(){
       // Make canvas+leg for widths
       TCanvas cW("cW","cW", 800, 600 );
 
-      TLegend legW( 0.63, 0.59, 0.78, 0.83 );
+      TLegend legW( 0.33, 0.13, 0.87, 0.26 );
       styleTool->SetLegendStyle( &legW );
-
+      legW.SetNColumns(2);
+      
       int style = 0;
       
-      for( uint pt1Bin = 0; pt1Bin < m_nVarPtBins; pt1Bin++ ){
-	double pt1Low  = m_varPtBinning[ pt1Bin ];
-	double pt1Up   = m_varPtBinning[ pt1Bin + 1 ];
+      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	double axis2Low , axis2Up;
+	anaTool->GetBinRange
+	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
 
 	// switch back to cW canvas
-	// because a new one was creted in pt2 loop
+	// because a new one was creted in axis3 loop
 	cW.cd();
 	
 	// get widths histos
-	std::string hTagH =
+	std::string hTagW =
 	  Form("%s_%s_%s",
-	       anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-	       anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
-	       anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str() );
+	       anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+	       anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+	       anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() );
 	
-	std::string hNameH_pPb = Form("h_dPhi_%s_%s", hTagH.c_str(), trigger_pPb.c_str() );
-	std::string hNameH_pp  = Form("h_dPhi_%s_%s", hTagH.c_str(), trigger_pp.c_str() );
+	std::string hNameW_pPb = Form("h_dPhi_%s_%s", hTagW.c_str(), trigger_pPb.c_str() );
+	std::string hNameW_pp  = Form("h_dPhi_%s_%s", hTagW.c_str(), trigger_pp.c_str() );
 
-	hW_pPb = static_cast<TH1D*>( cW_pPb->GetPrimitive( hNameH_pPb.c_str() ) );
-	hW_pp  = static_cast<TH1D*>( cW_pp ->GetPrimitive( hNameH_pp. c_str() ) );
+	hW_pPb = static_cast<TH1D*>( cW_pPb->GetPrimitive( hNameW_pPb.c_str() ) );
+	hW_pp  = static_cast<TH1D*>( cW_pp ->GetPrimitive( hNameW_pp. c_str() ) );
 	styleTool->SetHStyle( hW_pPb, style );
 	styleTool->SetHStyle( hW_pp , style + 5 );
 	hW_pPb->SetMarkerSize( hW_pPb->GetMarkerSize() * 1.5 );
 	hW_pp-> SetMarkerSize( hW_pp-> GetMarkerSize() * 1.5 );
 	
 	style++;
-	
-	legW.AddEntry
-	  ( hW_pPb, Form( "p+Pb %s", anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() ) );	
-	legW.AddEntry
-	  ( hW_pp , Form( "pp %s" , anaTool->GetLabel( pt1Low, pt1Up, "#it{p}_{T}^{1}" ).c_str() ) );	
-	
-	hW_pPb->Draw("epsame");
-	hW_pp->Draw("epsame");
 
-	if( hW_pPb->GetMaximum() > hW_pp->GetMaximum() ){
-	  hW_pPb->SetMaximum( hW_pPb->GetMaximum() * 1.1 );
-	  hW_pp->SetMaximum ( hW_pPb->GetMaximum() * 1.1 );
-	} else {
-	  hW_pPb->SetMaximum( hW_pp->GetMaximum() * 1.1 );
-	  hW_pp->SetMaximum ( hW_pp->GetMaximum() * 1.1 );
+	if( hW_pPb->GetMean() ){
+	  legW.AddEntry
+	    ( hW_pPb, Form( "p+Pb %s", anaTool->GetLabel
+			    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str() ) );	
+	  hW_pPb->Draw("ep same X0");
+	}
+
+	if( hW_pp->GetMean() ){
+	  legW.AddEntry
+	    ( hW_pp , Form( "pp %s" , anaTool->GetLabel
+			    ( axis2Low, axis2Up , m_dPP->GetAxisLabel(2) ).c_str() ) );	
+	  hW_pp->Draw("ep same X0");
 	}
 	    	
-	for( uint pt2Bin = 0; pt2Bin < m_nVarPtBins; pt2Bin++ ){
-	  double pt2Low  = m_varPtBinning[ pt2Bin ];
-	  
-	  if( pt1Low < pt2Low  )
-	    { continue; }
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+          double axis3Low , axis3Up;
+	  anaTool->GetBinRange
+	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
 	    
 	  std::string hTag =
 	    Form("%s_%s_%s_%s",
-		 anaTool->GetName( ystar1Low, ystar1Up, "Ystar1").c_str(),
-		 anaTool->GetName( ystar2Low, ystar2Up, "Ystar2").c_str(),
-		 anaTool->GetName( pt1Low , pt1Up , "Pt1" ).c_str(),
-		 anaTool->GetName( pt2Low , pt2Low, "Pt2" ).c_str() );
+		 anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		 anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		 anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		 anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() );
 	  
 	  std::string hName_pPb = Form("h_dPhi_%s_%s", hTag.c_str(), trigger_pPb.c_str() );
 	  std::string hName_pp  = Form("h_dPhi_%s_%s", hTag.c_str(), trigger_pp.c_str() );
@@ -1155,14 +1143,22 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	    
 	  TLegend leg( 0.27, 0.41, 0.38, 0.52 );
 	  styleTool->SetLegendStyle( &leg , 0.85 );
-	  leg.AddEntry( h_pPb, "p+Pb");
-	  leg.AddEntry( h_pp , "pp");
 
-	  h_pPb->Draw("epsame");
-	  h_pp->Draw("epsame");
+	  bool save = false;
+	  
+	  if( h_pPb->GetEntries() ){
+	    leg.AddEntry( h_pPb, "p+Pb");
+	    h_pPb->Draw("epsame");
+	    f_pPb->Draw("same");
+	    save = true;
+	  }
 
-	  f_pPb->Draw("same");
-	  f_pp->Draw("same");
+	  if( h_pp->GetEntries() ){
+	    leg.AddEntry( h_pp , "pp");
+	    h_pp->Draw("epsame");
+	    f_pp->Draw("same");
+	    save = true;
+	  }
 
 	  leg.Draw("same");
 
@@ -1173,31 +1169,33 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	    h_pPb->SetMaximum( h_pp->GetMaximum() * 1.1 );
 	    h_pp->SetMaximum ( h_pp->GetMaximum() * 1.1 );
 	  }
-	    
-	  DrawTopLeftLabelsYstarPt( ystar1Low, ystar1Up, ystar2Low, ystar2Up,
-				    pt1Low, pt1Up, pt2Low, pt2Low, 0.8 );
+
+	  drawTool->DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
 
 	  drawTool->DrawRightLatex( 0.88, 0.87, "Data", 0.8 );	  
 	  drawTool->DrawAtlasInternal();
 
-	  // c.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTag.c_str() ));
-	  c.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTag.c_str() ));
+	  // if( save ){ c.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTag.c_str() )); }
+	  if( save ){ c.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTag.c_str() )); }
 	  SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ) );
-
-	  delete  h_pPb; delete  h_pp;
+	  
 	  delete  f_pPb; delete  f_pp;
+	  delete  h_pPb; delete  h_pp;
 	  delete  c_pPb; delete  c_pp;
-	} // end loop over pt2
-      } // end loop over pt1
+	} // end loop over axis3
+      } // end loop over axis2
 
       // back to cW canvas
       cW.cd();
 
       legW.Draw("same");
-      
-      DrawTopLeftLabelsYstarPt( ystar1Low, ystar1Up, ystar2Low, ystar2Up,
-				0, 0, 0, 0, 0.8 );
 
+      drawTool->DrawTopLeftLabels
+	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	  0, 0, 0, 0, 0.8 );
+      
       drawTool->DrawRightLatex( 0.88, 0.87, "Data", 0.8 );     
       drawTool->DrawAtlasInternal();
 

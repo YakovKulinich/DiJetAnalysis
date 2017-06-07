@@ -5,6 +5,7 @@
 #include <TVirtualFitter.h>
 
 #include "MyRoot.h"
+#include "DeltaPhiProj.h"
 
 const int pPbLumi2016 = 437; // ub
 const int ppLumi2015  = 26;  // pb
@@ -16,21 +17,24 @@ bool CT::AnalysisTools::EpsilonEqual( double a, double b )
 { return fabs( a - b ) < constants::EPSILON; }
 
 // returns dphi in range 0<dphi<2pi
-double CT::AnalysisTools::DPhiFC( double phi1, double phi2 ){
+double CT::AnalysisTools::DPhiFC
+( const TLorentzVector& jet1, const TLorentzVector& jet2 ){
+  double phi1 = jet1.Phi(); double phi2 = jet2.Phi();
   double deltaPhi = phi1 - phi2;
   while( deltaPhi < 0 ) deltaPhi += 2*constants::PI;
   return deltaPhi;
 }
 
 double CT::AnalysisTools::DeltaPhi
-( double phi1, double phi2 ){
+( const TLorentzVector& jet1, const TLorentzVector& jet2 ){
+  double phi1 = jet1.Phi(); double phi2 = jet2.Phi();
   double deltaPhi = TMath::Abs(phi1 - phi2);
   if( deltaPhi > constants::PI ){ deltaPhi = 2*constants::PI - deltaPhi; };
   return deltaPhi;
 }
 
 double CT::AnalysisTools::DeltaR
-(  const TLorentzVector& jet1, const TLorentzVector& jet2 ){  
+( const TLorentzVector& jet1, const TLorentzVector& jet2 ){  
   double deltaEta = jet1.Eta() - jet2.Eta();
   double deltaPhi = TMath::Abs( jet1.Phi() - jet2.Phi() );
   if(deltaPhi > TMath::Pi())
@@ -171,8 +175,8 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
 }
 
 void CT::AnalysisTools::GetBinRange( TAxis* a,
-				 int b1, int b2,
-				 double& x1, double& x2){
+				     int b1, int b2,
+				     double& x1, double& x2 ){
   x1 = a->GetBinLowEdge( b1 );
   x2 = a->GetBinUpEdge ( b2 );
 }
@@ -215,17 +219,17 @@ std::string CT::AnalysisTools::GetEtaLabel( double etaMin,
 
 std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
 					      double ystarMax,
-					      bool is_pPb,
-					      std::string label ){
+					      std::string label,
+					      bool is_pPb ){
   std::stringstream ss;
   if( is_pPb )
-    { ss << boost::format("%3.1f<%s<%3.1f") % ystarMin % label % ystarMax;}
+    { ss << boost::format("%3.2g<%s<%3.2g") % ystarMin % label % ystarMax;}
   else {
     if( std::abs(ystarMin) > std::abs(ystarMax) )
-      { ss << boost::format("%3.1f<|%s|<%3.1f")
+      { ss << boost::format("%3.2g<|%s|<%3.2g")
 	  % std::abs(ystarMax) % label % std::abs(ystarMin); }
     else
-      { ss << boost::format("%3.1f<|%s|<%3.1f")
+      { ss << boost::format("%3.2g<|%s|<%3.2g")
 	  % std::abs(ystarMin) % label % std::abs(ystarMax); }
   }
   return ss.str();
@@ -233,16 +237,20 @@ std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
 
 std::string CT::AnalysisTools::GetLabel
 ( double vMin,double vMax,
-  const std::string& var, const std::string& unit ){
+  const std::string& var, const std::string& unitIn ){
+
+  // for now, want [GeV] by all pT labels
+  std::string unit = unitIn;
+  if( var.find("{p}_{T}") != std::string::npos )
+    { unit = "[GeV]"; }
   
   std::stringstream ss;
 
   if( vMin != vMax ){
-    ss << boost::format("%3.1f<%s<%3.1f")
+    ss << boost::format("%3.2g<%s<%3.2g")
       % vMin % var % vMax;
-  }
-  else{
-    ss << boost::format("%s>%3.1f")
+  } else {
+    ss << boost::format("%s>%3.2g")
       % var % vMin ;  
   }
   if( !unit.empty() ){ ss << boost::format(" %s") % unit; }
@@ -572,4 +580,36 @@ void CT::DrawTools::DrawAtlasInternalMCLeft
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
 
   DrawLeftLatex(0.18 + x0, 0.87, mcType, scale, 1 );
+}
+
+
+void CT::DrawTools::DrawTopLeftLabels( DeltaPhiProj* dPP,
+				       double axis0Low, double axis0Up,
+				       double axis1Low, double axis1Up,
+				       double axis2Low, double axis2Up,
+				       double axis3Low, double axis3Up,
+				       double scale ){
+  std::string unit;
+
+  // unit = dPP->GetAxisName(0).find("Pt") != std::string::npos ? "[GeV]" : "" ;
+  DrawLeftLatex
+    ( 0.13, 0.86, CT::AnalysisTools::GetLabel
+      ( axis0Low, axis0Up, dPP->GetAxisLabel(0), unit ), scale );
+  // unit = dPP->GetAxisName(1).find("Pt") != std::string::npos ? "[GeV]" : "" ;
+  DrawLeftLatex
+    ( 0.13, 0.79, CT::AnalysisTools::GetLabel
+      ( axis1Low, axis1Up, dPP->GetAxisLabel(1), unit ), scale );
+  
+  // for now, modify later to be more dynamic
+  // to the variables present 
+  if( !( axis2Low || axis2Up ) ){ return ; }
+  // unit = dPP->GetAxisName(2).find("Pt") != std::string::npos ? "[GeV]" : "" ;
+  DrawLeftLatex
+    ( 0.13, 0.73, CT::AnalysisTools::GetLabel
+      ( axis2Low, axis2Up, dPP->GetAxisLabel(2), unit ), scale );
+  if( !( axis3Low || axis3Up ) ){ return ; }
+  // unit = dPP->GetAxisName(3).find("Pt") != std::string::npos ? "[GeV]" : "" ;
+  DrawLeftLatex
+    ( 0.13, 0.66, CT::AnalysisTools::GetLabel
+      ( axis3Low, axis3Up, dPP->GetAxisLabel(3), unit ), scale );
 }
