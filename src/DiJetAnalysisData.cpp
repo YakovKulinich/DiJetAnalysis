@@ -24,12 +24,11 @@
 #include "DiJetAnalysisData.h"
 #include "DeltaPhiProj.h"
 
-DiJetAnalysisData::DiJetAnalysisData() : DiJetAnalysisData( true, true )
+DiJetAnalysisData::DiJetAnalysisData() : DiJetAnalysisData( false )
 {}
 
-DiJetAnalysisData::DiJetAnalysisData
-( bool isData, bool is_pPb )
-  : DiJetAnalysis( isData, is_pPb )
+DiJetAnalysisData::DiJetAnalysisData( bool is_pPb )
+  : DiJetAnalysis( is_pPb, true )
 {
   //========== Set Histogram Binning =============
 
@@ -370,17 +369,16 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
       AnalyzeDeltaPhi
 	( m_vHtriggerDphi[iG], m_vHtriggerDphiNent[iG],
 	  vR_jets, 1 );
-      */ 
+      */
+      
       const TLorentzVector* jet1 = NULL; const TLorentzVector* jet2 = NULL;
       // dPhi for all triggers, matched
       if( GetDiJets( vR_jets, jet1, jet2 ) ){
 	if( JetInTrigRange( *jet1, iG ) ) {
-	    AnalyzeDeltaPhi
-	      ( m_hAllDphi, m_hAllDphiNent,
-		vR_jets, m_vTriggersPrescale[iG]);
-	    AnalyzeDeltaPhi
-	      ( m_vHtriggerDphi[iG], m_vHtriggerDphiNent[iG],
-		vR_jets, 1 );
+	    AnalyzeDeltaPhi( m_hAllDphi, m_hAllDphiNent,
+			     vR_jets, m_vTriggersPrescale[iG]);
+	    AnalyzeDeltaPhi( m_vHtriggerDphi[iG], m_vHtriggerDphiNent[iG],
+			     vR_jets, 1 );
 	  }
       }
   
@@ -539,7 +537,7 @@ void DiJetAnalysisData::CleanEfficiency( TGraphAsymmErrors* g, int iG ){
 }
 
 //---------------------------------
-//            Plot Data
+//            Plotting
 //---------------------------------
 
 void DiJetAnalysisData::LoadHistograms(){
@@ -1012,19 +1010,10 @@ void DiJetAnalysisData::PlotDphiTogether(){
   int nAxis1Bins = axis1->GetNbins();
   int nAxis2Bins = axis2->GetNbins();
   int nAxis3Bins = axis3->GetNbins();
-
-  // for dPhi distributions
-  TCanvas* c_pPb = NULL; TCanvas* c_pp = NULL;
-  TH1*     h_pPb = NULL; TH1*     h_pp = NULL;
-  TF1*     f_pPb = NULL; TF1*     f_pp = NULL;
- 
-  // for widths  
-  TCanvas* cW_pPb = NULL; TCanvas* cW_pp = NULL;
-  TH1*     hW_pPb = NULL; TH1*     hW_pp = NULL;
  
   std::string trigger_pPb = m_allName;
-  std::string trigger_pp  = m_allName;
-
+  std::string trigger_pp  = m_allName; 
+  
   TFile* fIn_pPb = TFile::Open("output/output_pPb_data/c_myOut_pPb_data.root");
   TFile* fIn_pp  = TFile::Open("output/output_pp_data/c_myOut_pp_data.root");
   TFile* fOut    = new TFile  ("output/all/data/c_myOut_data.root","recreate");
@@ -1034,25 +1023,17 @@ void DiJetAnalysisData::PlotDphiTogether(){
     double axis0Low, axis0Up;
     anaTool->GetBinRange
       ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
-
+    
     for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
       double axis1Low, axis1Up;
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
       // get widths canvases
-      std::string hTagW =
+      std::string hTagCW =
 	Form ("%s_%s",
 	      	anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
-
-      std::string hNameW_pPb = Form("h_dPhi_%s_%s", hTagW.c_str(), trigger_pPb.c_str() );
-      std::string hNameW_pp  = Form("h_dPhi_%s_%s", hTagW.c_str(), trigger_pp.c_str() );
-      
-      cW_pPb = static_cast<TCanvas*>
-	( fIn_pPb->Get( Form("c_%s_pPb_data", hNameW_pPb.c_str() ) ) );
-      cW_pp  = static_cast<TCanvas*>
-	(  fIn_pp->Get( Form("c_%s_pp_data" , hNameW_pp.c_str() ) ) );
     
       // Make canvas+leg for widths
       TCanvas cW("cW","cW", 800, 600 );
@@ -1062,6 +1043,8 @@ void DiJetAnalysisData::PlotDphiTogether(){
       legW.SetNColumns(2);
       
       int style = 0;
+
+      std::vector< TH1* > vHw;
       
       for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
 	double axis2Low , axis2Up;
@@ -1082,12 +1065,13 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	std::string hNameW_pPb = Form("h_dPhi_%s_%s", hTagW.c_str(), trigger_pPb.c_str() );
 	std::string hNameW_pp  = Form("h_dPhi_%s_%s", hTagW.c_str(), trigger_pp.c_str() );
 
-	hW_pPb = static_cast<TH1D*>( cW_pPb->GetPrimitive( hNameW_pPb.c_str() ) );
-	hW_pp  = static_cast<TH1D*>( cW_pp ->GetPrimitive( hNameW_pp. c_str() ) );
+	TH1* hW_pPb = static_cast<TH1D*>( fIn_pPb->Get( hNameW_pPb.c_str() ) );
+	TH1* hW_pp  = static_cast<TH1D*>( fIn_pp ->Get( hNameW_pp. c_str() ) );
 	styleTool->SetHStyle( hW_pPb, style );
 	styleTool->SetHStyle( hW_pp , style + 5 );
 	hW_pPb->SetMarkerSize( hW_pPb->GetMarkerSize() * 1.5 );
 	hW_pp-> SetMarkerSize( hW_pp-> GetMarkerSize() * 1.5 );
+	vHw.push_back( hW_pPb ); vHw.push_back( hW_pp  );
 	
 	style++;
 
@@ -1104,7 +1088,7 @@ void DiJetAnalysisData::PlotDphiTogether(){
 			    ( axis2Low, axis2Up , m_dPP->GetAxisLabel(2) ).c_str() ) );	
 	  hW_pp->Draw("ep same X0");
 	}
-	    	
+
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
           double axis3Low , axis3Up;
 	  anaTool->GetBinRange
@@ -1120,24 +1104,20 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	  std::string hName_pPb = Form("h_dPhi_%s_%s", hTag.c_str(), trigger_pPb.c_str() );
 	  std::string hName_pp  = Form("h_dPhi_%s_%s", hTag.c_str(), trigger_pp.c_str() );
 	    
-	  c_pPb = static_cast<TCanvas*>
-	    ( fIn_pPb->Get( Form("c_%s_pPb_data", hName_pPb.c_str() ) ) );
-	  c_pp  = static_cast<TCanvas*>
-	    ( fIn_pp->Get( Form("c_%s_pp_data", hName_pp.c_str() ) ) );
-	  
-	  h_pPb = static_cast<TH1D*>( c_pPb->GetPrimitive( hName_pPb.c_str() ) );
-	  h_pp  = static_cast<TH1D*>(  c_pp->GetPrimitive( hName_pp.c_str() ) );
+	  TH1* h_pPb = static_cast<TH1D*>( fIn_pPb->Get( hName_pPb.c_str() ) );
+	  TH1* h_pp  = static_cast<TH1D*>( fIn_pp ->Get( hName_pp.c_str() ) );
 	  styleTool->SetHStyle( h_pPb, 0 );
 	  styleTool->SetHStyle( h_pp , 1 );
 	  
-	  f_pPb = static_cast<TF1*>
-	    ( c_pPb->GetPrimitive( Form("f_%s", hName_pp.c_str())));
-	  f_pp  = static_cast<TF1*>
-	    ( c_pp->GetPrimitive( Form("f_%s", hName_pp.c_str())));
+	  TF1* f_pPb = static_cast<TF1*>( fIn_pPb->Get( Form("f_%s", hName_pp.c_str())));
+	  TF1* f_pp  = static_cast<TF1*>( fIn_pp ->Get( Form("f_%s", hName_pp.c_str())));
 	  styleTool->SetHStyle( f_pPb, 0 );
 	  styleTool->SetHStyle( f_pp , 1 );
 	  f_pPb->SetLineColor( h_pPb->GetLineColor() );
 	  f_pp->SetLineColor( h_pp->GetLineColor() );
+
+	  double chi2NDF_pPb = f_pPb->GetChisquare()/f_pPb->GetNDF();
+	  double chi2NDF_pp  = f_pp ->GetChisquare()/f_pp ->GetNDF();
 	  
 	  TCanvas c("c","c", 800, 600 );
 	    
@@ -1147,14 +1127,18 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	  bool save = false;
 	  
 	  if( h_pPb->GetEntries() ){
-	    leg.AddEntry( h_pPb, "p+Pb");
+	    h_pPb->SetMinimum(0);
+	    h_pPb->GetXaxis()->SetRangeUser( 2, constants::PI );
+	    leg.AddEntry( h_pPb, Form("p+Pb #Chi^{2}/NDF=%4.2f", chi2NDF_pPb ) );
 	    h_pPb->Draw("epsame");
 	    f_pPb->Draw("same");
 	    save = true;
 	  }
 
 	  if( h_pp->GetEntries() ){
-	    leg.AddEntry( h_pp , "pp");
+	    h_pp->SetMinimum(0);
+	    h_pp->GetXaxis()->SetRangeUser( 2, constants::PI );
+	    leg.AddEntry( h_pp ,  Form("pp #Chi^{2}/NDF=%4.2f", chi2NDF_pp ) );
 	    h_pp->Draw("epsame");
 	    f_pp->Draw("same");
 	    save = true;
@@ -1177,13 +1161,12 @@ void DiJetAnalysisData::PlotDphiTogether(){
 	  drawTool->DrawRightLatex( 0.88, 0.87, "Data", 0.8 );	  
 	  drawTool->DrawAtlasInternal();
 
+	  if( save ){ c.SaveAs( Form("output/all/data/h_dPhi_%s_data.png", hTag.c_str() )); }
 	  // if( save ){ c.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTag.c_str() )); }
-	  if( save ){ c.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTag.c_str() )); }
 	  SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ) );
 	  
 	  delete  f_pPb; delete  f_pp;
 	  delete  h_pPb; delete  h_pp;
-	  delete  c_pPb; delete  c_pp;
 	} // end loop over axis3
       } // end loop over axis2
 
@@ -1199,13 +1182,12 @@ void DiJetAnalysisData::PlotDphiTogether(){
       drawTool->DrawRightLatex( 0.88, 0.87, "Data", 0.8 );     
       drawTool->DrawAtlasInternal();
 
-      // cW.SaveAs( Form("output/all/data/h_dPhi_%s_data.png", hTagW.c_str() ));
-      cW.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTagW.c_str() ));
-      SaveAsROOT( cW, Form("h_dPhi_%s", hTagW.c_str() ) );
+      cW.SaveAs( Form("output/all/data/h_dPhi_%s_data.png", hTagCW.c_str() ));
+      // cW.SaveAs( Form("output/all/data/h_dPhi_%s_data.pdf", hTagCW.c_str() ));
+      SaveAsROOT( cW, Form("h_dPhi_%s", hTagCW.c_str() ) );
 
-      delete  hW_pPb; delete  hW_pp;
-      delete  cW_pPb; delete  cW_pp;
-    } // end loop over ystar2
+      for( auto & hW : vHw ){ delete hW; }
+     } // end loop over ystar2
   } // end loop over ystar2
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;

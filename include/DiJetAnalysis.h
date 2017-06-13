@@ -32,7 +32,9 @@ typedef std::vector<std::vector<std::vector<std::vector<TH1*>>>> FourDTH1vector;
 class DiJetAnalysis{
  public:
   DiJetAnalysis();
-  DiJetAnalysis( bool, bool, int = 0 );
+  DiJetAnalysis( bool );
+  DiJetAnalysis( bool, bool );
+  DiJetAnalysis( bool, bool, int );
   virtual ~DiJetAnalysis();
 
   virtual void Initialize();
@@ -110,7 +112,7 @@ class DiJetAnalysis{
   //---------------------------
   virtual void LoadHistograms() = 0;
  
-  virtual void PlotDphiTogether();
+  virtual void PlotDphiTogether() = 0;
   
   virtual void PlotDeltaPhi( std::vector<THnSparse*>&,
 			     std::vector<THnSparse*>&,
@@ -125,32 +127,6 @@ class DiJetAnalysis{
 			     const std::vector< std::string >&,
 			     const std::string& = "" ,
 			     const std::string& = "" );
-
-  
-  //---------------------------
-  //        Drawing
-  //---------------------------
-  void DrawCanvas( std::vector< TH1* >&,
-		   const std::string& = "",
-		   const std::string& = "",
-		   int = 1);
-
-  void DrawCanvas( std::vector< TH1* >&,
-		   const std::string& = "",
-		   const std::string& = "",
-		   bool = true );
-
-  void DrawCanvas( std::vector< TGraphAsymmErrors* >&,
-		   const std::string& = "",
-		   const std::string& = "",
-		   double = 0, double = 0);
-  
-  //===== MinMax and line drawing =====
-  void SetMinMax( TH1*,
-		  const std::string&,
-		  const std::string& );
-
-  double GetLineHeight( const std::string& );
 
   //---------------------------
   //       Saving 
@@ -174,7 +150,7 @@ class DiJetAnalysis{
  private:
   //========== settings ===========
   TEnv* m_config;
-  
+
  protected:
   //============ cuts =============
   int    m_nMinEntriesFit;
@@ -183,17 +159,18 @@ class DiJetAnalysis{
   //========== settings ===========
   TEnv* GetConfig(){ return m_config; }
   
-  bool m_isData;
   bool m_is_pPb;
+  bool m_isData;
+  int  m_mcType;
 
-  int m_mcType;
   std::string m_mcTypeLabel;
   
   std::string m_labelOut;
   std::string m_dirOut;
   std::string m_rootFname;
-
+  
   DeltaPhiProj* m_dPP;
+
   // -------- eventCounter --------
   int m_ev;
   

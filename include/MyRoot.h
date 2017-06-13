@@ -95,7 +95,7 @@ namespace CT{
 
     TF1* FitGaussian( TH1* hProj, double = 0, double = 0 );
 
-    TF1* FitDphi( TH1* hProj, double = 0, double = 0 );
+    TF1* FitDphi( TH1* hProj, double = 0, double = 0);
 
     void GetBinRange( TAxis*, int, int, double&, double& );
 

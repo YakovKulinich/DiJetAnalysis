@@ -11,7 +11,6 @@
 #include <TF1.h>
 #include <THnSparse.h>
 
-
 #include <iostream>
 #include <sstream>
 #include <cmath>
@@ -27,11 +26,11 @@
 
 TH3* DiJetAnalysisMC::m_hPowhegWeights = NULL;
 
-DiJetAnalysisMC::DiJetAnalysisMC() : DiJetAnalysisMC( true, true , 0 )
+DiJetAnalysisMC::DiJetAnalysisMC() : DiJetAnalysisMC( false, 0 )
 {}
 
-DiJetAnalysisMC::DiJetAnalysisMC( bool isData, bool is_pPb, int mcType )
-  : DiJetAnalysis( isData, is_pPb, mcType )
+DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType )
+  : DiJetAnalysis( is_pPb, false, mcType )
 {
   //========== Set Histogram Binning =============
     // ------ truth binning --------
@@ -55,13 +54,12 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool isData, bool is_pPb, int mcType )
 DiJetAnalysisMC::~DiJetAnalysisMC(){}
 
 void DiJetAnalysisMC::Initialize(){
-  m_labelOut = m_is_pPb ? "pPb" : "pp" ;
-  m_labelOut = m_isData ? m_labelOut + "_data" : m_labelOut + "_mc";
+  m_labelOut = m_is_pPb ? "pPb_mc" : "pp_mc" ;
   
   std::string mcMenu;
-  if( m_mcType == 0 ){ mcMenu = "2015.pp.pythia8powheg"; }
-  else if( m_mcType == 1 ){ mcMenu = "2015.pp.pythia8"; }
-  else if( m_mcType == 2 ){ mcMenu = "2015.pp.herwig"; }
+  if     ( m_mcType == 0 ){ mcMenu = "2015.pp.pythia8powheg"; }
+  else if( m_mcType == 1 ){ mcMenu = "2015.pp.pythia8"      ; }
+  else if( m_mcType == 2 ){ mcMenu = "2015.pp.herwig"       ; }
   
   std::string labelOut =
     GetConfig()->GetValue( Form("labelOut.%s",mcMenu.c_str()),"");
@@ -72,18 +70,18 @@ void DiJetAnalysisMC::Initialize(){
     ( GetConfig()->GetValue( Form("jznUsed.%s",mcMenu.c_str()),"" )," ");
   // double -> int 
   for( auto d : vJznUsedD ){ m_vJznUsed.push_back(d); }
-  m_vJznLabel =  anaTool->vectorise
-    ( GetConfig()->GetValue( Form("jznLabel.%s",mcMenu.c_str()),"" )," ");
+  m_vJznLabel   =  anaTool->vectorise
+    ( GetConfig()->GetValue( Form("jznLabel.%s"  ,mcMenu.c_str()),"" )," ");
   m_vJznFnameIn =  anaTool->vectorise
     ( GetConfig()->GetValue( Form("jznFnameIn.%s",mcMenu.c_str()),"" )," ");
-  m_vJznSigma = anaTool->vectoriseD
-    ( GetConfig()->GetValue( Form("jznSigma.%s",mcMenu.c_str()),"" )," ");
-  m_vJznEff = anaTool->vectoriseD
-    ( GetConfig()->GetValue( Form("jznEff.%s",mcMenu.c_str()),"" )," ");
+  m_vJznSigma   = anaTool->vectoriseD
+    ( GetConfig()->GetValue( Form("jznSigma.%s"  ,mcMenu.c_str()),"" )," ");
+  m_vJznEff     = anaTool->vectoriseD
+    ( GetConfig()->GetValue( Form("jznEff.%s"    ,mcMenu.c_str()),"" )," ");
   m_vJznSumOverlayWeights = anaTool->vectoriseD
     ( GetConfig()->GetValue( Form("jznSumOverlayWeights.%s",mcMenu.c_str()),"" )," ");
-  m_vJznPtThreshold = anaTool->vectoriseD
-    ( GetConfig()->GetValue( Form("jznPtThreshold.%s",mcMenu.c_str()), "" ), " ");
+  m_vJznPtThreshold       = anaTool->vectoriseD
+    ( GetConfig()->GetValue( Form("jznPtThreshold.%s"      ,mcMenu.c_str()),"" )," ");
 
   std::string weightFile =
     GetConfig()->GetValue( Form("weightFile.%s",mcMenu.c_str()), "");
@@ -521,7 +519,7 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
 }
 
 //---------------------------------
-//           Plot Data
+//           Plotting
 //---------------------------------
 void DiJetAnalysisMC::LoadHistograms(){
   m_fIn = TFile::Open( m_rootFname.c_str() ); 
@@ -805,7 +803,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::vector< TH3* >& vJznHin,
 
 	styleTool->SetHStyle( hProj, 0 );
 	vProj[iG][iX].push_back( hProj );
-	
+
  	TF1* fit = anaTool->FitGaussian( hProj );
 	styleTool->SetHStyle( fit, 0 );
 	vFit[iG][iX].push_back( fit );
@@ -835,6 +833,7 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::vector< TH3* >& vJznHin,
 	// final histograms
 	if( hProj->GetEntries() < m_nMinEntriesFit ){ continue; }
 
+	// FIX THIS. Check quality of fit.
 	if( fit->GetParError(1) > 0.25 ){ continue; }
 	if( fit->GetParError(2) > 0.03 ){ continue; }
 	
@@ -899,8 +898,8 @@ void DiJetAnalysisMC::PlotVsEtaPt( std::vector< TH3* >& vJznHin,
     CombineJZN( hSigmaFinal, vEtaSigmaTemp, vEtaNentTemp  );
   }
 
-  DrawCanvas( vMeansFinal , type, sMean , 4 );
-  DrawCanvas( vSigmasFinal, type, sSigma, 4 );
+  DrawCanvas( vMeansFinal , Form("h_%s", type.c_str() ), sMean , 4 );
+  DrawCanvas( vSigmasFinal, Form("h_%s", type.c_str() ), sSigma, 4 );
 
   for( uint iG = 0; iG < m_nJzn; iG++){
     delete vMeansFinal [iG];
@@ -1018,6 +1017,7 @@ void DiJetAnalysisMC::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	h->SetMaximum( m_dPhiWidthMax );
 	h->GetYaxis()->SetNdivisions( 505 );
 	h->Draw("epsame");
+	h->Write();
       }
       leg.Draw("same");
 
@@ -1045,7 +1045,7 @@ void DiJetAnalysisMC::PlotDphiTogether(){
   anaTool->CheckWriteDir( outDir.c_str() );
   outDir += "/all";
   anaTool->CheckWriteDir( outDir.c_str() );
-  outDir += "/mc";
+  outDir += "/" + m_labelOut;
   anaTool->CheckWriteDir( outDir.c_str() );
 
   TAxis* axis0 = m_dPP->GetTAxis( 0 );
@@ -1057,15 +1057,12 @@ void DiJetAnalysisMC::PlotDphiTogether(){
   int nAxis1Bins = axis1->GetNbins();
   int nAxis2Bins = axis2->GetNbins();
   int nAxis3Bins = axis3->GetNbins();
-  
-  // for dPhi distributions
-  TCanvas* c_reco = NULL; TCanvas* c_truth = NULL;
-  TH1*     h_reco = NULL; TH1*     h_truth = NULL;
-  TF1*     f_reco = NULL; TF1*     f_truth = NULL;
-    
+     
   TFile* fIn  = TFile::Open( Form("output/output_%s/c_myOut_%s.root",
 				  m_labelOut.c_str(), m_labelOut.c_str() ) );
-  TFile* fOut = new TFile("output/all/mc/c_myOut_mc.root","recreate");
+  TFile* fOut =
+    new TFile( Form("output/all/%s/c_myOut_%s.root",
+		    m_labelOut.c_str(), m_labelOut.c_str()), "recreate");
 
   for( uint iG = 0; iG < m_nJzn; iG++ ){
   
@@ -1086,7 +1083,7 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	  double axis2Low , axis2Up;
 	  anaTool->GetBinRange
 	    ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
-	
+	  
 	  for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){	    
 	    double axis3Low , axis3Up;
 	    anaTool->GetBinRange
@@ -1102,51 +1099,64 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	    std::string hName_reco  = Form("h_dPhi_reco_%s_%s" , hTag.c_str(), jznLabel.c_str() );
 	    std::string hName_truth = Form("h_dPhi_truth_%s_%s", hTag.c_str(), jznLabel.c_str() );
 	    std::string hName_ratio = Form("h_dPhi_ratio_%s_%s", hTag.c_str(), jznLabel.c_str() );
-	    
-	    c_reco  = static_cast<TCanvas*>
-	      ( fIn->Get( Form("c_%s_%s", hName_reco.c_str(), m_labelOut.c_str())) );
-	    c_truth = static_cast<TCanvas*>
-	      ( fIn->Get( Form("c_%s_%s", hName_truth.c_str(), m_labelOut.c_str())));
-	   
-	    h_reco  = static_cast<TH1D*>( c_reco->GetPrimitive( hName_reco.c_str() ) );
+
+	    TH1* h_reco  = static_cast<TH1D*>( fIn->Get( hName_reco.c_str() ) );
+	    TH1* h_truth = static_cast<TH1D*>( fIn->Get( hName_truth.c_str() ) );
 	    styleTool->SetHStyle( h_reco, 0 );
-	    h_truth = static_cast<TH1D*>( c_truth->GetPrimitive( hName_truth.c_str() ) );
 	    styleTool->SetHStyle( h_truth, 1 );
 	   
-	    f_reco  = static_cast<TF1*>
-	      ( c_reco->GetPrimitive( Form("f_%s", hName_reco.c_str())));
+	    TF1* f_reco  = static_cast<TF1*>( fIn->Get( Form("f_%s", hName_reco.c_str())));
+	    TF1* f_truth = static_cast<TF1*>( fIn->Get( Form("f_%s", hName_truth.c_str())));
 	    styleTool->SetHStyle( f_reco, 0 );
-	    f_reco->SetLineColor( h_reco->GetLineColor() );
-	    f_truth = static_cast<TF1*>
-	      ( c_truth->GetPrimitive( Form("f_%s", hName_truth.c_str())));
 	    styleTool->SetHStyle( f_truth, 1 );
+	    f_reco ->SetLineColor( h_reco ->GetLineColor() );
 	    f_truth->SetLineColor( h_truth->GetLineColor() );
-	    
+
+	    double chi2NDF_reco  = f_reco ->GetChisquare()/f_reco ->GetNDF();
+	    double chi2NDF_truth = f_truth->GetChisquare()/f_truth->GetNDF();
+	    	    
 	    TCanvas c ("c" ,"c" , 800, 600 );
       
 	    TLegend leg( 0.27, 0.41, 0.38, 0.52 );
 	    styleTool->SetLegendStyle( &leg, 0.85 );
-	    leg.AddEntry( h_reco  , "Reco"  );
-	    leg.AddEntry( h_truth , "Truth" );
 
-	    h_reco->Draw ("epsame");
-	    h_truth->Draw("epsame");
+	    bool save = false;
+	  
+	    if( h_reco->GetEntries() ){
+	      h_reco->GetXaxis()->SetRangeUser( 2, constants::PI );
+	      h_reco->SetMinimum(0);
+	      leg.AddEntry( h_reco  , Form("Reco #Chi^{2}/NDF=%4.2f", chi2NDF_reco ) );
+	      h_reco->Draw("epsame");
+	      f_reco->Draw("same");
+	      save = true;
+	    }
 
-	    f_reco->Draw ("same");
-	    f_truth->Draw("same");
-
+	    if( h_truth->GetEntries() ){
+	      h_truth->GetXaxis()->SetRangeUser( 2, constants::PI );
+	      h_truth->SetMinimum(0);
+	      leg.AddEntry( h_truth , Form("Truth #Chi^{2}/NDF=%4.2f", chi2NDF_truth ) );
+	      h_truth->Draw("epsame");
+	      f_truth->Draw("same");
+	      save = true;
+	    }
+	    
 	    leg.Draw("same");
 
 	    if( h_reco->GetMaximum() > h_truth->GetMaximum() ){
-	      h_reco->SetMaximum( h_reco->GetMaximum() * 1.1 );
-	      h_truth->SetMaximum ( h_reco->GetMaximum() * 1.1 );
+	      h_reco ->SetMaximum( h_reco->GetMaximum() * 1.1 );
+	      h_truth->SetMaximum( h_reco->GetMaximum() * 1.1 );
 	    } else {
-	      h_reco->SetMaximum( h_truth->GetMaximum() * 1.1 );
-	      h_truth->SetMaximum ( h_truth->GetMaximum() * 1.1 );
+	      h_reco ->SetMaximum( h_truth->GetMaximum() * 1.1 );
+	      h_truth->SetMaximum( h_truth->GetMaximum() * 1.1 );
 	    }
 
-	    TCanvas cR("cR","cR", 800, 600 );
+	    std::vector< std::string > vClabel{ "", "_ratio"};
+	    std::vector< TCanvas* > vC;
+	    vC.push_back( &c  );
 	    
+	    /*
+	    TCanvas cR("cR","cR", 800, 600 );
+
 	    TH1* h_Rnum = static_cast<TH1D*>
 	      ( fIn->Get( Form("%s_CI", hName_reco.c_str() ) ) );
 	    TH1* h_Denom = static_cast<TH1D*>
@@ -1158,7 +1168,7 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 				 m_nDphiDphiBins, m_dPhiDphiMin, m_dPhiDphiMax );
 	    styleTool->SetHStyle( h_R, 0 );
 	    h_R->Add( h_Rnum );
-	    
+
 	    h_R->SetStats(kFALSE);
 	    h_R->SetFillColor(46);
 	    h_R->SetName( hName_ratio.c_str() );
@@ -1170,38 +1180,37 @@ void DiJetAnalysisMC::PlotDphiTogether(){
 	    
 	    TLine line( m_dPhiDphiMin, 1, m_dPhiDphiMax, 1 );
 	    line.Draw();
-
-	    std::vector< std::string > vClabel{ "", "_ratio"};
-	    std::vector< TCanvas* > vC;
-	    vC.push_back( &c  );
+	   
 	    vC.push_back( &cR );
+	    */
 
 	    for( uint iC = 0; iC < vC.size(); iC++ ){
 	      vC[iC]->cd();
-
+	      
+	      std::string labelOut =
+		Form("h_dPhi_%s_%s%s", hTag.c_str(), jznLabel.c_str(), vClabel[iC].c_str() );
+	    
 	      drawTool->DrawTopLeftLabels
 		( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 		  axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
 
 	      drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel );
 
-	      /*
-	      vC[iC]->SaveAs( Form("output/all/mc/h_%s_%s%s.pdf",
-			     hTag.c_str(), jznLabel.c_str(), vClabel[iC].c_str()  ));
-	      */
+	      if( save ) {
+		vC[iC]->SaveAs( Form("output/all/%s/%s.png", m_labelOut.c_str(), labelOut.c_str() ) );
+		// vC[iC]->SaveAs( Form("output/all/%s/%s.pdf", m_labelOut.c_str(), labelOut.c_str() ) );
+	      }
 	      
-	      SaveAsROOT( *vC[iC] , Form("h_dPhi_%s%s", hTag.c_str(), vClabel[iC].c_str() ));
+	      SaveAsROOT( *vC[iC] , labelOut.c_str() );
 	    }
 
-	    delete h_R;
-	    delete h_Rnum;
-	    delete h_Denom;
+	    // delete h_R;
+	    // delete h_Rnum;
+	    // delete h_Denom;
 	    delete f_reco;
 	    delete f_truth;
 	    delete h_reco;
 	    delete h_truth;
-	    delete c_reco;
-	    delete c_truth;
 	  } // end loop over axis3
 	} // end loop over axis2
       } // end loop over axis1
@@ -1224,13 +1233,11 @@ void DiJetAnalysisMC::PlotCombinedDphiWidthsTogether(){
   int nAxis1Bins = axis1->GetNbins();
   int nAxis2Bins = axis2->GetNbins();
   
-  // for widths  
-  TCanvas* cW_reco = NULL; TCanvas* cW_truth = NULL;
-  TH1*     hW_reco = NULL; TH1*     hW_truth = NULL;
-
   TFile* fIn  = TFile::Open( Form("output/output_%s/c_myOut_%s.root",
 				  m_labelOut.c_str(), m_labelOut.c_str() ) );
-  TFile* fOut = new TFile("output/all/mc/c_myOut_mc.root","update");
+   TFile* fOut =
+     new TFile( Form("output/all/%s/c_myOut_%s.root",
+		     m_labelOut.c_str(), m_labelOut.c_str() ), "update");
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     // set ranges
@@ -1243,20 +1250,12 @@ void DiJetAnalysisMC::PlotCombinedDphiWidthsTogether(){
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
-      // get widths canvases
+      // for final name
       std::string hTagCW =
 	Form ("%s_%s",
 	      	anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
       
-      std::string cNameW_reco  = Form("c_h_dPhi_reco_%s_%s" , hTagCW.c_str(), m_labelOut.c_str() );
-      std::string cNameW_truth = Form("c_h_dPhi_truth_%s_%s", hTagCW.c_str(), m_labelOut.c_str() );
-   
-      cW_reco  = static_cast<TCanvas*>
-	( fIn->Get( cNameW_reco.c_str() ) );
-      cW_truth = static_cast<TCanvas*>
-	( fIn->Get( cNameW_truth.c_str() ) );
-    
       // Make canvas+leg for widths
       TCanvas cW("cW","cW", 800, 600 );
       
@@ -1266,6 +1265,8 @@ void DiJetAnalysisMC::PlotCombinedDphiWidthsTogether(){
       
       int style = 0;
 
+      std::vector< TH1* > vHw;
+      
       for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
 	double axis2Low , axis2Up;
 	anaTool->GetBinRange
@@ -1282,12 +1283,15 @@ void DiJetAnalysisMC::PlotCombinedDphiWidthsTogether(){
 	std::string hNameW_reco  = Form("h_dPhi_reco_%s" , hTagW.c_str() );
 	std::string hNameW_truth = Form("h_dPhi_truth_%s", hTagW.c_str() );
 				    
-	hW_reco  = static_cast<TH1D*>( cW_reco-> GetPrimitive( hNameW_reco.c_str() ) );
-	hW_truth = static_cast<TH1D*>( cW_truth->GetPrimitive( hNameW_truth.c_str() ) );
+	TH1* hW_reco  = static_cast<TH1D*>( fIn->Get( hNameW_reco.c_str() ) );
+	TH1* hW_truth = static_cast<TH1D*>( fIn->Get( hNameW_truth.c_str() ) );
+
 	styleTool->SetHStyle( hW_reco , style );
 	styleTool->SetHStyle( hW_truth, style + 5 );
 	hW_reco-> SetMarkerSize( hW_reco-> GetMarkerSize() * 1.5 );
 	hW_truth->SetMarkerSize( hW_truth->GetMarkerSize() * 1.5 );
+	vHw.push_back( hW_reco  ); vHw.push_back( hW_truth );
+ 
 	style++;
 
 
@@ -1306,14 +1310,6 @@ void DiJetAnalysisMC::PlotCombinedDphiWidthsTogether(){
 	  hW_truth->Draw("ep same X0");
 	  hW_truth->SetTitle("");
 	}
-	
-	if( hW_reco->GetMaximum() > hW_truth->GetMaximum() ){
-	  hW_reco->SetMaximum( hW_reco->GetMaximum() * 1.1 );
-	  hW_truth->SetMaximum ( hW_reco->GetMaximum() * 1.1 );
-	} else {
-	  hW_reco->SetMaximum( hW_truth->GetMaximum() * 1.1 );
-	  hW_truth->SetMaximum ( hW_truth->GetMaximum() * 1.1 );
-	}	    	
       } // end loop over axis2
 
       // back to cW canvas
@@ -1327,12 +1323,11 @@ void DiJetAnalysisMC::PlotCombinedDphiWidthsTogether(){
       
       drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel );
       
-      //      cW.SaveAs( Form("output/all/mc/h_dPhi_%s_mc.png", hTagW.c_str() ));
-      cW.SaveAs( Form("output/all/mc/h_dPhi_%s_mc.pdf", hTagCW.c_str() ));
+      cW.SaveAs( Form("output/all/%s/h_dPhi_%s_mc.png", m_labelOut.c_str(), hTagCW.c_str() ));
+      cW.SaveAs( Form("output/all/%s/h_dPhi_%s_mc.pdf", m_labelOut.c_str(), hTagCW.c_str() ));
       SaveAsROOT( cW, Form("h_dPhi_%s", hTagCW.c_str() ) );
 
-      delete  hW_reco; delete  hW_truth;
-      delete  cW_reco; delete  cW_truth;
+      for( auto& hW : vHw ){ delete hW; }
     } // end loop over axis1
   } // end loop over axis0
   
@@ -1352,6 +1347,169 @@ void DiJetAnalysisMC::PlotEtaPhiPtMap( std::vector< TH2* >& vJznHin ){
     SaveAsPdfPng( c_map, vJznHin[iG]->GetName() );
   }
 }
+
+//---------------------------
+//        Drawing
+//---------------------------
+void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
+				const std::string& type1,
+				const std::string& type2,
+				int spacing ){
+  TCanvas c("c","c",800,600);
+  
+  TLegend leg(0.64, 0.61, 0.99, 0.82);
+  styleTool->SetLegendStyle( &leg, 0.8 );
+  leg.SetFillStyle(0);
+
+  int style = 0;
+
+  // for situations where dont want to
+  // plot every single bin 
+  // plot every n on canvas
+  int dX = vHIN.size()/spacing; // plot every n
+  for( uint xRange = 2; xRange < vHIN.size(); xRange += dX){
+    styleTool->SetHStyle( vHIN[ xRange], style++ );
+    leg.AddEntry( vHIN[ xRange ], vHIN[ xRange ]->GetTitle() );
+    vHIN[ xRange ]->SetTitle("");
+    vHIN[ xRange ]->Draw("epsame");
+    SetMinMax( vHIN[ xRange ], type1, type2 );
+  }
+
+  leg.Draw();
+  
+  double y0 = GetLineHeight( type1 );
+  
+  double xMin = vHIN.front()->GetXaxis()->GetXmin();
+  double xMax = vHIN.front()->GetXaxis()->GetXmax();
+  
+  TLine line( xMin, y0, xMax, y0);
+  line.Draw();
+
+  if( !m_isData)
+    { drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); } 
+  else if( m_isData)
+    { drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); } 
+
+  SaveAsAll( c, type1, type2 );
+}
+
+void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
+				const std::string& type1,
+				const std::string& type2,
+				bool logY ){
+  TCanvas c("c","c",800,600);
+  if( logY ) { c.SetLogy(); }
+  
+  TLegend leg(0.64, 0.63, 0.99, 0.8);
+  styleTool->SetLegendStyle( &leg, 0.7 );
+  leg.SetFillStyle(0);
+
+  double max = -1;
+  for( auto& h : vHIN ){
+    max = h->GetMaximum() > max ? h->GetMaximum() : max;
+  }
+
+  if( logY ){
+    double power = log10(max);
+    power = std::ceil(power); 
+    max   = pow( 10, power );
+  }
+  
+  int style = 0;  
+  for( auto& h : vHIN ){
+    styleTool->SetHStyle( h, style++ );
+    leg.AddEntry( h, h->GetTitle() );
+    h->SetTitle("");
+    h->Draw("epsame");
+    h->SetMaximum( max );
+    h->SetMinimum( 1. );
+  }
+
+  leg.Draw();
+  
+  if( !m_isData)
+    { drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); } 
+  else if( m_isData)
+    { drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); } 
+
+  SaveAsAll( c, type1, type2 ); 
+}
+
+
+void DiJetAnalysisMC::DrawCanvas( std::vector< TGraphAsymmErrors* >& vGIN,
+				const std::string& type,
+				const std::string& title,
+				double xMin, double xMax ){
+  TCanvas c("c","c",800,600);
+  styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax, title );
+   
+  TLegend leg(0.64, 0.20, 0.95, 0.34);
+  styleTool->SetLegendStyle( &leg );
+  leg.SetFillStyle(0);
+  
+  int style = 0;  
+  for( auto& gr : vGIN ){
+    styleTool->SetHStyle( gr, style++ );
+    leg.AddEntry( gr, gr->GetTitle() );
+    gr->SetTitle("");
+    gr->Draw("epsame");
+  }
+
+  leg.Draw();
+  
+  TLine line( xMin, 1, xMax, 1);
+  line.Draw();
+
+  if( !m_isData)
+    { drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); } 
+  else if( m_isData)
+    { drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); } 
+
+  SaveAsAll( c, type ); 
+}
+
+//===== MinMax and line drawing =====
+
+void DiJetAnalysisMC::
+SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
+  // JES JER
+  if( type1.find("recoTruthRpt") != std::string::npos ){ 
+    if( type2.find("mean") != std::string::npos ){ // sigma
+      h1->SetMaximum(1.25);
+      h1->SetMinimum(0.75);
+    } else if( !type2.compare("sigma") ){ // sigma
+      h1->SetMaximum(0.34);
+      h1->SetMinimum(0.);
+    }
+  }
+  // ANGLES
+  else if( type1.find("recoTruthDeta") != std::string::npos ||
+	   type1.find("recoTruthDphi") != std::string::npos ) { 
+    if( !type2.compare("mean") ){ // mean
+      h1->SetMaximum(0.075);      
+      h1->SetMinimum(-0.075);
+    } else if( !type2.compare("sigma") ){ // sigma
+      h1->SetMaximum(0.056);
+      h1->SetMinimum(0.);
+    } 
+  } 
+}
+
+double DiJetAnalysisMC::GetLineHeight( const std::string& type ){
+  double y0 = 0;
+  
+  if( type.find("recoTruthRpt") != std::string::npos ){ // JES/JER
+    y0 = 1;
+    y0 = 1;
+  } else if( type.find("rEta")          != std::string::npos ||
+	     type.find("recoTruthDphi") != std::string::npos ) { // ANGLES
+    y0 = 0;
+    y0 = 0;
+  }
+
+  return y0;
+}
+
 
 //---------------------------
 //          Tools 

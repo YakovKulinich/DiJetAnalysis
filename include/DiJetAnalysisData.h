@@ -6,7 +6,7 @@
 class DiJetAnalysisData : public DiJetAnalysis{
  public:
   DiJetAnalysisData();
-  DiJetAnalysisData( bool, bool );
+  DiJetAnalysisData( bool );
   ~DiJetAnalysisData();
 
   void Initialize();
@@ -48,7 +48,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   void CleanEfficiency( TGraphAsymmErrors*, int );
   
   //---------------------------
-  //       Plot Data 
+  //       Plotting 
   //---------------------------
   void LoadHistograms();
 

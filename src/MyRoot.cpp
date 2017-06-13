@@ -120,30 +120,61 @@ std::vector<double> CT::AnalysisTools::vectoriseD
 }   
 
 
-TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
-  auto expoFunction = [&]( double* x, double* par){
-    return par[0]*std::exp((x[0]-constants::PI)/par[1])+par[2];
+TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh){
+  
+  auto EMG = [&]( double* x, double* par){
+    return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
+    (TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
+     TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
+     TMath::Exp((constants::PI-x[0])/par[1]) *
+     ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])))
+    + par[3];
   };
-  
-  TF1* fit = new TF1( Form("f_%s", hProj->GetName()),
-		      expoFunction, 0, constants::PI, 3);
-  
+
+  auto combFit = [&]( double* x, double* par){ return par[0]; };
+
+  TF1* dPhiFit = new TF1( Form("f_%s", hProj->GetName()), EMG, 2, constants::PI, 4);
+
   if( !hProj->GetEntries() )
-    { return fit; }
-
-  fit->SetParameters( 0.3, 0.3, 0 );
+    { return dPhiFit; }
   
-  hProj->Fit( fit->GetName(), "Q", "" , 0, constants::PI);
-
-  return fit;
+  // to estimate some combinatoric
+  // contribution on range [0,1], where
+  // distribution has very few entries
+  // only do if there are bins with entries
+  // on that range.
+  if( hProj->Integral( 1, hProj->FindBin( 1. ) ) ){
+    TF1 cFit( "cFit", combFit, 0, 1, 1 );
+    hProj->Fit( "cFit", "NQR", "", 0, 1 ); 
+    
+    double comb      = cFit.GetParameter(0);
+    double combError = cFit.GetParError (0);
+    
+    for( int xBin = 1; xBin <= hProj->GetNbinsX(); xBin++ ){
+      double val      = hProj->GetBinContent( xBin );
+      double binError = hProj->GetBinError  ( xBin );
+      if( val ){
+	double error =
+	  TMath::Sqrt( binError*binError + combError*combError );	
+	hProj->SetBinContent( xBin, val - comb );
+	hProj->SetBinError  ( xBin, error );
+      }
+    }
+  }
+  
+  dPhiFit->SetParameters( 0.5, 0.2, 0.1, 0 );
+  
+  hProj->Fit( dPhiFit->GetName(), "NQ", "", 2, constants::PI );
+  
+  return dPhiFit;
 }
 
-TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
+TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh){
 
   TF1* fit  = new TF1( Form("f_%s", hProj->GetName()), "gaus(0)" );
 
-  double hXmin = hProj->GetXaxis()->GetXmin();
-  double hXmax = hProj->GetXaxis()->GetXmax();
+  double hXmin  = hProj->GetXaxis()->GetXmin();
+  double hXmax  = hProj->GetXaxis()->GetXmax();
   
   // fit once 
   double mean   = hProj->GetMean();
@@ -155,7 +186,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
   if( hProj->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
     { return fit; }
   
-  hProj->Fit( fit->GetName(), "Q", "", fitMin, fitMax );
+  hProj->Fit( fit->GetName(), "NQ", "", fitMin, fitMax );
 
   // fit second time with better parameters
   mean   = fit->GetParameter(1);
@@ -169,7 +200,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh ){
   
   fit->SetRange( fitMin, fitMax );
   
-  hProj->Fit( fit->GetName(), "Q", "", fitMin, fitMax );
+  hProj->Fit( fit->GetName(), "NQ", "", fitMin, fitMax );
 
   return fit;
 }
@@ -589,27 +620,21 @@ void CT::DrawTools::DrawTopLeftLabels( DeltaPhiProj* dPP,
 				       double axis2Low, double axis2Up,
 				       double axis3Low, double axis3Up,
 				       double scale ){
-  std::string unit;
-
-  // unit = dPP->GetAxisName(0).find("Pt") != std::string::npos ? "[GeV]" : "" ;
   DrawLeftLatex
     ( 0.13, 0.86, CT::AnalysisTools::GetLabel
-      ( axis0Low, axis0Up, dPP->GetAxisLabel(0), unit ), scale );
-  // unit = dPP->GetAxisName(1).find("Pt") != std::string::npos ? "[GeV]" : "" ;
-  DrawLeftLatex
-    ( 0.13, 0.79, CT::AnalysisTools::GetLabel
-      ( axis1Low, axis1Up, dPP->GetAxisLabel(1), unit ), scale );
-  
+      ( axis0Low, axis0Up, dPP->GetAxisLabel(0) ), scale );
   // for now, modify later to be more dynamic
   // to the variables present 
+  if( !( axis1Low || axis1Up ) ){ return ; }
+  DrawLeftLatex
+    ( 0.13, 0.79, CT::AnalysisTools::GetLabel
+      ( axis1Low, axis1Up, dPP->GetAxisLabel(1) ), scale );  
   if( !( axis2Low || axis2Up ) ){ return ; }
-  // unit = dPP->GetAxisName(2).find("Pt") != std::string::npos ? "[GeV]" : "" ;
   DrawLeftLatex
     ( 0.13, 0.73, CT::AnalysisTools::GetLabel
-      ( axis2Low, axis2Up, dPP->GetAxisLabel(2), unit ), scale );
+      ( axis2Low, axis2Up, dPP->GetAxisLabel(2) ), scale );
   if( !( axis3Low || axis3Up ) ){ return ; }
-  // unit = dPP->GetAxisName(3).find("Pt") != std::string::npos ? "[GeV]" : "" ;
   DrawLeftLatex
     ( 0.13, 0.66, CT::AnalysisTools::GetLabel
-      ( axis3Low, axis3Up, dPP->GetAxisLabel(3), unit ), scale );
+      ( axis3Low, axis3Up, dPP->GetAxisLabel(3) ), scale );
 }

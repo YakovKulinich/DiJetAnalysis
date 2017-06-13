@@ -8,7 +8,7 @@ class TLegend;
 class DiJetAnalysisMC : public DiJetAnalysis{
  public:
   DiJetAnalysisMC();
-  DiJetAnalysisMC( bool, bool, int );
+  DiJetAnalysisMC( bool, int );
   ~DiJetAnalysisMC();
 
   void Initialize();
@@ -35,7 +35,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const int );
   
   //---------------------------
-  //       Plot Data 
+  //       Plotting 
   //---------------------------
   void LoadHistograms();
   
@@ -63,6 +63,32 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void PlotCombinedDphiWidthsTogether();
   
   void PlotEtaPhiPtMap( std::vector< TH2* >& );
+
+  
+  //---------------------------
+  //        Drawing
+  //---------------------------
+  void DrawCanvas( std::vector< TH1* >&,
+		   const std::string& = "",
+		   const std::string& = "",
+		   int = 1);
+
+  void DrawCanvas( std::vector< TH1* >&,
+		   const std::string& = "",
+		   const std::string& = "",
+		   bool = true );
+
+  void DrawCanvas( std::vector< TGraphAsymmErrors* >&,
+		   const std::string& = "",
+		   const std::string& = "",
+		   double = 0, double = 0);
+
+  //===== MinMax and line drawing =====
+  void SetMinMax( TH1*,
+		  const std::string&,
+		  const std::string& );
+
+  double GetLineHeight( const std::string& );
   
   //---------------------------
   //          Tools 

@@ -24,11 +24,16 @@
 #include "DiJetAnalysis.h"
 #include "DeltaPhiProj.h"
 
-DiJetAnalysis::DiJetAnalysis() : DiJetAnalysis( true, true, 0 )
-{}
+DiJetAnalysis::DiJetAnalysis() : DiJetAnalysis( true, true, 0 ){}
 
-DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
-  : m_isData( isData ), m_is_pPb( is_pPb ), m_mcType( mcType ),
+DiJetAnalysis::DiJetAnalysis( bool is_pPb )
+  : DiJetAnalysis( is_pPb, false, 0 ){}
+
+DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData )
+  : DiJetAnalysis( is_pPb, isData, 0 ){}
+
+DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
+  : m_is_pPb( is_pPb ), m_isData( isData ), m_mcType( mcType ),
     m_fIn(NULL), m_fOut(NULL), m_tree(NULL)
 {
   //========== Set Histogram Binning =============
@@ -59,8 +64,7 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   
   // ---- forward eta binning ---
   boost::assign::push_back( m_varFwdEtaBinning )
-    ( -constants::FYSTARMAX )( -3.9 )( -3.5 )
-    ( -constants::FETAMIN )( -3.1 )( -constants::FYSTARMIN );
+    ( -4.0 )( -3.3)( -3.1 )( -2.7 );
   m_nVarFwdEtaBins = m_varFwdEtaBinning.size() - 1;
   
   // -------- eff ---------
@@ -75,19 +79,17 @@ DiJetAnalysis::DiJetAnalysis( bool isData, bool is_pPb, int mcType )
   // --- variable eta/ystar binning ---
   // ystarB
   boost::assign::push_back( m_varYstarBinningA )
-    ( -4.0 )( -2.7 )( -1.8 )( 0 )
-    ( 1.8 )( 2.7 )( 4.0 );
+    ( -4.0 )( -2.7 )( -1.8 )( 0 )( 1.8 )( 4.0 );
   m_nVarYstarBinsA = m_varYstarBinningA.size() - 1;
   
   // ystarA
   boost::assign::push_back( m_varYstarBinningB )
-    ( -4.0 )( -2.7 )( -1.8 )( 0 )
-    ( 1.8 )( 2.7 )( 4.0 );
+    ( -4.0 )( -2.7 )( -1.8 )( 0 )( 1.8 )( 4.0 );
   m_nVarYstarBinsB = m_varYstarBinningB.size() - 1;
   
   // --- variable pt binning ---
   boost::assign::push_back( m_varPtBinning )
-    ( 25 )( 35 )( 45 )( 90 );
+    ( 30 )( 38 )( 45 )( 90 );
   m_nVarPtBins = m_varPtBinning.size() - 1;
 
   // --- dPhiBins ---  
@@ -418,7 +420,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
     std::string label = vLabel[iG];
 
     // in data only draw for all
-    // if( m_isData && label.compare("All") ){ continue; } 
+    if( m_isData && label.compare("All") ){ continue; } 
 
     TAxis* axis0 = hn->GetAxis( m_dPP->GetAxisI(0) );
     TAxis* axis1 = hn->GetAxis( m_dPP->GetAxisI(1) );
@@ -553,23 +555,24 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
 
-	    // save the confidence intervals
-	    // this is fit results + errors as histo.
-	    // TH1* hDphiCI = static_cast<TH1D*>
-	    //   ( hDphi->Clone( Form("%s_CI", hDphi->GetName() ) ) );
-	    
-	    TH1* hDphiCI = 
-	      new TH1D( Form("%s_CI", hDphi->GetName() ), "", m_nDphiDphiBins, m_dPhiDphiMin, m_dPhiDphiMax );
-
-	    if( !m_isData ){
-	      (TVirtualFitter::GetFitter())->GetConfidenceIntervals(hDphiCI);
-	      hDphiCI->Write();
-	    }
-	    
 	    fit->Draw("same");
 
-	    SaveAsROOT( c, hDphi->GetName() );
+	    double chi2NDF = fit->GetChisquare()/fit->GetNDF();
 
+	    drawTool->DrawLeftLatex( 0.5, 0.66, Form("#Chi^{2}/NDF=%4.2f", chi2NDF ) );
+	    
+	    SaveAsROOT( c, hDphi->GetName() );
+	    hDphi->Write();
+	    fit->Write();
+	    
+	    // save the confidence intervals
+	    // this is fit results + errors as histo.
+	    TH1* hDphiCI = static_cast<TH1D*>
+	      ( hDphi->Clone( Form("%s_CI", hDphi->GetName() ) ) );
+	    if( hDphiCI->GetEntries() )
+	      { (TVirtualFitter::GetFitter())->GetConfidenceIntervals(hDphiCI); }
+	    hDphiCI->Write();
+	    
 	    if( fit->GetParameter(1) < 0 )
 	      { continue; }
 
@@ -595,6 +598,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	  h->GetYaxis()->SetNdivisions( 505 );
 	  h->SetTitle("");
 	  h->Draw("epsame");
+	  h->Write();
 	}
 	leg.Draw("same");
 
@@ -614,176 +618,11 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	}
 
 	
-	// SaveAsAll( cWidths, Form("h_%s_%s", hTag.c_str(), label.c_str() ) );
+	SaveAsROOT( cWidths, Form("h_%s_%s", hTag.c_str(), label.c_str() ) );
       } // end loop over axis1     
     } // end loop over axis0
   } // end loop over iG
 }
-
-void DiJetAnalysis::PlotDphiTogether(){}
-
-//---------------------------
-//        Drawing
-//---------------------------
-void DiJetAnalysis::DrawCanvas( std::vector< TH1* >& vHIN,
-				const std::string& type1,
-				const std::string& type2,
-				int spacing ){
-  TCanvas c("c","c",800,600);
-  
-  TLegend leg(0.64, 0.61, 0.99, 0.82);
-  styleTool->SetLegendStyle( &leg, 0.8 );
-  leg.SetFillStyle(0);
-
-  int style = 0;
-
-  // for situations where dont want to
-  // plot every single bin 
-  // plot every n on canvas
-  int dX = vHIN.size()/spacing; // plot every n
-  for( uint xRange = 2; xRange < vHIN.size(); xRange += dX){
-    styleTool->SetHStyle( vHIN[ xRange], style++ );
-    leg.AddEntry( vHIN[ xRange ], vHIN[ xRange ]->GetTitle() );
-    vHIN[ xRange ]->SetTitle("");
-    vHIN[ xRange ]->Draw("epsame");
-    SetMinMax( vHIN[ xRange ], type1, type2 );
-  }
-
-  leg.Draw();
-  
-  double y0 = GetLineHeight( type1 );
-  
-  double xMin = vHIN.front()->GetXaxis()->GetXmin();
-  double xMax = vHIN.front()->GetXaxis()->GetXmax();
-  
-  TLine line( xMin, y0, xMax, y0);
-  line.Draw();
-
-  if( !m_isData)
-    { drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); } 
-  else if( m_isData)
-    { drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); } 
-
-  SaveAsAll( c, type1, type2 );
-}
-
-void DiJetAnalysis::DrawCanvas( std::vector< TH1* >& vHIN,
-				const std::string& type1,
-				const std::string& type2,
-				bool logY ){
-  TCanvas c("c","c",800,600);
-  if( logY ) { c.SetLogy(); }
-  
-  TLegend leg(0.64, 0.63, 0.99, 0.8);
-  styleTool->SetLegendStyle( &leg, 0.7 );
-  leg.SetFillStyle(0);
-
-  double max = -1;
-  for( auto& h : vHIN ){
-    max = h->GetMaximum() > max ? h->GetMaximum() : max;
-  }
-
-  if( logY ){
-    double power = log10(max);
-    power = std::ceil(power); 
-    max   = pow( 10, power );
-  }
-  
-  int style = 0;  
-  for( auto& h : vHIN ){
-    styleTool->SetHStyle( h, style++ );
-    leg.AddEntry( h, h->GetTitle() );
-    h->SetTitle("");
-    h->Draw("epsame");
-    h->SetMaximum( max );
-    h->SetMinimum( 1. );
-  }
-
-  leg.Draw();
-  
-  if( !m_isData)
-    { drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); } 
-  else if( m_isData)
-    { drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); } 
-
-  SaveAsAll( c, type1, type2 ); 
-}
-
-
-void DiJetAnalysis::DrawCanvas( std::vector< TGraphAsymmErrors* >& vGIN,
-				const std::string& type,
-				const std::string& title,
-				double xMin, double xMax ){
-  TCanvas c("c","c",800,600);
-  styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax, title );
-   
-  TLegend leg(0.64, 0.20, 0.95, 0.34);
-  styleTool->SetLegendStyle( &leg );
-  leg.SetFillStyle(0);
-  
-  int style = 0;  
-  for( auto& gr : vGIN ){
-    styleTool->SetHStyle( gr, style++ );
-    leg.AddEntry( gr, gr->GetTitle() );
-    gr->SetTitle("");
-    gr->Draw("epsame");
-  }
-
-  leg.Draw();
-  
-  TLine line( xMin, 1, xMax, 1);
-  line.Draw();
-
-  if( !m_isData)
-    { drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel ); } 
-  else if( m_isData)
-    { drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb ); } 
-
-  SaveAsAll( c, type ); 
-}
-
-//===== MinMax and line drawing =====
-
-void DiJetAnalysis::
-SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
-  // JES JER
-  if( !type1.compare("recoTruthRpt") ){ 
-    if( !type2.compare("mean") ){ // sigma
-      h1->SetMaximum(1.25);
-      h1->SetMinimum(0.75);
-    } else if( !type2.compare("sigma") ){ // sigma
-      h1->SetMaximum(0.34);
-      h1->SetMinimum(0.);
-    }
-  }
-  // ANGLES
-  else if( !type1.compare("recoTruthDeta") ||
-	   !type1.compare("recoTruthDphi") ) { 
-    if( !type2.compare("mean") ){ // mean
-      h1->SetMaximum(0.075);      
-      h1->SetMinimum(-0.075);
-    } else if( !type2.compare("sigma") ){ // sigma
-      h1->SetMaximum(0.056);
-      h1->SetMinimum(0.);
-    } 
-  } 
-}
-
-double DiJetAnalysis::GetLineHeight( const std::string& type ){
-  double y0 = 0;
-  
-  if( !type.compare("recoTruthRpt") ){ // JES/JER
-    y0 = 1;
-    y0 = 1;
-  } else if( !type.compare("rEta") ||
-	     !type.compare("recoTruthDphi") ) { // ANGLES
-    y0 = 0;
-    y0 = 0;
-  }
-
-  return y0;
-}
-
 
 //---------------------------
 //       Saving 
