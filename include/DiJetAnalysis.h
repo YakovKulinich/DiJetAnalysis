@@ -106,6 +106,8 @@ class DiJetAnalysis{
   virtual void CombineJZN( TH1*,
 			   std::vector< TH1*>&,
 			   std::vector< TH1*>& ){};
+
+  virtual TH1* Unfold(){};
   
   //---------------------------
   //       Plotting 
@@ -237,7 +239,7 @@ class DiJetAnalysis{
   double m_effMin;
   double m_effMax;
 
-  // -------- dphi- --------
+  // -------- dphi --------
   uint   m_nDphiDim;
   uint   m_nDphiNentDim;
   
@@ -251,6 +253,10 @@ class DiJetAnalysis{
     
   double m_dPhiWidthMin;
   double m_dPhiWidthMax;
+
+  // ----- chi2 plots ------
+  double m_chi2Min;
+  double m_chi2Max;
 };
 
 #endif

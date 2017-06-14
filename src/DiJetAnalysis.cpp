@@ -107,6 +107,10 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
   m_dPhiWidthMin = 0.00;
   m_dPhiWidthMax = 0.5;
 
+  // ----- chi2 plots ------
+  m_chi2Min = 0.;
+  m_chi2Max = 5.;
+  
   //========= Set DeltaPhi Axes Order ============
   // The DeltaPhiProj object will have the order
   // onto which to take projections. It also knows
@@ -559,7 +563,7 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	    double chi2NDF = fit->GetChisquare()/fit->GetNDF();
 
-	    drawTool->DrawLeftLatex( 0.5, 0.66, Form("#Chi^{2}/NDF=%4.2f", chi2NDF ) );
+	    drawTool->DrawLeftLatex( 0.5, 0.66, Form( "#Chi^{2}/NDF=%4.2f", chi2NDF ) );
 	    
 	    SaveAsROOT( c, hDphi->GetName() );
 	    hDphi->Write();
@@ -616,7 +620,6 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	  drawTool->DrawRightLatex    ( 0.88, 0.82, type1 );
 	  drawTool->DrawAtlasInternalMCRight( 0, 0, type2 );
 	}
-
 	
 	SaveAsROOT( cWidths, Form("h_%s_%s", hTag.c_str(), label.c_str() ) );
       } // end loop over axis1     
