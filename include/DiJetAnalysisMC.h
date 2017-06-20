@@ -33,34 +33,49 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void AnalyzeScaleResolution( const std::vector< TLorentzVector >&,
 			       const std::vector< TLorentzVector >&,
 			       const int );
+
+  //---------------------------
+  //          Tools 
+  //---------------------------  
+  void PairJets( std::vector< TLorentzVector >&,
+		 std::vector< TLorentzVector >&,
+		 std::vector< TLorentzVector >&,
+		 std::vector< TLorentzVector >& );
+
+  TH1*       CombineSamples( std::vector< TH1* >&,
+			     const std::string& = "" );
+
+  TH2*       CombineSamples( std::vector< TH2* >&,
+			     const std::string& = "" );
+  
+  THnSparse* CombineSamples( std::vector< THnSparse* >&,
+			     const std::string& = "" );    
+  
+  void CombineSamples( TH1*,
+		       std::vector< TH1*>&,
+		       std::vector< TH1*>&,
+		       const std::string& = "" );
+
+  TGraphAsymmErrors* CombineJZN
+    ( std::vector< TGraphAsymmErrors* >&,
+      std::vector< TH1*>& );
+  
+  static double GetJetWeight( double, double, double );
+
+  void GetTypeTitle( const std::string&,
+		     std::string&, std::string& );
+
+  void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
+		    std::string&, std::string&, std::string& );
   
   //---------------------------
   //       Plotting 
   //---------------------------
   void LoadHistograms();
-  
-  void PlotSpectra( std::vector< TH2* >&,
-		    const std::string&, 
-		    const std::string& );
-  
+
   void PlotVsEtaPt( std::vector< TH3* >&,
 		    std::vector< TH2* >&,
 		    const std::string& );
-
-  void PlotEfficiencies( std::vector< TH2* >&,
-			 std::vector< TH2* >&,
-			 std::vector< TH2* >&,
-			 const std::string& );
-
-  void PlotDeltaPhi( std::vector< THnSparse*>&,
-		     std::vector< THnSparse*>&,
-		     const std::vector< std::string >&,
-		     const std::string& = "" ,
-		     const std::string& = "" );
-
-  void PlotDphiTogether();
-
-  void PlotCombinedDphiWidthsTogether();
   
   void PlotEtaPhiPtMap( std::vector< TH2* >& );
 
@@ -73,48 +88,17 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		   const std::string& = "",
 		   int = 1);
 
-  void DrawCanvas( std::vector< TH1* >&,
-		   const std::string& = "",
-		   const std::string& = "",
-		   bool = true );
+  void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
 
-  void DrawCanvas( std::vector< TGraphAsymmErrors* >&,
-		   const std::string& = "",
-		   const std::string& = "",
-		   double = 0, double = 0);
-
+  void DrawAtlasRightBoth( double = 0, double = 0, double = CT::StyleTools::lSS ); 
+  
   //===== MinMax and line drawing =====
   void SetMinMax( TH1*,
 		  const std::string&,
 		  const std::string& );
 
   double GetLineHeight( const std::string& );
-  
-  //---------------------------
-  //          Tools 
-  //---------------------------  
-  void PairJets( std::vector< TLorentzVector >&,
-		 std::vector< TLorentzVector >&,
-		 std::vector< TLorentzVector >&,
-		 std::vector< TLorentzVector >& );
-		 
-
-  void CombineJZN( TH1*,
-		   std::vector< TH1*>& );
-  
-  void CombineJZN( TH1*,
-		   std::vector< TH1*>&,
-		   std::vector< TH1*>& );
-
-  TGraphAsymmErrors* CombineJZN
-    ( std::vector< TGraphAsymmErrors* >&,
-      std::vector< TH1*>& );
-  
-  static double GetJetWeight( double, double, double );
-
-  void GetTypeTitle( const std::string&,
-		     std::string&, std::string& );
-  
+    
  private:
   //============== cuts ===============
   double m_dRmax;
@@ -143,11 +127,17 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< TH2* > m_vHjznEtaPtMap;
 
   // -------- spect --------
+  std::string m_etaSpectRecoName;
+  std::string m_etaSpectTruthName; 
+
   std::vector< TH2* > m_vHjznEtaSpectReco;
   std::vector< TH2* > m_vHjznEtaSpectTruth;
   std::vector< TH2* > m_vHjznEtaSpectTruthNent; 
   std::vector< TH2* > m_vHjznEtaSpectTruthPaired;
 
+  TH2* m_hAllEtaSpectReco;
+  TH2* m_hAllEtaSpectTruth;
+  
   // --------- recoTruthRpt ---------
   std::vector< TH3* > m_vHjznRecoTruthRpt;
   std::vector< TH2* > m_vHjznRecoTruthRptNent;
@@ -161,10 +151,18 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< TH2* > m_vHjznRecoTruthDphiNent;
 
   // -------------- dPhi -------------
+  std::string m_dPhiRecoName;
+  std::string m_dPhiTruthName;
+
   std::vector< THnSparse* > m_vHjznDphiReco;
   std::vector< THnSparse* > m_vHjznDphiRecoNent;
   std::vector< THnSparse* > m_vHjznDphiTruth;
   std::vector< THnSparse* > m_vHjznDphiTruthNent;
+
+  THnSparse* m_hAllDphiReco;
+  THnSparse* m_hAllDphiRecoNent;
+  THnSparse* m_hAllDphiTruth;
+  THnSparse* m_hAllDphiTruthNent;
   
   //========= histos binning ========
   // ------ truth binning --------

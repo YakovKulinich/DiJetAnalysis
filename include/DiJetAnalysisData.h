@@ -45,24 +45,39 @@ class DiJetAnalysisData : public DiJetAnalysis{
 		   std::vector< TLorentzVector >&,
 		   std::map< int, bool >&);
 
+  //---------------------------
+  //       Tools
+  //---------------------------  
   void CleanEfficiency( TGraphAsymmErrors*, int );
+
+  TH1*       CombineSamples( std::vector< TH1* >&,
+			     const std::string& = "" );
+
+  TH2*       CombineSamples( std::vector< TH2* >&,
+			     const std::string& = "" );
+  
+  THnSparse* CombineSamples( std::vector< THnSparse* >&,
+			     const std::string& = "" );   
+
+  void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
+		    std::string&, std::string&, std::string& );
   
   //---------------------------
   //       Plotting 
   //---------------------------
   void LoadHistograms();
 
-  void PlotSpectra( std::vector< TH2* >&,
-		    const std::string& );
-
   void PlotEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,
 			 const std::string& );
 
-  void PlotDphiTogether();
+  //---------------------------
+  //        Drawing
+  //---------------------------
+  void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
   
-  void PlotEtaPhiPtMap( std::vector< TH2* >& );
-   
+  void DrawAtlasRightBoth( double = 0, double = 0, double = CT::StyleTools::lSS ); 
+
  private:
   //============ settings =============
   std::string m_fNameIn;
@@ -77,7 +92,6 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< double >      m_vTriggersEtaMax;
 
   std::string m_mbTriggerName;
-  std::string m_allName;
 
   int m_mbTriggerI;
   int m_lowestCentTriggerI;  
@@ -92,14 +106,18 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< TH2* > m_vHtriggerEtaPtMap;
 
   // -------- spect --------
+  std::string m_etaSpectName;
+  
   std::vector< TH2* > m_vHtriggerEtaSpect;
 
+  TH2* m_hAllEtaSpect;
   // ----- efficiencies ----
   std::vector< TH2* > m_vHtriggerEtaSpectSim;
   std::vector< TH2* > m_vHtriggerEtaSpectDenom;
   
-  TH2* m_hAllEtaSpect;
   // -------- dPhi ---------
+  std::string m_dPhiName;
+  
   std::vector< THnSparse* > m_vHtriggerDphi;
   std::vector< THnSparse* > m_vHtriggerDphiNent;
 

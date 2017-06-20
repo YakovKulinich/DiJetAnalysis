@@ -73,7 +73,6 @@ class DiJetAnalysis{
   
   virtual double AnalyzeDeltaPhi( THnSparse*, THnSparse*,
 				  const std::vector <TLorentzVector>&,
-				  double = 1,
 				  WeightFcn = NULL );
   
   virtual bool  ApplyIsolation( std::vector<TLorentzVector>&,
@@ -100,36 +99,41 @@ class DiJetAnalysis{
 
   bool IsCentralYstar( const double& ystar );
 
-  virtual void CombineJZN( TH1*,
-			   std::vector< TH1*>& ){};
-  
-  virtual void CombineJZN( TH1*,
-			   std::vector< TH1*>&,
-			   std::vector< TH1*>& ){};
+  // Make These Templates Later...
+  virtual TH1*       CombineSamples( std::vector< TH1* >&,
+				     const std::string& = "" );
 
-  virtual TH1* Unfold(){};
+  virtual TH2*       CombineSamples( std::vector< TH2* >&,
+				     const std::string& = "" );
+  
+  virtual THnSparse* CombineSamples( std::vector< THnSparse* >&,
+				     const std::string& = "" );  
+
+  virtual void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
+			    std::string&, std::string&, std::string& );
   
   //---------------------------
   //       Plotting 
   //---------------------------
   virtual void LoadHistograms() = 0;
- 
-  virtual void PlotDphiTogether() = 0;
+
+  virtual void PlotSpectra( std::vector< TH2* >&,
+			    const std::vector< std::string >&, 
+			    const std::string& = "" );
   
   virtual void PlotDeltaPhi( std::vector<THnSparse*>&,
-			     std::vector<THnSparse*>&,
-			     FourDTH1vector&,
-			     FourDTH1vector&,
 			     const std::vector< std::string >&,
-			     const std::string& = "" ,
 			     const std::string& = "" );
 
-  virtual void PlotDeltaPhi( std::vector<THnSparse*>&,
-			     std::vector<THnSparse*>&,
-			     const std::vector< std::string >&,
-			     const std::string& = "" ,
-			     const std::string& = "" );
+  virtual void PlotDphiTogether();
+  
+  //---------------------------
+  //        Drawing
+  //---------------------------
+  virtual void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
 
+  virtual void DrawAtlasRightBoth( double = 0, double = 0, double = CT::StyleTools::lSS );
+  
   //---------------------------
   //       Saving 
   //---------------------------
@@ -165,6 +169,8 @@ class DiJetAnalysis{
   bool m_isData;
   int  m_mcType;
 
+  std::string m_allName;
+  
   std::string m_mcTypeLabel;
   
   std::string m_labelOut;

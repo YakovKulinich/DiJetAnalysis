@@ -147,6 +147,10 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
 
   m_config = new TEnv();
   m_config->ReadFile( configName.c_str(), EEnvLevel(0));
+
+  // name for "All" histos
+  // this is either merged JZN or Data from Triggers
+  m_allName = "All";
 }
 
 DiJetAnalysis::~DiJetAnalysis(){
@@ -197,6 +201,12 @@ void DiJetAnalysis::AddHistogram( THnSparse* hn ){
   hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
   if( hn->GetNdimensions() == 5 )
     { hn->GetAxis(4)->SetTitle("|#Delta#phi|"); }
+  else if( hn->GetNdimensions() == 6 )
+    {
+      hn->GetAxis(4)->SetTitle("|#Delta#phi_{Reco}|");
+      hn->GetAxis(5)->SetTitle("|#Delta#phi_{Truth}|");
+    }
+  
 }
 
 
@@ -253,7 +263,7 @@ bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets,
 
 double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
 				       const std::vector< TLorentzVector >& v_jets,
-				       double weightIn, WeightFcn weightFcn ){
+				       WeightFcn weightFcn ){
   const TLorentzVector* jet1 = NULL; const TLorentzVector* jet2 = NULL;
 
   if( !GetDiJets( v_jets, jet1, jet2 ) )
@@ -274,7 +284,7 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
     
   // wont change unless we have a weightFcn
   // and then it varys depending on eta, phi, pt.
-  double weight = weightFcn ? weightFcn( jet1_eta, jet1_phi, jet1_pt ) : weightIn;   
+  double weight = weightFcn ? weightFcn( jet1_eta, jet1_phi, jet1_pt ) : 1;   
 
   x[0] = jet1_ystar;  
   x[1] = jet2_ystar;
@@ -383,58 +393,235 @@ bool DiJetAnalysis::IsForwardYstar( const double& ystar )
 bool DiJetAnalysis::IsCentralYstar( const double& ystar )
 { return ( std::abs(ystar - constants::BETAZ) < constants::CETAMAX ); }
 
+TH1* DiJetAnalysis::CombineSamples( std::vector< TH1* >& vSampleHin,
+				    const std::string& name ){ return NULL; }  
+
+TH2* DiJetAnalysis::CombineSamples( std::vector< TH2* >& vSampleHin,
+				    const std::string& name ){ return NULL; }  
+
+THnSparse* DiJetAnalysis::CombineSamples( std::vector< THnSparse* >& vSampleHin,
+					  const std::string& name ){ return NULL; }  
+
+
+void DiJetAnalysis::GetInfoBoth( std::string& outSuffix,
+				 std::string& name_a  , std::string& name_b  ,
+				 std::string& label_a , std::string& label_b ,
+				 std::string& suffix_a, std::string& suffix_b ){}
+
+
 //---------------------------
 //       Plotting
 //---------------------------
 
-void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
-				  std::vector< THnSparse* >& vhnNent,
-				  const std::vector< std::string >& vLabel,
-				  const std::string& type1,
-				  const std::string& type2 ){
-  FourDTH1vector vDphiWidths;
-  FourDTH1vector vDphiNent;
+void DiJetAnalysis::PlotSpectra( std::vector< TH2* >& vSampleSpect,
+				 const std::vector< std::string>& vLabels,
+				 const std::string& name ){
+  if( !vSampleSpect.size() ){ return; }
   
-  PlotDeltaPhi( vhn, vhnNent, vDphiWidths, vDphiNent, vLabel, type1, type2 );
-}
+  std::string yAxisTitle = "dN/d#it{p}_{T}";
+
+  double ptSpectWidth =
+    ( m_ptSpectMax - m_ptSpectMin ) / m_nPtSpectBins;
+
+  // use this as reference because
+  // it should be in every file
+  TH2* hRef = vSampleSpect[0];
+  int nXbins = hRef->GetNbinsX();
+
+  uint nSamples = vSampleSpect.size();
+  
+  std::vector< std::vector< TH1* > > vSpect;
+  vSpect.resize( nSamples );
+
+  double max = -1;
+  
+  for( uint iG = 0; iG < nSamples; iG++){
+    std::string label = vLabels[iG];
+
+    for( int xBin = 1; xBin <= nXbins; xBin++ ){
+      double etaMin = hRef->GetXaxis()->GetBinLowEdge( xBin );
+      double etaMax = hRef->GetXaxis()->GetBinUpEdge ( xBin );
+
+      TH1* h_etaSpect =
+	vSampleSpect[iG]->
+	ProjectionY( Form("h_%s_%s_%s",
+			  name.c_str(),
+			  label.c_str(),
+			  anaTool->GetName( etaMin, etaMax, "Eta").c_str() ),
+		     xBin, xBin );
+      h_etaSpect->SetTitle
+	( anaTool->GetEtaLabel( etaMin, etaMax, m_is_pPb ).c_str() );
+      h_etaSpect->GetYaxis()->SetTitle( yAxisTitle.c_str() );
+      h_etaSpect->Scale( 1./ptSpectWidth );
+      vSpect[iG].push_back( h_etaSpect );
+ 
+      // get min max from the final histograms
+      if( label.compare( m_allName ) ){ continue; }
+      if( max < h_etaSpect->GetMaximum() )
+	{ max = h_etaSpect->GetMaximum(); }
+     } // end loop over xBin
+  } // end loop over iG
+
+  // set maxima globally for all spectra hists.
+  // easier to compare. Set on log scale.
+  double power = log10(max);
+  power = std::ceil(power);
+  max = pow( 10, power );
+  
+  //------------------------------------------------
+  //------- Draw Eta as Fucntion of Labels -------
+  //------------------------------------------------
+  double lX0, lY0, lX1, lY1;
+  
+  if( m_is_pPb ){ lX0 = 0.70; lY0 = 0.54; lX1 = 0.85; lY1 = 0.71; }
+  else          { lX0 = 0.20; lY0 = 0.23; lX1 = 0.47; lY1 = 0.40; }
+  
+  for( uint iG = 0; iG < nSamples; iG++ ){
+    std::string label = vLabels[iG];
+
+    if( label.compare( m_allName ) ){ continue; };
+    
+    std::string cName  = label;
+    std::string cLabel = label;
+
+    TCanvas c( "c", cLabel.c_str(), 800, 600 );
+    c.SetLogy();
+    
+    TLegend leg( lX0, lY0, lX1, lY1 );
+    styleTool->SetLegendStyle( &leg, 0.65 );
+
+    int style = 0;
+    for( int iX = 0; iX < nXbins; iX++ ){
+      int         xBin = iX + 1;
+      double etaCenter = hRef->GetXaxis()->GetBinCenter ( xBin );
+
+      // for pPb, dont draw at anything above -3.2
+      if( m_is_pPb && etaCenter > -constants::FETAMIN ){ continue; }
+
+      // for pp, dont draw central triggers below -3.2
+      // or forward triggers above -3.2
+      // for mb, and total draw everything
+      bool isMb  = label.find("_mb_") != std::string::npos
+	? true : false;
+      bool isAll = !label.compare( m_allName )
+	? true : false;
+      
+      if( !m_is_pPb && etaCenter < -constants::FETAMIN &&
+	  label.find("320eta490") == std::string::npos &&
+	  !isMb && !isAll ){ continue; }
+      else if( !m_is_pPb && etaCenter > -constants::FETAMIN &&
+	       label.find("320eta490") != std::string::npos &&
+	       !isMb && !isAll ){ continue; }
+
+      TH1* h = vSpect[iG][iX];
+      styleTool->SetHStyle( h, style++ );
+      h->Draw("epsame");
+      h->SetMinimum( 1 );
+      h->SetMaximum( max );
+      leg.AddEntry( h, h->GetTitle() );
+      h->SetTitle("");
+    } // end loop over iX
+    leg.Draw("same");
+
+    DrawAtlasRight();    
+
+    SaveAsAll( c, name, cName );
+  } // end loop over iG
+  
+  //------------------------------------------------
+  //------- Draw Triggers as Fucntion of Eta -------
+  //------------------------------------------------
+  if( m_is_pPb ){ lX0 = 0.45; lY0 = 0.54; lX1 = 0.76; lY1 = 0.67; }
+  else          { lX0 = 0.35; lY0 = 0.67; lX1 = 0.65; lY1 = 0.88; }
+  
+  for( int iX = 0; iX < nXbins; iX++ ){
+    // no longer have title.
+    // Need to make output files
+    // with eta names
+    int      xBin = iX + 1;
+    double etaMin = hRef->GetXaxis()->GetBinLowEdge( xBin );
+    double etaMax = hRef->GetXaxis()->GetBinUpEdge ( xBin );
+    double etaCenter = hRef->GetXaxis()->GetBinCenter ( xBin );
+
+    // for pPb, dont draw at anything above -3.2
+    if( m_is_pPb && etaCenter > -constants::FETAMIN ){ continue; }
+     
+    std::string cName  = anaTool->GetName( etaMin, etaMax, "Eta" );
+    std::string cLabel = anaTool->GetEtaLabel( etaMin, etaMax, m_is_pPb );
+    
+    TCanvas c( "c", cLabel.c_str(), 800, 600 );
+    c.SetLogy();
+    
+    TLegend leg( lX0, lY0, lX1, lY1 );
+    styleTool->SetLegendStyle( &leg  );
+    
+    int style = 1;
+    for( uint iG = 0; iG < nSamples; iG++ ){
+      std::string label = vLabels[iG];
+
+      // for pp, dont draw central triggers below -3.2
+      // or forward triggers above -3.2
+      // for mb, and total draw everything
+      bool isMb  = label.find("_mb_") != std::string::npos
+	? true : false;
+      bool isAll = !label.compare( m_allName )
+	? true : false;
+           
+      if( !m_is_pPb && etaCenter < -constants::FETAMIN &&
+	  label.find("320eta490") == std::string::npos &&
+	  !isMb && !isAll ){ continue; }
+      else if( !m_is_pPb && etaCenter > -constants::FETAMIN &&
+	       label.find("320eta490") != std::string::npos &&
+	       !isMb && !isAll ){ continue; }
+      
+      TH1* h = vSpect[iG][iX];
+      if( iG == nSamples ){ style = 0; }
+      styleTool->SetHStyle( h, style++ );
+      h->Draw("epsame");
+      h->SetMinimum( 1 );
+      h->SetMaximum( max );
+      leg.AddEntry( h, vLabels[iG].c_str() );
+    } // end loop over iG
+    
+    leg.Draw("same");
+
+    DrawAtlasRight();    
+    drawTool->DrawRightLatex( 0.4, 0.2, cLabel );
+
+    SaveAsAll( c, name, cName );
+  } // end loop over iX
+
+  // delete
+  for( uint iG = 0; iG < nSamples; iG++ ){
+    for( int iX = 0; iX < nXbins; iX++ )
+      { delete vSpect[iG][iX]; }
+  }
+} 
 
 void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
-				  std::vector< THnSparse* >& vhnNent,
-				  FourDTH1vector& vDphiWidths,
-				  FourDTH1vector& vDphiNent,
 				  const std::vector< std::string >& vLabel,
-				  const std::string& type1,
-				  const std::string& type2 ){
+				  const std::string& name ){
+
   std::vector< TH1* > vDphi;
   std::vector< TF1* > vFits;
-
-  std::string mcType = !type1.empty() ? "_" + type1 : "" ;
   
   // ---- loop over group  ----
   // ---- (jzn or trigger) ----
-  vDphiWidths.resize( vLabel.size() );
-  vDphiNent  .resize( vLabel.size() );
-  for( uint iG = 0; iG < vLabel.size(); iG++ ){      
-    THnSparse* hn     = vhn[iG];
-    THnSparse* hnNent = vhnNent[iG];
-
+  for( uint iG = 0; iG < vhn.size(); iG++ ){      
+    THnSparse* hn = vhn[iG];
+  
     // truncate dphi bins with not many contents.
     // anaTool->TruncateHistoBins( hn, hnNent );
 
     std::string label = vLabel[iG];
 
     // in data only draw for all
-    if( m_isData && label.compare("All") ){ continue; } 
+    if( label.compare("All") ){ continue; } 
 
     TAxis* axis0 = hn->GetAxis( m_dPP->GetAxisI(0) );
     TAxis* axis1 = hn->GetAxis( m_dPP->GetAxisI(1) );
     TAxis* axis2 = hn->GetAxis( m_dPP->GetAxisI(2) );
     TAxis* axis3 = hn->GetAxis( m_dPP->GetAxisI(3) );
-
-    TAxis* axis0Nent = hnNent->GetAxis( m_dPP->GetAxisI(0) );
-    TAxis* axis1Nent = hnNent->GetAxis( m_dPP->GetAxisI(1) );
-    TAxis* axis2Nent = hnNent->GetAxis( m_dPP->GetAxisI(2) );
-    TAxis* axis3Nent = hnNent->GetAxis( m_dPP->GetAxisI(3) );
     
     int nAxis0Bins = axis0->GetNbins();
     int nAxis1Bins = axis1->GetNbins();
@@ -444,27 +631,17 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
     int fAxisI     = m_dPP->GetAxisI(3);
  
     // ---- loop over ystars ----
-    // resize collections
-    vDphiWidths[iG].resize( nAxis0Bins );
-    vDphiNent  [iG].resize( nAxis0Bins );
-
     for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
       // set ranges
-      axis0    ->SetRange( axis0Bin, axis0Bin );
-      axis0Nent->SetRange( axis0Bin, axis0Bin );
+      axis0->SetRange( axis0Bin, axis0Bin );
 
       double axis0Low, axis0Up;
       anaTool->GetBinRange
 	( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
 
-      // resize collections
-      vDphiWidths[iG][ axis0Bin - 1 ].resize( nAxis1Bins );
-      vDphiNent  [iG][ axis0Bin - 1 ].resize( nAxis1Bins );
-
       for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
 	// set ranges
-	axis1    ->SetRange( axis1Bin, axis1Bin );
-	axis1Nent->SetRange( axis1Bin, axis1Bin ); 
+	axis1->SetRange( axis1Bin, axis1Bin );
 	
 	double axis1Low, axis1Up;
 	anaTool->GetBinRange
@@ -476,62 +653,60 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	int style = 0;
 	styleTool->SetLegendStyle( &leg );
 
-	// general name for final canvas/histo. This is used in
-	// naming other histograms also.
-	std::string hTag =
-	  Form( "dPhi%s_%s_%s",
-		mcType.c_str(),
-		anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+	std::string hTagC =
+	  Form( "%s_%s",
+	        anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() ); 
 	
 	// ---- loop over axis2 ----
 	for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
 	  // set ranges
-	  axis2    ->SetRange( axis2Bin, axis2Bin );
-	  axis2Nent->SetRange( axis2Bin, axis2Bin );
+	  axis2->SetRange( axis2Bin, axis2Bin );
 	  
 	  double axis2Low , axis2Up;
 	  anaTool->GetBinRange
 	    ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+
+	  std::string hTagW =
+	  Form( "%s_%s_%s",
+	     	anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() ); 
+
 	  
 	  TH1* hDphiWidths = hn->Projection( fAxisI );
 	  hDphiWidths->Reset();
 	  
 	  hDphiWidths->SetName
-	    ( Form( "h_%s_%s_%s", hTag.c_str(),
-		    anaTool->GetName( axis2Low , axis2Up, m_dPP->GetAxisName(2) ).c_str(),
-		    label.c_str() ) );
+	    ( Form( "h_%s_%s_%s", name.c_str(), label.c_str(), hTagW.c_str() ) );
 	  hDphiWidths->GetYaxis()->SetTitle( "|#Delta#phi| width" );
-	  vDphiWidths[iG][ axis0Bin - 1 ][ axis1Bin - 1 ].push_back( hDphiWidths );
 	  hDphiWidths->SetMarkerSize( hDphiWidths->GetMarkerSize() * 1.5 );
 	  vDphiWidthsTemp.push_back( hDphiWidths );
 	  styleTool->SetHStyle( hDphiWidths, style++ );
-	  
-	  TH1* hNent = hnNent->Projection( fAxisI );
-	  hNent->SetName
-	    ( Form( "h_dPhiNent%s_%s_%s_%s",
-		    mcType.c_str(), hTag.c_str(),
-		    anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
-		    label.c_str() ) );
-	  vDphiNent[iG][ axis0Bin - 1 ][ axis1Bin - 1 ].push_back( hNent );
-	  
+	  	  
 	  leg.AddEntry
 	    ( hDphiWidths, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ) .c_str() );
 
 	  // ---- loop over axis3 ----
 	  for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 	    axis3->SetRange( axis3Bin, axis3Bin );
+
 	    double axis3Low , axis3Up;
 	    anaTool->GetBinRange
 	      ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
 
+
+	    std::string hTag =
+	      Form( "%s_%s_%s_%s",
+		    anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		    anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		    anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		    anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() ); 
+
 	    // Take projection onto the dPhi axis
 	    TH1* hDphi = hn->Projection( 4 );
 	    hDphi->SetName
-	      ( Form( "h_%s_%s_%s_%s", hTag.c_str(),
-		      anaTool->GetName( axis2Low , axis2Up, m_dPP->GetAxisName(2) ).c_str(),
-		      anaTool->GetName( axis3Low , axis3Up, m_dPP->GetAxisName(3) ).c_str(),
-		      label.c_str() ) );
+	      ( Form( "h_%s_%s_%s", name.c_str(), label.c_str(), hTag.c_str() ) );
 	    styleTool->SetHStyle( hDphi, 0 );
 	    vDphi.push_back( hDphi );
 
@@ -547,13 +722,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 		axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
 	    
-	    if( m_isData ){
-	      drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
-	    } else {
-	      drawTool->DrawRightLatex( 0.88, 0.82, type1 );
-	      drawTool->DrawAtlasInternalMCRight( 0, 0, type2 );
-	    }
-
+	    DrawAtlasRight();
+	    
 	    // now fit
 	    TF1* fit = anaTool->FitDphi( hDphi );
 	    styleTool->SetHStyle( fit, 0 );
@@ -580,10 +750,10 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    if( fit->GetParameter(1) < 0 )
 	      { continue; }
 
-	    // dont add entries for bins that have small counts
-	    // aka truncate
-	    if( hNent->GetBinContent( axis3Bin ) < 20 ){ continue; }
 	    // Now, put results on histogram
+	    // Check Chi2/NDF. If it is 0.5 < Chi2/NDF < 2.5
+	    // We save the result. Otherwise, it is a bad fit.
+	    if( chi2NDF < 0.5 || chi2NDF > 2.5 ){ continue; }
 	    hDphiWidths->SetBinContent( axis3Bin, fit->GetParameter(1) );
 	    hDphiWidths->SetBinError  ( axis3Bin, fit->GetParError (1) );	    
 	  } // end loop over axis3
@@ -591,8 +761,6 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	  // set range back to whole range otherwise
 	  // histograms drawn for only one bin
 	  axis3    ->SetRange( 1, -1 );
-	  axis3Nent->SetRange( 1, -1 );
-
 	} // end loop over axis2
 	
 	cWidths.cd();
@@ -606,26 +774,252 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	}
 	leg.Draw("same");
 
-	drawTool->DrawLeftLatex
-	  ( 0.13, 0.87,anaTool->GetLabel
-	    ( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ) );
-	drawTool->DrawLeftLatex
-	  ( 0.13, 0.82,anaTool->GetLabel
-	    ( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ) );
+	drawTool->DrawTopLeftLabels
+	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	    0, 0, 0, 0, 0.8 );
 
-	if( m_isData ){
-	  drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
-	}
-	else {
-	  drawTool->DrawRightLatex    ( 0.88, 0.82, type1 );
-	  drawTool->DrawAtlasInternalMCRight( 0, 0, type2 );
-	}
+	DrawAtlasRight();
 	
-	SaveAsROOT( cWidths, Form("h_%s_%s", hTag.c_str(), label.c_str() ) );
+        SaveAsAll( cWidths, Form("h_%s_%s_%s", name.c_str(), label.c_str(), hTagC.c_str() ) );
       } // end loop over axis1     
     } // end loop over axis0
-  } // end loop over iG
+  } // end loop over iG 
 }
+
+void DiJetAnalysis::PlotDphiTogether(){
+
+  std::string outSuffix;
+  std::string name_a  , name_b  ;
+  std::string label_a , label_b ;
+  std::string suffix_a, suffix_b;
+
+  GetInfoBoth( outSuffix, name_a, name_b, label_a, label_b, suffix_a, suffix_b );
+  
+  // Check if the directories exist.
+  // If they don't, create them
+  std::string output = "output";
+  std::string outDir = output;
+  anaTool->CheckWriteDir( outDir.c_str() );
+  outDir += "/all";
+  anaTool->CheckWriteDir( outDir.c_str() );
+  outDir += "/" + outSuffix;
+  anaTool->CheckWriteDir( outDir.c_str() );
+
+  TAxis* axis0 = m_dPP->GetTAxis( 0 );
+  TAxis* axis1 = m_dPP->GetTAxis( 1 );
+  TAxis* axis2 = m_dPP->GetTAxis( 2 );
+  TAxis* axis3 = m_dPP->GetTAxis( 3 );
+  
+  int nAxis0Bins = axis0->GetNbins();
+  int nAxis1Bins = axis1->GetNbins();
+  int nAxis2Bins = axis2->GetNbins();
+  int nAxis3Bins = axis3->GetNbins();
+
+  TFile* fIn_a = TFile::Open
+    ( Form("%s/output_%s/c_myOut_%s.root",
+	   output.c_str()  ,
+	   suffix_a.c_str(),
+	   suffix_a.c_str() ) );
+  TFile* fIn_b = TFile::Open
+    ( Form("%s/output_%s/c_myOut_%s.root",
+	   output.c_str()  ,
+	   suffix_b.c_str(),
+	   suffix_b.c_str() ) );
+  TFile* fOut  = new TFile
+    ( Form("%s/all/%s/c_myOut_%s.root",
+	   output.c_str()   ,
+	   outSuffix.c_str(),
+	   outSuffix.c_str() ) ,"recreate");
+
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+     // set ranges
+    double axis0Low, axis0Up;
+    anaTool->GetBinRange
+      ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
+    
+    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      double axis1Low, axis1Up;
+      anaTool->GetBinRange
+	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
+
+      // get widths canvases
+      std::string hTagCW =
+	Form ("%s_%s",
+	      	anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
+    
+      // Make canvas+leg for widths
+      TCanvas cW("cW","cW", 800, 600 );
+
+      TLegend legW( 0.33, 0.13, 0.87, 0.26 );
+      styleTool->SetLegendStyle( &legW );
+      legW.SetNColumns(2);
+      
+      int style = 0;
+
+      std::vector< TH1* > vHw;
+      
+      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	double axis2Low , axis2Up;
+	anaTool->GetBinRange
+	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+
+	// switch back to cW canvas
+	// because a new one was creted in axis3 loop
+	cW.cd();
+	
+	// get widths histos
+	std::string hTagW =
+	  Form("%s_%s_%s",
+	       anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+	       anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+	       anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() );
+	
+	std::string hNameW_a = Form("h_%s_%s", name_a.c_str(), hTagW.c_str() );
+	std::string hNameW_b = Form("h_%s_%s", name_b.c_str(), hTagW.c_str() );
+
+	TH1* hW_a = static_cast<TH1D*>( fIn_a->Get( hNameW_a.c_str() ) );
+	TH1* hW_b = static_cast<TH1D*>( fIn_b->Get( hNameW_b. c_str() ) );
+	std::cout << hW_a << " " << hNameW_a << std::endl;
+	styleTool->SetHStyle( hW_a, style );
+	styleTool->SetHStyle( hW_b, style + 5 );
+	hW_a->SetMarkerSize( hW_a->GetMarkerSize() * 1.5 );
+	hW_b->SetMarkerSize( hW_b->GetMarkerSize() * 1.5 );
+	vHw.push_back( hW_a ); vHw.push_back( hW_b  );
+	
+	style++;
+
+	if( hW_a->GetMean() ){
+	  legW.AddEntry
+	    ( hW_a,
+	      Form("%s %s", label_a.c_str(),
+		   anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));	
+	  hW_a->Draw("ep same X0");
+	}
+
+	if( hW_b->GetMean() ){
+	  legW.AddEntry
+	    ( hW_b,
+	      Form("%s %s", label_b.c_str(),
+		   anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));	
+	  hW_b->Draw("ep same X0");
+	}
+
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+          double axis3Low , axis3Up;
+	  anaTool->GetBinRange
+	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
+	    
+	  std::string hTag =
+	    Form("%s_%s_%s_%s",
+		 anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		 anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		 anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		 anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() );
+	  
+	  std::string hName_a = Form("h_%s_%s", name_a.c_str(), hTag.c_str() );
+	  std::string hName_b = Form("h_%s_%s", name_b.c_str(), hTag.c_str() );
+	    
+	  TH1* h_a = static_cast<TH1D*>( fIn_a->Get( hName_a.c_str() ) );
+	  TH1* h_b = static_cast<TH1D*>( fIn_b->Get( hName_b.c_str() ) );
+	  styleTool->SetHStyle( h_a, 0 );
+	  styleTool->SetHStyle( h_b, 1 );
+	  
+	  TF1* f_a = static_cast<TF1*>( fIn_a->Get( Form("f_%s", hName_a.c_str())));
+	  TF1* f_b = static_cast<TF1*>( fIn_b->Get( Form("f_%s", hName_b.c_str())));
+	  styleTool->SetHStyle( f_a, 0 );
+	  styleTool->SetHStyle( f_b , 1 );
+	  f_a->SetLineColor( h_a->GetLineColor() );
+	  f_b->SetLineColor( h_b->GetLineColor() );
+
+	  double chi2NDF_a = f_a->GetChisquare()/f_a->GetNDF();
+	  double chi2NDF_b = f_b->GetChisquare()/f_b->GetNDF();
+	  
+	  TCanvas c("c","c", 800, 600 );
+	    
+	  TLegend leg( 0.27, 0.41, 0.38, 0.52 );
+	  styleTool->SetLegendStyle( &leg , 0.85 );
+
+	  bool save = false;
+	  
+	  if( h_a->GetEntries() ){
+	    h_a->SetMinimum(0);
+	    h_a->GetYaxis()->SetNdivisions(505);
+	    h_a->GetXaxis()->SetRangeUser( 2, constants::PI );
+	    leg.AddEntry( h_a, Form("%s #Chi^{2}/NDF=%4.2f", label_a.c_str(), chi2NDF_a));
+	    h_a->Draw("epsame");
+	    f_a->Draw("same");
+	    save = true;
+	  }
+
+	  if( h_b->GetEntries() ){
+	    h_b->SetMinimum(0);
+	    h_b->GetYaxis()->SetNdivisions(505);
+	    h_b->GetXaxis()->SetRangeUser( 2, constants::PI );
+	    leg.AddEntry( h_b, Form("%s #Chi^{2}/NDF=%4.2f", label_b.c_str(), chi2NDF_b));
+	    h_b->Draw("epsame");
+	    f_b->Draw("same");
+	    save = true;
+	  }
+
+	  leg.Draw("same");
+
+	  if( h_a->GetMaximum() > h_b->GetMaximum() ){
+	    h_a->SetMaximum( h_a->GetMaximum() * 1.1 );
+	    h_b->SetMaximum( h_a->GetMaximum() * 1.1 );
+	  } else {
+	    h_a->SetMaximum( h_b->GetMaximum() * 1.1 );
+	    h_b->SetMaximum( h_b->GetMaximum() * 1.1 );
+	  }
+
+	  drawTool->DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
+
+	  DrawAtlasRightBoth();
+
+	  if( save ) c.SaveAs( Form("%s/all/%s/h_dPhi_%s_%s.png",
+				    output.c_str(), outSuffix.c_str(),
+				    hTag.c_str(), outSuffix.c_str() ) );
+	  SaveAsROOT( c, Form("h_dPhi_%s", hTag.c_str() ) );
+	  
+	  delete  f_a; delete  f_b;
+	  delete  h_a; delete  h_b;
+	} // end loop over axis3
+      } // end loop over axis2
+
+      // back to cW canvas
+      cW.cd();
+
+      legW.Draw("same");
+
+      drawTool->DrawTopLeftLabels
+	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	  0, 0, 0, 0, 0.8 );
+
+      DrawAtlasRightBoth();
+
+      cW.SaveAs( Form("%s/all/%s/h_dPhi_%s_%s.png",
+		      output.c_str(), outSuffix.c_str(),
+		      hTagCW.c_str(), outSuffix.c_str() ) );
+      SaveAsROOT( cW, Form("h_dPhi_%s", hTagCW.c_str() ) );
+
+      for( auto & hW : vHw ){ delete hW; }
+     } // end loop over ystar2
+  } // end loop over ystar2
+  
+  std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
+  fOut->Close();
+  std::cout << "......Closed  " << fOut->GetName() << std::endl;
+}
+
+//---------------------------
+//        Drawing
+//---------------------------
+
+void DiJetAnalysis::DrawAtlasRight( double x0, double y0, double scale ){}
+
+void DiJetAnalysis::DrawAtlasRightBoth( double x0, double y0, double scale ){} 
 
 //---------------------------
 //       Saving 
