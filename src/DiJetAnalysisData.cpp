@@ -24,6 +24,9 @@
 #include "DiJetAnalysisData.h"
 #include "DeltaPhiProj.h"
 
+#include "RooUnfoldResponse.h"
+#include "RooUnfoldBayes.h"
+
 DiJetAnalysisData::DiJetAnalysisData() : DiJetAnalysisData( false )
 {}
 
@@ -32,7 +35,17 @@ DiJetAnalysisData::DiJetAnalysisData( bool is_pPb )
 {
   //========== Set Histogram Binning =============
 
-  //==================== Cuts ====================    
+  //==================== Cuts ====================
+
+  //================== Settings ==================
+  m_mbTriggerName = "";
+  
+  m_mbTriggerI         = -1;
+  m_lowestCentTriggerI = -1;
+  
+  m_centMbCorrection   = 0;
+
+  //=============== Histo Names ==================    
 }
 
 DiJetAnalysisData::~DiJetAnalysisData(){}
@@ -43,18 +56,6 @@ void DiJetAnalysisData::Initialize(){
   m_fNameIn = m_is_pPb ?
     "/home/yakov/Projects/atlas/data/pPb.root" :
     "/home/yakov/Projects/atlas/data/pp.root"  ;
-
-  m_mbTriggerName = "";
-  
-  m_mbTriggerI         = -1;
-  m_lowestCentTriggerI = -1;
-  
-  m_centMbCorrection   = 0;
-
-  //=============== Histo Names ==================    
-  m_etaSpectName       = "etaSpect";
-
-  m_dPhiName           = "dPhi";
 }
 
 //---------------------------
@@ -75,21 +76,41 @@ void DiJetAnalysisData::ProcessPlotHistos(){
 
   std::string cfNameOut = m_dirOut + "/c_myOut_" + m_labelOut + ".root";
   m_fOut = new TFile( cfNameOut.c_str(),"RECREATE");
-  
-  // PlotEtaPhiPtMap( m_vHtriggerEtaPhiMap );
-  // PlotEtaPhiPtMap( m_vHtriggerEtaPtMap  );
+
+  // MakeEtaPhiPtMap( m_vHtriggerEtaPhiMap );
+  // MakeEtaPhiPtMap( m_vHtriggerEtaPtMap  );
 
   // add a trigger "all" to collection
   // rest of plots are for combined triggers
   m_vTriggers.push_back( m_allName );
   
   m_hAllEtaSpect = CombineSamples( m_vHtriggerEtaSpect, m_etaSpectName );
-  PlotSpectra( m_vHtriggerEtaSpect, m_vTriggers, m_etaSpectName );
+  MakeSpectra( m_vHtriggerEtaSpect, m_vTriggers, m_etaSpectName );
 
-  PlotEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, "eff" );
+  MakeEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, m_effName );
 
   m_hAllDphi = CombineSamples( m_vHtriggerDphi, m_dPhiName );
-  PlotDeltaPhi( m_vHtriggerDphi, m_vTriggers, m_dPhiName );
+  MakeDeltaPhi( m_vHtriggerDphi, m_vTriggers, m_dPhiName );
+
+  std::cout << "----- Unfolding Data ------" << std::endl;
+  // make a vector with just the unfolded result.
+  // this is to send it to MakeDeltaPhi(..) to have
+  // unfolded results plotted separately
+  std::vector< THnSparse*  > m_vHDphiUnfolded;
+  std::vector< std::string > m_vLabelUnfolded;
+  
+  // make unfolded THnSparse with similar naming convention
+  // as the other histograms. At this point, don't care about
+  // doing this for all triggers. Altohugh, this can be
+  // repeated in a loop with m_allName subsitituted for trigger,
+  // and subsequently added to the vectors above. 
+  THnSparse* m_hAllDphiUnfolded = (THnSparse* )m_hAllDphi->Clone
+    ( Form("h_%s_%s", m_dPhiUnfoldedName.c_str(), m_allName.c_str() ) );
+  m_hAllDphiUnfolded->Reset();
+  
+  UnfoldDeltaPhi( m_fOut, m_hAllDphiUnfolded );
+  m_vHDphiUnfolded.push_back( m_hAllDphiUnfolded );
+  m_vLabelUnfolded.push_back( m_allName );
   
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close();
@@ -320,7 +341,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   int endEvent = startEvent + nEvents < nEventsTotal ?
 					startEvent + nEvents : nEventsTotal;
 
-  // event loop
+  // -------- EVENT LOOP ---------
   for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
     m_tree->GetEntry( m_ev );
 
@@ -397,7 +418,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     } // end loop over iG
     // EFFICIENCIES - only for good run and LBN
     if( goodRunLBN ){ AnalyzeEff( vR_jets, vTrig_jets, mTriggerFired ); }    
-  } // end event loop
+  } // -------- END EVENT LOOP ---------
   std::cout << "DONE! Has: " << nEventsTotal << " events." << std::endl;
 
   m_fIn->Close();
@@ -509,6 +530,135 @@ void DiJetAnalysisData::AnalyzeEff( std::vector< TLorentzVector >& vR_jets,
   } // end loop over iG
 }
 
+void DiJetAnalysisData::UnfoldDeltaPhi( TFile* fInData, THnSparse* hn ){
+  std::vector< TH1* > vDphi;
+  std::vector< TH2* > vDphiRespMat;
+
+  TAxis* axis0 = m_dPP->GetTAxis( 0 );
+  TAxis* axis1 = m_dPP->GetTAxis( 1 );
+  TAxis* axis2 = m_dPP->GetTAxis( 2 );
+  TAxis* axis3 = m_dPP->GetTAxis( 3 );
+  
+  int nAxis0Bins = axis0->GetNbins();
+  int nAxis1Bins = axis1->GetNbins();
+  int nAxis2Bins = axis2->GetNbins();
+  int nAxis3Bins = axis3->GetNbins();
+
+  std::string triggerMenu = GetConfig()->GetValue("triggerMenu", " ");  
+  std::string unfoldingMC = GetConfig()->GetValue
+    ( Form("unfoldingMC.%s",triggerMenu.c_str()), "" );
+  std::string unfoldingMCLabel = GetConfig()->GetValue
+    ( Form("unfoldingMCLabel.%s",triggerMenu.c_str()), "" );
+  
+  std::string output    = "output";  
+  std::string system    = m_is_pPb ? "pPb" : "pp";
+  std::string fNameInMC = Form( "%s/%s_%s_mc_%s/c_myOut_%s_mc_%s.root",
+				output.c_str(), output.c_str(),
+				system.c_str(), unfoldingMC.c_str(),
+				system.c_str(), unfoldingMC.c_str() );
+
+  TFile* fInMC = TFile::Open( fNameInMC.c_str() );
+
+  fInData->cd();
+  
+  // ---- loop over ystars ----
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+    // set ranges
+    double axis0Low, axis0Up;
+    anaTool->GetBinRange
+      ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
+    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      // set ranges
+      double axis1Low, axis1Up;
+      anaTool->GetBinRange
+	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
+      // ---- loop over axis2 ----
+      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	// set ranges
+	double axis2Low , axis2Up;
+	anaTool->GetBinRange
+	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+	// ---- loop over axis3 ----
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	  double axis3Low , axis3Up;
+	  anaTool->GetBinRange
+	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
+
+	  TCanvas c( "c", "c", 800, 600 );
+	  TLegend leg( 0.27, 0.41, 0.38, 0.57 );
+	  styleTool->SetLegendStyle( &leg , 0.85 );
+	  
+	  std::string hTag =
+	    Form( "%s_%s_%s_%s",
+		  anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		  anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		  anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		  anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() ); 
+	  
+	  TH1* hDphiData    = (TH1D*)fInData->Get
+	    ( Form( "h_%s_%s_%s", m_dPhiName.c_str(), m_allName.c_str(), hTag.c_str()));	  
+	  TH1* hDphiTruth   = (TH1D*)fInMC->Get
+	    ( Form( "h_%s_%s_%s", m_dPhiTruthName.c_str(), m_allName.c_str(), hTag.c_str()));
+	  TH2* hDphiRespMat = (TH2D*)fInMC->Get
+	    ( Form( "h_%s_%s_%s", m_dPhiRespMatName.c_str(), m_allName.c_str(), hTag.c_str()));
+	  vDphi.       push_back( hDphiData );
+	  vDphi.       push_back( hDphiTruth );
+	  vDphiRespMat.push_back( hDphiRespMat );
+
+	  std::cout << "------ " ;  
+	  std::cout << hDphiData->GetName() << " " << hDphiData->GetEntries() << std::endl;
+
+	  RooUnfoldResponse response( hDphiData, hDphiTruth, hDphiRespMat );
+	  RooUnfoldBayes      unfold( &response, hDphiData, 4 );
+	  unfold.SetVerbose(0);
+	  
+	  TH1* hDphiUnfolded = (TH1D*)unfold.Hreco();
+	  hDphiUnfolded->SetName
+	    ( Form( "h_%s_%s_%s",m_dPhiUnfoldedName.c_str(), m_allName.c_str(), hTag.c_str()));
+
+	  styleTool->SetHStyle( hDphiUnfolded, 0 );
+	  styleTool->SetHStyle( hDphiData    , 1 );
+	  styleTool->SetHStyle( hDphiTruth   , 2 );
+
+	  leg.AddEntry( hDphiUnfolded, "Unfolded" );
+	  leg.AddEntry( hDphiData    , "Data"     );
+	  leg.AddEntry
+	    ( hDphiTruth, Form( "%s %s", unfoldingMCLabel.c_str(), m_truthName.c_str() ), "lf" );
+
+	  hDphiUnfolded->Draw("ep same");
+	  hDphiData    ->Draw("ep same");
+	  hDphiTruth   ->Draw("histo same");
+
+	  double maximum = -1;
+	  
+	  maximum = hDphiUnfolded->GetMaximum() > hDphiData->GetMaximum() ?
+	    hDphiUnfolded->GetMaximum() : hDphiData->GetMaximum();
+
+	  maximum = maximum > hDphiTruth->GetMaximum() ?
+	    maximum : hDphiTruth->GetMaximum();
+
+	  hDphiUnfolded->SetMaximum( maximum * 1.1 );
+	  hDphiData    ->SetMaximum( maximum * 1.1 );
+	  hDphiTruth   ->SetMaximum( maximum * 1.1 );
+	  
+	  leg.Draw();
+	  
+	  drawTool->DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
+	    
+	  DrawAtlasRight();
+	    
+	  SaveAsROOT( c, hDphiUnfolded->GetName() );
+	  hDphiUnfolded->Write();
+	} // end loop over axis3
+      } // end loop over axis2
+    } // end loop over axis1     
+  } // end loop over axis0
+  for( auto h  : vDphi        ){ delete h ; }
+  for( auto rm : vDphiRespMat ){ delete rm; }
+}
+
 //---------------------------
 //       Tools
 //---------------------------  
@@ -588,7 +738,7 @@ void DiJetAnalysisData::GetInfoBoth( std::string& outSuffix,
 }
 
 //---------------------------------
-//            Plotting
+//     Get Quantities / Plot 
 //---------------------------------
 
 void DiJetAnalysisData::LoadHistograms(){
@@ -614,9 +764,6 @@ void DiJetAnalysisData::LoadHistograms(){
 	  ( Form("h_%s_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
     m_vHtriggerEtaSpect.back()->SetDirectory(0);
     
-    if( !trigger.compare( m_allName ) )
-      { m_hAllEtaSpect = m_vHtriggerEtaSpect.back(); }
-
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( static_cast< TH2D *>
@@ -642,7 +789,7 @@ void DiJetAnalysisData::LoadHistograms(){
   m_fIn->Close();
 }
 
-void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
+void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
 					  std::vector< TH2* >& vTrigSpectRef,
 					  const std::string& type ){
   double lX0, lY0, lX1, lY1;
@@ -853,7 +1000,6 @@ void DiJetAnalysisData::PlotEfficiencies( std::vector< TH2* >& vTrigSpect,
       }
   } 
 }
-
 
 //---------------------------
 //        Drawing

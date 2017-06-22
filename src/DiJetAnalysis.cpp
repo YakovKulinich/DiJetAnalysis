@@ -11,6 +11,7 @@
 #include <TF1.h>
 #include <THnSparse.h>
 #include <TVirtualFitter.h>
+#include <TRandom.h>
 
 #include <cmath>
 #include <iostream>
@@ -103,14 +104,12 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
 
   boost::assign::push_back( m_dPhiMax  )
     ( 1 )( 1 ) ( 1 )( 1 )( m_dPhiDphiMax );
-    
+
   m_dPhiWidthMin = 0.00;
   m_dPhiWidthMax = 0.5;
-
-  // ----- chi2 plots ------
-  m_chi2Min = 0.;
-  m_chi2Max = 5.;
   
+  m_nDphiDim     = m_nDphiBins.size();
+    
   //========= Set DeltaPhi Axes Order ============
   // The DeltaPhiProj object will have the order
   // onto which to take projections. It also knows
@@ -148,9 +147,25 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
   m_config = new TEnv();
   m_config->ReadFile( configName.c_str(), EEnvLevel(0));
 
+  //========== settings ===========  
   // name for "All" histos
   // this is either merged JZN or Data from Triggers
   m_allName = "All";
+  
+  //=============== Histo Names ==================    
+  m_etaSpectName      = "etaSpect";
+  m_dPhiName          = "dPhi";
+  m_effName           = "eff";
+
+  m_recoName          = "reco";
+  m_truthName         = "truth";
+  m_respMatName       = "respMat";
+  m_unfoldedName      = "unfolded";
+    
+  m_dPhiRecoName      = m_dPhiName + "_" + m_recoName;
+  m_dPhiTruthName     = m_dPhiName + "_" + m_truthName;
+  m_dPhiRespMatName   = m_dPhiName + "_" + m_respMatName;;
+  m_dPhiUnfoldedName  = m_dPhiName + "_" + m_unfoldedName;;
 }
 
 DiJetAnalysis::~DiJetAnalysis(){
@@ -199,14 +214,12 @@ void DiJetAnalysis::AddHistogram( THnSparse* hn ){
   hn->GetAxis(1)->SetTitle("#it{y}_{2}*");
   hn->GetAxis(2)->SetTitle("#it{p}_{T}^{1}");
   hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
-  if( hn->GetNdimensions() == 5 )
-    { hn->GetAxis(4)->SetTitle("|#Delta#phi|"); }
-  else if( hn->GetNdimensions() == 6 )
-    {
-      hn->GetAxis(4)->SetTitle("|#Delta#phi_{Reco}|");
-      hn->GetAxis(5)->SetTitle("|#Delta#phi_{Truth}|");
-    }
-  
+  if( hn->GetNdimensions() == 5 ){
+    hn->GetAxis(4)->SetTitle("|#Delta#phi|"); }
+  if( hn->GetNdimensions() == 6 ){
+    hn->GetAxis(4)->SetTitle("|#Delta#phi_{Reco}|");
+    hn->GetAxis(5)->SetTitle("|#Delta#phi_{Truth}|");
+  }
 }
 
 
@@ -294,14 +307,6 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn, THnSparse* hnNent,
   hn    ->Fill( &x[0], weight );
   hnNent->Fill( &x[0], 1 );
 
-  // just to check everything was sorted.
-  // can get rid of later
-  if( jet1_pt < jet2_pt ){
-    for( auto& jet : v_jets ){
-      std::cout << jet.Pt()/1000. << " " << jet.Eta() << std::endl;
-    }
-  }
-  
   // for pp, fill twice. once for each side since
   // it is symmetric in pp. For pPb, continue
   if( m_is_pPb ){ return deltaPhi; }
@@ -410,10 +415,10 @@ void DiJetAnalysis::GetInfoBoth( std::string& outSuffix,
 
 
 //---------------------------
-//       Plotting
+//   Get Quantities / Plot 
 //---------------------------
 
-void DiJetAnalysis::PlotSpectra( std::vector< TH2* >& vSampleSpect,
+void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
 				 const std::vector< std::string>& vLabels,
 				 const std::string& name ){
   if( !vSampleSpect.size() ){ return; }
@@ -598,7 +603,7 @@ void DiJetAnalysis::PlotSpectra( std::vector< TH2* >& vSampleSpect,
   }
 } 
 
-void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
+void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 				  const std::vector< std::string >& vLabel,
 				  const std::string& name ){
 
@@ -616,8 +621,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
     std::string label = vLabel[iG];
 
     // in data only draw for all
-    if( label.compare("All") ){ continue; } 
-
+    if( label.compare( m_allName ) ){ continue; } 
+    
     TAxis* axis0 = hn->GetAxis( m_dPP->GetAxisI(0) );
     TAxis* axis1 = hn->GetAxis( m_dPP->GetAxisI(1) );
     TAxis* axis2 = hn->GetAxis( m_dPP->GetAxisI(2) );
@@ -662,7 +667,11 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
 	  // set ranges
 	  axis2->SetRange( axis2Bin, axis2Bin );
-	  
+	  // set range back to whole range otherwise histograms
+	  // drawn for only one bin ( from projection ) beacuse
+	  // loop over axis3 ends at last bin in.
+	  axis3->SetRange( 1, -1 );
+ 
 	  double axis2Low , axis2Up;
 	  anaTool->GetBinRange
 	    ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
@@ -734,6 +743,8 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double chi2NDF = fit->GetChisquare()/fit->GetNDF();
 
 	    drawTool->DrawLeftLatex( 0.5, 0.66, Form( "#Chi^{2}/NDF=%4.2f", chi2NDF ) );
+
+	    hDphi->GetXaxis()->SetRangeUser( 2, constants::PI );
 	    
 	    SaveAsROOT( c, hDphi->GetName() );
 	    hDphi->Write();
@@ -757,10 +768,6 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphiWidths->SetBinContent( axis3Bin, fit->GetParameter(1) );
 	    hDphiWidths->SetBinError  ( axis3Bin, fit->GetParError (1) );	    
 	  } // end loop over axis3
-
-	  // set range back to whole range otherwise
-	  // histograms drawn for only one bin
-	  axis3    ->SetRange( 1, -1 );
 	} // end loop over axis2
 	
 	cWidths.cd();
@@ -783,10 +790,10 @@ void DiJetAnalysis::PlotDeltaPhi( std::vector< THnSparse* >& vhn,
         SaveAsAll( cWidths, Form("h_%s_%s_%s", name.c_str(), label.c_str(), hTagC.c_str() ) );
       } // end loop over axis1     
     } // end loop over axis0
-  } // end loop over iG 
+  } // end loop over iG
 }
 
-void DiJetAnalysis::PlotDphiTogether(){
+void DiJetAnalysis::MakeDphiTogether(){
 
   std::string outSuffix;
   std::string name_a  , name_b  ;
@@ -804,7 +811,7 @@ void DiJetAnalysis::PlotDphiTogether(){
   anaTool->CheckWriteDir( outDir.c_str() );
   outDir += "/" + outSuffix;
   anaTool->CheckWriteDir( outDir.c_str() );
-
+  
   TAxis* axis0 = m_dPP->GetTAxis( 0 );
   TAxis* axis1 = m_dPP->GetTAxis( 1 );
   TAxis* axis2 = m_dPP->GetTAxis( 2 );
@@ -880,7 +887,6 @@ void DiJetAnalysis::PlotDphiTogether(){
 
 	TH1* hW_a = static_cast<TH1D*>( fIn_a->Get( hNameW_a.c_str() ) );
 	TH1* hW_b = static_cast<TH1D*>( fIn_b->Get( hNameW_b. c_str() ) );
-	std::cout << hW_a << " " << hNameW_a << std::endl;
 	styleTool->SetHStyle( hW_a, style );
 	styleTool->SetHStyle( hW_b, style + 5 );
 	hW_a->SetMarkerSize( hW_a->GetMarkerSize() * 1.5 );

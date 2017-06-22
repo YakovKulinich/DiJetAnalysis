@@ -1,11 +1,13 @@
+ROOUNFOLDDIR = /home/yakov/FC/RooUnfold-1.1.1
+
 CXX      = g++ 
 CXXFLAGS = -Wall `root-config --cflags` -g -o2
-LDFLAGS  = -Wall `root-config --glibs` -lboost_system -lboost_filesystem -Wl,-rpath=.
+LDFLAGS  = -Wall `root-config --glibs` -lboost_system -lboost_filesystem -Wl,-rpath=. -Wl,-rpath=$(ROOUNFOLDDIR)
 
-INCLUDEDIRS = -I./include
+INCLUDEDIRS = -I./include -I$(ROOUNFOLDDIR)/src
 
-LIBDIRS     = -L.
-LIBS        = -lMyLib
+LIBDIRS     = -L. -L$(ROOUNFOLDDIR)
+LIBS        = -lMyLib -lRooUnfold
 
 OBJ         = analysis
 SOURCES     = DiJetAnalysis.cpp DiJetAnalysisData.cpp DiJetAnalysisMC.cpp \
@@ -21,7 +23,7 @@ MYLIBDIR    = lib/
 CSOURCES    = $(addprefix $(DSOURCES),$(SOURCES))
 CINCLUDES   = $(addprefix $(DINCLUDES),$(INCLUDES))
 
-all: $(CSOURCES) $(CINCLUDES) libMyLib.so
+all: $(CSOURCES) $(CINCLUDES) libMyLib.so 
 	$(CXX) $(CXXFLAGS) $(CSOURCES) $(INCLUDEDIRS) \
 	$(LIBDIRS) $(LIBS) $(LDFLAGS) -o $(OBJ)
 

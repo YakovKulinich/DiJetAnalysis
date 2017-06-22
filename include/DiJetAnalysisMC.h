@@ -34,6 +34,11 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
+  void AnalyzeResponseMatrix( THnSparse* hn, THnSparse* hnNent,
+			      const std::vector<TLorentzVector>&,
+			      const std::vector<TLorentzVector>&,
+			      WeightFcn = NULL );
+  
   //---------------------------
   //          Tools 
   //---------------------------  
@@ -69,16 +74,17 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		    std::string&, std::string&, std::string& );
   
   //---------------------------
-  //       Plotting 
+  //  Get Quantities / Plot 
   //---------------------------
   void LoadHistograms();
 
-  void PlotVsEtaPt( std::vector< TH3* >&,
-		    std::vector< TH2* >&,
-		    const std::string& );
+  void MakeScaleRes( std::vector< TH3* >&,
+		     std::vector< TH2* >&,
+		     const std::string& );
   
-  void PlotEtaPhiPtMap( std::vector< TH2* >& );
-
+  void MakeResponseMatrix( std::vector<THnSparse*>&,
+			   const std::vector< std::string >&,
+			   const std::string& = "" );
   
   //---------------------------
   //        Drawing
@@ -104,8 +110,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   double m_dRmax;
   
   //============ settings ============= 
+  std::string m_mcTypeLabel;
+
   std::vector< int > m_vJznUsed;
-  uint m_nJzn;
   
   std::vector< std::string > m_vJznLabel;
   std::vector< std::string > m_vJznFnameIn;
@@ -118,9 +125,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< int    >  m_vJznNev;
   std::vector< double >  m_vJznWeights;
 
+  uint m_nJzn;
+    
   double m_sumSigmaEff;
 
   static TH3* m_hPowhegWeights;
+
   //============ data =============
   // -------- maps ---------
   std::vector< TH2* > m_vHjznEtaPhiMap;
@@ -151,18 +161,22 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< TH2* > m_vHjznRecoTruthDphiNent;
 
   // -------------- dPhi -------------
-  std::string m_dPhiRecoName;
-  std::string m_dPhiTruthName;
-
+  
   std::vector< THnSparse* > m_vHjznDphiReco;
   std::vector< THnSparse* > m_vHjznDphiRecoNent;
   std::vector< THnSparse* > m_vHjznDphiTruth;
   std::vector< THnSparse* > m_vHjznDphiTruthNent;
-
+  
   THnSparse* m_hAllDphiReco;
   THnSparse* m_hAllDphiRecoNent;
   THnSparse* m_hAllDphiTruth;
-  THnSparse* m_hAllDphiTruthNent;
+
+  // -------- Dphi Response Matrix --------     
+  std::vector< THnSparse* > m_vHjznDphiRespMat;
+  std::vector< THnSparse* > m_vHjznDphiRespMatNent;
+  
+  THnSparse* m_hAllDphiRespMat;
+  THnSparse* m_hAllDphiRespMatNent;
   
   //========= histos binning ========
   // ------ truth binning --------
@@ -179,6 +193,14 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   int    m_nDAngleRecoTruthBins;
   double m_dAngleRecoTruthMin;
   double m_dAngleRecoTruthMax;
+
+  // ---- dPhi Reponse Matrix ----- 
+  uint m_nDphiRespMatDim;
+
+  std::vector< int >    m_nDphiRespMatBins;
+  std::vector< double > m_dPhiRespMatMin;
+  std::vector< double > m_dPhiRespMatMax;
+  
 };
 
 #endif

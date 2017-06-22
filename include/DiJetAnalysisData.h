@@ -44,7 +44,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   void AnalyzeEff( std::vector< TLorentzVector >&,
 		   std::vector< TLorentzVector >&,
 		   std::map< int, bool >&);
-
+  
   //---------------------------
   //       Tools
   //---------------------------  
@@ -63,13 +63,15 @@ class DiJetAnalysisData : public DiJetAnalysis{
 		    std::string&, std::string&, std::string& );
   
   //---------------------------
-  //       Plotting 
+  //  Get Quantities / Plot 
   //---------------------------
   void LoadHistograms();
 
-  void PlotEfficiencies( std::vector< TH2* >&,
+  void MakeEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,
 			 const std::string& );
+
+  void UnfoldDeltaPhi( TFile*, THnSparse* );
 
   //---------------------------
   //        Drawing
@@ -91,6 +93,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< double >      m_vTriggersEtaMin;
   std::vector< double >      m_vTriggersEtaMax;
 
+  uint m_nTriggers;
+  
   std::string m_mbTriggerName;
 
   int m_mbTriggerI;
@@ -98,16 +102,12 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   double m_centMbCorrection;
   
-  uint m_nTriggers;
- 
   //============ data =============
   // -------- maps ---------
   std::vector< TH2* > m_vHtriggerEtaPhiMap;
   std::vector< TH2* > m_vHtriggerEtaPtMap;
 
-  // -------- spect --------
-  std::string m_etaSpectName;
-  
+  // -------- spect --------  
   std::vector< TH2* > m_vHtriggerEtaSpect;
 
   TH2* m_hAllEtaSpect;
@@ -116,13 +116,14 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< TH2* > m_vHtriggerEtaSpectDenom;
   
   // -------- dPhi ---------
-  std::string m_dPhiName;
   
   std::vector< THnSparse* > m_vHtriggerDphi;
   std::vector< THnSparse* > m_vHtriggerDphiNent;
 
   THnSparse* m_hAllDphi;
   THnSparse* m_hAllDphiNent;
+
+  THnSparse* m_hAllDphiUnfolded;
   //========= histos binning ========
 };
 

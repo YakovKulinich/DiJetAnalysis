@@ -113,19 +113,19 @@ class DiJetAnalysis{
 			    std::string&, std::string&, std::string& );
   
   //---------------------------
-  //       Plotting 
+  //   Get Quantities / Plot 
   //---------------------------
   virtual void LoadHistograms() = 0;
 
-  virtual void PlotSpectra( std::vector< TH2* >&,
+  virtual void MakeSpectra( std::vector< TH2* >&,
 			    const std::vector< std::string >&, 
 			    const std::string& = "" );
   
-  virtual void PlotDeltaPhi( std::vector<THnSparse*>&,
+  virtual void MakeDeltaPhi( std::vector<THnSparse*>&,
 			     const std::vector< std::string >&,
 			     const std::string& = "" );
 
-  virtual void PlotDphiTogether();
+  virtual void MakeDphiTogether();
   
   //---------------------------
   //        Drawing
@@ -170,9 +170,7 @@ class DiJetAnalysis{
   int  m_mcType;
 
   std::string m_allName;
-  
-  std::string m_mcTypeLabel;
-  
+    
   std::string m_labelOut;
   std::string m_dirOut;
   std::string m_rootFname;
@@ -247,7 +245,6 @@ class DiJetAnalysis{
 
   // -------- dphi --------
   uint   m_nDphiDim;
-  uint   m_nDphiNentDim;
   
   int    m_nDphiDphiBins;
   double m_dPhiDphiMin;
@@ -260,9 +257,20 @@ class DiJetAnalysis{
   double m_dPhiWidthMin;
   double m_dPhiWidthMax;
 
-  // ----- chi2 plots ------
-  double m_chi2Min;
-  double m_chi2Max;
+  //===== common histo names =======
+  std::string m_etaSpectName;
+  std::string m_dPhiName;
+  std::string m_effName;
+  
+  std::string m_recoName;
+  std::string m_truthName;
+  std::string m_respMatName;
+  std::string m_unfoldedName;
+  
+  std::string m_dPhiRecoName;
+  std::string m_dPhiTruthName;
+  std::string m_dPhiRespMatName;
+  std::string m_dPhiUnfoldedName;
 };
 
 #endif

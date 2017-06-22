@@ -77,12 +77,12 @@ int main(int argc, char *argv[])
   } else if( mode == 2 ){
     rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
-    analysis->PlotDphiTogether();
+    analysis->MakeDphiTogether();
     rootapp->Run();
   } else if( mode == 3 ){
     rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
-    analysis->PlotDphiTogether();
+    analysis->MakeDphiTogether();
     rootapp->Run();
   }
   
