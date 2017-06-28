@@ -72,6 +72,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
 		    std::string&, std::string&, std::string& );
+
+  void GetInfoUnfolding( std::string&, std::string& );
   
   //---------------------------
   //  Get Quantities / Plot 

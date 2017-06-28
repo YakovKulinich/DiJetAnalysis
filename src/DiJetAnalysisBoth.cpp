@@ -128,9 +128,9 @@ void DiJetAnalysisBoth::PlotDphiTogether(){
 	
 	legW.Draw("same");
 	
-	drawTool->DrawTopLeftLabels
-	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	  axis2Low, axis2Up, 0, 0, 0.8 );
+	DrawTopLeftLabels
+	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	    axis2Low, axis2Up, 0, 0, 0.8 );
 
 	drawTool->DrawRightLatex
 	  ( 0.88, 0.76, Form("MC %s level", m_mcLevel.c_str() ) );

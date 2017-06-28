@@ -14,13 +14,16 @@ class DeltaPhiProj{
   DeltaPhiProj( int, int, int, int );
   ~DeltaPhiProj();
 
-  int GetAxisI( int i ){ return m_vAxisI[i]; }
-  
+  int          GetAxisI    ( int i ){ return m_vAxisI[i]; } 
   std::string& GetAxisName ( int i ){ return m_vAxisName [ GetAxisI(i) ]; }
   std::string& GetAxisLabel( int i ){ return m_vAxisLabel[ GetAxisI(i) ]; }  
   TAxis*       GetTAxis    ( int i ){ return m_vTAxis    [ GetAxisI(i) ]; }  
 
   void AddTAxis( TAxis* ta ){ m_vTAxis.push_back( ta ); }
+
+  std::vector<int> GetMappedBins( const std::vector<int>& );
+  
+  bool CorrectPhaseSpace( const std::vector<int>& );
   
   std::vector< int > m_vAxisI
     { 0, 1, 2, 3 }; // default values

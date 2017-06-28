@@ -19,8 +19,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/assign.hpp>
 
-#include "MyRoot.h"
-
 #include "DiJetAnalysisMC.h"
 #include "DeltaPhiProj.h"
 
@@ -113,6 +111,16 @@ void DiJetAnalysisMC::Initialize(){
   
   std::cout << "fNameIn/Out: " << m_rootFname << std::endl;
 
+  std::string unfoldingMC      = GetConfig()->GetValue( "unfoldingMC"     , "" );
+  
+  std::string output    = "output";  
+  std::string system    = m_is_pPb ? "pPb" : "pp";
+
+  m_fNameUnfoldingMC = Form( "%s/%s_%s_mc_%s/c_myOut_%s_mc_%s.root",
+			     output.c_str(), output.c_str(),
+			     system.c_str(), unfoldingMC.c_str(),
+			     system.c_str(), unfoldingMC.c_str() );
+  
   //========== Cuts and triggers =============
   
   // calculate sum of sigma and eff
@@ -157,6 +165,7 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   LoadHistograms();
 
   std::string cfNameOut = m_dirOut + "/c_myOut_" + m_labelOut + ".root";
+  
   m_fOut = new TFile( cfNameOut.c_str(),"RECREATE");
   
   // MakeEtaPhiPtMap( m_vHjznEtaPhiMap );
@@ -170,21 +179,60 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   m_hAllEtaSpectTruth = CombineSamples( m_vHjznEtaSpectTruth, m_etaSpectTruthName );
   MakeSpectra( m_vHjznEtaSpectReco , m_vJznLabel, m_etaSpectRecoName );
   MakeSpectra( m_vHjznEtaSpectTruth, m_vJznLabel, m_etaSpectTruthName  );
-
+  
+  MakeScaleRes( m_vHjznRecoTruthRpt , m_vHjznRecoTruthRptNent , "recoTruthRpt"  );
+  MakeScaleRes( m_vHjznRecoTruthDeta, m_vHjznRecoTruthDetaNent, "recoTruthDeta" );
+  MakeScaleRes( m_vHjznRecoTruthDphi, m_vHjznRecoTruthDphiNent, "recoTruthDphi" );
+  
+  // Make response matrix
+  m_hAllDphiRespMat = CombineSamples( m_vHjznDphiRespMat, m_dPhiRespMatName );
+  MakeResponseMatrix( m_vHjznDphiRespMat, m_vJznLabel, m_dPhiRespMatName );
+  
   m_hAllDphiReco    = CombineSamples( m_vHjznDphiReco   , m_dPhiRecoName    );
   m_hAllDphiTruth   = CombineSamples( m_vHjznDphiTruth  , m_dPhiTruthName   );
   MakeDeltaPhi( m_vHjznDphiReco , m_vJznLabel, m_dPhiRecoName  );
   MakeDeltaPhi( m_vHjznDphiTruth, m_vJznLabel, m_dPhiTruthName );
 
-  m_hAllDphiRespMat = CombineSamples( m_vHjznDphiRespMat, m_dPhiRespMatName );
-  MakeResponseMatrix( m_vHjznDphiRespMat, m_vJznLabel, m_dPhiRespMatName );
-  
-  MakeScaleRes( m_vHjznRecoTruthRpt , m_vHjznRecoTruthRptNent , "recoTruthRpt"  );
-  MakeScaleRes( m_vHjznRecoTruthDeta, m_vHjznRecoTruthDetaNent, "recoTruthDeta" );
-  MakeScaleRes( m_vHjznRecoTruthDphi, m_vHjznRecoTruthDphiNent, "recoTruthDphi" );
-
+  // For MC need to close the file first,
+  // to write dphi response, truth histos.
+  // Should add this in two steps but unfolding
+  // in MC is really for a test, in data there is no
+  // need to do this.
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
-  m_fOut->Close();
+  m_fOut->Close(); delete m_fOut;
+  std::cout << "......Closed  " << cfNameOut << std::endl;
+  
+  // Open file for updating. Will add the unfolded
+  // results on top of the previous ones.
+  m_fOut = new TFile( cfNameOut.c_str(),"UPDATE");
+
+  std::cout << "----- Unfolding Data ------" << std::endl;
+  // make a vector with just the unfolded result.
+  // this is to send it to MakeDeltaPhi(..) to have
+  // unfolded results plotted separately
+  std::vector< THnSparse*  > m_vHDphiUnfolded;
+  std::vector< std::string > m_vLabelUnfolded;
+
+  // open the MC file used for unfolding info.
+  // passed to unfolding function.
+  TFile* fInMC = TFile::Open( m_fNameUnfoldingMC.c_str() );
+  // switch dir back to output file for writing.
+  m_fOut->cd(); 
+
+  // make unfolded THnSparse with similar naming convention
+  // as the other histograms. At this point, don't care about
+  // doing this for all triggers. Altohugh, this can be
+  // repeated in a loop with m_allName subsitituted for trigger,
+  // and subsequently added to the vectors above.  
+  THnSparse* m_hAllDphiRecoUnfolded =
+    UnfoldDeltaPhi( m_hAllDphiReco, fInMC, m_dPhiRecoUnfoldedName );
+  m_vHDphiUnfolded.push_back( m_hAllDphiRecoUnfolded );
+  m_vLabelUnfolded.push_back( m_allName );
+  
+  MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiRecoUnfoldedName );
+  
+  std::cout << "DONE! Closing " << cfNameOut << std::endl;
+  m_fOut->Close(); delete m_fOut;
   std::cout << "......Closed  " << cfNameOut << std::endl;
 }
 
@@ -198,7 +246,7 @@ void DiJetAnalysisMC::SetupHistograms(){
   for( uint iG = 0; iG < m_nJzn; iG++){
     std::string jzn = m_vJznLabel[iG];
     
-    std::cout << "Making -" << jzn << " histograms " << std::endl;
+    std::cout << "Making - " << jzn << " histograms " << std::endl;
     
     // -------- maps ---------
     m_vHjznEtaPhiMap.
@@ -330,8 +378,9 @@ void DiJetAnalysisMC::SetupHistograms(){
 		      &m_dPhiMin[0], &m_dPhiMax[0] );
     hnReco->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnReco->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
-    hnReco->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
-    hnReco->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
+    hnReco->GetAxis(2)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnReco->GetAxis(3)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnReco->GetAxis(4)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
     m_vHjznDphiReco.push_back( hnReco );
     AddHistogram( hnReco );
 
@@ -341,8 +390,9 @@ void DiJetAnalysisMC::SetupHistograms(){
 		      &m_dPhiMin[0], &m_dPhiMax[0]);
     hnRecoNent->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnRecoNent->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
-    hnRecoNent->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
-    hnRecoNent->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
+    hnRecoNent->GetAxis(2)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnRecoNent->GetAxis(3)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnRecoNent->GetAxis(4)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
     m_vHjznDphiRecoNent.push_back( hnRecoNent );
     AddHistogram( hnRecoNent );
     
@@ -352,8 +402,9 @@ void DiJetAnalysisMC::SetupHistograms(){
 		      &m_dPhiMin[0], &m_dPhiMax[0] );
     hnTruth->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnTruth->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
-    hnTruth->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
-    hnTruth->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
+    hnTruth->GetAxis(2)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnTruth->GetAxis(3)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnTruth->GetAxis(4)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
     m_vHjznDphiTruth.push_back( hnTruth );
     AddHistogram( hnTruth );
 
@@ -363,19 +414,22 @@ void DiJetAnalysisMC::SetupHistograms(){
 		      &m_dPhiMin[0], &m_dPhiMax[0]);
     hnTruthNent->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnTruthNent->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
-    hnTruthNent->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
-    hnTruthNent->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
+    hnTruthNent->GetAxis(2)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnTruthNent->GetAxis(3)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnTruthNent->GetAxis(4)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
     m_vHjznDphiTruthNent.push_back( hnTruthNent );
     AddHistogram( hnTruthNent );
 
     // -------- Dphi Response Matrix --------    
+    // copy vectors from 5d dhpi histos
     m_nDphiRespMatBins = m_nDphiBins;
     m_dPhiRespMatMin   = m_dPhiMin;
     m_dPhiRespMatMax   = m_dPhiMax;
 
-    m_nDphiRespMatBins.push_back( m_nDphiDphiBins );
-    m_dPhiRespMatMin  .push_back( m_dPhiDphiMin );
-    m_dPhiRespMatMax  .push_back( m_dPhiDphiMax );
+    // add one more dimension (6th)
+    m_nDphiRespMatBins.push_back( m_nVarDphiBins );
+    m_dPhiRespMatMin  .push_back( 0 );
+    m_dPhiRespMatMax  .push_back( 1 );
 	
     m_nDphiRespMatDim  = m_nDphiRespMatBins.size(); // just adding truth dPhi axis
     
@@ -385,8 +439,10 @@ void DiJetAnalysisMC::SetupHistograms(){
 		      &m_dPhiRespMatMin[0], &m_dPhiRespMatMax[0] );
     hnRespMat->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnRespMat->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
-    hnRespMat->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
-    hnRespMat->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
+    hnRespMat->GetAxis(2)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnRespMat->GetAxis(3)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnRespMat->GetAxis(4)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
+    hnRespMat->GetAxis(5)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
     m_vHjznDphiRespMat.push_back( hnRespMat );
     AddHistogram( hnRespMat );
 
@@ -396,8 +452,10 @@ void DiJetAnalysisMC::SetupHistograms(){
 		      &m_dPhiRespMatMin[0], &m_dPhiRespMatMax[0] );
     hnRespMatNent->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
     hnRespMatNent->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
-    hnRespMatNent->GetAxis(2)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
-    hnRespMatNent->GetAxis(3)->Set( m_nVarPtBins , &( m_varPtBinning[0]  ) );
+    hnRespMatNent->GetAxis(2)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnRespMatNent->GetAxis(3)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
+    hnRespMatNent->GetAxis(4)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
+    hnRespMatNent->GetAxis(5)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
     m_vHjznDphiRespMatNent.push_back( hnRespMatNent );
     AddHistogram( hnRespMatNent );
   } 
@@ -492,9 +550,9 @@ void DiJetAnalysisMC::ProcessEvents( int nEvents, int startEvent ){
       AnalyzeScaleResolution( vTR_paired_jets, vTT_paired_jets, iG );
     } // -------- END EVENT LOOP ---------
    
-    std::cout << "DONE WITH %s" << m_vJznLabel[iG] << std::endl;
+    std::cout << "DONE WITH " << m_vJznLabel[iG] << std::endl;
 
-    m_fIn->Close();
+    m_fIn->Close(); delete m_fIn;
   } // end loop over a JZ sample
 }
 
@@ -793,6 +851,11 @@ void DiJetAnalysisMC::GetInfoBoth( std::string& outSuffix,
   suffix_b  = m_labelOut;
 }
 
+void DiJetAnalysisMC::GetInfoUnfolding( std::string& measuredName,
+					std::string& measuredLabel ){
+  measuredName  = m_dPhiRecoName;
+  measuredLabel = "Reco";;
+}
 
 //---------------------------------
 //     Get Quantities / Plot 
@@ -903,7 +966,7 @@ void DiJetAnalysisMC::LoadHistograms(){
     
   }
 
-  m_fIn->Close();
+  m_fIn->Close(); delete m_fIn;
 }
 
 void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
@@ -1162,6 +1225,11 @@ void DiJetAnalysisMC::MakeResponseMatrix( std::vector< THnSparse* >& vhn,
 	    ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
 	  // ---- loop over axis3 ----
 	  for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	    // check we are in correct ystar and pt bins
+	    if( !m_dPP->CorrectPhaseSpace
+		( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, axis3Bin } ) )
+	      { continue; }
+
 	    axis3->SetRange( axis3Bin, axis3Bin );
 
 	    double axis3Low , axis3Up;
@@ -1181,15 +1249,14 @@ void DiJetAnalysisMC::MakeResponseMatrix( std::vector< THnSparse* >& vhn,
 	      ( Form( "h_%s_%s_%s", name.c_str(), label.c_str(), hTag.c_str() ) );
 	    styleTool->SetHStyle( hDphiRespMat, 0 );
 	    vDphiRespMat.push_back( hDphiRespMat );
-
+	    
 	    TCanvas c( "c", hDphiRespMat->GetName(), 800, 600 );
-
+	    c.SetLogz();
+	    
 	    hDphiRespMat->Draw("col");
-	    if( hDphiRespMat->GetEntries() )
-	      { hDphiRespMat->Scale( 1./hDphiRespMat->Integral() ); }
 	    hDphiRespMat->SetTitle("");
 	    
-	    drawTool->DrawTopLeftLabels
+	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 		axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
 	    

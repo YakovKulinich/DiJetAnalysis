@@ -26,11 +26,7 @@
 #include <TGraphErrors.h>
 #include <TGraphAsymmErrors.h>
 
-#include <iostream>
 #include <string>
-#include <sstream>
-
-class DeltaPhiProj;
 
 //===================================
 //         CONSTANTS
@@ -93,10 +89,12 @@ namespace CT{
 
     std::vector<double> vectoriseD(TString str, TString sep);
 
-    TF1* FitGaussian( TH1* hProj, double = 0, double = 0 );
+    bool SubtractCombinatoric( TH1*, double = 0, double = 0 );
 
-    TF1* FitDphi( TH1* hProj, double = 0, double = 0);
-
+    TF1* FitDphi    ( TH1*, double = 0, double = 0 );
+    
+    TF1* FitGaussian( TH1*, double = 0, double = 0 );
+    
     void GetBinRange( TAxis*, int, int, double&, double& );
 
     std::string GetName( double, double, const std::string& );
@@ -166,14 +164,6 @@ namespace CT{
     void DrawAtlasInternalMCLeft   ( double x0, double y0,
 				     const std::string& mcType,
 				     double scale = StyleTools::lSS );
-
-    void DrawTopLeftLabels( DeltaPhiProj*, 
-			    double = 0, double = 0,
-			    double = 0, double = 0,
-			    double = 0, double = 0,
-			    double = 0, double = 0,
-			    double = CT::StyleTools::lSS );
-
   };
 }
 

@@ -7,12 +7,6 @@
 
 #include "MyRoot.h"
 
-namespace CS{
-  class AnalysisTools;
-  class DrawTools;
-  class StyleTools;
-}
-
 class TH1;
 class TH2;
 class TH3;
@@ -98,7 +92,8 @@ class DiJetAnalysis{
   bool IsForwardYstar( const double& ystar );
 
   bool IsCentralYstar( const double& ystar );
-
+  
+  void NormalizeDeltaPhi( TH1* );
   // Make These Templates Later...
   virtual TH1*       CombineSamples( std::vector< TH1* >&,
 				     const std::string& = "" );
@@ -111,6 +106,8 @@ class DiJetAnalysis{
 
   virtual void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
 			    std::string&, std::string&, std::string& );
+
+  virtual void GetInfoUnfolding( std::string&, std::string& );
   
   //---------------------------
   //   Get Quantities / Plot 
@@ -126,13 +123,23 @@ class DiJetAnalysis{
 			     const std::string& = "" );
 
   virtual void MakeDphiTogether();
-  
+
+  virtual THnSparse* UnfoldDeltaPhi( THnSparse*, TFile*,
+				     const std::string& = "" );
+
   //---------------------------
   //        Drawing
   //---------------------------
   virtual void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
 
   virtual void DrawAtlasRightBoth( double = 0, double = 0, double = CT::StyleTools::lSS );
+
+  virtual void DrawTopLeftLabels( DeltaPhiProj*, 
+				  double = 0, double = 0,
+				  double = 0, double = 0,
+				  double = 0, double = 0,
+				  double = 0, double = 0,
+				  double = CT::StyleTools::lSS );
   
   //---------------------------
   //       Saving 
@@ -174,6 +181,8 @@ class DiJetAnalysis{
   std::string m_labelOut;
   std::string m_dirOut;
   std::string m_rootFname;
+
+  std::string m_fNameUnfoldingMC;
   
   DeltaPhiProj* m_dPP;
 
@@ -227,7 +236,7 @@ class DiJetAnalysis{
   std::vector<double> m_varFwdEtaBinning;
   unsigned int m_nVarFwdEtaBins;
 
-  // --- whole range variable ---
+  // --- whole range variable ----
   // ------- eta/ystar binning --------
   std::vector<double> m_varYstarBinningA;
   unsigned int m_nVarYstarBinsA;
@@ -235,9 +244,19 @@ class DiJetAnalysis{
   std::vector<double> m_varYstarBinningB;
   unsigned int m_nVarYstarBinsB;
   
-  // ---- variable pt binning ---
+  // ---- variable pt binning ----
   std::vector<double> m_varPtBinning;
   unsigned int m_nVarPtBins;
+
+  // --- variable dphi binnign ---
+  std::vector<double> m_varDphiBinning;
+  unsigned int m_nVarDphiBins;
+
+  double m_dPhiFineBinWidth;
+  int    m_dPhiFineCoarseFactor;
+  
+  int m_nDphiCoarseBins;
+  int m_nDphiFineBins;
   
   // -------- eff ---------
   double m_effMin;
@@ -245,11 +264,10 @@ class DiJetAnalysis{
 
   // -------- dphi --------
   uint   m_nDphiDim;
-  
-  int    m_nDphiDphiBins;
+
   double m_dPhiDphiMin;
   double m_dPhiDphiMax;
-
+  
   std::vector< int >    m_nDphiBins;
   std::vector< double > m_dPhiMin;
   std::vector< double > m_dPhiMax;
@@ -257,6 +275,8 @@ class DiJetAnalysis{
   double m_dPhiWidthMin;
   double m_dPhiWidthMax;
 
+  double m_dPhiZoomLow;
+  
   //===== common histo names =======
   std::string m_etaSpectName;
   std::string m_dPhiName;
@@ -271,6 +291,7 @@ class DiJetAnalysis{
   std::string m_dPhiTruthName;
   std::string m_dPhiRespMatName;
   std::string m_dPhiUnfoldedName;
+  std::string m_dPhiRecoUnfoldedName;
 };
 
 #endif

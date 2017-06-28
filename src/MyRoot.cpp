@@ -5,7 +5,9 @@
 #include <TVirtualFitter.h>
 
 #include "MyRoot.h"
-#include "DeltaPhiProj.h"
+
+#include <iostream>
+#include <sstream>
 
 const int pPbLumi2016 = 437; // ub
 const int ppLumi2015  = 26;  // pb
@@ -119,8 +121,36 @@ std::vector<double> CT::AnalysisTools::vectoriseD
   return result;
 }   
 
+bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xHigh ){
+  auto combFit = [&]( double* x, double* par){ return par[0]; };
 
-TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh){
+  // to estimate some combinatoric
+  // contribution on range [0,1], where
+  // distribution has very few entries
+  // only do if there are bins with entries
+  // on that range.
+  if( !hProj->Integral( 1, hProj->FindBin( 1. ) ) ){ return false; }
+
+  TF1 cFit( "cFit", combFit, 0, 1, 1 );
+  hProj->Fit( "cFit", "Q0", "", 0, 1 ); 
+    
+  double comb      = cFit.GetParameter(0);
+  double combError = cFit.GetParError (0);
+    
+  for( int xBin = 1; xBin <= hProj->GetNbinsX(); xBin++ ){
+    double val      = hProj->GetBinContent( xBin );
+    double binError = hProj->GetBinError  ( xBin );
+    double newVal   = val - comb > 0 ? val - comb : 0;
+    double newError =
+      TMath::Sqrt( binError*binError + combError*combError );	
+    hProj->SetBinContent( xBin, newVal   );
+    hProj->SetBinError  ( xBin, newError );
+  }
+
+  return true;
+}
+
+TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
   
   auto EMG = [&]( double* x, double* par){
     return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
@@ -131,40 +161,15 @@ TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh){
     + par[3];
   };
 
-  auto combFit = [&]( double* x, double* par){ return par[0]; };
-
+  
   TF1* dPhiFit = new TF1( Form("f_%s", hProj->GetName()), EMG, 2, constants::PI, 4);
 
   if( !hProj->GetEntries() )
     { return dPhiFit; }
   
-  // to estimate some combinatoric
-  // contribution on range [0,1], where
-  // distribution has very few entries
-  // only do if there are bins with entries
-  // on that range.
-  if( hProj->Integral( 1, hProj->FindBin( 1. ) ) ){
-    TF1 cFit( "cFit", combFit, 0, 1, 1 );
-    hProj->Fit( "cFit", "NQR", "", 0, 1 ); 
-    
-    double comb      = cFit.GetParameter(0);
-    double combError = cFit.GetParError (0);
-    
-    for( int xBin = 1; xBin <= hProj->GetNbinsX(); xBin++ ){
-      double val      = hProj->GetBinContent( xBin );
-      double binError = hProj->GetBinError  ( xBin );
-      if( val ){
-	double error =
-	  TMath::Sqrt( binError*binError + combError*combError );	
-	hProj->SetBinContent( xBin, val - comb );
-	hProj->SetBinError  ( xBin, error );
-      }
-    }
-  }
+  dPhiFit->SetParameters( hProj->GetMaximum(), 0.2, 0.1, 0 );
   
-  dPhiFit->SetParameters( 0.5, 0.2, 0.1, 0 );
-  
-  hProj->Fit( dPhiFit->GetName(), "NQ", "", 2, constants::PI );
+  hProj->Fit( dPhiFit->GetName(), "Q0", "", 2, constants::PI );
   
   return dPhiFit;
 }
@@ -186,7 +191,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh){
   if( hProj->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
     { return fit; }
   
-  hProj->Fit( fit->GetName(), "NQ", "", fitMin, fitMax );
+  hProj->Fit( fit->GetName(), "Q0", "", fitMin, fitMax );
 
   // fit second time with better parameters
   mean   = fit->GetParameter(1);
@@ -200,7 +205,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh){
   
   fit->SetRange( fitMin, fitMax );
   
-  hProj->Fit( fit->GetName(), "NQ", "", fitMin, fitMax );
+  hProj->Fit( fit->GetName(), "Q0", "", fitMin, fitMax );
 
   return fit;
 }
@@ -611,30 +616,4 @@ void CT::DrawTools::DrawAtlasInternalMCLeft
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
 
   DrawLeftLatex(0.18 + x0, 0.87, mcType, scale, 1 );
-}
-
-
-void CT::DrawTools::DrawTopLeftLabels( DeltaPhiProj* dPP,
-				       double axis0Low, double axis0Up,
-				       double axis1Low, double axis1Up,
-				       double axis2Low, double axis2Up,
-				       double axis3Low, double axis3Up,
-				       double scale ){
-  DrawLeftLatex
-    ( 0.13, 0.86, CT::AnalysisTools::GetLabel
-      ( axis0Low, axis0Up, dPP->GetAxisLabel(0) ), scale );
-  // for now, modify later to be more dynamic
-  // to the variables present 
-  if( !( axis1Low || axis1Up ) ){ return ; }
-  DrawLeftLatex
-    ( 0.13, 0.79, CT::AnalysisTools::GetLabel
-      ( axis1Low, axis1Up, dPP->GetAxisLabel(1) ), scale );  
-  if( !( axis2Low || axis2Up ) ){ return ; }
-  DrawLeftLatex
-    ( 0.13, 0.73, CT::AnalysisTools::GetLabel
-      ( axis2Low, axis2Up, dPP->GetAxisLabel(2) ), scale );
-  if( !( axis3Low || axis3Up ) ){ return ; }
-  DrawLeftLatex
-    ( 0.13, 0.66, CT::AnalysisTools::GetLabel
-      ( axis3Low, axis3Up, dPP->GetAxisLabel(3) ), scale );
 }

@@ -20,10 +20,12 @@
 #include <boost/filesystem.hpp>
 #include <boost/assign.hpp>
 
-#include "MyRoot.h"
-
 #include "DiJetAnalysis.h"
 #include "DeltaPhiProj.h"
+
+#include "RooUnfoldResponse.h"
+#include "RooUnfoldBayes.h"
+#include "RooUnfoldBinByBin.h"
 
 DiJetAnalysis::DiJetAnalysis() : DiJetAnalysis( true, true, 0 ){}
 
@@ -72,11 +74,6 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
   m_effMin = 0.;
   m_effMax = 1.4;
 
-  // -------- dphi- --------
-  m_nDphiDphiBins = 60;
-  m_dPhiDphiMin   = 0;
-  m_dPhiDphiMax   = constants::PI;
-
   // --- variable eta/ystar binning ---
   // ystarB
   boost::assign::push_back( m_varYstarBinningA )
@@ -93,22 +90,53 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
     ( 30 )( 38 )( 45 )( 90 );
   m_nVarPtBins = m_varPtBinning.size() - 1;
 
+  // --- variable dphi binning ---
+  // coarse bin width = 4 x fine bin width
+  m_dPhiFineCoarseFactor = 4;
+  // number of bins closer to 0, where we have
+  // small statistics.
+  m_nDphiCoarseBins = 8;
+  // number of bins closer to pi, where we have
+  // bigger statistics
+  m_nDphiFineBins   = 32;
+  // 8coarse bins + 32fine bins = 8*4+32 = 64 bins;
+  // bin width for fine bins should be ~0.05
+  m_dPhiFineBinWidth = constants::PI /
+    ( m_nDphiFineBins + m_nDphiCoarseBins * m_dPhiFineCoarseFactor );
+
+  for( int coarseBin = 0; coarseBin < m_nDphiCoarseBins; coarseBin++ )
+    { m_varDphiBinning.push_back
+	( coarseBin * m_dPhiFineBinWidth * m_dPhiFineCoarseFactor ); }
+  double fineBinStart =
+    m_nDphiCoarseBins * m_dPhiFineBinWidth * m_dPhiFineCoarseFactor;
+  for( int fineBin = 0; fineBin <= m_nDphiFineBins; fineBin++ )
+    { m_varDphiBinning.push_back
+	( fineBin * m_dPhiFineBinWidth + fineBinStart ); }
+
+  m_nVarDphiBins = m_varDphiBinning.size() - 1;
+  std::cout << " ----------------- " << m_nVarDphiBins << std::endl;
+  
   // --- dPhiBins ---  
   boost::assign::push_back( m_nDphiBins )
     ( m_nVarYstarBinsA )( m_nVarYstarBinsB )
     ( m_nVarPtBins     )( m_nVarPtBins     )
-    ( m_nDphiDphiBins  );
+    ( m_nVarDphiBins   );
     
   boost::assign::push_back( m_dPhiMin  )
-    ( 0 )( 0 )( 0 )( 0 )( m_dPhiDphiMin );
+    ( 0 )( 0 )( 0 )( 0 )( 0 );
 
   boost::assign::push_back( m_dPhiMax  )
-    ( 1 )( 1 ) ( 1 )( 1 )( m_dPhiDphiMax );
+    ( 1 )( 1 )( 1 )( 1 )( 1 );
 
+  m_nDphiDim     = m_nDphiBins.size();
+  
+  m_dPhiDphiMin  = 0;
+  m_dPhiDphiMax  = constants::PI;
+  
   m_dPhiWidthMin = 0.00;
   m_dPhiWidthMax = 0.5;
-  
-  m_nDphiDim     = m_nDphiBins.size();
+
+  m_dPhiZoomLow  = 2.0;
     
   //========= Set DeltaPhi Axes Order ============
   // The DeltaPhiProj object will have the order
@@ -165,14 +193,16 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
   m_dPhiRecoName      = m_dPhiName + "_" + m_recoName;
   m_dPhiTruthName     = m_dPhiName + "_" + m_truthName;
   m_dPhiRespMatName   = m_dPhiName + "_" + m_respMatName;;
-  m_dPhiUnfoldedName  = m_dPhiName + "_" + m_unfoldedName;;
+
+  m_dPhiUnfoldedName     = m_dPhiName     + "_" + m_unfoldedName;;
+  m_dPhiRecoUnfoldedName = m_dPhiRecoName + "_" + m_unfoldedName;;
 }
 
 DiJetAnalysis::~DiJetAnalysis(){
-  delete m_dPP;
-  delete anaTool;
-  delete drawTool;
-  delete styleTool;
+  delete m_dPP    ; m_dPP     = NULL;
+  delete anaTool  ; anaTool   = NULL;
+  delete drawTool ; drawTool  = NULL;
+  delete styleTool; styleTool = NULL;
 }
 
 void DiJetAnalysis::Initialize(){  
@@ -187,6 +217,17 @@ void DiJetAnalysis::Initialize(){
   m_rootFname = m_dirOut + "/myOut_" + m_labelOut + ".root";
   
   std::cout << "fNameIn/Out: " << m_rootFname << std::endl;
+
+  std::string unfoldingMC      = GetConfig()->GetValue( "unfoldingMC"     , "" );
+  std::string unfoldingMCLabel = GetConfig()->GetValue( "unfoldingMCLabel", "" );
+  
+  std::string output    = "output";  
+  std::string system    = m_is_pPb ? "pPb" : "pp";
+
+  m_fNameUnfoldingMC = Form( "%s/%s_%s_mc_%s/c_myOut_%s_mc_%s.root",
+			     output.c_str(), output.c_str(),
+			     system.c_str(), unfoldingMC.c_str(),
+			     system.c_str(), unfoldingMC.c_str() );
 }
 
 //---------------------------
@@ -398,6 +439,9 @@ bool DiJetAnalysis::IsForwardYstar( const double& ystar )
 bool DiJetAnalysis::IsCentralYstar( const double& ystar )
 { return ( std::abs(ystar - constants::BETAZ) < constants::CETAMAX ); }
 
+void DiJetAnalysis::NormalizeDeltaPhi( TH1* h )
+{ if( h->GetEntries() ){ h->Scale( 1./h->Integral()) ; } }
+
 TH1* DiJetAnalysis::CombineSamples( std::vector< TH1* >& vSampleHin,
 				    const std::string& name ){ return NULL; }  
 
@@ -413,6 +457,8 @@ void DiJetAnalysis::GetInfoBoth( std::string& outSuffix,
 				 std::string& label_a , std::string& label_b ,
 				 std::string& suffix_a, std::string& suffix_b ){}
 
+void DiJetAnalysis::GetInfoUnfolding( std::string& measuredName,
+				      std::string& measuredLabel ){}
 
 //---------------------------
 //   Get Quantities / Plot 
@@ -645,6 +691,11 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
 
       for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+	// check we are in correct ystar and pt bins
+	if( !m_dPP->CorrectPhaseSpace
+	    ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
+	  { continue; }
+
 	// set ranges
 	axis1->SetRange( axis1Bin, axis1Bin );
 	
@@ -695,16 +746,19 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  	  
 	  leg.AddEntry
 	    ( hDphiWidths, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ) .c_str() );
-
 	  // ---- loop over axis3 ----
 	  for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	    // check we are in correct ystar and pt bins
+	    if( !m_dPP->CorrectPhaseSpace
+		( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, axis3Bin } ) )
+	      { continue; }
+
 	    axis3->SetRange( axis3Bin, axis3Bin );
 
 	    double axis3Low , axis3Up;
 	    anaTool->GetBinRange
 	      ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
-
-
+	    
 	    std::string hTag =
 	      Form( "%s_%s_%s_%s",
 		    anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
@@ -716,23 +770,30 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    TH1* hDphi = hn->Projection( 4 );
 	    hDphi->SetName
 	      ( Form( "h_%s_%s_%s", name.c_str(), label.c_str(), hTag.c_str() ) );
+	    // because variable bin width, scale by bin width
+	    hDphi->Scale( 1.0, "width" );
 	    styleTool->SetHStyle( hDphi, 0 );
 	    vDphi.push_back( hDphi );
 
+	    // subtract combinatoric contribution before normalizing
+	    anaTool->SubtractCombinatoric( hDphi );
+	    
+	    // Save un-normalized result for
+	    // unfolding later.
+	    // NN = Not Normalized
+	    TH1* hDphiNN = static_cast< TH1D* >
+	      ( hDphi->Clone( Form("%s_NN", hDphi->GetName() ) ) );
+	    hDphiNN->Write();
+
 	    TCanvas c( "c", hDphi->GetName(), 800, 600 );
+	    
+	    // Normalize
+	    NormalizeDeltaPhi( hDphi );
 
 	    hDphi->Draw();
-	    if( hDphi->GetEntries() )
-	      { hDphi->Scale( 1./hDphi->Integral() ); }
 	    hDphi->GetYaxis()->SetTitle("Normalized Count");
 	    hDphi->SetTitle("");
-	    
-	    drawTool->DrawTopLeftLabels
-	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-		axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
-	    
-	    DrawAtlasRight();
-	    
+    
 	    // now fit
 	    TF1* fit = anaTool->FitDphi( hDphi );
 	    styleTool->SetHStyle( fit, 0 );
@@ -742,22 +803,20 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	    double chi2NDF = fit->GetChisquare()/fit->GetNDF();
 
+	    hDphi->GetXaxis()->SetRangeUser( m_dPhiZoomLow, m_dPhiDphiMax );
+
 	    drawTool->DrawLeftLatex( 0.5, 0.66, Form( "#Chi^{2}/NDF=%4.2f", chi2NDF ) );
 
-	    hDphi->GetXaxis()->SetRangeUser( 2, constants::PI );
+	    DrawTopLeftLabels
+	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+		axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
+	    
+	    DrawAtlasRight();
 	    
 	    SaveAsROOT( c, hDphi->GetName() );
 	    hDphi->Write();
 	    fit->Write();
-	    
-	    // save the confidence intervals
-	    // this is fit results + errors as histo.
-	    TH1* hDphiCI = static_cast<TH1D*>
-	      ( hDphi->Clone( Form("%s_CI", hDphi->GetName() ) ) );
-	    if( hDphiCI->GetEntries() )
-	      { (TVirtualFitter::GetFitter())->GetConfidenceIntervals(hDphiCI); }
-	    hDphiCI->Write();
-	    
+	    	    
 	    if( fit->GetParameter(1) < 0 )
 	      { continue; }
 
@@ -781,7 +840,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	}
 	leg.Draw("same");
 
-	drawTool->DrawTopLeftLabels
+	DrawTopLeftLabels
 	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 	    0, 0, 0, 0, 0.8 );
 
@@ -839,12 +898,16 @@ void DiJetAnalysis::MakeDphiTogether(){
 	   outSuffix.c_str() ) ,"recreate");
 
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
-     // set ranges
     double axis0Low, axis0Up;
     anaTool->GetBinRange
       ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
     
     for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      // check we are in correct ystar and pt bins
+      if( !m_dPP->CorrectPhaseSpace
+	  ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
+	{ continue; }
+
       double axis1Low, axis1Up;
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
@@ -912,7 +975,12 @@ void DiJetAnalysis::MakeDphiTogether(){
 	}
 
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
-          double axis3Low , axis3Up;
+	  // check we are in correct ystar and pt bins
+	  if( !m_dPP->CorrectPhaseSpace
+	      ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, axis3Bin } ) )
+	    { continue; }
+
+	  double axis3Low , axis3Up;
 	  anaTool->GetBinRange
 	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
 	    
@@ -951,7 +1019,6 @@ void DiJetAnalysis::MakeDphiTogether(){
 	  if( h_a->GetEntries() ){
 	    h_a->SetMinimum(0);
 	    h_a->GetYaxis()->SetNdivisions(505);
-	    h_a->GetXaxis()->SetRangeUser( 2, constants::PI );
 	    leg.AddEntry( h_a, Form("%s #Chi^{2}/NDF=%4.2f", label_a.c_str(), chi2NDF_a));
 	    h_a->Draw("epsame");
 	    f_a->Draw("same");
@@ -961,7 +1028,6 @@ void DiJetAnalysis::MakeDphiTogether(){
 	  if( h_b->GetEntries() ){
 	    h_b->SetMinimum(0);
 	    h_b->GetYaxis()->SetNdivisions(505);
-	    h_b->GetXaxis()->SetRangeUser( 2, constants::PI );
 	    leg.AddEntry( h_b, Form("%s #Chi^{2}/NDF=%4.2f", label_b.c_str(), chi2NDF_b));
 	    h_b->Draw("epsame");
 	    f_b->Draw("same");
@@ -978,7 +1044,7 @@ void DiJetAnalysis::MakeDphiTogether(){
 	    h_b->SetMaximum( h_b->GetMaximum() * 1.1 );
 	  }
 
-	  drawTool->DrawTopLeftLabels
+	  DrawTopLeftLabels
 	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 	      axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
 
@@ -999,7 +1065,7 @@ void DiJetAnalysis::MakeDphiTogether(){
 
       legW.Draw("same");
 
-      drawTool->DrawTopLeftLabels
+      DrawTopLeftLabels
 	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 	  0, 0, 0, 0, 0.8 );
 
@@ -1019,6 +1085,278 @@ void DiJetAnalysis::MakeDphiTogether(){
   std::cout << "......Closed  " << fOut->GetName() << std::endl;
 }
 
+THnSparse* DiJetAnalysis::UnfoldDeltaPhi( THnSparse* hn, TFile* fInMC,
+					  const std::string& hnUnfoldedName ){
+  std::vector< TH1* > vDphi;
+  std::vector< TH2* > vDphiRespMat;
+
+  std::vector< TF1* > vDphiFits;
+  std::vector< TH1* > vDphiCI;
+  std::vector< TH1* > vRatios;
+
+  TAxis* axis0 = hn->GetAxis( m_dPP->GetAxisI(0) );
+  TAxis* axis1 = hn->GetAxis( m_dPP->GetAxisI(1) );
+  TAxis* axis2 = hn->GetAxis( m_dPP->GetAxisI(2) );
+  TAxis* axis3 = hn->GetAxis( m_dPP->GetAxisI(3) );
+      
+  int nAxis0Bins = axis0->GetNbins();
+  int nAxis1Bins = axis1->GetNbins();
+  int nAxis2Bins = axis2->GetNbins();
+  int nAxis3Bins = axis3->GetNbins();
+
+  std::string unfoldingMCLabel = GetConfig()->GetValue( "unfoldingMCLabel", "" );
+  
+  std::string measuredName, measuredLabel;
+  GetInfoUnfolding( measuredName, measuredLabel );
+
+  // make a THnSparse to fill with unfolded results.
+  THnSparse* m_hnUnfolded = (THnSparse* )hn->Clone
+    ( Form("h_%s_%s", hnUnfoldedName.c_str(), m_allName.c_str() ) );
+  m_hnUnfolded->Reset();
+  
+  // ---- loop over ystars ----
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+    // set ranges
+    axis0->SetRange( axis0Bin, axis0Bin );
+    double axis0Low, axis0Up;
+    anaTool->GetBinRange
+      ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
+    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      // set ranges
+      axis1->SetRange( axis1Bin, axis1Bin );
+      double axis1Low, axis1Up;
+      anaTool->GetBinRange
+	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
+      // ---- loop over axis2 ----
+      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	// set ranges
+	axis2->SetRange( axis2Bin, axis2Bin );
+	double axis2Low , axis2Up;
+	anaTool->GetBinRange
+	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+	// ---- loop over axis3 ----
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	  // check we are in correct ystar and pt bins
+	  if( !m_dPP->CorrectPhaseSpace
+	      ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, axis3Bin } ) )
+	    { continue; }
+
+	  axis3->SetRange( axis3Bin, axis3Bin );
+	  double axis3Low , axis3Up;
+	  anaTool->GetBinRange
+	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
+	  
+	  TCanvas c( "c", "c", 800, 600 );
+	  TLegend leg( 0.22, 0.41, 0.33, 0.57 );
+	  styleTool->SetLegendStyle( &leg , 0.85 );
+	  
+	  std::string hTag =
+	    Form( "%s_%s_%s_%s",
+		  anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		  anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		  anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		  anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() ); 
+
+	  // Take projection onto the dPhi axis
+	  TH1* hDphiMeasured = hn->Projection( 4 );
+	  hDphiMeasured->SetName
+	    ( Form( "h_%s_%s_%s", measuredName.c_str(), m_allName.c_str(), hTag.c_str())) ;	  
+	  // because variable bin width, scale by bin width
+	  hDphiMeasured->Scale( 1.0, "width" );
+
+	  // Get NON-NORMALIZED truth distribution
+	  TH1* hDphiTruth    = (TH1D*)fInMC->Get
+	    ( Form( "h_%s_%s_%s_NN", m_dPhiTruthName.c_str(), m_allName.c_str(), hTag.c_str()));
+	  // Get NON-NORMALIZED response matrix
+	  TH2* hDphiRespMat  = (TH2D*)fInMC->Get
+	    ( Form( "h_%s_%s_%s", m_dPhiRespMatName.c_str(), m_allName.c_str(), hTag.c_str()));
+
+	  vDphi.       push_back( hDphiMeasured );
+	  vDphi.       push_back( hDphiTruth );
+	  vDphiRespMat.push_back( hDphiRespMat );
+	  
+	  // setup unfold
+	  RooUnfoldResponse response( hDphiMeasured, hDphiTruth, hDphiRespMat );
+	  RooUnfoldBayes      unfold( &response, hDphiMeasured, 2, false );
+	  // RooUnfoldBinByBin   unfold( &response, hDphiMeasured );
+	  response.UseOverflow( kFALSE );
+	  unfold.SetVerbose(1);
+
+	  // unfold measured
+	  TH1* hDphiUnfolded = (TH1D*)unfold.Hreco();
+
+	  unfold.PrintTable( std::cout , hDphiTruth );
+	  
+	  hDphiUnfolded->SetName
+	    ( Form( "h_%s_%s_%s",m_dPhiUnfoldedName.c_str(), m_allName.c_str(), hTag.c_str()));
+	  hDphiUnfolded->SetTitle("");
+
+	  // Now, after unfoldin, normalize before fit
+	  NormalizeDeltaPhi( hDphiMeasured );
+	  NormalizeDeltaPhi( hDphiUnfolded );
+	  NormalizeDeltaPhi( hDphiTruth    );
+
+	  hDphiMeasured->GetXaxis()->SetRangeUser( m_dPhiZoomLow, m_dPhiDphiMax );
+	  hDphiUnfolded->GetXaxis()->SetRangeUser( m_dPhiZoomLow, m_dPhiDphiMax );
+	  hDphiTruth   ->GetXaxis()->SetRangeUser( m_dPhiZoomLow, m_dPhiDphiMax );
+	  
+	  // fill unfolded THnSparse result
+	  std::vector< int > x  = m_dPP->GetMappedBins
+	    ( std::vector<int> { axis0Bin, axis1Bin, axis2Bin, axis3Bin } );
+	  x.push_back(0); // dPhiBin;
+	  for( int dPhiBin = 1; dPhiBin <= hDphiUnfolded->GetNbinsX(); dPhiBin++ ){
+	    x[4] = dPhiBin;
+	    m_hnUnfolded->SetBinContent
+	      ( &x[0], hDphiUnfolded->GetBinContent( dPhiBin ) );
+	    m_hnUnfolded->SetBinError
+	      ( &x[0], hDphiUnfolded->GetBinError  ( dPhiBin ) );
+	  }
+	  
+	  styleTool->SetHStyle( hDphiUnfolded, 0 );
+	  styleTool->SetHStyle( hDphiMeasured, 1 );
+	  styleTool->SetHStyle( hDphiTruth   , 2 );
+
+	  hDphiUnfolded->Draw("ep same");
+	  hDphiMeasured->Draw("ep same");
+	  hDphiTruth   ->Draw("histo same");
+
+	  double maximum = -1;
+	  
+	  maximum = hDphiUnfolded->GetMaximum() > hDphiMeasured->GetMaximum() ?
+	    hDphiUnfolded->GetMaximum() : hDphiMeasured->GetMaximum();
+
+	  maximum = maximum > hDphiTruth->GetMaximum() ?
+	    maximum : hDphiTruth->GetMaximum();
+
+	  // set ranges back to default
+	  // otherwise the fitting doesnt work for combinatorics.
+	  /*
+	  hDphiMeasured->GetXaxis()->SetRangeUser( m_dPhiDphiMin, m_dPhiDphiMax );
+	  hDphiUnfolded->GetXaxis()->SetRangeUser( m_dPhiDphiMin, m_dPhiDphiMax );
+	  hDphiTruth   ->GetXaxis()->SetRangeUser( m_dPhiDphiMin, m_dPhiDphiMax );
+	  */
+	  
+	  double xmin, xmax;
+	  // fit and save the confidence intervals
+	  // this is fit results + errors as histogram.
+	  // first, fit ( no combinatoric subraction )
+	  TF1* fitMeasured = anaTool->FitDphi( hDphiMeasured, false );
+	  fitMeasured->GetRange( xmin, xmax );
+	  TH1* hDphiMeasuredCI = static_cast<TH1D*>
+	    ( hDphiMeasured->Clone( Form("%s_CI", hDphiMeasured->GetName() ) ) );
+	  if( hDphiMeasuredCI->GetEntries() )
+	    { (TVirtualFitter::GetFitter())->GetConfidenceIntervals(hDphiMeasuredCI); }
+	  
+	  // fit with no combinatoric subtraction (already done);
+	  TF1* fitUnfolded = anaTool->FitDphi( hDphiUnfolded, false );
+	  TH1* hDphiUnfoldedCI = static_cast<TH1D*>
+	    ( hDphiUnfolded->Clone( Form("%s_CI", hDphiUnfolded->GetName() ) ) );
+	  if( hDphiUnfoldedCI->GetEntries() )
+	    { (TVirtualFitter::GetFitter())->GetConfidenceIntervals(hDphiUnfoldedCI); }
+
+	  vDphiCI.push_back( hDphiMeasuredCI );
+	  vDphiCI.push_back( hDphiUnfoldedCI );
+	  
+	  // fit with no combinatoric subtraction (already done);
+	  TF1* fitTruth    = anaTool->FitDphi( hDphiTruth, false );
+	  
+	  styleTool->SetHStyle( fitMeasured, 0 );
+	  styleTool->SetHStyle( fitUnfolded, 0 );
+	  styleTool->SetHStyle( fitTruth, 0 );
+
+	  vDphiFits.push_back( fitMeasured );
+	  vDphiFits.push_back( fitUnfolded );
+	  vDphiFits.push_back( fitTruth );
+
+	  fitMeasured->SetLineColor( hDphiMeasured->GetLineColor() );
+	  fitUnfolded->SetLineColor( hDphiUnfolded->GetLineColor() );
+	  fitTruth   ->SetLineColor( hDphiTruth   ->GetLineColor() );
+	  
+	  fitMeasured->Draw("same");
+	  fitUnfolded->Draw("same");
+	  fitTruth   ->Draw("same");
+
+	  double chi2NDFmeasured = fitMeasured->GetChisquare()/fitMeasured->GetNDF();
+	  double chi2NDFunfolded = fitUnfolded->GetChisquare()/fitUnfolded->GetNDF();
+	  double chi2NDFtruth    = fitTruth   ->GetChisquare()/fitTruth   ->GetNDF();
+
+	  hDphiUnfolded->SetMaximum( maximum * 1.1 );
+	  hDphiUnfolded->SetMaximum( maximum * 1.1 );
+	  hDphiTruth   ->SetMaximum( maximum * 1.1 );
+
+	  leg.AddEntry( hDphiTruth,
+			Form( "Truth #Chi^{2}/NDF=%4.2f",
+				   chi2NDFtruth ), "lf" );
+	  leg.AddEntry( hDphiMeasured,
+			Form("%s #Chi^{2}/NDF=%4.2f",
+			     measuredLabel.c_str(), chi2NDFmeasured ) );
+	  leg.AddEntry( hDphiUnfolded,
+			Form("Unfolded #Chi^{2}/NDF=%4.2f",
+			     chi2NDFunfolded ) );
+	  
+	  leg.Draw();
+
+	  drawTool->DrawLeftLatex( 0.25, 0.39, unfoldingMCLabel.c_str() );
+	  
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
+	    
+	  DrawAtlasRight();
+	    
+	  SaveAsAll( c, Form( "h_%s_%s_MUT_%s",
+			       m_dPhiUnfoldedName.c_str(),
+			       m_allName.c_str(),
+			       hTag.c_str()));
+
+	  TCanvas cR("cR","cR", 800, 600 );
+
+	  TH1* hR = static_cast< TH1D* >
+	    ( hDphiUnfolded->Clone( Form( "h_%s_%s_ratio_%s",
+					  m_dPhiUnfoldedName.c_str(),
+					  m_allName.c_str(),
+					  hTag.c_str())));
+	  
+	  hR->Divide( hDphiTruth );
+	  styleTool->SetHStyle( hR, 0 );
+	  
+	  hR->SetStats(kFALSE);
+	  hR->SetFillColor(46);
+	  hR->GetYaxis()->SetTitle("|#Delta#phi| Unfolded/Truth");
+	  hR->GetXaxis()->SetTitle("|#Delta#phi|");
+	  hR->Draw("e2p");
+	  hR->SetMaximum( 2.0 );
+	  hR->SetMinimum( 0.0 );
+
+	  double xMin = hR->GetXaxis()->GetXmin();
+	  double xMax = hR->GetXaxis()->GetXmax();
+	  
+	  TLine line( xMin, 1, xMax, 1 );
+	  line.Draw();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up, 0.8 );
+	    
+	  DrawAtlasRight();
+	  
+	  SaveAsROOT( cR, hR->GetName() );	  
+	} // end loop over axis3
+      } // end loop over axis2
+    } // end loop over axis1     
+  } // end loop over axis0
+  for( auto f  : vDphiFits    ){ delete f;  }
+  for( auto h  : vDphiCI      ){ delete h;  }
+
+  for( auto h  : vDphi        ){ delete h ; }
+  for( auto rm : vDphiRespMat ){ delete rm; }
+
+  for( auto r  : vRatios      ){ delete r;  }
+  
+  return m_hnUnfolded;
+}
+
+
 //---------------------------
 //        Drawing
 //---------------------------
@@ -1026,6 +1364,31 @@ void DiJetAnalysis::MakeDphiTogether(){
 void DiJetAnalysis::DrawAtlasRight( double x0, double y0, double scale ){}
 
 void DiJetAnalysis::DrawAtlasRightBoth( double x0, double y0, double scale ){} 
+
+void DiJetAnalysis::DrawTopLeftLabels( DeltaPhiProj* dPP,
+				       double axis0Low, double axis0Up,
+				       double axis1Low, double axis1Up,
+				       double axis2Low, double axis2Up,
+				       double axis3Low, double axis3Up,
+				       double scale ){
+  drawTool->DrawLeftLatex
+    ( 0.13, 0.86, CT::AnalysisTools::GetLabel
+      ( axis0Low, axis0Up, dPP->GetAxisLabel(0) ), scale );
+  // for now, modify later to be more dynamic
+  // to the variables present 
+  if( !( axis1Low || axis1Up ) ){ return ; }
+  drawTool->DrawLeftLatex
+    ( 0.13, 0.79, CT::AnalysisTools::GetLabel
+      ( axis1Low, axis1Up, dPP->GetAxisLabel(1) ), scale );  
+  if( !( axis2Low || axis2Up ) ){ return ; }
+  drawTool->DrawLeftLatex
+    ( 0.13, 0.73, CT::AnalysisTools::GetLabel
+      ( axis2Low, axis2Up, dPP->GetAxisLabel(2) ), scale );
+  if( !( axis3Low || axis3Up ) ){ return ; }
+  drawTool->DrawLeftLatex
+    ( 0.13, 0.66, CT::AnalysisTools::GetLabel
+      ( axis3Low, axis3Up, dPP->GetAxisLabel(3) ), scale );
+}
 
 //---------------------------
 //       Saving 

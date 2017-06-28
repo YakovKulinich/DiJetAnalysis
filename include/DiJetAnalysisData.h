@@ -61,6 +61,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
 		    std::string&, std::string&, std::string& );
+
+  void GetInfoUnfolding( std::string&, std::string& );
   
   //---------------------------
   //  Get Quantities / Plot 
@@ -70,8 +72,6 @@ class DiJetAnalysisData : public DiJetAnalysis{
   void MakeEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,
 			 const std::string& );
-
-  void UnfoldDeltaPhi( TFile*, THnSparse* );
 
   //---------------------------
   //        Drawing
