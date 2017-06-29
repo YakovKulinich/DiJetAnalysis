@@ -224,7 +224,7 @@ void DiJetAnalysis::Initialize(){
   std::string output    = "output";  
   std::string system    = m_is_pPb ? "pPb" : "pp";
 
-  m_fNameUnfoldingMC = Form( "%s/%s_%s_mc_%s/c_myOut_%s_mc_%s.root",
+  m_fNameUnfoldingMC = Form( "%s/%s_%s_mc_%s/c_myOut_%s_mc_%s_UF.root",
 			     output.c_str(), output.c_str(),
 			     system.c_str(), unfoldingMC.c_str(),
 			     system.c_str(), unfoldingMC.c_str() );

@@ -116,7 +116,7 @@ void DiJetAnalysisMC::Initialize(){
   std::string output    = "output";  
   std::string system    = m_is_pPb ? "pPb" : "pp";
 
-  m_fNameUnfoldingMC = Form( "%s/%s_%s_mc_%s/c_myOut_%s_mc_%s.root",
+  m_fNameUnfoldingMC = Form( "%s/%s_%s_mc_%s/c_myOut_%s_mc_%s_UF.root",
 			     output.c_str(), output.c_str(),
 			     system.c_str(), unfoldingMC.c_str(),
 			     system.c_str(), unfoldingMC.c_str() );
@@ -201,6 +201,7 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close(); delete m_fOut;
   std::cout << "......Closed  " << cfNameOut << std::endl;
+  TFile::Cp( cfNameOut.c_str(), m_fNameUnfoldingMC.c_str() );
   
   // Open file for updating. Will add the unfolded
   // results on top of the previous ones.
