@@ -1,6 +1,6 @@
 ROOUNFOLDDIR = /home/yakov/FC/RooUnfold-1.1.1
 
-CXX      = g++ 
+CXX      = g++
 CXXFLAGS = -Wall `root-config --cflags` -g -o2
 LDFLAGS  = -Wall `root-config --glibs` -lboost_system -lboost_filesystem -Wl,-rpath=. -Wl,-rpath=$(ROOUNFOLDDIR)
 

@@ -74,15 +74,10 @@ int main(int argc, char *argv[])
     gROOT->SetBatch(kTRUE);
     analysis->ProcessPlotHistos();
     rootapp->Run();
-  } else if( mode == 2 ){
+  } else if( mode == 2 || mode == 3 ){
     rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
-    analysis->MakeDphiTogether();
-    rootapp->Run();
-  } else if( mode == 3 ){
-    rootapp = new TApplication("JetAnalysis",&argc, argv);
-    gROOT->SetBatch(kTRUE);
-    analysis->MakeDphiTogether();
+    analysis->PlotHistosTogether();
     rootapp->Run();
   }
   

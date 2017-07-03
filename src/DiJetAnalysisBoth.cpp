@@ -25,14 +25,16 @@ DiJetAnalysisBoth::DiJetAnalysisBoth( bool is_pPb, bool isReco )
 DiJetAnalysisBoth::~DiJetAnalysisBoth(){}
 
 void DiJetAnalysisBoth::Initialize(){
-  m_system  = m_is_pPb ? "pPb"  : "pp" ;
-  m_mcLevel = m_isReco ? "reco" : "truth";
+  m_system  = m_is_pPb ? m_s_pPb    : m_s_pp;
+  m_mcLevel = m_isReco ? m_recoName : m_truthName;
+
+  m_sBoth   = "both";
 
   // get list of mc used
   m_vMC = anaTool->vectorise( GetConfig()->GetValue( "usedMCs", "" ) , " " );
 
-  m_dirOut   = "output/all/both";
-  m_labelOut = "both_" + m_system + "_" + m_mcLevel; 
+  m_dirOut   = m_sOutput+ "/" + m_allName + "/" + m_sBoth;
+  m_labelOut = m_sBoth + "_" + m_system + "_" + m_mcLevel; 
   
   // labels for the various mc
   for( auto & mc : m_vMC ){
@@ -41,14 +43,18 @@ void DiJetAnalysisBoth::Initialize(){
   }
 }
 
-void DiJetAnalysisBoth::PlotDphiTogether(){
+void DiJetAnalysisBoth::PlotHistosTogether(){
+  MakeDphiTogether();
+}
+
+void DiJetAnalysisBoth::MakeDphiTogether(){
   // Check if the directories exist.
   // If they don't, create them
-  std::string outDir = "output";
+  std::string outDir = m_sOutput;
   anaTool->CheckWriteDir( outDir.c_str() );
-  outDir += "/all";
+  outDir += "/" + m_allName;
   anaTool->CheckWriteDir( outDir.c_str() );
-  outDir += "/both";
+  outDir += "/" + m_sBoth;
   anaTool->CheckWriteDir( outDir.c_str() );
 
   TAxis* axis0 = m_dPP->GetTAxis( 0 );
@@ -58,22 +64,26 @@ void DiJetAnalysisBoth::PlotDphiTogether(){
   int nAxis0Bins = axis0->GetNbins();
   int nAxis1Bins = axis1->GetNbins();
   int nAxis2Bins = axis2->GetNbins();
-
-  std::string trigger = "All";
   
-  TFile* fIn_data  = TFile::Open( Form("output/output_%s_data/c_myOut_%s_data.root",
-				      m_system.c_str(), m_system.c_str() ) );
+  TFile* fIn_data  = TFile::Open( Form("%s/%s_%s_%s/c_%s_%s_%s.root",
+				       m_sOutput.c_str(), m_sOutput.c_str(), m_system.c_str(),
+				       m_sData.c_str(), m_myOutName.c_str(), m_system.c_str(),
+				       m_sData.c_str() ) );
 
   std::vector< TFile* > vFinMC;  
   for( auto & mc : m_vMC ){
     std::string labelOut = m_system + "_mc_" + mc;
-    std::string fNameIn  = Form( "output/output_%s/c_myOut_%s.root", labelOut.c_str(), labelOut.c_str() );
+    std::string fNameIn  = Form( "%s/%s_%s/c_%s_%s.root",
+				 m_sOutput.c_str(), m_sOutput.c_str(), labelOut.c_str(),
+				 m_myOutName.c_str(), labelOut.c_str() );
     vFinMC.push_back( new TFile( fNameIn.c_str(), "read" ) );
   }
 
   uint nMC = m_vMC.size();
   
-  TFile* fOut = new TFile( Form("%s/c_myOut_both.root", m_dirOut.c_str() ) ,"recreate");
+  TFile* fOut = new TFile( Form("%s/c_%s_%s.root",
+				m_dirOut.c_str(), m_myOutName.c_str(), m_sBoth.c_str() ),
+			   "recreate");
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     // set ranges
@@ -88,6 +98,11 @@ void DiJetAnalysisBoth::PlotDphiTogether(){
 
       std::vector< TH1* > vHw;
       for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	// check we are in correct ystar and pt bins
+	if( !m_dPP->CorrectPhaseSpace
+	    ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, 0 } ) )
+	  { continue; }
+
 	double axis2Low, axis2Up;
 	anaTool->GetBinRange
 	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
@@ -106,9 +121,11 @@ void DiJetAnalysisBoth::PlotDphiTogether(){
 
 	int style = 0;
 
-	std::string hNameW_data = Form( "h_dPhi_%s_%s", hTagW.c_str(), trigger.c_str() );
-	std::string hNameW_mc   = Form("h_dPhi_%s_%s", m_mcLevel.c_str(), hTagW.c_str() );
-	  
+	std::string hNameW_data = Form( "h_%s_%s_%s", m_dPhiName.c_str(),
+					m_allName.c_str(), hTagW.c_str() );
+	std::string hNameW_mc   = Form("h_%s_%s_%s_%s", m_dPhiName.c_str(), m_mcLevel.c_str(),
+				       m_allName.c_str(),  hTagW.c_str() );
+	
 	TH1* hW_data = static_cast< TH1D* >
 	  ( fIn_data->Get( hNameW_data.c_str() ) );
 	vHw.push_back( hW_data );
@@ -137,7 +154,7 @@ void DiJetAnalysisBoth::PlotDphiTogether(){
 	
 	drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
 
-	SaveAsAll( c, Form("h_dPhi_%s", hTagW.c_str() ) );
+	SaveAsAll( c, Form("h_%s_%s", m_dPhiName.c_str(), hTagW.c_str() ) );
       } // end loop over axis2
 
       for( auto& hW: vHw ){ delete hW; }

@@ -20,6 +20,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void ProcessPlotHistos();
 
+  void PlotHistosTogether();
+  
   //---------------------------
   //       Fill Tree
   //---------------------------
@@ -34,11 +36,17 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
-  void AnalyzeResponseMatrix( THnSparse* hn, THnSparse* hnNent,
+  void AnalyzeResponseMatrix( THnSparse*,
 			      const std::vector<TLorentzVector>&,
 			      const std::vector<TLorentzVector>&,
 			      WeightFcn = NULL );
-  
+
+  std::pair<double,double> AnalyzeDeltaPhiTruthReco
+    ( THnSparse*, THnSparse*,
+      const std::vector <TLorentzVector>&,
+      const std::vector <TLorentzVector>&,
+      WeightFcn = NULL );
+
   //---------------------------
   //          Tools 
   //---------------------------  
@@ -73,7 +81,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
 		    std::string&, std::string&, std::string& );
 
+  void GetInfoBothRecoTruth( std::string&, std::string&,
+			     std::string&, std::string& );
+  
   void GetInfoUnfolding( std::string&, std::string& );
+
+  void GetInfoBothRecoTruth();
   
   //---------------------------
   //  Get Quantities / Plot 
@@ -83,6 +96,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void MakeScaleRes( std::vector< TH3* >&,
 		     std::vector< TH2* >&,
 		     const std::string& );
+  
+  void MakeDphiRecoTruth();
   
   void MakeResponseMatrix( std::vector<THnSparse*>&,
 			   const std::vector< std::string >&,
@@ -144,7 +159,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   std::vector< TH2* > m_vHjznEtaSpectReco;
   std::vector< TH2* > m_vHjznEtaSpectTruth;
-  std::vector< TH2* > m_vHjznEtaSpectTruthNent; 
   std::vector< TH2* > m_vHjznEtaSpectTruthPaired;
 
   TH2* m_hAllEtaSpectReco;
@@ -163,22 +177,26 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< TH2* > m_vHjznRecoTruthDphiNent;
 
   // -------------- dPhi -------------
-  
   std::vector< THnSparse* > m_vHjznDphiReco;
-  std::vector< THnSparse* > m_vHjznDphiRecoNent;
   std::vector< THnSparse* > m_vHjznDphiTruth;
-  std::vector< THnSparse* > m_vHjznDphiTruthNent;
   
   THnSparse* m_hAllDphiReco;
-  THnSparse* m_hAllDphiRecoNent;
   THnSparse* m_hAllDphiTruth;
 
+  // --- dPhi truth reco together ----
+  std::string m_dPhiRecoPtTruthName;
+  std::string m_dPhiTruthPtRecoName;
+  
+  std::vector< THnSparse* > m_vHjznDphiRecoPtTruth;
+  std::vector< THnSparse* > m_vHjznDphiTruthPtReco;
+
+  THnSparse* m_hAllDphiRecoPtTruth;
+  THnSparse* m_hAllDphiTruthPtReco;
+  
   // -------- Dphi Response Matrix --------     
   std::vector< THnSparse* > m_vHjznDphiRespMat;
-  std::vector< THnSparse* > m_vHjznDphiRespMatNent;
   
   THnSparse* m_hAllDphiRespMat;
-  THnSparse* m_hAllDphiRespMatNent;
   
   //========= histos binning ========
   // ------ truth binning --------

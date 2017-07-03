@@ -39,6 +39,8 @@ class DiJetAnalysis{
   virtual void RunOverTreeFillHistos( int, int ) = 0;
 
   virtual void ProcessPlotHistos() = 0;
+
+  virtual void PlotHistosTogether() = 0;
   
   //---------------------------
   //       Fill Tree
@@ -65,10 +67,10 @@ class DiJetAnalysis{
 			  const TLorentzVector*&,
 			  const TLorentzVector*& );
   
-  virtual double AnalyzeDeltaPhi( THnSparse*, THnSparse*,
+  virtual double AnalyzeDeltaPhi( THnSparse*,
 				  const std::vector <TLorentzVector>&,
 				  WeightFcn = NULL );
-  
+
   virtual bool  ApplyIsolation( std::vector<TLorentzVector>&,
 				double );
     
@@ -94,7 +96,7 @@ class DiJetAnalysis{
   bool IsCentralYstar( const double& ystar );
   
   void NormalizeDeltaPhi( TH1* );
-  // Make These Templates Later...
+
   virtual TH1*       CombineSamples( std::vector< TH1* >&,
 				     const std::string& = "" );
 
@@ -121,11 +123,11 @@ class DiJetAnalysis{
   virtual void MakeDeltaPhi( std::vector<THnSparse*>&,
 			     const std::vector< std::string >&,
 			     const std::string& = "" );
-
-  virtual void MakeDphiTogether();
-
+  
   virtual THnSparse* UnfoldDeltaPhi( THnSparse*, TFile*,
 				     const std::string& = "" );
+
+  virtual void MakeDphiTogether();
 
   //---------------------------
   //        Drawing
@@ -165,6 +167,22 @@ class DiJetAnalysis{
   TEnv* m_config;
 
  protected:
+  //============= common strings =================
+  std::string m_s_pp;
+  std::string m_s_pPb;
+  std::string m_s_pt;
+  
+  std::string m_sOutput;
+  std::string m_myOutName;
+  std::string m_sMC;
+  std::string m_sData;
+
+  std::string m_recoName;
+  std::string m_truthName;
+  
+  std::string m_sMUT;
+  std::string m_sRatio;
+  
   //============ cuts =============
   int    m_nMinEntriesFit;
 
@@ -282,8 +300,6 @@ class DiJetAnalysis{
   std::string m_dPhiName;
   std::string m_effName;
   
-  std::string m_recoName;
-  std::string m_truthName;
   std::string m_respMatName;
   std::string m_unfoldedName;
   
@@ -292,6 +308,9 @@ class DiJetAnalysis{
   std::string m_dPhiRespMatName;
   std::string m_dPhiUnfoldedName;
   std::string m_dPhiRecoUnfoldedName;
+
+  std::string m_notNormalizedSuffix;
+  std::string m_unfoldingFileSuffix;
 };
 
 #endif

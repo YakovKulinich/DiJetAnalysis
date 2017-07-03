@@ -13,7 +13,8 @@ class DiJetAnalysisBoth : public DiJetAnalysis{
   // pure virtual function from DiJetAnalysis
   void RunOverTreeFillHistos( int, int ){}
   void ProcessPlotHistos(){}
-
+  void PlotHistosTogether();
+  
   void SetupHistograms(){}
   void ProcessEvents( int, int ){}
 
@@ -21,13 +22,15 @@ class DiJetAnalysisBoth : public DiJetAnalysis{
   
   void Initialize();
   
-  void PlotDphiTogether();
+  void MakeDphiTogether();
 
  private:
   bool m_isReco;
 
   std::string m_system;
   std::string m_mcLevel;
+
+  std::string m_sBoth;
   
   std::vector< std::string > m_vMC;
   std::vector< std::string > m_vMClabels;  

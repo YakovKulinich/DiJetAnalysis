@@ -71,7 +71,7 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   LoadTriggers();
   LoadHistograms();
 
-  std::string cfNameOut = m_dirOut + "/c_myOut_" + m_labelOut + ".root";
+  std::string cfNameOut = m_dirOut + "/c_" + m_myOutName + "_" + m_labelOut + ".root";
   m_fOut = new TFile( cfNameOut.c_str(),"RECREATE");
 
   // MakeEtaPhiPtMap( m_vHtriggerEtaPhiMap );
@@ -89,32 +89,39 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   m_hAllDphi = CombineSamples( m_vHtriggerDphi, m_dPhiName );
   MakeDeltaPhi( m_vHtriggerDphi, m_vTriggers, m_dPhiName );
 
-  std::cout << "----- Unfolding Data ------" << std::endl;
-  // make a vector with just the unfolded result.
-  // this is to send it to MakeDeltaPhi(..) to have
-  // unfolded results plotted separately
-  std::vector< THnSparse*  > m_vHDphiUnfolded;
-  std::vector< std::string > m_vLabelUnfolded;
+  // until pPb MC only unfold pp 
+  if( !m_is_pPb ){
+    std::cout << "----- Unfolding Data ------" << std::endl;
+    // make a vector with just the unfolded result.
+    // this is to send it to MakeDeltaPhi(..) to have
+    // unfolded results plotted separately
+    std::vector< THnSparse*  > m_vHDphiUnfolded;
+    std::vector< std::string > m_vLabelUnfolded;
   
-  // open the MC file used for unfolding info.
-  // passed to unfolding function.
-  TFile* fInMC = TFile::Open( m_fNameUnfoldingMC.c_str() );
-  // switch dir back to output file for writing.
-  m_fOut->cd(); 
+    // open the MC file used for unfolding info.
+    // passed to unfolding function.
+    TFile* fInMC = TFile::Open( m_fNameUnfoldingMC.c_str() );
+    // switch dir back to output file for writing.
+    m_fOut->cd(); 
 
-  // make unfolded THnSparse with similar naming convention
-  // as the other histograms. At this point, don't care about
-  // doing this for all triggers. Altohugh, this can be
-  // repeated in a loop with m_allName subsitituted for trigger,
-  // and subsequently added to the vectors above.  
-  THnSparse* m_hAllDphiUnfolded =
-    UnfoldDeltaPhi( m_hAllDphi, fInMC, m_dPhiUnfoldedName );
-  m_vHDphiUnfolded.push_back( m_hAllDphiUnfolded );
-  m_vLabelUnfolded.push_back( m_allName );
+    // make unfolded THnSparse with similar naming convention
+    // as the other histograms. At this point, don't care about
+    // doing this for all triggers. Altohugh, this can be
+    // repeated in a loop with m_allName subsitituted for trigger,
+    // and subsequently added to the vectors above.  
+    THnSparse* m_hAllDphiUnfolded =
+      UnfoldDeltaPhi( m_hAllDphi, fInMC, m_dPhiUnfoldedName );
+    m_vHDphiUnfolded.push_back( m_hAllDphiUnfolded );
+    m_vLabelUnfolded.push_back( m_allName );
+  }
   
   std::cout << "DONE! Closing " << cfNameOut << std::endl;
   m_fOut->Close(); delete m_fOut;
   std::cout << "......Closed  " << cfNameOut << std::endl;
+}
+
+void DiJetAnalysisData::PlotHistosTogether(){
+  MakeDphiTogether();
 }
 
 //---------------------------------
@@ -267,19 +274,6 @@ void DiJetAnalysisData::SetupHistograms(){
     
     m_vHtriggerDphi.push_back( hn );
     AddHistogram( hn );
-    
-    THnSparse* hnNent =
-      new THnSparseD( Form("h_%sNent_%s", m_dPhiName.c_str(), trigger.c_str() ), "",
-		      m_nDphiDim, &m_nDphiBins[0],
-		      &m_dPhiMin[0], &m_dPhiMax[0] );
-    hnNent->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
-    hnNent->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
-    hnNent->GetAxis(2)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
-    hnNent->GetAxis(3)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
-    hnNent->GetAxis(4)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
-	
-    m_vHtriggerDphiNent.push_back( hnNent );
-    AddHistogram( hnNent );
   }
 }
 
@@ -386,7 +380,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
       // dPhi for all triggers, matched
       if( GetDiJets( vR_jets, jet1, jet2 ) ){
 	if( JetInTrigRange( *jet1, iG ) ) {
-	  AnalyzeDeltaPhi( m_vHtriggerDphi[iG], m_vHtriggerDphiNent[iG], vR_jets );
+	  AnalyzeDeltaPhi( m_vHtriggerDphi[iG], vR_jets );
 	}
       }
   
@@ -601,13 +595,13 @@ void DiJetAnalysisData::GetInfoBoth( std::string& outSuffix,
 				     std::string& name_a   , std::string& name_b  ,
 				     std::string& label_a  , std::string& label_b ,
 				     std::string& suffix_a , std::string& suffix_b ){
-  outSuffix = "data";
+  outSuffix = m_sData;
   name_a    = m_dPhiName + "_" + m_allName;
   name_b    = m_dPhiName + "_" + m_allName;
   label_a   = "#it{p}+Pb";
   label_b   = "#it{pp}";
-  suffix_a  = "pPb_data";
-  suffix_b  = "pp_data";
+  suffix_a  = m_s_pPb + "_" + m_sData;
+  suffix_b  = m_s_pp  + "_" + m_sData;
 }
 
 void DiJetAnalysisData::GetInfoUnfolding( std::string& measuredName,
@@ -659,10 +653,6 @@ void DiJetAnalysisData::LoadHistograms(){
     m_vHtriggerDphi.push_back
       ( static_cast< THnSparse *>
 	( m_fIn->Get( Form("h_%s_%s", m_dPhiName.c_str(), trigger.c_str() ))));
-
-    m_vHtriggerDphiNent.push_back
-      ( static_cast< THnSparse *>
-	( m_fIn->Get( Form("h_%sNent_%s", m_dPhiName.c_str(), trigger.c_str() ))));
   }
   
   m_fIn->Close(); delete m_fIn;

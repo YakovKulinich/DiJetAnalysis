@@ -18,6 +18,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void ProcessPlotHistos();
 
+  void PlotHistosTogether();
+  
   //---------------------------
   //       Fill Tree
   //---------------------------
@@ -71,8 +73,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void MakeEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,
-			 const std::string& );
-
+			 const std::string& );  
   //---------------------------
   //        Drawing
   //---------------------------
