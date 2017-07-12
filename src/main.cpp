@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     mcType     = atoi( argv[6] );
   }
 
-  if( mode == 3 ){
+  if( mode == 4 ){
     if(argc >= 3){
       is_pPb    = atoi( argv[2] );
     } if(argc >= 4){
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     } 
   }
   
-  std::cerr << "argc: " << argc
+  std::cerr << "   argc: " << argc
 	    << "   mode: " << mode
 	    << "   nEvents: " << nEvents 
 	    << "   startEvent: " << startEvent
@@ -54,27 +54,32 @@ int main(int argc, char *argv[])
   DiJetAnalysis* analysis = NULL;
 
   // clean up
-  if( mode < 3 ){
+  if( mode < 4 ){
     analysis = isData ?
       static_cast< DiJetAnalysis* >
       ( new DiJetAnalysisData( is_pPb ) ) :
       static_cast< DiJetAnalysis* >
       ( new DiJetAnalysisMC  ( is_pPb, mcType ) );
-  } else if( mode == 3 ){
+  } else if( mode == 4 ){
     analysis = static_cast< DiJetAnalysis* >
       ( new DiJetAnalysisBoth( is_pPb, isReco ) );
   }
   
   analysis->Initialize();
 
-  if( mode == 1){
+  if( mode == 0 ) {
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
-  } else if( mode == 0 ) {
+  } else if( mode == 1 ){
     rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
     analysis->ProcessPlotHistos();
     rootapp->Run();
-  } else if( mode == 2 || mode == 3 ){
+  } else if( mode == 2 ){
+    rootapp = new TApplication("JetAnalysis",&argc, argv);
+    gROOT->SetBatch(kTRUE);
+    analysis->DataMCCorrections();
+    rootapp->Run();
+  } else if( mode == 3 || mode == 4 ){
     rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
     analysis->PlotHistosTogether();

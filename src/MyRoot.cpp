@@ -162,14 +162,14 @@ TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
   };
 
   
-  TF1* dPhiFit = new TF1( Form("f_%s", hProj->GetName()), EMG, 2, constants::PI, 4);
+  TF1* dPhiFit = new TF1( Form("f_%s", hProj->GetName()), EMG, 0, constants::PI, 4);
 
   if( !hProj->GetEntries() )
     { return dPhiFit; }
   
   dPhiFit->SetParameters( hProj->GetMaximum(), 0.2, 0.1, 0 );
   
-  hProj->Fit( dPhiFit->GetName(), "Q0", "", 2, constants::PI );
+  hProj->Fit( dPhiFit->GetName(), "Q0", "", 0, constants::PI );
   
   return dPhiFit;
 }

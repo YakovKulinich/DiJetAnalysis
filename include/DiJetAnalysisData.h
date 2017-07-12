@@ -7,9 +7,15 @@ class DiJetAnalysisData : public DiJetAnalysis{
  public:
   DiJetAnalysisData();
   DiJetAnalysisData( bool );
+  DiJetAnalysisData( bool, int );
   ~DiJetAnalysisData();
 
+  //---------------------------
+  // Initialization Methods
+  //---------------------------
   void Initialize();
+
+  void AdditionalSuffix( std::string& ){}
   
   //---------------------------
   // Fill Tree / Plot Controls
@@ -18,6 +24,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void ProcessPlotHistos();
 
+  void DataMCCorrections();
+  
   void PlotHistosTogether();
   
   //---------------------------

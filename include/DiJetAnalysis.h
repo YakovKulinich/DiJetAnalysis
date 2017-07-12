@@ -31,14 +31,21 @@ class DiJetAnalysis{
   DiJetAnalysis( bool, bool, int );
   virtual ~DiJetAnalysis();
 
+  //---------------------------
+  // Initialization Methods
+  //---------------------------
   virtual void Initialize();
 
+  virtual void AdditionalSuffix( std::string& ) = 0;
+  
   //---------------------------
   // Fill Tree / Plot Controls
   //---------------------------
   virtual void RunOverTreeFillHistos( int, int ) = 0;
 
   virtual void ProcessPlotHistos() = 0;
+
+  virtual void DataMCCorrections() = 0;
 
   virtual void PlotHistosTogether() = 0;
   
@@ -124,7 +131,7 @@ class DiJetAnalysis{
 			     const std::vector< std::string >&,
 			     const std::string& = "" );
   
-  virtual THnSparse* UnfoldDeltaPhi( THnSparse*, TFile*,
+  virtual THnSparse* UnfoldDeltaPhi( TFile*, TFile*,
 				     const std::string& = "" );
 
   virtual void MakeDphiTogether();
@@ -163,14 +170,17 @@ class DiJetAnalysis{
   
 
  private:
-  //========== settings ===========
+  //========== config file  ===========
   TEnv* m_config;
 
  protected:
-  //============= common strings =================
+  //=========== common strings ========
   std::string m_s_pp;
   std::string m_s_pPb;
   std::string m_s_pt;
+
+  std::string m_s_pt1;
+  std::string m_s_pt2;
   
   std::string m_sOutput;
   std::string m_myOutName;
@@ -182,35 +192,38 @@ class DiJetAnalysis{
   
   std::string m_sMUT;
   std::string m_sRatio;
+
+  std::string m_allName;
+
+  std::string m_notNormalizedSuffix;
+  std::string m_unfoldingFileSuffix;
   
   //============ cuts =============
   int    m_nMinEntriesFit;
 
   double m_dPhiThirdJetFraction;
-  //========== settings ===========
+
+  //===== settings and names ======
   TEnv* GetConfig(){ return m_config; }
   
   bool m_is_pPb;
   bool m_isData;
-  int  m_mcType;
-
-  std::string m_allName;
-    
+  int  m_uncertComp;
+  
   std::string m_labelOut;
   std::string m_dirOut;
-  std::string m_rootFname;
+  
+  std::string m_rawHistosFname;
 
+  std::string m_fNameOut;
+  std::string m_fNameOutUF;
+  
   std::string m_fNameUnfoldingMC;
   
   DeltaPhiProj* m_dPP;
 
   // -------- eventCounter --------
   int m_ev;
-  
-  //============ files =============
-  TFile* m_fIn;
-  TFile* m_fOut;
-  TTree* m_tree;
   
  private:
   //============ data =============
@@ -299,6 +312,7 @@ class DiJetAnalysis{
   std::string m_etaSpectName;
   std::string m_dPhiName;
   std::string m_effName;
+  std::string m_purityName;
   
   std::string m_respMatName;
   std::string m_unfoldedName;
@@ -306,11 +320,10 @@ class DiJetAnalysis{
   std::string m_dPhiRecoName;
   std::string m_dPhiTruthName;
   std::string m_dPhiRespMatName;
+  std::string m_ptRespMatName;
+
   std::string m_dPhiUnfoldedName;
   std::string m_dPhiRecoUnfoldedName;
-
-  std::string m_notNormalizedSuffix;
-  std::string m_unfoldingFileSuffix;
 };
 
 #endif

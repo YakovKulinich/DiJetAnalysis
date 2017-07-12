@@ -9,16 +9,26 @@ class DiJetAnalysisMC : public DiJetAnalysis{
  public:
   DiJetAnalysisMC();
   DiJetAnalysisMC( bool, int );
+  DiJetAnalysisMC( bool, int, int );
   ~DiJetAnalysisMC();
 
+  //---------------------------
+  // Initialization Methods
+  //---------------------------
   void Initialize();
 
+  void AdditionalSuffix( std::string& );
+
+  std::string GetMCMenu();
+  
   //---------------------------
   // Fill Tree / Plot Controls
   //---------------------------
   void RunOverTreeFillHistos( int, int );
 
   void ProcessPlotHistos();
+
+  void DataMCCorrections();
 
   void PlotHistosTogether();
   
@@ -36,7 +46,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
-  void AnalyzeResponseMatrix( THnSparse*,
+  void AnalyzeResponseMatrix( THnSparse*, THnSparse*,
 			      const std::vector<TLorentzVector>&,
 			      const std::vector<TLorentzVector>&,
 			      WeightFcn = NULL );
@@ -86,7 +96,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   
   void GetInfoUnfolding( std::string&, std::string& );
 
-  void GetInfoBothRecoTruth();
+  void MakePurityEff( TH2*, TH1*, TH1* );
   
   //---------------------------
   //  Get Quantities / Plot 
@@ -100,7 +110,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void MakeDphiRecoTruth();
   
   void MakeResponseMatrix( std::vector<THnSparse*>&,
+			   std::vector<THnSparse*>&,
 			   const std::vector< std::string >&,
+			   const std::string& = "",
 			   const std::string& = "" );
   
   //---------------------------
@@ -127,6 +139,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   double m_dRmax;
   
   //============ settings ============= 
+  int m_mcType;
+  
   std::string m_mcTypeLabel;
 
   std::vector< int > m_vJznUsed;
@@ -197,6 +211,11 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< THnSparse* > m_vHjznDphiRespMat;
   
   THnSparse* m_hAllDphiRespMat;
+
+  // ----- pT Response Matrix -----
+  std::vector< THnSparse* > m_vHjznPtRespMat;
+
+  THnSparse* m_hAllPtRespMat;
   
   //========= histos binning ========
   // ------ truth binning --------
@@ -214,13 +233,16 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   double m_dAngleRecoTruthMin;
   double m_dAngleRecoTruthMax;
 
+  // --- variable pt binning resp mat ---
+  std::vector< double > m_varPtBinningRespMat;
+  uint m_nVarPtBinsRespMat;
+  
   // ---- dPhi Reponse Matrix ----- 
   uint m_nDphiRespMatDim;
 
   std::vector< int >    m_nDphiRespMatBins;
   std::vector< double > m_dPhiRespMatMin;
   std::vector< double > m_dPhiRespMatMax;
-  
 };
 
 #endif

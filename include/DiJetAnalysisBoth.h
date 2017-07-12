@@ -10,17 +10,22 @@ class DiJetAnalysisBoth : public DiJetAnalysis{
   DiJetAnalysisBoth( bool, bool );
   ~DiJetAnalysisBoth();
 
+
+  void Initialize();
+
+  void AdditionalSuffix( std::string& ){}
+  
   // pure virtual function from DiJetAnalysis
   void RunOverTreeFillHistos( int, int ){}
   void ProcessPlotHistos(){}
   void PlotHistosTogether();
+  void DataMCCorrections(){}
   
   void SetupHistograms(){}
+
   void ProcessEvents( int, int ){}
 
   void LoadHistograms(){}
-  
-  void Initialize();
   
   void MakeDphiTogether();
 

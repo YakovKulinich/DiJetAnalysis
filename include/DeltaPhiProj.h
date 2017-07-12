@@ -19,12 +19,16 @@ class DeltaPhiProj{
   std::string& GetAxisLabel( int i ){ return m_vAxisLabel[ GetAxisI(i) ]; }  
   TAxis*       GetTAxis    ( int i ){ return m_vTAxis    [ GetAxisI(i) ]; }  
 
+  std::string& GetDefaultAxisName ( int i ){ return m_vAxisName [ i ]; }
+  std::string& GetDefaultAxisLabel( int i ){ return m_vAxisLabel[ i ]; }  
+  
   void AddTAxis( TAxis* ta ){ m_vTAxis.push_back( ta ); }
 
   std::vector<int> GetMappedBins( const std::vector<int>& );
   
   bool CorrectPhaseSpace( const std::vector<int>& );
-  
+
+ private:
   std::vector< int > m_vAxisI
     { 0, 1, 2, 3 }; // default values
   std::vector< std::string > m_vAxisName

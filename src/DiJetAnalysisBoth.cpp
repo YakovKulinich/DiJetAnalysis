@@ -57,13 +57,9 @@ void DiJetAnalysisBoth::MakeDphiTogether(){
   outDir += "/" + m_sBoth;
   anaTool->CheckWriteDir( outDir.c_str() );
 
-  TAxis* axis0 = m_dPP->GetTAxis( 0 );
-  TAxis* axis1 = m_dPP->GetTAxis( 1 );
-  TAxis* axis2 = m_dPP->GetTAxis( 2 );
-  
-  int nAxis0Bins = axis0->GetNbins();
-  int nAxis1Bins = axis1->GetNbins();
-  int nAxis2Bins = axis2->GetNbins();
+  TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
+  TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
+  TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
   
   TFile* fIn_data  = TFile::Open( Form("%s/%s_%s_%s/c_%s_%s_%s.root",
 				       m_sOutput.c_str(), m_sOutput.c_str(), m_system.c_str(),

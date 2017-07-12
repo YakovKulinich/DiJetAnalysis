@@ -91,7 +91,7 @@ namespace CT{
 
     bool SubtractCombinatoric( TH1*, double = 0, double = 0 );
 
-    TF1* FitDphi    ( TH1*, double = 0, double = 0 );
+    TF1* FitDphi    ( TH1*, double = 0, double = constants::PI );
     
     TF1* FitGaussian( TH1*, double = 0, double = 0 );
     
