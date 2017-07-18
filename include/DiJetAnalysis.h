@@ -117,6 +117,8 @@ class DiJetAnalysis{
 			    std::string&, std::string&, std::string& );
 
   virtual void GetInfoUnfolding( std::string&, std::string& );
+
+  TH1* BinByBinUnfolding( TH1*, TH1* );
   
   //---------------------------
   //   Get Quantities / Plot 
@@ -195,7 +197,6 @@ class DiJetAnalysis{
 
   std::string m_allName;
 
-  std::string m_notNormalizedSuffix;
   std::string m_unfoldingFileSuffix;
   
   //============ cuts =============
@@ -203,6 +204,10 @@ class DiJetAnalysis{
 
   double m_dPhiThirdJetFraction;
 
+  double m_dPhiZoomLow;
+  
+  double m_dPhiUnfoldingMin;
+  double m_dPhiUnfoldingMax; 
   //===== settings and names ======
   TEnv* GetConfig(){ return m_config; }
   
@@ -306,8 +311,6 @@ class DiJetAnalysis{
   double m_dPhiWidthMin;
   double m_dPhiWidthMax;
 
-  double m_dPhiZoomLow;
-  
   //===== common histo names =======
   std::string m_etaSpectName;
   std::string m_dPhiName;
@@ -321,7 +324,8 @@ class DiJetAnalysis{
   std::string m_dPhiTruthName;
   std::string m_dPhiRespMatName;
   std::string m_ptRespMatName;
-
+  std::string m_dPhiCorrFactorName;
+  
   std::string m_dPhiUnfoldedName;
   std::string m_dPhiRecoUnfoldedName;
 };

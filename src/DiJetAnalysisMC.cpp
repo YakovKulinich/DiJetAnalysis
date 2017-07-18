@@ -203,13 +203,11 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   MakeDeltaPhi( m_vHjznDphiRecoPtTruth, m_vJznLabel, m_dPhiRecoPtTruthName );
   MakeDeltaPhi( m_vHjznDphiTruthPtReco, m_vJznLabel, m_dPhiTruthPtRecoName );
 
-  // For MC need to close the file first,
-  // to write dphi response, truth histos.
-  // Should add this in two steps but unfolding
-  // in MC is really for a test, in data there is no
-  // need to do this.
+  MakeDphiCorrectionFactor( m_vHjznDphiTruth, m_vHjznDphiReco, m_vJznLabel, m_dPhiCorrFactorName );
+  
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
-  fOut->Close(); delete fOut;
+  fOut->Close();
+  delete fOut;
   std::cout << "......Closed  " << std::endl;
 }
 
@@ -1713,6 +1711,119 @@ void DiJetAnalysisMC::MakeResponseMatrix( std::vector< THnSparse* >& vhnDphi,
   } // end loop over iG
   for( auto rm : vRespMat     ){ delete rm; }
   for( auto pe : vPurityEff   ){ delete pe; }
+}
+
+void DiJetAnalysisMC::MakeDphiCorrectionFactor( std::vector<THnSparse*>& vHnA,
+						std::vector<THnSparse*>& vHnB,
+						const std::vector< std::string >& vLabel,
+						const std::string& name ){
+  
+  std::vector< TH1* > vProj;
+  std::vector< TH1* > vRatio;
+  
+  // ---- loop over group  ----
+  // ---- (jzn or trigger) ----
+  for( uint iG = 0; iG < vHnA.size(); iG++ ){      
+    std::string label = vLabel[iG];
+
+    if( label.compare( m_allName ) ){ continue; } 
+
+    THnSparse* hnA = vHnA[iG];
+    THnSparse* hnB = vHnB[iG];
+  
+    TAxis* axisA0 = hnA->GetAxis( m_dPP->GetAxisI(0) ); int nAxis0Bins = axisA0->GetNbins();
+    TAxis* axisA1 = hnA->GetAxis( m_dPP->GetAxisI(1) ); int nAxis1Bins = axisA1->GetNbins();
+    TAxis* axisA2 = hnA->GetAxis( m_dPP->GetAxisI(2) ); int nAxis2Bins = axisA2->GetNbins();
+    TAxis* axisA3 = hnA->GetAxis( m_dPP->GetAxisI(3) ); int nAxis3Bins = axisA3->GetNbins();
+    
+    TAxis* axisB0 = hnB->GetAxis( m_dPP->GetAxisI(0) ); 
+    TAxis* axisB1 = hnB->GetAxis( m_dPP->GetAxisI(1) ); 
+    TAxis* axisB2 = hnB->GetAxis( m_dPP->GetAxisI(2) ); 
+    TAxis* axisB3 = hnB->GetAxis( m_dPP->GetAxisI(3) ); 
+  
+    for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){ 
+      for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+	for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	  for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+
+	    // check we are in correct ystar and pt bins
+	    if( !m_dPP->CorrectPhaseSpace
+		( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, axis3Bin } ) )
+	      { continue; }
+	    
+	    axisA0->SetRange( axis0Bin, axis0Bin ); axisB0->SetRange( axis0Bin, axis0Bin ); 
+	    axisA1->SetRange( axis1Bin, axis1Bin ); axisB1->SetRange( axis1Bin, axis1Bin ); 
+	    axisA2->SetRange( axis2Bin, axis2Bin ); axisB2->SetRange( axis2Bin, axis2Bin ); 
+	    axisA3->SetRange( axis3Bin, axis3Bin ); axisB3->SetRange( axis3Bin, axis3Bin ); 
+
+	    double axis0Low , axis0Up;
+	    double axis1Low , axis1Up;
+	    double axis2Low , axis2Up;
+	    double axis3Low , axis3Up;
+	    anaTool->GetBinRange( axisA0, axis0Bin, axis0Bin, axis0Low, axis0Up );
+	    anaTool->GetBinRange( axisA1, axis1Bin, axis1Bin, axis1Low, axis1Up );
+	    anaTool->GetBinRange( axisA2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+	    anaTool->GetBinRange( axisA3, axis3Bin, axis3Bin, axis3Low, axis3Up );
+	    
+	    std::string hTag =
+	      Form( "%s_%s_%s_%s",
+		    anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		    anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		    anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		    anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() ); 
+
+	    // Take projection onto the dPhi axis
+	    TH1* hA = hnA->Projection( 4 );
+	    hA->SetName
+	      ( Form( "h_A_temp_%s", hTag.c_str() ) );
+	    // because variable bin width, scale by bin width
+	    hA->Scale( 1.0, "width" );
+	    vProj.push_back( hA );
+
+	    // subtract combinatoric contribution before normalizing
+	    anaTool->SubtractCombinatoric( hA );
+	    // Normalize
+	    NormalizeDeltaPhi( hA );
+
+	    // Take projection onto the dPhi axis
+	    TH1* hB = hnB->Projection( 4 );
+	    hB->SetName
+	      ( Form( "h_A_temp_%s", hTag.c_str() ) );
+	    // because variable bin width, scale by bin width
+	    hB->Scale( 1.0, "width" );
+	    vProj.push_back( hB );
+
+	    // subtract combinatoric contribution before normalizing
+	    anaTool->SubtractCombinatoric( hB );
+	    // Normalize
+	    NormalizeDeltaPhi( hB );
+
+	    // Make the ratio histogram. This is used to unfold bin-by-bin.
+	    // This gets saved, and drawn later.
+	    TH1* hR = static_cast< TH1D* >
+	      ( hA->Clone
+		( Form( "h_%s_%s_%s", name.c_str(), m_allName.c_str(), hTag.c_str())));
+	    styleTool->SetHStyle( hR, 0 );	  
+	    hR->Divide( hB );
+	    vRatio.push_back( hR );
+	    
+	    // set the factors below some minimum to zero.
+	    // the ratios and errors become horrible there
+	    for( int xBin = 0; xBin < hR->FindBin( m_dPhiUnfoldingMin ); xBin++ )
+	      { hR->SetBinContent( xBin, 0 );
+		hR->SetBinError  ( xBin, 0 ); }
+
+	    hR->SetTitle("");
+	    hR->SetMaximum( 2.0 );
+	    hR->SetMinimum( 0.0 );
+	    hR->Write();
+	  }
+	}
+      }
+    }
+  }
+  for( auto& h : vProj  ){ delete h; }
+  for( auto& r : vRatio ){ delete r; }
 }
 
 //---------------------------

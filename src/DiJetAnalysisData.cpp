@@ -55,8 +55,8 @@ void DiJetAnalysisData::Initialize(){
   DiJetAnalysis::Initialize();
   
   m_fNameIn = m_is_pPb ?
-    "/home/yakov/Projects/atlas/data/pPb.root" :
-    "/home/yakov/Projects/atlas/data/pp.root"  ;
+    "/home/yakov/Projects/atlas/data/pPb/pPb.root" :
+    "/home/yakov/Projects/atlas/data/pp/pp.root"  ;
 }
 
 //---------------------------

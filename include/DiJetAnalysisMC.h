@@ -114,6 +114,11 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			   const std::vector< std::string >&,
 			   const std::string& = "",
 			   const std::string& = "" );
+
+  void MakeDphiCorrectionFactor( std::vector<THnSparse*>&,
+				 std::vector<THnSparse*>&,
+				 const std::vector< std::string >&,
+				 const std::string& = "" ); 
   
   //---------------------------
   //        Drawing
