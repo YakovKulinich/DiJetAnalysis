@@ -25,13 +25,16 @@
 #include "DeltaPhiProj.h"
 
 DiJetAnalysisData::DiJetAnalysisData()
-  : DiJetAnalysisData( false ){}
+  : DiJetAnalysisData( false, 0, 0 ){}
 
 DiJetAnalysisData::DiJetAnalysisData( bool is_pPb )
-  : DiJetAnalysisData( is_pPb, -1 ){}
+  : DiJetAnalysisData( is_pPb, 0, 0 ){}
 
-DiJetAnalysisData::DiJetAnalysisData( bool is_pPb, int uncertComp )
-  : DiJetAnalysis( is_pPb, true, uncertComp )
+DiJetAnalysisData::DiJetAnalysisData( bool is_pPb, int mcType )
+  : DiJetAnalysisData( is_pPb, mcType, 0 ){}
+
+DiJetAnalysisData::DiJetAnalysisData( bool is_pPb, int mcType, int uncertComp )
+  : DiJetAnalysis( is_pPb, true, mcType, uncertComp )
 {
   //========== Set Histogram Binning =============
 
@@ -75,7 +78,7 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   LoadTriggers();
   LoadHistograms();
 
-  TFile* fOut = new TFile( m_fNameOut.c_str(),"RECREATE");
+  TFile* fOut = new TFile( m_fNameOutDefault.c_str(),"RECREATE");
 
   // MakeEtaPhiPtMap( m_vHtriggerEtaPhiMap );
   // MakeEtaPhiPtMap( m_vHtriggerEtaPtMap  );
@@ -91,6 +94,8 @@ void DiJetAnalysisData::ProcessPlotHistos(){
   
   m_hAllDphi = CombineSamples( m_vHtriggerDphi, m_dPhiName );
   MakeDeltaPhi( m_vHtriggerDphi, m_vTriggers, m_dPhiName );
+
+  // Copy the filenames 
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
@@ -99,18 +104,17 @@ void DiJetAnalysisData::ProcessPlotHistos(){
 
 void DiJetAnalysisData::DataMCCorrections(){
   // for now
-  if( m_is_pPb ){ return; }
   // Copy File with original dPhi, spectra, etc,
   // into file where histos with corrections are
   // going to be appended. 
-  TFile::Cp( m_fNameOut.c_str(), m_fNameOutUF.c_str() );
-  std::cout << "Copy " << m_fNameOut << " -> " << m_fNameOutUF << std::endl;
+  TFile::Cp( m_fNameOutDefault.c_str(), m_fNameOutUF.c_str() );
+  std::cout << "Copy " << m_fNameOutDefault << " -> " << m_fNameOutUF << std::endl;
   // Open two for reading one for updating.
   // open the MC file used for unfolding info.
   // open teh data file used for measured info.
   // passed to unfolding function.
   TFile* fInMC   = TFile::Open( m_fNameUnfoldingMC.c_str() );
-  TFile* fInData = TFile::Open( m_fNameOut.c_str()         );
+  TFile* fInData = TFile::Open( m_fNameOutDefault.c_str()         );
   TFile* fOut    = new TFile( m_fNameOutUF.c_str(),"UPDATE");
   
   std::cout << "----- Unfolding Data ------" << std::endl;
@@ -130,6 +134,10 @@ void DiJetAnalysisData::DataMCCorrections(){
   m_vHDphiUnfolded.push_back( m_hAllDphiUnfolded );
   m_vLabelUnfolded.push_back( m_allName );
 
+  // make deltaPhi, give flag (true) that its unfolded response
+  // so there is no comb subt or normalization or scaling
+  MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiUnfoldedName, true );
+  
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
   std::cout << "......Closed  " << std::endl;
@@ -611,8 +619,10 @@ void DiJetAnalysisData::GetInfoBoth( std::string& outSuffix,
 				     std::string& label_a  , std::string& label_b ,
 				     std::string& suffix_a , std::string& suffix_b ){
   outSuffix = m_sData;
-  name_a    = m_dPhiName + "_" + m_allName;
-  name_b    = m_dPhiName + "_" + m_allName;
+  // name_a    = m_dPhiName + "_" + m_allName;
+  // name_b    = m_dPhiName + "_" + m_allName;
+  name_a    = m_dPhiUnfoldedName + "_" + m_allName;
+  name_b    = m_dPhiUnfoldedName + "_" + m_allName;
   label_a   = "#it{p}+Pb";
   label_b   = "#it{pp}";
   suffix_a  = m_s_pPb + "_" + m_sData;

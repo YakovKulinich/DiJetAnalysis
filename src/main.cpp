@@ -13,9 +13,11 @@ int main(int argc, char *argv[])
   int mode             = 1;
   int nEvents          = -1;
   int startEvent       = 0;
-  bool isData          = false;
   bool is_pPb          = false;
+  bool isData          = false;
   int  mcType          = 0;    
+  int  uncertComp      = 0;
+  
   bool isReco          = false;
   
   if(argc >= 2){
@@ -25,14 +27,16 @@ int main(int argc, char *argv[])
   } if(argc >= 4){
     startEvent = atoi( argv[3] );
   } if(argc >= 5){
-    isData     = atoi( argv[4] );
+    is_pPb     = atoi( argv[4] );
   } if(argc >= 6){
-    is_pPb     = atoi( argv[5] );
+    isData     = atoi( argv[5] );
   } if(argc >= 7){
     mcType     = atoi( argv[6] );
+  }  if(argc >= 8){
+    uncertComp = atoi( argv[7] );
   }
 
-  if( mode == 4 ){
+  if( mode == 8 ){
     if(argc >= 3){
       is_pPb    = atoi( argv[2] );
     } if(argc >= 4){
@@ -44,23 +48,23 @@ int main(int argc, char *argv[])
 	    << "   mode: " << mode
 	    << "   nEvents: " << nEvents 
 	    << "   startEvent: " << startEvent
-	    << "   isData: " << isData
 	    << "   is_pPb: " << is_pPb
-    	    << "   mcType: " << mcType
-    	    << "   mcMode: " << isReco
+    	    << "   isData: " << isData
+	    << "   mcType: " << mcType
+	    << "   uncertComp: " << uncertComp
 	    << std::endl;
 
   TApplication*   rootapp = NULL;  
   DiJetAnalysis* analysis = NULL;
 
   // clean up
-  if( mode < 4 ){
+  if( mode < 5 ){
     analysis = isData ?
       static_cast< DiJetAnalysis* >
-      ( new DiJetAnalysisData( is_pPb ) ) :
+      ( new DiJetAnalysisData( is_pPb, mcType, uncertComp ) ) :
       static_cast< DiJetAnalysis* >
-      ( new DiJetAnalysisMC  ( is_pPb, mcType ) );
-  } else if( mode == 4 ){
+      ( new DiJetAnalysisMC  ( is_pPb, mcType, uncertComp ) );
+  } else if( mode == 8 ){
     analysis = static_cast< DiJetAnalysis* >
       ( new DiJetAnalysisBoth( is_pPb, isReco ) );
   }

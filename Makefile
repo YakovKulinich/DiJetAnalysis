@@ -11,8 +11,8 @@ LIBS        = -lMyLib -lRooUnfold
 
 OBJ         = analysis
 SOURCES     = DiJetAnalysis.cpp DiJetAnalysisData.cpp DiJetAnalysisMC.cpp \
-	      DiJetAnalysisBoth.cpp DeltaPhiProj.cpp AtlasStyle.C \
-	      MyRoot.cpp main.cpp
+	      DiJetAnalysisBoth.cpp DeltaPhiProj.cpp UncertaintyTool.cpp \
+	      AtlasStyle.C  MyRoot.cpp main.cpp
 INCLUDES    = DiJetAnalysis.h
 
 DSOURCES    = src/

@@ -141,7 +141,7 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
     double val      = hProj->GetBinContent( xBin );
     double binError = hProj->GetBinError  ( xBin );
     double newVal   = val - comb > 0 ? val - comb : 0;
-    double newError =
+    double newError = 
       TMath::Sqrt( binError*binError + combError*combError );	
     hProj->SetBinContent( xBin, newVal   );
     hProj->SetBinError  ( xBin, newError );
@@ -492,6 +492,15 @@ void CT::StyleTools::SetHStyle( TF1* funct, int iflag, double scale)
   // SetCustomMarkerStyle( funct, iflag );
 }
 
+void CT::StyleTools::SetHStyleRatio( TH1* his, int iflag, double scale ){
+  SetHStyle( his, 0 );
+  his->SetTitle("");
+  his->SetMaximum( 2.0 );
+  his->SetMinimum( 0.0 );
+  his->SetFillColor(46);
+  his->GetYaxis()->SetNdivisions(503);
+}
+
 TH1F* CT::StyleTools::SetCStyleEff ( TCanvas& c,
 				     double x0, double y0,
 				     double x1, double y1,
@@ -558,7 +567,7 @@ void CT::DrawTools::DrawCenterLatex
   tltx.SetTextAlign(22);
   tltx.DrawLatex( x, y, s.c_str() );
 }
-
+ 
 // ============ DATA ================
 
 void CT::DrawTools::DrawAtlasInternal( double scale ){

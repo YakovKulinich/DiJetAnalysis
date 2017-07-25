@@ -130,10 +130,12 @@ namespace CT{
     void SetHStyle( TGraph* his, int iflag, double scale = hSS);
     void SetHStyle( TF1*    his, int iflag, double scale = hSS);
 
+    void SetHStyleRatio( TH1* , int  = 0, double = hSS );
+
     // For Canvas where you draw efficiency
     TH1F* SetCStyleEff( TCanvas&, double, double, double, double,
 			const std::string& );
-  
+
     // Legend Style
     void SetLegendStyle(TLegend * legend, double scale = lSS);
   };

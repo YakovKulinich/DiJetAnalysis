@@ -8,6 +8,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   DiJetAnalysisData();
   DiJetAnalysisData( bool );
   DiJetAnalysisData( bool, int );
+  DiJetAnalysisData( bool, int, int );
   ~DiJetAnalysisData();
 
   //---------------------------
@@ -110,7 +111,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   int m_lowestCentTriggerI;  
 
   double m_centMbCorrection;
-  
+
   //============ data =============
   // -------- maps ---------
   std::vector< TH2* > m_vHtriggerEtaPhiMap;

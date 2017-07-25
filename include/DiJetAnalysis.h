@@ -29,6 +29,7 @@ class DiJetAnalysis{
   DiJetAnalysis( bool );
   DiJetAnalysis( bool, bool );
   DiJetAnalysis( bool, bool, int );
+  DiJetAnalysis( bool, bool, int, int );
   virtual ~DiJetAnalysis();
 
   //---------------------------
@@ -131,7 +132,8 @@ class DiJetAnalysis{
   
   virtual void MakeDeltaPhi( std::vector<THnSparse*>&,
 			     const std::vector< std::string >&,
-			     const std::string& = "" );
+			     const std::string& = "",
+			     bool = false );
   
   virtual THnSparse* UnfoldDeltaPhi( TFile*, TFile*,
 				     const std::string& = "" );
@@ -198,7 +200,9 @@ class DiJetAnalysis{
   std::string m_allName;
 
   std::string m_unfoldingFileSuffix;
-  
+
+  std::vector< std::string > m_vMCtypeLabels;
+  std::vector< std::string > m_vMCtypeNames;
   //============ cuts =============
   int    m_nMinEntriesFit;
 
@@ -213,20 +217,25 @@ class DiJetAnalysis{
   
   bool m_is_pPb;
   bool m_isData;
+  int  m_mcType;
   int  m_uncertComp;
+  
+  std::string m_mcTypeName;
+  std::string m_mcTypeLabel;
   
   std::string m_labelOut;
   std::string m_dirOut;
   
   std::string m_rawHistosFname;
 
+  std::string m_fNameOutDefault;
   std::string m_fNameOut;
   std::string m_fNameOutUF;
   
   std::string m_fNameUnfoldingMC;
   
   DeltaPhiProj* m_dPP;
-
+  
   // -------- eventCounter --------
   int m_ev;
   
@@ -288,12 +297,14 @@ class DiJetAnalysis{
   std::vector<double> m_varDphiBinning;
   unsigned int m_nVarDphiBins;
 
-  double m_dPhiFineBinWidth;
-  int    m_dPhiFineCoarseFactor;
+  int m_nDphiBinsLarge ; 
+  int m_nDphiBinsMedium; 
+  int m_nDphiBinsSmall ;
   
-  int m_nDphiCoarseBins;
-  int m_nDphiFineBins;
-  
+  int m_dPhiBinsLargeFactor ;
+  int m_dPhiBinsMediumFactor;
+  int m_dPhiBinsSmallFactor ;
+
   // -------- eff ---------
   double m_effMin;
   double m_effMax;
@@ -322,10 +333,13 @@ class DiJetAnalysis{
   
   std::string m_dPhiRecoName;
   std::string m_dPhiTruthName;
+  
   std::string m_dPhiRespMatName;
   std::string m_ptRespMatName;
-  std::string m_dPhiCorrFactorName;
   
+  std::string m_allRespMatName;  
+
+  std::string m_dPhiCFactorsName;
   std::string m_dPhiUnfoldedName;
   std::string m_dPhiRecoUnfoldedName;
 };
