@@ -19,6 +19,7 @@ class DeltaPhiProj{
   std::string& GetAxisLabel( int i ){ return m_vAxisLabel[ GetAxisI(i) ]; }  
   TAxis*       GetTAxis    ( int i ){ return m_vTAxis    [ GetAxisI(i) ]; }  
 
+  TAxis*  GetDefaultTAxis    ( int i ){ return m_vTAxis    [ i ]; }
   std::string& GetDefaultAxisName ( int i ){ return m_vAxisName [ i ]; }
   std::string& GetDefaultAxisLabel( int i ){ return m_vAxisLabel[ i ]; }  
   

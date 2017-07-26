@@ -618,21 +618,50 @@ void DiJetAnalysisData::GetInfoBoth( std::string& outSuffix,
 				     std::string& name_a   , std::string& name_b  ,
 				     std::string& label_a  , std::string& label_b ,
 				     std::string& suffix_a , std::string& suffix_b ){
-  outSuffix = m_sData;
-  // name_a    = m_dPhiName + "_" + m_allName;
-  // name_b    = m_dPhiName + "_" + m_allName;
-  name_a    = m_dPhiUnfoldedName + "_" + m_allName;
-  name_b    = m_dPhiUnfoldedName + "_" + m_allName;
-  label_a   = "#it{p}+Pb";
-  label_b   = "#it{pp}";
-  suffix_a  = m_s_pPb + "_" + m_sData;
-  suffix_b  = m_s_pp  + "_" + m_sData;
+
+  int combinationBoth = GetConfig()->GetValue( "combinationBoth", 0 );
+
+  if( combinationBoth == 0 ){
+    outSuffix = m_sData;
+    name_a    = m_dPhiUnfoldedName + "_" + m_allName;
+    name_b    = m_dPhiUnfoldedName + "_" + m_allName;
+    label_a   = "#it{p}+Pb";
+    label_b   = "#it{pp}";
+    suffix_a  = m_s_pPb + "_" + m_sData;
+    suffix_b  = m_s_pp  + "_" + m_sData;
+  } else if( combinationBoth == 1 ){
+    outSuffix = m_sData;
+    name_a    = m_dPhiName + "_" + m_allName;
+    name_b    = m_dPhiName + "_" + m_allName;
+    label_a   = "#it{p}+Pb";
+    label_b   = "#it{pp}";
+    suffix_a  = m_s_pPb + "_" + m_sData;
+    suffix_b  = m_s_pp  + "_" + m_sData;
+  } else if ( combinationBoth == 2 ){
+    outSuffix = m_sData;
+    name_a    = m_dPhiUnfoldedName + "_" + m_allName;
+    name_b    = m_dPhiName + "_" + m_allName;
+    label_a   = "#it{pp}_{Unfolded}";
+    label_b   = "#it{pp}";
+    suffix_a  = m_s_pp  + "_" + m_sData;
+    suffix_b  = m_s_pp  + "_" + m_sData;
+  } else if ( combinationBoth == 3 ){
+    outSuffix = m_sData;
+    name_a    = m_dPhiUnfoldedName + "_" + m_allName;
+    name_b    = m_dPhiName + "_" + m_allName;
+    label_a   = "#it{p}+Pb_{Unfolded}";
+    label_b   = "#it{p}+Pb";
+    suffix_a  = m_s_pPb  + "_" + m_sData;
+    suffix_b  = m_s_pPb  + "_" + m_sData;
+  }
 }
 
 void DiJetAnalysisData::GetInfoUnfolding( std::string& measuredName,
-					  std::string& measuredLabel ){
+					  std::string& measuredLabel,
+					  std::string& typeLabel ){
   measuredName  = m_dPhiName;
-  measuredLabel = "Data";
+  measuredLabel = "|#Delta#phi|";
+  typeLabel     = "Data";
 }
 
 //---------------------------------

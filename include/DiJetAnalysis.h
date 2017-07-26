@@ -117,7 +117,7 @@ class DiJetAnalysis{
   virtual void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
 			    std::string&, std::string&, std::string& );
 
-  virtual void GetInfoUnfolding( std::string&, std::string& );
+  virtual void GetInfoUnfolding( std::string&, std::string&, std::string& );
 
   TH1* BinByBinUnfolding( TH1*, TH1* );
   
@@ -182,7 +182,7 @@ class DiJetAnalysis{
   std::string m_s_pp;
   std::string m_s_pPb;
   std::string m_s_pt;
-
+  
   std::string m_s_pt1;
   std::string m_s_pt2;
   
@@ -322,6 +322,10 @@ class DiJetAnalysis{
   double m_dPhiWidthMin;
   double m_dPhiWidthMax;
 
+  // -------- ratios ------
+  double m_ratioMax;
+  double m_ratioMin;
+  
   //===== common histo names =======
   std::string m_etaSpectName;
   std::string m_dPhiName;

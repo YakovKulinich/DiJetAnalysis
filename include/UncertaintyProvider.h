@@ -1,31 +1,50 @@
-#ifndef UNCERTAINTYTOOL_H
-#define UNCERTAINTYTOOL_H
+#ifndef UNCERTAINTYPROVIDER_H
+#define UNCERTAINTYPROVIDER_H
 
 class TLorentzVector;
-
-class JERUncertaintyTool{
- public:
-  JERUncertaintyTool();
-  ~JERUncertaintyTool();
-
-  ApplyUncertainty();
-};
 
 class UncertaintyTool{
 
  public:
-  UncertaintyTool();
   UncertaintyTool( int );
   virtual ~UncertaintyTool();
 
-  void Initialize();
+  virtual void ApplyUncertainty( TLorentzVector& jet, double ) = 0;
+
+  int m_uc;
+  int m_sign;
+};
+
+class JERUncertaintyTool : public UncertaintyTool{
+ public:
+  JERUncertaintyTool( int );
+  ~JERUncertaintyTool();
+
+  void ApplyUncertainty(  TLorentzVector& jet, double = 0 );
+};
+
+
+class JESUncertaintyTool : public UncertaintyTool{
+ public:
+  JESUncertaintyTool( int );
+  ~JESUncertaintyTool();
+
+  void ApplyUncertainty(  TLorentzVector& jet, double = 0 );
+};
+
+class UncertaintyProvider{
+
+ public:
+  UncertaintyProvider();
+  UncertaintyProvider( int );
+  virtual ~UncertaintyProvider();
 
  private:
-  void ApplyUncertainty( TLorentzVector& jet, double = 0 ) = 0;
+  void ApplyUncertainty( TLorentzVector& jet, double = 0 );
   
  private:
-  int m_uc;
-  UncertaintyFunction m_fUncertaintyMethod;
+  UncertaintyTool*  m_uncertaintyTool;
 };
+
 
 #endif

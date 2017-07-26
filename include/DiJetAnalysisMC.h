@@ -95,7 +95,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void GetInfoBothRecoTruth( std::string&, std::string&,
 			     std::string&, std::string& );
   
-  void GetInfoUnfolding( std::string&, std::string& );
+  void GetInfoUnfolding( std::string&, std::string&, std::string& );
 
   void MakePurityEff( TH2*, TH1*, TH1* );
   

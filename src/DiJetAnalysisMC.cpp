@@ -34,8 +34,8 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType )
   : DiJetAnalysisMC( is_pPb, mcType, 0 ){}
 
 DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
-  : DiJetAnalysis( is_pPb, false, mcType, uncertComp )
-{
+  : DiJetAnalysis( is_pPb, false, mcType, uncertComp ){
+  
   //========== Set Histogram Binning =============
   // ------ truth binning --------
   m_ptTruthWidth  = 5;
@@ -87,7 +87,8 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
 
 DiJetAnalysisMC::~DiJetAnalysisMC(){}
 
-void DiJetAnalysisMC::Initialize(){
+void DiJetAnalysisMC::Initialize()
+{
   // Initalize things common to everything
   DiJetAnalysis::Initialize();
   
@@ -193,9 +194,9 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   MakeSpectra( m_vHjznEtaSpectReco , m_vJznLabel, m_etaSpectRecoName );
   MakeSpectra( m_vHjznEtaSpectTruth, m_vJznLabel, m_etaSpectTruthName  );
 
-  MakeScaleRes( m_vHjznRecoTruthRpt , m_vHjznRecoTruthRptNent , "recoTruthRpt"  );
-  MakeScaleRes( m_vHjznRecoTruthDeta, m_vHjznRecoTruthDetaNent, "recoTruthDeta" );
-  MakeScaleRes( m_vHjznRecoTruthDphi, m_vHjznRecoTruthDphiNent, "recoTruthDphi" );
+  //  MakeScaleRes( m_vHjznRecoTruthRpt , m_vHjznRecoTruthRptNent , "recoTruthRpt"  );
+  //  MakeScaleRes( m_vHjznRecoTruthDeta, m_vHjznRecoTruthDetaNent, "recoTruthDeta" );
+  //  MakeScaleRes( m_vHjznRecoTruthDphi, m_vHjznRecoTruthDphiNent, "recoTruthDphi" );
   
   m_hAllDphiReco    = CombineSamples( m_vHjznDphiReco   , m_dPhiRecoName    );
   m_hAllDphiTruth   = CombineSamples( m_vHjznDphiTruth  , m_dPhiTruthName   );
@@ -1043,9 +1044,11 @@ void DiJetAnalysisMC::GetInfoBothRecoTruth
 }
 
 void DiJetAnalysisMC::GetInfoUnfolding( std::string& measuredName,
-					std::string& measuredLabel ){
+					std::string& measuredLabel,
+					std::string& typeLabel ){
   measuredName  = m_dPhiRecoName;
-  measuredLabel = "Reco";;
+  measuredLabel = "|#Delta#phi|";
+  typeLabel     = "Reco";;
 }
 
 
@@ -1503,7 +1506,7 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
 	  
 	  if( h_a->GetEntries() ){
 	    h_a->SetMinimum(0);
-	    h_a->GetYaxis()->SetNdivisions(505);
+	    h_a->SetNdivisions( 505, "Y" );
 	    leg.AddEntry( h_a, Form("%s #Chi^{2}/NDF=%4.2f", label_a.c_str(), chi2NDF_a));
 	    h_a->Draw("epsame");
 	    f_a->Draw("same");
@@ -1512,7 +1515,7 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
 
 	  if( h_b->GetEntries() ){
 	    h_b->SetMinimum(0);
-	    h_b->GetYaxis()->SetNdivisions(505);
+	    h_b->SetNdivisions( 505, "Y" );
 	    leg.AddEntry( h_b, Form("%s #Chi^{2}/NDF=%4.2f", label_b.c_str(), chi2NDF_b));
 	    h_b->Draw("epsame");
 	    f_b->Draw("same");
@@ -1521,7 +1524,7 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
 
 	  if( h_c->GetEntries() ){
 	    h_c->SetMinimum(0);
-	    h_c->GetYaxis()->SetNdivisions(505);
+	    h_c->SetNdivisions( 505, "Y" );
 	    leg.AddEntry( h_c, Form("%s #Chi^{2}/NDF=%4.2f", label_c.c_str(), chi2NDF_c));
 	    h_c->Draw("epsame");
 	    f_c->Draw("same");
@@ -1530,7 +1533,7 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
 
 	  if( h_d->GetEntries() ){
 	    h_d->SetMinimum(0);
-	    h_d->GetYaxis()->SetNdivisions(505);
+	    h_d->SetNdivisions( 505, "Y" );
 	    leg.AddEntry( h_d, Form("%s #Chi^{2}/NDF=%4.2f", label_d.c_str(), chi2NDF_d));
 	    h_d->Draw("epsame");
 	    f_d->Draw("same");
@@ -1951,8 +1954,6 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    cCFactors.SetLogz();
 	    
 	    hC->Draw("e2p");
-	    hC->GetYaxis()->SetTitle("|#Delta#phi_{Truth}|/|#Delta#phi_{Reco}|");
-	    hC->GetXaxis()->SetTitle("|#Delta#phi|");
 	    
 	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
