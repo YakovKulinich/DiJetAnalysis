@@ -20,6 +20,8 @@
 #include <TLatex.h>
 #include <TLorentzVector.h>
 #include <TLegend.h>
+#include <TSystemDirectory.h>
+#include <TList.h>
 #include <TMath.h>
 #include <TTree.h>
 #include <TGraph.h>
@@ -111,7 +113,10 @@ namespace CT{
 				 const std::string& = "" );
 
     // this shuold be in miscallaneous
-    void CheckWriteDir( const char* ); 
+    void CheckWriteDir( const char* );
+
+    std::vector<std::string> ListFiles(const char *dirname="",
+				       const char *ext=".root");
   };
 
   //===================================

@@ -18,9 +18,9 @@ class DiJetAnalysisBoth : public DiJetAnalysis{
   // pure virtual function from DiJetAnalysis
   void RunOverTreeFillHistos( int, int ){}
   void ProcessPlotHistos(){}
-  void PlotHistosTogether();
   void DataMCCorrections(){}
-  
+  void PlotHistosTogether();
+  void ProcessSystematics(){}; 
   void SetupHistograms(){}
 
   void ProcessEvents( int, int ){}

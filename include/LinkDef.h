@@ -5,4 +5,5 @@
 #pragma link C++ nestedclasses;
 #pragma link C++ class std::vector<TVector3>+;
 #pragma link C++ class std::vector<TLorentzVector>+;
+#pragma link C++ class std::vector<std::vector<float>>+;
 #endif

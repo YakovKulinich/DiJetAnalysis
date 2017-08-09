@@ -36,10 +36,11 @@ int main(int argc, char *argv[])
     uncertComp = atoi( argv[7] );
   }
 
+  // reserve mode 8 for plotting MC and Data together
   if( mode == 8 ){
     if(argc >= 3){
       is_pPb    = atoi( argv[2] );
-    } if(argc >= 4){
+    } if(argc >= 4 ){
       isReco    = atoi( argv[3] );
     } 
   }
@@ -57,8 +58,8 @@ int main(int argc, char *argv[])
   TApplication*   rootapp = NULL;  
   DiJetAnalysis* analysis = NULL;
 
-  // clean up
-  if( mode < 5 ){
+  // reserve mode 8 for plotting MC and Data together
+  if( mode < 8 ){
     analysis = isData ?
       static_cast< DiJetAnalysis* >
       ( new DiJetAnalysisData( is_pPb, mcType, uncertComp ) ) :
@@ -74,20 +75,25 @@ int main(int argc, char *argv[])
   if( mode == 0 ) {
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
   } else if( mode == 1 ){
-    rootapp = new TApplication("JetAnalysis",&argc, argv);
+    //rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
     analysis->ProcessPlotHistos();
-    rootapp->Run();
+    //rootapp->Run();
   } else if( mode == 2 ){
-    rootapp = new TApplication("JetAnalysis",&argc, argv);
+    //rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
     analysis->DataMCCorrections();
-    rootapp->Run();
-  } else if( mode == 3 || mode == 4 ){
-    rootapp = new TApplication("JetAnalysis",&argc, argv);
+    //rootapp->Run();
+  } else if( mode == 3 ){
+    //rootapp = new TApplication("JetAnalysis",&argc, argv);
+    gROOT->SetBatch(kTRUE);
+    analysis->ProcessSystematics();
+    //rootapp->Run();
+  } else if(  mode == 4 || mode == 8 ){
+    //rootapp = new TApplication("JetAnalysis",&argc, argv);
     gROOT->SetBatch(kTRUE);
     analysis->PlotHistosTogether();
-    rootapp->Run();
+    //rootapp->Run();
   }
   
   delete analysis;

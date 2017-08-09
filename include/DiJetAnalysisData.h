@@ -28,6 +28,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
   void DataMCCorrections();
   
   void PlotHistosTogether();
+
+  void ProcessSystematics();
   
   //---------------------------
   //       Fill Tree
@@ -70,7 +72,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   THnSparse* CombineSamples( std::vector< THnSparse* >&,
 			     const std::string& = "" );   
 
-  void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
+  void GetInfoBoth( std::string&, std::string&, std::string&,
 		    std::string&, std::string&, std::string& );
 
   void GetInfoUnfolding( std::string&, std::string&, std::string& );
@@ -82,7 +84,10 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   void MakeEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,
-			 const std::string& );  
+			 const std::string& );
+
+  void MakeSystematicsGraphs();
+  
   //---------------------------
   //        Drawing
   //---------------------------

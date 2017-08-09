@@ -4,6 +4,7 @@
 #include "DiJetAnalysis.h"
 
 class TLegend;
+class UncertaintyProvider;
 
 class DiJetAnalysisMC : public DiJetAnalysis{
  public:
@@ -32,6 +33,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void DataMCCorrections();
 
   void PlotHistosTogether();
+
+  void ProcessSystematics(){};
   
   //---------------------------
   //       Fill Tree
@@ -89,7 +92,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void GetTypeTitle( const std::string&,
 		     std::string&, std::string& );
 
-  void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
+  void GetInfoBoth( std::string&, std::string&, std::string&,
 		    std::string&, std::string&, std::string& );
 
   void GetInfoBothRecoTruth( std::string&, std::string&,
@@ -128,8 +131,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   void DrawCanvas( std::vector< TH1* >&,
 		   const std::string& = "",
-		   const std::string& = "",
-		   int = 1);
+		   const std::string& = "" );
+		 
 
   void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
 
@@ -145,6 +148,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
  private:
   //============== cuts ===============
   double m_dRmax;
+
+  //============== tool ===============
+  UncertaintyProvider* m_uncertaintyProvider;
   
   //============ settings ============= 
   std::vector< int > m_vJznUsed;
@@ -174,13 +180,16 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // -------- spect --------
   std::string m_etaSpectRecoName;
   std::string m_etaSpectTruthName; 
-
+  std::string m_spectTruthName;
+  
   std::vector< TH2* > m_vHjznEtaSpectReco;
   std::vector< TH2* > m_vHjznEtaSpectTruth;
   std::vector< TH2* > m_vHjznEtaSpectTruthPaired;
-
+  std::vector< TH1* > m_vHjznSpectTruth;
+  
   TH2* m_hAllEtaSpectReco;
   TH2* m_hAllEtaSpectTruth;
+  TH1* m_hAllSpectTruth;
   
   // --------- recoTruthRpt ---------
   std::vector< TH3* > m_vHjznRecoTruthRpt;
@@ -230,7 +239,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   double m_ptTruthMax;
   int    m_nPtTruthBins;
 
-  // ---- JES/PRes/Etc ----- 
+  // ---- JES/PRes/Etc -----
+  // --- var range ----
   int    m_nRPtRecoTruthBins;
   double m_rPtRecoTruthMin;
   double m_rPtRecoTruthMax;

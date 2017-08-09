@@ -49,6 +49,8 @@ class DiJetAnalysis{
   virtual void DataMCCorrections() = 0;
 
   virtual void PlotHistosTogether() = 0;
+
+  virtual void ProcessSystematics() = 0;
   
   //---------------------------
   //       Fill Tree
@@ -114,7 +116,7 @@ class DiJetAnalysis{
   virtual THnSparse* CombineSamples( std::vector< THnSparse* >&,
 				     const std::string& = "" );  
 
-  virtual void GetInfoBoth( std::string&, std::string&, std::string&, std::string&,
+  virtual void GetInfoBoth( std::string&, std::string&, std::string&,
 			    std::string&, std::string&, std::string& );
 
   virtual void GetInfoUnfolding( std::string&, std::string&, std::string& );
@@ -140,6 +142,8 @@ class DiJetAnalysis{
 
   virtual void MakeDphiTogether();
 
+  
+
   //---------------------------
   //        Drawing
   //---------------------------
@@ -157,20 +161,17 @@ class DiJetAnalysis{
   //---------------------------
   //       Saving 
   //---------------------------
-  virtual void SaveAsPdfPng( const TCanvas&,
-			     const std::string& = "", const std::string& = "",
-			     const std::string& = "", double = 0, double = 0,
-			     const std::string& = "", double = 0, double = 0);
-  
   virtual void SaveAsROOT( const TCanvas&,
-			   const std::string& = "", const std::string& = "",
-			   const std::string& = "", double = 0, double = 0,
-			   const std::string& = "", double = 0, double = 0);
+			   const std::string& = "" );
 
+
+  virtual void SaveAsPdfPng( const TCanvas&,
+			     const std::string& = "",
+			     bool = false );
+  
   virtual void SaveAsAll( const TCanvas&,
-			  const std::string& = "", const std::string& = "",
-			  const std::string& = "", double = 0, double = 0,
-			  const std::string& = "", double = 0, double = 0);
+			  const std::string& = "",
+			  bool = false );
   
 
  private:
@@ -196,10 +197,12 @@ class DiJetAnalysis{
   
   std::string m_sMUT;
   std::string m_sRatio;
+  std::string m_sSystematics;
 
   std::string m_allName;
 
   std::string m_unfoldingFileSuffix;
+  std::string m_systematicsFileSuffix;
 
   std::vector< std::string > m_vMCtypeLabels;
   std::vector< std::string > m_vMCtypeNames;
@@ -222,15 +225,23 @@ class DiJetAnalysis{
   
   std::string m_mcTypeName;
   std::string m_mcTypeLabel;
-  
+
+  std::string m_uncertSuffix;
   std::string m_labelOut;
+
   std::string m_dirOut;
+  std::string m_dirOutTogether; 
   
   std::string m_rawHistosFname;
 
   std::string m_fNameOutDefault;
   std::string m_fNameOut;
+  std::string m_fNameOutDefaultUF;
   std::string m_fNameOutUF;
+  std::string m_fNameOutSYS;
+  std::string m_fNameOutTogether;
+
+  std::string m_fNameRivetMC;
   
   std::string m_fNameUnfoldingMC;
   
@@ -245,6 +256,10 @@ class DiJetAnalysis{
   std::vector< THnSparse* > v_hns;    // for writing
   std::vector< TF1*       > v_functs; // for writing
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
+
+  TH2D* h_tauSigma;
+  TH2D* h_tauAmp;
+  TH2D* h_tauConst;
   
  protected:
   //========= common tools ========
@@ -271,31 +286,26 @@ class DiJetAnalysis{
   int    m_nPtSpectBins;
   double m_ptSpectMin;
   double m_ptSpectMax;
-  
-  // ---- JES/PRes/Etc ----- 
-  int    m_nEtaForwardBinsFine;
-  double m_etaForwardMin;
-  double m_etaForwardMax;
 
+  // -------- eff ---------
+  double m_effMin;
+  double m_effMax;
+  
   // ---- forward eta binning ---
   std::vector<double> m_varFwdEtaBinning;
-  unsigned int m_nVarFwdEtaBins;
+  uint m_nVarFwdEtaBins;
 
   // --- whole range variable ----
-  // ------- eta/ystar binning --------
-  std::vector<double> m_varYstarBinningA;
-  unsigned int m_nVarYstarBinsA;
-
-  std::vector<double> m_varYstarBinningB;
-  unsigned int m_nVarYstarBinsB;
+  std::vector<double> m_varYstarBinning;
+  uint m_nVarYstarBins;
   
   // ---- variable pt binning ----
   std::vector<double> m_varPtBinning;
-  unsigned int m_nVarPtBins;
+  uint m_nVarPtBins;
 
   // --- variable dphi binnign ---
   std::vector<double> m_varDphiBinning;
-  unsigned int m_nVarDphiBins;
+  uint m_nVarDphiBins;
 
   int m_nDphiBinsLarge ; 
   int m_nDphiBinsMedium; 
@@ -304,10 +314,6 @@ class DiJetAnalysis{
   int m_dPhiBinsLargeFactor ;
   int m_dPhiBinsMediumFactor;
   int m_dPhiBinsSmallFactor ;
-
-  // -------- eff ---------
-  double m_effMin;
-  double m_effMax;
 
   // -------- dphi --------
   uint   m_nDphiDim;
@@ -345,6 +351,8 @@ class DiJetAnalysis{
 
   std::string m_dPhiCFactorsName;
   std::string m_dPhiUnfoldedName;
+  std::string m_dPhiSystematicsName;
+
   std::string m_dPhiRecoUnfoldedName;
 };
 

@@ -157,19 +157,23 @@ TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
     (TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
      TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
      TMath::Exp((constants::PI-x[0])/par[1]) *
-     ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])))
-    + par[3];
+     ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])));
   };
 
+  // set range to be in range of fit
+  hProj->GetXaxis()->SetRangeUser( xLow, xHigh );
   
   TF1* dPhiFit = new TF1( Form("f_%s", hProj->GetName()), EMG, xLow, xHigh, 4);
 
   if( !hProj->GetEntries() )
     { return dPhiFit; }
   
-  dPhiFit->SetParameters( hProj->GetMaximum(), 0.2, 0.1, 0 );
+  dPhiFit->SetParameters( 0.25, 0.20, 0.1, 0.0  );
   
-  hProj->Fit( dPhiFit->GetName(), "Q0", "", xLow, xHigh );
+  hProj->Fit( dPhiFit->GetName(), "NQ0", "", xLow, xHigh );
+
+  // draw over whole range
+  dPhiFit->SetRange( 0, constants::PI );
   
   return dPhiFit;
 }
@@ -191,7 +195,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh){
   if( hProj->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
     { return fit; }
   
-  hProj->Fit( fit->GetName(), "Q0", "", fitMin, fitMax );
+  hProj->Fit( fit->GetName(), "NQ0", "", fitMin, fitMax );
 
   // fit second time with better parameters
   mean   = fit->GetParameter(1);
@@ -205,7 +209,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh){
   
   fit->SetRange( fitMin, fitMax );
   
-  hProj->Fit( fit->GetName(), "Q0", "", fitMin, fitMax );
+  hProj->Fit( fit->GetName(), "NQ0", "", fitMin, fitMax );
 
   return fit;
 }
@@ -296,12 +300,33 @@ std::string CT::AnalysisTools::GetLabel
 
 // should be in miscallaneous
 void CT::AnalysisTools::CheckWriteDir( const char* c_dirOut ){
+
   boost::filesystem::path dir( c_dirOut );  
   if(!(boost::filesystem::exists(dir))){
     std::cout<< c_dirOut << " doesn't Exist."<<std::endl;
     if (boost::filesystem::create_directory(dir))
       std::cout << "....Successfully Created !" << std::endl;
   }
+}
+
+std::vector<std::string> CT::AnalysisTools::ListFiles
+(const char* dirname, const char* ext){
+
+  std::vector<std::string> vFiles;
+   TSystemDirectory dir(dirname, dirname);
+   TList *files = dir.GetListOfFiles();
+   if (files) {
+      TSystemFile *file;
+      TString fname;
+      TIter next(files);
+      while ((file=(TSystemFile*)next())) {
+         fname = file->GetName();
+         if (!file->IsDirectory() && fname.EndsWith(ext)) {
+	   vFiles.push_back( fname.Data() );
+         }
+      }
+   }
+   return vFiles;
 }
 
 //===================================
@@ -525,7 +550,7 @@ void CT::StyleTools::SetLegendStyle(TLegend * legend, double scale)
   legend->SetFillStyle(0);
 }
 
-const double CT::StyleTools::lSS = 0.60;
+const double CT::StyleTools::lSS = 0.70;
 
 const double CT::StyleTools::hSS = 0.80;
 
@@ -581,7 +606,7 @@ void CT::DrawTools::DrawAtlasInternalDataRight
     (0.88 , 0.93,"#bf{#font[72]{ATLAS}} Internal", scale, 1 );
   if( is_pPb ){
     DrawRightLatex
-      (0.88, 0.87 + y0, Form("#it{p}+Pb 2016, %i #mub^{-1}",
+      (0.88 + x0, 0.87 + y0, Form("#it{p}+Pb 2016, %i #mub^{-1}",
 			     pPbLumi2016), scale, 1 );
   } else {
     DrawRightLatex

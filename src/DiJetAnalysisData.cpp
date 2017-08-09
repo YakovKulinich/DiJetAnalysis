@@ -15,6 +15,7 @@
 
 #include <TLine.h>
 
+#include <fstream>
 #include <iostream>
 #include <cmath>
 
@@ -116,6 +117,8 @@ void DiJetAnalysisData::DataMCCorrections(){
   TFile* fInMC   = TFile::Open( m_fNameUnfoldingMC.c_str() );
   TFile* fInData = TFile::Open( m_fNameOutDefault.c_str()         );
   TFile* fOut    = new TFile( m_fNameOutUF.c_str(),"UPDATE");
+
+  std::cout << m_fNameUnfoldingMC << std::endl;
   
   std::cout << "----- Unfolding Data ------" << std::endl;
   // make a vector with just the unfolded result.
@@ -144,7 +147,25 @@ void DiJetAnalysisData::DataMCCorrections(){
 }
 
 void DiJetAnalysisData::PlotHistosTogether(){
+  // For Together "final"
+  // Check if the directories exist.
+  // If they don't, create them
+  m_dirOutTogether = m_sOutput;
+  anaTool->CheckWriteDir( m_dirOutTogether.c_str() );
+  m_dirOutTogether += "/" + m_allName;
+  anaTool->CheckWriteDir( m_dirOutTogether.c_str() );
+  m_dirOutTogether += "/" + m_labelOut + "_" + m_uncertSuffix;
+  anaTool->CheckWriteDir( m_dirOutTogether.c_str() );
+
+  m_fNameOutTogether =
+    m_dirOutTogether + "/c_" + m_myOutName + "_" +
+    m_labelOut + "_" + m_uncertSuffix + ".root" ;
+
   MakeDphiTogether();
+}
+
+void DiJetAnalysisData::ProcessSystematics(){
+  MakeSystematicsGraphs();
 }
 
 //---------------------------------
@@ -289,11 +310,11 @@ void DiJetAnalysisData::SetupHistograms(){
       new THnSparseD( Form("h_%s_%s", m_dPhiName.c_str(), trigger.c_str() ), "",
 		      m_nDphiDim, &m_nDphiBins[0],
 		      &m_dPhiMin[0], &m_dPhiMax[0] );
-    hn->GetAxis(0)->Set( m_nVarYstarBinsA, &( m_varYstarBinningA[0] ) );
-    hn->GetAxis(1)->Set( m_nVarYstarBinsB, &( m_varYstarBinningB[0] ) );
-    hn->GetAxis(2)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
-    hn->GetAxis(3)->Set( m_nVarPtBins    , &( m_varPtBinning[0]     ) );
-    hn->GetAxis(4)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
+    hn->GetAxis(0)->Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    hn->GetAxis(1)->Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    hn->GetAxis(2)->Set( m_nVarPtBins   , &( m_varPtBinning[0]    ) );
+    hn->GetAxis(3)->Set( m_nVarPtBins   , &( m_varPtBinning[0]    ) );
+    hn->GetAxis(4)->Set( m_nVarDphiBins , &( m_varDphiBinning[0]  ) );
     
     m_vHtriggerDphi.push_back( hn );
     AddHistogram( hn );
@@ -315,7 +336,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 
   // because vector bool doesnt return lvalue
   std::map< int, bool > mTriggerFired; 
-
+  
   int runNumber = 0;
   int LBN       = 0;
   //----------------------------------------
@@ -614,51 +635,52 @@ THnSparse* DiJetAnalysisData::CombineSamples( std::vector< THnSparse* >& vSample
   return h_res;
 }
 
-void DiJetAnalysisData::GetInfoBoth( std::string& outSuffix,
-				     std::string& name_a   , std::string& name_b  ,
-				     std::string& label_a  , std::string& label_b ,
-				     std::string& suffix_a , std::string& suffix_b ){
+void DiJetAnalysisData::GetInfoBoth( std::string& name_a  , std::string& name_b  ,
+				     std::string& label_a , std::string& label_b ,
+				     std::string& fName_a , std::string& fName_b ){
 
   int combinationBoth = GetConfig()->GetValue( "combinationBoth", 0 );
 
   if( combinationBoth == 0 ){
-    outSuffix = m_sData;
     name_a    = m_dPhiUnfoldedName + "_" + m_allName;
     name_b    = m_dPhiUnfoldedName + "_" + m_allName;
     label_a   = "#it{p}+Pb";
     label_b   = "#it{pp}";
-    suffix_a  = m_s_pPb + "_" + m_sData;
-    suffix_b  = m_s_pp  + "_" + m_sData;
+    m_is_pPb  = true; Initialize();
+    fName_a   = m_fNameOutUF;
+    m_is_pPb  = false; Initialize();
+    fName_b   = m_fNameOutUF;
   } else if( combinationBoth == 1 ){
-    outSuffix = m_sData;
     name_a    = m_dPhiName + "_" + m_allName;
     name_b    = m_dPhiName + "_" + m_allName;
     label_a   = "#it{p}+Pb";
     label_b   = "#it{pp}";
-    suffix_a  = m_s_pPb + "_" + m_sData;
-    suffix_b  = m_s_pp  + "_" + m_sData;
+    m_is_pPb  = true; Initialize();
+    fName_a   = m_fNameOutUF;
+    m_is_pPb  = false; Initialize();
+    fName_b   = m_fNameOutUF;
   } else if ( combinationBoth == 2 ){
-    outSuffix = m_sData;
     name_a    = m_dPhiUnfoldedName + "_" + m_allName;
     name_b    = m_dPhiName + "_" + m_allName;
-    label_a   = "#it{pp}_{Unfolded}";
+    label_a   = "Unfolded #it{pp}";
     label_b   = "#it{pp}";
-    suffix_a  = m_s_pp  + "_" + m_sData;
-    suffix_b  = m_s_pp  + "_" + m_sData;
+    m_is_pPb  = false; Initialize();
+    fName_a   = m_fNameOutUF;
+    fName_b   = m_fNameOutUF;
   } else if ( combinationBoth == 3 ){
-    outSuffix = m_sData;
     name_a    = m_dPhiUnfoldedName + "_" + m_allName;
     name_b    = m_dPhiName + "_" + m_allName;
-    label_a   = "#it{p}+Pb_{Unfolded}";
+    label_a   = "Unfolded #it{p}+Pb";
     label_b   = "#it{p}+Pb";
-    suffix_a  = m_s_pPb  + "_" + m_sData;
-    suffix_b  = m_s_pPb  + "_" + m_sData;
+    m_is_pPb  = true; Initialize();
+    fName_a   = m_fNameOutUF;
+    fName_b   = m_fNameOutUF;
   }
 }
 
 void DiJetAnalysisData::GetInfoUnfolding( std::string& measuredName,
-					  std::string& measuredLabel,
-					  std::string& typeLabel ){
+					 std::string& measuredLabel,
+					 std::string& typeLabel ){
   measuredName  = m_dPhiName;
   measuredLabel = "|#Delta#phi|";
   typeLabel     = "Data";
@@ -850,7 +872,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     DrawAtlasRight();
     drawTool->DrawRightLatex( 0.88, 0.76, cLabel );
     
-    SaveAsAll( c, type, cName );
+    SaveAsAll( c, Form("%s_%s", type.c_str(), cName.c_str() ) );
   } // end loop over iG
 
   //------------------------------------------------
@@ -913,7 +935,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     DrawAtlasRight();
     drawTool->DrawRightLatex( 0.88, 0.76, cLabel );
 
-    SaveAsAll( c, type, cName );
+    SaveAsAll( c, Form("%s_%s", type.c_str(), cName.c_str() ) );
   } // end loop over iX
 
   // delete
@@ -925,6 +947,212 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
 	delete vEffGrf[iG][iX];
       }
   } 
+}
+
+void DiJetAnalysisData::MakeSystematicsGraphs(){
+  // read text file generated by
+  // script to know what factors used
+  std::ifstream file( "uc.txt" );
+  std::vector< int > v_uc;
+  int number;
+  
+  while( file >> number )
+    { v_uc.push_back( number ); }
+
+  TFile* fInDefault = NULL;
+  std::map< int, TFile* > mFinUC;
+  
+  for( auto uc : v_uc ){
+    m_uncertComp = uc;
+    Initialize();
+
+    if( !m_fNameOutUF.compare( m_fNameOutDefaultUF ) ){
+      std::cout << "Found default sample: " << m_fNameOutUF << std::endl;
+      fInDefault = TFile::Open( m_fNameOutUF.c_str() );
+    } else {
+      std::cout << "Adding  to systematics: " << m_fNameOutUF << std::endl;
+      mFinUC[ uc ] =  TFile::Open( m_fNameOutUF.c_str() ) ;
+    }
+  }
+  
+  TFile* fOut  = new TFile( m_fNameOutSYS.c_str(), "recreate");
+  
+  std::string allUnfoldedName    = m_dPhiUnfoldedName    + "_" + m_allName;
+  std::string allSystematicsName = m_dPhiSystematicsName + "_" + m_allName;
+
+  std::vector< TH1* > vHdef;
+  std::vector< TGraphAsymmErrors* > vGw;
+  
+  TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
+  TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
+  TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
+  TAxis* axis3 = m_dPP->GetTAxis(3); int nAxis3Bins = axis3->GetNbins();
+
+  // for canvas, since its tgraphasymmerrors.
+  double x0 = axis3->GetXmin();
+  double x1 = axis3->GetXmax();    
+  double y0 = m_dPhiWidthMin;
+  double y1 = m_dPhiWidthMax;
+
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+    double axis0Low, axis0Up;
+    anaTool->GetBinRange
+      ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
+    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      if( !m_dPP->CorrectPhaseSpace
+	  ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
+	{ continue; }
+      double axis1Low, axis1Up;
+      anaTool->GetBinRange
+	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
+      // ---- loop over axis2 ----
+      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	double axis2Low , axis2Up;
+	anaTool->GetBinRange
+	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+	//---------------------------------------------------
+	//------------------ DO WORK HERE -------------------
+	//---------------------------------------------------
+
+	std::vector< double > pX;
+	std::vector< double > eX;
+
+	std::vector< double > pY;
+	std::vector< double > eYP;
+	std::vector< double > eYN;
+       	
+	std::string hTag =
+	  Form( "%s_%s_%s",
+	        anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() ); 
+
+	std::string hDefaultName = "h_" + allUnfoldedName + "_" + hTag;
+	std::string gDefaultName = "g_" + allUnfoldedName + "_" + hTag;
+	
+	TH1D* hDefault = static_cast<TH1D*>( fInDefault->Get( hDefaultName.c_str() ) );
+	vHdef.push_back( hDefault );
+	
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+
+	  std::vector< TH1* > vHunc;
+	  
+	  std::vector< double > eYPtmp;
+	  std::vector< double > eYNtmp;
+	  
+	  double yDefault =   hDefault->GetBinContent( axis3Bin );
+	  pX.push_back(       hDefault->GetBinCenter( axis3Bin ) );
+	  eX.push_back( 0.5 * hDefault->GetBinWidth ( axis3Bin ) );
+	  
+	  // loop over uncertainties
+	  for( auto uc : v_uc ){
+	    // skip uc = 0 (default)
+	    if( !uc ){ continue; }
+	    std::string hUncertaintyName = "h_" + allUnfoldedName + "_" + hTag;
+	    TH1D* hUncertainty = static_cast<TH1D*>
+	      ( mFinUC[uc]->Get( hUncertaintyName.c_str() ) );
+	    vHunc.push_back( hUncertainty );
+
+	    int sign = uc > 0 ? 1 : -1;
+
+	    double yShifted = hUncertainty->GetBinContent( axis3Bin );
+
+	    double uncertainty  = (yDefault - yShifted)/yDefault;
+
+	    std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " " << axis2Bin << " " 
+		      << sign << " " << yShifted << " " << yDefault << " " << uncertainty << std::endl;
+
+	    if( sign > 0 ){
+	      eYPtmp.push_back( uncertainty );
+	    } else {
+	      eYNtmp.push_back( uncertainty );
+	    }
+	  } // end loop over uncertainties
+
+	  // add uncertainties in quadrature;
+	  double uncertaintyFinalYP = 0;
+	  double uncertaintyFinalYN = 0;
+
+	  // clean up, or there are memory problems
+	  // because each file writes same histo into
+	  // same memory address. so eventually you start
+	  // deleting deleted stuff if you dont do it now
+	  for( auto& h : vHunc ){ delete h; }
+
+	  for( auto u : eYPtmp ){
+	    uncertaintyFinalYP += std::pow( u , 2 );
+	  }
+
+	  for( auto u : eYNtmp ){
+	    uncertaintyFinalYN += std::pow( u , 2 );
+	  }
+
+	  uncertaintyFinalYP =
+	    uncertaintyFinalYP >= 0 ? std::sqrt( uncertaintyFinalYP ) : 0.0;
+
+	  uncertaintyFinalYN =
+	    uncertaintyFinalYN >= 0 ? std::sqrt( uncertaintyFinalYN ) : 0.0;
+
+	  /*
+	  if( !( uncertaintyFinalYP > 0 || uncertaintyFinalYN >= 0 ) )
+	    { continue; }
+	  */
+	  
+	  std::cout << hDefaultName << " "
+		    << uncertaintyFinalYP << " "
+		    << uncertaintyFinalYN << std::endl;
+	  
+	  pY .push_back( yDefault );
+	  eYP.push_back( yDefault * uncertaintyFinalYP );
+	  eYN.push_back( yDefault * uncertaintyFinalYN );
+	} // end loop over axis3
+
+	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
+
+	TGraphAsymmErrors* gDefault = new TGraphAsymmErrors( hDefault );
+	TGraphAsymmErrors* gSystematics =
+	  new TGraphAsymmErrors
+	  ( nAxis3Bins, &(pX[0]), &(pY[0]), &(eX[0]), &(eX[0]), &(eYN[0]), &(eYP[0]) );
+
+	styleTool->SetHStyle( gDefault    , 0 );
+	gSystematics->SetFillColor( 2 );
+	gSystematics->SetFillColor( 2 );
+	gSystematics->SetFillStyle( 3001 );
+	
+	gDefault    ->SetName( gDefaultName.c_str() );
+	gSystematics->SetName( gSystematicsName.c_str() );
+
+	vGw.push_back( gDefault );
+	vGw.push_back( gSystematics );
+
+	TCanvas c( "c","c", 800, 600 );
+	styleTool->SetCStyleEff
+	  ( c, x0, y0, x1, y1, Form("c_%s", hDefaultName.c_str() )  );
+
+	// draw systematics first
+	gSystematics->Draw("a2");
+	gDefault->Draw("P");
+
+	DrawTopLeftLabels
+	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	  axis2Low, axis2Up, 0, 0, 0.8 );
+
+	DrawAtlasRight();
+	
+	gSystematics->Write();
+	gDefault->Write();
+
+	SaveAsROOT( c, hDefaultName.c_str() );
+      } // end loop over axis2
+    } // end loop over axis1     
+  } // end loop over axis0
+
+  for( auto& h : vHdef ){ delete h; }
+  for( auto& g : vGw   ){ delete g; }
+  
+  std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
+  fOut->Close(); delete fOut;
+  std::cout << "......Closed  " << std::endl;
 }
 
 //---------------------------
