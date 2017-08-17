@@ -191,7 +191,8 @@ class DiJetAnalysis{
   std::string m_myOutName;
   std::string m_sMC;
   std::string m_sData;
-
+  std::string m_sFinal;
+  
   std::string m_recoName;
   std::string m_truthName;
   
@@ -212,6 +213,18 @@ class DiJetAnalysis{
   double m_dPhiThirdJetFraction;
 
   double m_dPhiZoomLow;
+  double m_dPhiZoomHigh;
+  
+  double m_dPhiZoomLowBin;
+  double m_dPhiZoomHighBin;
+
+  double m_dPhiRebinnedZoomLowBin;
+  double m_dPhiRebinnedZoomHighBin;
+  
+  double m_dPhiLogMin;
+  
+  double m_dPhiFittingMin;
+  double m_dPhiFittingMax;
   
   double m_dPhiUnfoldingMin;
   double m_dPhiUnfoldingMax; 
@@ -314,6 +327,9 @@ class DiJetAnalysis{
   int m_dPhiBinsLargeFactor ;
   int m_dPhiBinsMediumFactor;
   int m_dPhiBinsSmallFactor ;
+
+  std::vector<double> m_varDphiRebinnedBinning;
+  uint m_nVarDphiRebinnedBins;
 
   // -------- dphi --------
   uint   m_nDphiDim;

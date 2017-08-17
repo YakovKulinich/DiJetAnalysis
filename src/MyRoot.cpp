@@ -173,7 +173,7 @@ TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
   hProj->Fit( dPhiFit->GetName(), "NQ0", "", xLow, xHigh );
 
   // draw over whole range
-  dPhiFit->SetRange( 0, constants::PI );
+  // dPhiFit->SetRange( 0, constants::PI );
   
   return dPhiFit;
 }
@@ -298,6 +298,12 @@ std::string CT::AnalysisTools::GetLabel
   return ss.str();
 }
 
+double CT::AnalysisTools::GetLogMaximum( double max ){
+  double power = log10(max);
+  power = std::ceil(power);
+  return pow( 10, power );
+}
+
 // should be in miscallaneous
 void CT::AnalysisTools::CheckWriteDir( const char* c_dirOut ){
 
@@ -404,55 +410,70 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
 
 void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
   //Set Color
-  graph->SetFillColor(0);
   graph->SetLineWidth(2);
   if( iflag == 0 ){
     graph->SetLineColor(kBlack);
     graph->SetMarkerColor(kBlack);
     graph->SetMarkerStyle(20);
-    graph->SetMarkerSize(1.2);
+    graph->SetMarkerSize(1.5);
+    graph->SetFillColor( kGray + 1 );
+    graph->SetFillStyle( 3001 );
   } 
   else if(iflag == 1 ){
     graph->SetLineColor(kRed);
     graph->SetMarkerColor(kRed);
     graph->SetMarkerStyle(21);
-    graph->SetMarkerSize(1.1);
+    graph->SetMarkerSize(1.4);
+    graph->SetFillColor( kRed - 4  );
+    graph->SetFillStyle( 3001 );
   }
   else if(iflag == 2 ){
-    graph->SetLineColor(kAzure-3);
-    graph->SetMarkerColor(kAzure-3);
+    graph->SetLineColor( kAzure - 3 );
+    graph->SetMarkerColor( kAzure - 3 );
     graph->SetMarkerStyle(33);
-    graph->SetMarkerSize(1.8);
+    graph->SetMarkerSize(2.1);
+    graph->SetFillColor( kAzure - 4 );
+    graph->SetFillStyle( 3001 );
   }
   else if(iflag == 3 ){
-    graph->SetLineColor(kSpring-6);
-    graph->SetMarkerColor(kSpring-6);
+    graph->SetLineColor( kSpring - 6 );
+    graph->SetMarkerColor( kSpring - 6 );
     graph->SetMarkerStyle(34);
-    graph->SetMarkerSize(1.5);
+    graph->SetMarkerSize(1.8);
+    graph->SetFillColor( kSpring - 5 );
+    graph->SetFillStyle( 3001 );
   }
   else if(iflag == 4 ){
     graph->SetLineColor(kBlack);
     graph->SetMarkerColor(kBlack);
     graph->SetMarkerStyle(24);
-    graph->SetMarkerSize(1.1);
+    graph->SetMarkerSize(1.4);
+    graph->SetFillColor( kGray + 1 );
+    graph->SetFillStyle( 3002 );
   }
   else if(iflag == 5 ){
     graph->SetLineColor(kRed);
     graph->SetMarkerColor(kRed);
     graph->SetMarkerStyle(25);
-    graph->SetMarkerSize(1.4);
-  }  
+    graph->SetMarkerSize(1.7);
+    graph->SetFillColor( kRed - 4 );
+    graph->SetFillStyle( 3002 );
+   }  
   else if(iflag == 6 ){
-    graph->SetLineColor(kAzure-3);
-    graph->SetMarkerColor(kAzure-3);
+    graph->SetLineColor( kAzure - 3 );
+    graph->SetMarkerColor( kAzure - 3 );
     graph->SetMarkerStyle(27);
-    graph->SetMarkerSize(1.8);
+    graph->SetMarkerSize(2.1);
+    graph->SetFillColor( kAzure -4 );
+    graph->SetFillStyle( 3002 );
   }
   else if(iflag == 7 ){
-    graph->SetLineColor(kSpring-6);
-    graph->SetMarkerColor(kSpring-6);
+    graph->SetLineColor( kSpring - 6 );
+    graph->SetMarkerColor( kSpring - 6 );
     graph->SetMarkerStyle(28);
-    graph->SetMarkerSize(1.5);
+    graph->SetMarkerSize(1.8);
+    graph->SetFillColor( kSpring - 5 );
+    graph->SetFillStyle( 3002 );
   }
 }
 
@@ -478,6 +499,9 @@ void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, double scale)
 {
   graph->SetLineWidth(2);
 
+  graph->GetXaxis()->SetNdivisions( 505 );
+  graph->GetYaxis()->SetNdivisions( 505 );
+  
   graph->GetXaxis()->SetTitleFont( 43 );
   graph->GetXaxis()->SetTitleSize( (int)(32 * scale) );  
   graph->GetXaxis()->SetTitleOffset(1.1);
@@ -526,10 +550,10 @@ void CT::StyleTools::SetHStyleRatio( TH1* his, int iflag, double scale ){
   his->GetYaxis()->SetNdivisions(503);
 }
 
-TH1F* CT::StyleTools::SetCStyleEff ( TCanvas& c,
-				     double x0, double y0,
-				     double x1, double y1,
-				     const std::string& title ){
+TH1F* CT::StyleTools::SetCStyleGraph ( TCanvas& c,
+				       double x0, double y0,
+				       double x1, double y1,
+				       const std::string& title ){
   c.DrawFrame( x0, y0, x1, y1, title.c_str() );
   TH1F* hF = c.DrawFrame( x0, y0, x1, y1, title.c_str() );
   hF->GetXaxis()->SetNdivisions(505);  
@@ -640,7 +664,7 @@ void CT::DrawTools::DrawAtlasInternalMCRight
 ( double x0, double y0, const std::string& mcType, double scale ){ 
   DrawRightLatex(0.88, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
-  DrawRightLatex(0.88 + x0, 0.87, mcType, scale, 1 );
+  DrawRightLatex(0.88 + x0, 0.86, mcType, scale, 1 );
  }
 
 
@@ -649,5 +673,5 @@ void CT::DrawTools::DrawAtlasInternalMCLeft
   DrawRightLatex(0.88, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
 
-  DrawLeftLatex(0.18 + x0, 0.87, mcType, scale, 1 );
+  DrawLeftLatex(0.18 + x0, 0.86, mcType, scale, 1 );
 }

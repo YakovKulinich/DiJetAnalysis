@@ -64,7 +64,7 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
     ( m_nVarYstarBins )( m_nVarYstarBins )
     ( m_nVarPtBins    )( m_nVarPtBins    )
     ( m_nVarPtBins    )( m_nVarPtBins    )
-    ( m_nVarDphiBins  )( m_nVarDphiBins  );
+    ( m_nVarDphiRebinnedBins  )( m_nVarDphiRebinnedBins  );
     
   boost::assign::push_back( m_allRespMatMin  )
     ( 0 )( 0 )( 0 )( 0 )( 0 )( 0 )( 0 )( 0 );
@@ -80,7 +80,7 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
   //=============== Histo Names ==================    
   m_etaSpectRecoName    = m_etaSpectName + "_" + m_recoName;
   m_etaSpectTruthName   = m_etaSpectName + "_" + m_truthName;
-  m_spectTruthName      = "spectra" + m_truthName;
+  m_spectTruthName      = "spectra_" + m_truthName;
   
   m_dPhiRecoPtTruthName =
     m_dPhiName + "_" + m_recoName + "_" + m_s_pt + "_" + m_truthName;
@@ -88,7 +88,7 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
     m_dPhiName + "_" + m_truthName + "_" + m_s_pt + "_" + m_recoName;
 
   //============== tool ===============
-  m_uncertaintyProvider = new UncertaintyProvider( m_uncertComp );
+  m_uncertaintyProvider = new UncertaintyProvider( m_uncertComp, m_is_pPb );
 
 }
 
@@ -299,7 +299,10 @@ void DiJetAnalysisMC::PlotHistosTogether(){
     m_labelOut + "_" + m_uncertSuffix + ".root" ;
 
   MakeDphiTogether();
-  MakeDphiRecoTruth();
+  // buggy with filenames
+  // leave this out for now
+  // more for performance studies
+  // MakeDphiRecoTruth();
 }
 
 //---------------------------------
@@ -557,8 +560,8 @@ void DiJetAnalysisMC::SetupHistograms(){
     hnAllRespMat->GetAxis(3)->Set( m_nVarPtBins   , &( m_varPtBinning[0]    ) );
     hnAllRespMat->GetAxis(4)->Set( m_nVarPtBins   , &( m_varPtBinning[0]    ) );
     hnAllRespMat->GetAxis(5)->Set( m_nVarPtBins   , &( m_varPtBinning[0]    ) );
-    hnAllRespMat->GetAxis(6)->Set( m_nVarDphiBins , &( m_varDphiBinning[0]  ) );
-    hnAllRespMat->GetAxis(7)->Set( m_nVarDphiBins , &( m_varDphiBinning[0]  ) );
+    hnAllRespMat->GetAxis(6)->Set( m_nVarDphiRebinnedBins, &( m_varDphiRebinnedBinning[0] ) );
+    hnAllRespMat->GetAxis(7)->Set( m_nVarDphiRebinnedBins, &( m_varDphiRebinnedBinning[0] ) );
 
     m_vHjznAllRespMat.push_back( hnAllRespMat );
     AddHistogram( hnAllRespMat );
@@ -623,17 +626,6 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 		  << std::endl; 
       }
 
-      // If not running on default sample.
-      // Apply uncertainties to all reco jets.
-      // The method still takes a jet one at a time
-      // This can be modified later if needed
-      if( m_uncertComp ){
-	for( uint iJet = 0; iJet < vR_jets.size(); iJet++ ){
-	  m_uncertaintyProvider->ApplyUncertainty
-	    ( vR_jets[ iJet ], v_sysUncert[ iJet ][ std::abs( m_uncertComp ) - 1 ]);
-	}
-      }
-      
       ApplyCleaning ( vR_jets, v_isCleanJet );
       ApplyIsolation( vR_jets, 1.0 );
       ApplyIsolation( vT_jets, 1.0 );
@@ -643,6 +635,19 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       std::vector< TLorentzVector > vRR_paired_jets;
       std::vector< TLorentzVector > vRT_paired_jets;
       PairJets( vR_jets, vT_jets, vRR_paired_jets, vRT_paired_jets ); 
+
+      // If not running on default sample.
+      // Apply uncertainties to all reco jets.
+      // The method still takes a jet one at a time
+      // This can be modified later if needed
+      if( m_uncertComp ){
+	for( uint iJet = 0; iJet < vRR_paired_jets.size(); iJet++ ){
+	  m_uncertaintyProvider->ApplyUncertainty
+	    ( vRR_paired_jets[ iJet ],
+	      vRT_paired_jets[ iJet ],
+	      v_sysUncert[ iJet ][ std::abs( m_uncertComp ) - 1 ]);
+	}
+      }
       
       // Do Dphi analysis
       AnalyzeDeltaPhi
@@ -913,6 +918,21 @@ void DiJetAnalysisMC::PairJets( std::vector< TLorentzVector >& vA_jets,
   if( !vA_jets.size() || !vB_jets.size() ){ return; }
   
   for( auto& aJet : vA_jets){
+    // check if this jet is in some useful pt range
+    // here we call taht useful range the range of the
+    // jer jer plots
+    double aJetPt    = aJet.Pt()/1000.;
+    if( aJetPt < m_ptTruthMin ||
+	aJetPt >= m_ptTruthMax )
+      { continue; }
+    // also ignore jets outside of a certain ystar range.
+    // here we use ranges of the jes jer plots
+    // which are the same as the ranges of the dPhi bins.
+    double aJetYstar = GetYstar( aJet );
+    if( aJetYstar < m_varYstarBinning.front() ||
+	aJetYstar > m_varYstarBinning.back() )
+      { continue; }
+      
     // for each A jet, need to find closest B jet
     // set deltaRmin to something large, find jet with smallest
     // deltaRmin less than Rmax and pair that to the a jet
@@ -1073,13 +1093,24 @@ void DiJetAnalysisMC::GetTypeTitle( const std::string& type,
 
 void DiJetAnalysisMC::GetInfoBoth( std::string& name_a  , std::string& name_b  ,
 				   std::string& label_a , std::string& label_b ,
-				   std::string& suffix_a, std::string& suffix_b ){
-  name_a    = m_dPhiRecoName  + "_" + m_allName;
-  name_b    = m_dPhiTruthName + "_" + m_allName;
-  label_a   = "Reco";
-  label_b   = "Truth";
-  suffix_a  = m_labelOut;
-  suffix_b  = m_labelOut;
+				   std::string& fName_a , std::string& fName_b ){
+  int combinationBoth = GetConfig()->GetValue( "combinationBoth", 0 );
+
+  if( combinationBoth == 0 ){
+    name_a   = m_dPhiRecoName  + "_" + m_allName;
+    name_b   = m_dPhiTruthName + "_" + m_allName;
+    label_a  = "Reco";
+    label_b  = "Truth";
+    fName_a  = m_fNameOut;
+    fName_b  = m_fNameOut;
+  } else if ( combinationBoth == 1 ){
+    name_a   = m_dPhiTruthName + "_" + m_allName;
+    name_b   = m_dPhiTruthName + "_" + m_allName;
+    label_a  = "MC";
+    label_b  = "Rivet";
+    fName_a  = m_fNameOut;
+    fName_b  = m_fNameRivetMC;
+  }
 }
 
 void DiJetAnalysisMC::GetInfoBothRecoTruth
@@ -1290,9 +1321,9 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
 	       type.c_str(),
 	       sMean.c_str(),
 	       jzn.c_str(),
-	       anaTool->GetName(xLow, xUp, "Eta").c_str() ),
+	       anaTool->GetName(xLow, xUp, "Ystar").c_str() ),
 	  Form("%s;%s;%s",
-	       anaTool->GetEtaLabel( xLow, xUp ).c_str(),
+	       anaTool->GetYstarLabel( xLow, xUp ).c_str(),
 	       xAxisTitle.c_str(),
 	       yTitleMean.c_str() ),
 	  nBinsY, yMin, yMax );
@@ -1303,9 +1334,9 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
 	       type.c_str(),
 	       sSigma.c_str(),
 	       jzn.c_str(),
-	       anaTool->GetName(xLow, xUp, "Eta").c_str()),
+	       anaTool->GetName(xLow, xUp, "Ystar").c_str()),
 	  Form("%s;%s;%s",
-	       anaTool->GetEtaLabel( xLow, xUp ).c_str(),
+	       anaTool->GetYstarLabel( xLow, xUp ).c_str(),
 	       xAxisTitle.c_str(),
 	       yTitleSigma.c_str() ),
 	  nBinsY, yMin, yMax );
@@ -1315,7 +1346,7 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
 	( Form("h_%s_%s_N_%s",
 	       type.c_str(),
 	       jzn.c_str(),
-	       anaTool->GetName(xLow, xUp, "Eta").c_str() )
+	       anaTool->GetName(xLow, xUp, "Ystar").c_str() )
 	  , xBin, xBin );
       vNent[iG].push_back( hNent );
 
@@ -1333,7 +1364,7 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
 
 	TH1* hProj = hJznHin->ProjectionZ
 	  ( Form("h_%s_%s_%s_%s",  type.c_str(), jzn.c_str(), 
-		 anaTool->GetName(xLow, xUp, "Eta").c_str(),
+		 anaTool->GetName(xLow, xUp, "Ystar").c_str(),
 		 anaTool->GetName(yLow, yUp, "Pt").c_str() ),
 	    xBin, xBin, yBin, yBin );
 
@@ -1355,7 +1386,7 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
 	drawTool->DrawLeftLatex( 0.18, 0.74, Form("%s", jzn.c_str() ) );
     
 	drawTool->DrawLeftLatex
-	  ( 0.18, 0.88, anaTool->GetEtaLabel( xLow, xUp ) );
+	  ( 0.18, 0.88, anaTool->GetYstarLabel( xLow, xUp ) );
 	drawTool->DrawLeftLatex
 	  ( 0.18, 0.81, anaTool->GetLabel( yMin, yMax, "#it{p}_{T}^{Truth}") );
 
@@ -1383,14 +1414,17 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
   std::vector< TH1* > vMeansFinal;
   std::vector< TH1* > vSigmasFinal;
 
-  std::string xAxisTitle = vJznHin[0]->GetYaxis()->GetTitle();
+  std::string xAxisTitle = vJznHin[0]->GetXaxis()->GetTitle();
+  std::string yAxisTitle = vJznHin[0]->GetYaxis()->GetTitle();
+
   // make 2D histos with scale and resolution (mean, sigma)
   TH2D* hMeanAll = new TH2D
     ( Form("h_%s_%s",
 	   type.c_str(),
 	   sMean.c_str() ),
-      Form(";%s;%s",
+      Form(";%s;%s;%s",
 	   xAxisTitle.c_str(),
+	   yAxisTitle.c_str(),
 	   yTitleMean.c_str() ),
       nBinsX, xMin, xMax,
       nBinsY, yMin, yMax );
@@ -1399,28 +1433,29 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
     ( Form("h_%s_%s",
 	   type.c_str(),
 	   sSigma.c_str() ),
-      Form(";%s;%s",
+      Form(";%s;%s;%s",
 	   xAxisTitle.c_str(),
+	   yAxisTitle.c_str(),
 	   yTitleSigma.c_str() ),
       nBinsX, xMin, xMax,
       nBinsY, yMin, yMax );
   
   
   for( int iX = 0; iX < nBinsX; iX++ ){
-    int    xBin    = iX + 1;
+    int xBin = iX + 1;
 
     double xLow, xUp;
     anaTool->GetBinRange
       ( vJznHin[0]->GetXaxis(), xBin, xBin, xLow, xUp );
         
-    std::vector< TH1* > vEtaMeanTemp;
-    std::vector< TH1* > vEtaSigmaTemp;
-    std::vector< TH1* > vEtaNentTemp;
+    std::vector< TH1* > vYstarMeanTemp;
+    std::vector< TH1* > vYstarSigmaTemp;
+    std::vector< TH1* > vYstarNentTemp;
     
     for( uint iG = 0; iG < m_nJzn; iG++ ){
-      vEtaMeanTemp .push_back( vMeans [iG][iX] );
-      vEtaSigmaTemp.push_back( vSigmas[iG][iX] );
-      vEtaNentTemp .push_back( vNent  [iG][iX] );
+      vYstarMeanTemp .push_back( vMeans [iG][iX] );
+      vYstarSigmaTemp.push_back( vSigmas[iG][iX] );
+      vYstarNentTemp .push_back( vNent  [iG][iX] );
     }
 
     // build mean, sigma, project nev
@@ -1428,9 +1463,9 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
       ( Form("h_%s_%s_%s",
 	     type.c_str(),
 	     sMean.c_str(),
-	     anaTool->GetName(xLow, xUp, "Eta").c_str() ),
+	     anaTool->GetName(xLow, xUp, "Ystar").c_str() ),
 	Form("%s;%s;%s",
-	     anaTool->GetEtaLabel( xLow, xUp ).c_str(),
+	     anaTool->GetYstarLabel( xLow, xUp ).c_str(),
 	     xAxisTitle.c_str(),
 	     yTitleMean.c_str() ),
 	nBinsY, yMin, yMax );
@@ -1440,16 +1475,16 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
       ( Form("h_%s_%s_%s",
 	     type.c_str(),
 	     sSigma.c_str(),
-	     anaTool->GetName(xLow, xUp, "Eta").c_str() ),
+	     anaTool->GetName(xLow, xUp, "Ystar").c_str() ),
 	Form("%s;%s;%s",
-	     anaTool->GetEtaLabel( xLow, xUp ).c_str(),
+	     anaTool->GetYstarLabel( xLow, xUp ).c_str(),
 	     xAxisTitle.c_str(),
 	     yTitleSigma.c_str() ),
 	nBinsY, yMin, yMax );
     vSigmasFinal.push_back( hSigmaFinal );
 
-    CombineSamples( hMeanFinal , vEtaMeanTemp , vEtaNentTemp  );
-    CombineSamples( hSigmaFinal, vEtaSigmaTemp, vEtaNentTemp  );
+    CombineSamples( hMeanFinal , vYstarMeanTemp , vYstarNentTemp  );
+    CombineSamples( hSigmaFinal, vYstarSigmaTemp, vYstarNentTemp  );
 
     for( int yBin = 1; yBin <= nBinsY; yBin++ ){
       hMeanAll ->SetBinContent( xBin, yBin, hMeanFinal ->GetBinContent(yBin) );
@@ -1823,7 +1858,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
     THnSparse* hnT    = vHnT[iG];
     THnSparse* hnR    = vHnR[iG];
     THnSparse* hnAll  = vHnAllRespMat[iG];
-    THnSparse* hnDphi = vHnAllRespMat[iG];
+    THnSparse* hnDphi = vHnDphiRespMat[iG];
     
     TAxis* axisT0 = hnT->GetAxis( m_dPP->GetAxisI(0) ); int nAxis0Bins = axisT0->GetNbins();
     TAxis* axisT1 = hnT->GetAxis( m_dPP->GetAxisI(1) ); int nAxis1Bins = axisT1->GetNbins();
@@ -1956,9 +1991,10 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    hAllRespMat->Draw("col");
 	    hAllRespMat->SetTitle("");
 
-	    hAllRespMat->GetXaxis()->SetRangeUser( m_dPhiUnfoldingMin, m_dPhiUnfoldingMax );
-	    hAllRespMat->GetYaxis()->SetRangeUser( m_dPhiUnfoldingMin, m_dPhiUnfoldingMax );
-	    
+	    hAllRespMat->GetXaxis()->SetRange
+	      ( m_dPhiRebinnedZoomLowBin, m_dPhiRebinnedZoomHighBin );
+	    hAllRespMat->GetYaxis()->SetRange
+	      ( m_dPhiRebinnedZoomLowBin, m_dPhiRebinnedZoomHighBin );
 	    
 	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
@@ -1984,7 +2020,6 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 
 	    vProj.push_back( hR );
 	    vProj.push_back( hT );
-
 	    // subtract combinatoric contribution before normalizing
 	    anaTool->SubtractCombinatoric( hR );
 	    anaTool->SubtractCombinatoric( hT );
@@ -1993,61 +2028,74 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    hT->Write();
 	    hR->Write();
 
-	    // make normalized histos to make the actual correction factors
-	    TH1* hTnorm = (TH1D*)hT->Clone(  Form( "h_T_norm_%s", hTag.c_str() ) );
-	    TH1* hRnorm = (TH1D*)hR->Clone(  Form( "h_R_norm_%s", hTag.c_str() ) );
-	    vProj.push_back( hTnorm );
-	    vProj.push_back( hRnorm );
-	      
-	    // now normalize hT, and hR.
-	    NormalizeDeltaPhi( hTnorm );
-	    NormalizeDeltaPhi( hRnorm );
-
-	    // just for testing and debugging.
-	    for( int xBin = 0; xBin <= hR->GetNbinsX(); xBin++ ){
-	      hR->SetBinError( xBin, hR->GetBinError( xBin ) / 10 );
-	    }
+	    // rebin before dividing and normalizing.
+	    TH1* hTreb = static_cast< TH1D* >
+	      ( hT->Rebin
+		( m_nVarDphiRebinnedBins,
+		  Form( "h_T_reb_%s", hTag.c_str() ),
+		  &m_varDphiRebinnedBinning[0] ) );   
+	    TH1* hRreb = static_cast< TH1D* >
+	      ( hR->Rebin
+		( m_nVarDphiRebinnedBins,
+		  Form( "h_R_reb_%s", hTag.c_str() ),
+		  &m_varDphiRebinnedBinning[0] ) );
 	    
+	    // now normalize hT, and hR.
+	    NormalizeDeltaPhi( hTreb );
+	    NormalizeDeltaPhi( hRreb );
+
+	    vProj.push_back( hTreb );
+	    vProj.push_back( hRreb );
+   
+	    hTreb->Write();
+	    hRreb->Write();
+
 	    // Make the ratio histogram. This is used to unfold bin-by-bin.
 	    // This gets saved, and drawn later.
 	    TH1* hC = static_cast< TH1D* >
-	      ( hTnorm->Clone
+	      ( hTreb->Clone
 		( Form( "h_%s_%s_%s", nameCFactors.c_str(), m_allName.c_str(), hTag.c_str())));
 	    styleTool->SetHStyleRatio( hC );	  
-	    hC->Divide( hRnorm );
+	    hC->Divide( hRreb );
 	    vRatio.push_back( hC );
 	    
 	    // set factors and their errors.
-	    for( int xBin = 0; xBin <= hC->GetNbinsX(); xBin++ ){
+	    for( int xBin = 0; xBin <= hT->GetNbinsX(); xBin++ ){
+	      int cBin = hC->FindBin( hT->GetBinCenter(xBin) );
+
 	      // if one of them is zero, leave it alone
 	      if( hT->GetBinContent( xBin ) == 0 ||
-		  hR->GetBinContent( xBin ) == 0 ||
-		  hAllRespMat->GetBinContent( xBin, xBin ) == 0 ){
-		hC->SetBinContent( xBin, 1 );
-		hC->SetBinError  ( xBin, 0 );
+		  hR->GetBinContent( xBin ) == 0 ){
+		hC->SetBinContent( cBin, 1 );
+		hC->SetBinError  ( cBin, 0 );
 		continue;
 	      }
 	      // set the factors below some minimum to zero.
 	      // the ratios and errors become horrible there
 	      if( xBin < hR->FindBin( m_dPhiUnfoldingMin ) ){
-		hC->SetBinContent( xBin, 1 );
-		hC->SetBinError  ( xBin, 0 );
+		hC->SetBinContent( cBin, 1 );
+		hC->SetBinError  ( cBin, 0 );
 		continue;
 	      }
 		
 	      double vR = hR->GetBinContent( xBin  );
 	      double vT = hT->GetBinContent( xBin  );
 
-	      double vM = hAllRespMat->GetBinContent( xBin, xBin );
+	      double vM = hAllRespMat->GetBinContent( cBin, cBin );
 
 	      // error on correction factor    
 	      double newDphiError =
 		std::sqrt( std::pow( vT, 2 ) / std::pow( vR, 3 ) *
 			   ( 1 - std::pow( vM, 2 ) / ( vT * vR ) ) );
       
-	      hC->SetBinError  ( xBin, newDphiError );
+	      hC->SetBinError  ( cBin, newDphiError );
 	    }
-	  
+	    
+	    // Smooth the cfactors
+	    hC->GetXaxis()->SetRange
+	      ( m_dPhiRebinnedZoomLowBin, m_dPhiRebinnedZoomHighBin );
+	    hC->Smooth( 1, "R" );
+	    
 	    TCanvas cCFactors( "cCFactors", hC->GetName(), 800, 600 );
 	    cCFactors.SetLogz();
 	    
@@ -2143,7 +2191,8 @@ double DiJetAnalysisMC::GetLineHeight( const std::string& type ){
   if( type.find("recoTruthRpt") != std::string::npos ){ // JES/JER
     y0 = 1;
     y0 = 1;
-  } else if( type.find("rEta")          != std::string::npos ||
+  } else if( type.find("Eta")           != std::string::npos ||
+	     type.find("Ystar")         != std::string::npos ||
 	     type.find("recoTruthDphi") != std::string::npos ) { // ANGLES
     y0 = 0;
     y0 = 0;

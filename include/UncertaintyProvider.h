@@ -8,42 +8,57 @@ class TH2;
 class TRandom3;
 class TLorentzVector;
 
+//--------------------------------
+//        Uncertainty Tool
+//--------------------------------
 class UncertaintyTool{
 
  public:
-  UncertaintyTool( int );
+  UncertaintyTool( int, bool );
   virtual ~UncertaintyTool();
-
-  virtual void ApplyUncertainty( TLorentzVector&, double ) = 0;
-  virtual void ApplyUncertainty( TLorentzVector&,
-				 TLorentzVector&, double ) {}
+  
+  virtual void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double ) {}
 
   int GetEtaUJERBin( float eta );
 
+  double GetYstar( const TLorentzVector& jet );
+  
  protected:
-  int m_uc;
+  int  m_uc;
+  bool m_is_pPb;
+  
   int m_sign;
 };
 
-class HIJERUncertaintyTool : public UncertaintyTool{
+//--------------------------------
+//      Angular Uncertainty Tool 
+//--------------------------------
+class AngularUncertaintyTool : public UncertaintyTool{
  public:
-  HIJERUncertaintyTool( int );
-  ~HIJERUncertaintyTool();
+  AngularUncertaintyTool( int, bool );
+  ~AngularUncertaintyTool();
 
-  void ApplyUncertainty(  TLorentzVector&, double = 0 );
+  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
 
  private:
-  std::vector<TH1*> m_vJEShistos;
+  TRandom3* rand;
+  
+  TH2* hAngularUncertEta;
+  TH2* hAngularUncertPhi;
+
+  TH2* hAngularResEta;
+  TH2* hAngularResPhi;
 };
 
+//--------------------------------
+//      JER Uncertainty Tool 
+//--------------------------------
 class JERUncertaintyTool : public UncertaintyTool{
  public:
-  JERUncertaintyTool( int );
+  JERUncertaintyTool( int, bool );
   ~JERUncertaintyTool();
 
-  void ApplyUncertainty(  TLorentzVector&, double = 0 );
-  virtual void ApplyUncertainty( TLorentzVector&,
-				 TLorentzVector&, double = 0 );
+  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
 
  private:
   TRandom3* rand;
@@ -52,22 +67,42 @@ class JERUncertaintyTool : public UncertaintyTool{
   std::vector<TH1*> m_vJERhistos;
 };
 
-class JESUncertaintyTool : public UncertaintyTool{
+//--------------------------------
+//      HIJES Uncertainty Tool 
+//--------------------------------
+class HIJESUncertaintyTool : public UncertaintyTool{
  public:
-  JESUncertaintyTool( int );
-  ~JESUncertaintyTool();
+  HIJESUncertaintyTool( int, bool );
+  ~HIJESUncertaintyTool();
 
-  void ApplyUncertainty(  TLorentzVector&, double = 0 );
+  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
+
+ private:
+  std::vector<TH1*> m_vJEShistos;
 };
 
+//--------------------------------
+//      JES Uncertainty Tool
+//--------------------------------
+class JESUncertaintyTool : public UncertaintyTool{
+ public:
+  JESUncertaintyTool( int, bool );
+  ~JESUncertaintyTool();
+  
+  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
+};
+
+//--------------------------------
+//      Uncertainty Provider  
+//--------------------------------
 class UncertaintyProvider{
 
  public:
   UncertaintyProvider();
-  UncertaintyProvider( int );
+  UncertaintyProvider( int, bool );
   virtual ~UncertaintyProvider();
 
-  void ApplyUncertainty( TLorentzVector&, double = 0 );
+  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
   
  private:
   UncertaintyTool*  m_uncertaintyTool;

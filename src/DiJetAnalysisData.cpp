@@ -825,16 +825,14 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     std::string trigger = m_vTriggers[iG];
     
     // dont draw MB trigger
-    if( !trigger.compare( m_mbTriggerName ) )
-      { continue; }
-    if( !trigger.compare( m_allName ) )
-      { continue; }
+    if( !trigger.compare( m_mbTriggerName ) ){ continue; }
+    if( !trigger.compare( m_allName       ) ){ continue; }
 
     std::string cName  = trigger;
     std::string cLabel = trigger;
 
     TCanvas c( "c", cLabel.c_str(), 800, 600 );
-    styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax, gLabel );
+    styleTool->SetCStyleGraph( c, xMin, m_effMin, xMax, m_effMax, gLabel );
     
     TLegend leg( lX0, lY0, lX1, lY1 );
     styleTool->SetLegendStyle( &leg  );
@@ -846,7 +844,6 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
 
       // temporary, dont draw the 3.1->3.2 bin
       if( std::abs(etaCenter) < 3.2 && std::abs(etaCenter) > 3.1 ){ continue; }
-      
       // for pPb, dont draw at anything above -3.2
       if( m_is_pPb && etaCenter > -constants::FETAMIN ){ continue; }
 
@@ -899,7 +896,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     std::string cLabel = anaTool->GetEtaLabel( etaMin, etaMax, m_is_pPb );
     
     TCanvas c( "c", cLabel.c_str(), 800, 600 );
-    styleTool->SetCStyleEff( c, xMin, m_effMin, xMax, m_effMax, gLabel );
+    styleTool->SetCStyleGraph( c, xMin, m_effMin, xMax, m_effMax, gLabel );
     
     TLegend leg( lX0, lY0, lX1, lY1 );
     styleTool->SetLegendStyle( &leg  );
@@ -990,14 +987,21 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
 
   // for canvas, since its tgraphasymmerrors.
   double x0 = axis3->GetXmin();
-  double x1 = axis3->GetXmax();    
+  double x1 = axis3->GetXmax(); 
   double y0 = m_dPhiWidthMin;
   double y1 = m_dPhiWidthMax;
+
+  double pDx = 0.05;
+  
+  std::string yTitle = "|#Delta#phi| width";
+  std::string xTitle = "|#Delta#phi|";
+  std::string gTitle = ";" + xTitle + ";" + yTitle;
 
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
     anaTool->GetBinRange
       ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
+    
     for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
       if( !m_dPP->CorrectPhaseSpace
 	  ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
@@ -1005,22 +1009,32 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
       double axis1Low, axis1Up;
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
+
+      TCanvas cW( "c", "c", 800, 600 );
+      styleTool->SetCStyleGraph
+	( cW, x0, y0, x1, y1, gTitle.c_str() );
+
+      TLegend legW( 0.25, 0.13, 0.9, 0.26 );
+      styleTool->SetLegendStyle( &legW );
+      legW.SetNColumns(2);
+
+      // tag for widths canvas
+      std::string hTagCW =
+	Form ("%s_%s",
+	      anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+	      anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
+
+      int style = 0;
       // ---- loop over axis2 ----
       for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	if( !m_dPP->CorrectPhaseSpace
+	    ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, 0 } ) )
+	  { continue; }
+
 	double axis2Low , axis2Up;
 	anaTool->GetBinRange
 	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
-	//---------------------------------------------------
-	//------------------ DO WORK HERE -------------------
-	//---------------------------------------------------
 
-	std::vector< double > pX;
-	std::vector< double > eX;
-
-	std::vector< double > pY;
-	std::vector< double > eYP;
-	std::vector< double > eYN;
-       	
 	std::string hTag =
 	  Form( "%s_%s_%s",
 	        anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
@@ -1033,16 +1047,37 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
 	TH1D* hDefault = static_cast<TH1D*>( fInDefault->Get( hDefaultName.c_str() ) );
 	vHdef.push_back( hDefault );
 	
+	std::vector< double > pX;
+	std::vector< double > eX( nAxis3Bins, 0.1 * hDefault->GetBinWidth(1) );
+ 
+	std::vector< double > pY;
+	std::vector< double > eYP;
+	std::vector< double > eYN;
+
+	std::vector< double > eYPJES;
+	std::vector< double > eYNJES;
+
+	std::vector< double > eYPJER;
+	std::vector< double > eYNJER;
+		
+	//---------------------------------------------------
+	//------------------ DO WORK HERE -------------------
+	//---------------------------------------------------
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 
 	  std::vector< TH1* > vHunc;
 	  
 	  std::vector< double > eYPtmp;
 	  std::vector< double > eYNtmp;
+
+	  std::vector< double > eYPtmpJES;
+	  std::vector< double > eYNtmpJES;
+
+	  std::vector< double > eYPtmpJER;
+	  std::vector< double > eYNtmpJER;
 	  
 	  double yDefault =   hDefault->GetBinContent( axis3Bin );
 	  pX.push_back(       hDefault->GetBinCenter( axis3Bin ) );
-	  eX.push_back( 0.5 * hDefault->GetBinWidth ( axis3Bin ) );
 	  
 	  // loop over uncertainties
 	  for( auto uc : v_uc ){
@@ -1062,6 +1097,13 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
 	    std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " " << axis2Bin << " " 
 		      << sign << " " << yShifted << " " << yDefault << " " << uncertainty << std::endl;
 
+	    // for JER negative is same as positive
+	    if( uc  == 20 ){
+	      eYPtmp.push_back( uncertainty );
+	      eYNtmp.push_back( uncertainty );
+	      continue;
+	    }
+	    
 	    if( sign > 0 ){
 	      eYPtmp.push_back( uncertainty );
 	    } else {
@@ -1093,10 +1135,6 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
 	  uncertaintyFinalYN =
 	    uncertaintyFinalYN >= 0 ? std::sqrt( uncertaintyFinalYN ) : 0.0;
 
-	  /*
-	  if( !( uncertaintyFinalYP > 0 || uncertaintyFinalYN >= 0 ) )
-	    { continue; }
-	  */
 	  
 	  std::cout << hDefaultName << " "
 		    << uncertaintyFinalYP << " "
@@ -1109,41 +1147,63 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
 
 	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
 
-	TGraphAsymmErrors* gDefault = new TGraphAsymmErrors( hDefault );
-	TGraphAsymmErrors* gSystematics =
-	  new TGraphAsymmErrors
+	TGraphAsymmErrors* gDefault     = new TGraphAsymmErrors( hDefault );
+	TGraphAsymmErrors* gSystematics = new TGraphAsymmErrors
 	  ( nAxis3Bins, &(pX[0]), &(pY[0]), &(eX[0]), &(eX[0]), &(eYN[0]), &(eYP[0]) );
 
-	styleTool->SetHStyle( gDefault    , 0 );
-	gSystematics->SetFillColor( 2 );
-	gSystematics->SetFillColor( 2 );
-	gSystematics->SetFillStyle( 3001 );
+	// add some displacement along x
+	double* xDef      = gDefault->GetX();
+	double* eXDefLow  = gDefault->GetEXlow();
+	double* eXDefHigh = gDefault->GetEXhigh();
+	double* xSys      = gSystematics->GetX();
+	for( int iX = 0; iX < nAxis3Bins; iX++ ){
+	  *(      xDef + iX ) += style * pDx;
+	  *(  eXDefLow + iX ) = 0;
+	  *( eXDefHigh + iX ) = 0;
+	  *(      xSys + iX ) += style * pDx;
+	}
+	
+	styleTool->SetHStyle( gDefault    , style );
+	styleTool->SetHStyle( gSystematics, style );
+	style++;
 	
 	gDefault    ->SetName( gDefaultName.c_str() );
 	gSystematics->SetName( gSystematicsName.c_str() );
 
 	vGw.push_back( gDefault );
 	vGw.push_back( gSystematics );
+	
+	gSystematics->SetTitle("");
+       	gSystematics->GetXaxis()->SetRangeUser( x0, x1 );
+       	gSystematics->GetYaxis()->SetRangeUser( y0, y1 );
+	
+	gDefault->SetTitle("");
+       	gDefault->GetXaxis()->SetRangeUser( x0, x1 );
+       	gDefault->GetYaxis()->SetRangeUser( y0, y1 );
 
-	TCanvas c( "c","c", 800, 600 );
-	styleTool->SetCStyleEff
-	  ( c, x0, y0, x1, y1, Form("c_%s", hDefaultName.c_str() )  );
-
+	legW.AddEntry
+	    ( gDefault,
+	      anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str() );	
+	
 	// draw systematics first
-	gSystematics->Draw("a2");
-	gDefault->Draw("P");
-
-	DrawTopLeftLabels
-	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	  axis2Low, axis2Up, 0, 0, 0.8 );
-
-	DrawAtlasRight();
+	gSystematics->Draw("2");
+	gDefault->Draw("p");
 	
 	gSystematics->Write();
 	gDefault->Write();
-
-	SaveAsROOT( c, hDefaultName.c_str() );
       } // end loop over axis2
+
+      // Draw the final canvas with all of the graphs.
+      legW.Draw();
+      
+      DrawTopLeftLabels
+	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	  0, 0, 0, 0, 0.8 );
+
+      DrawAtlasRight();
+
+      SaveAsAll( cW, Form("h_%s_%s_%s", m_dPhiName.c_str(),
+			  m_sFinal.c_str(), hTagCW.c_str()) ); 
     } // end loop over axis1     
   } // end loop over axis0
 
