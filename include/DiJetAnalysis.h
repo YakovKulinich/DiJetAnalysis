@@ -21,7 +21,6 @@ class TTree;
 class DeltaPhiProj;
 
 typedef double (*WeightFcn)( double, double, double );
-typedef std::vector<std::vector<std::vector<std::vector<TH1*>>>> FourDTH1vector;
 
 class DiJetAnalysis{
  public:
@@ -270,6 +269,7 @@ class DiJetAnalysis{
   std::vector< TF1*       > v_functs; // for writing
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
 
+  TH1D* h_mult;
   TH2D* h_tauSigma;
   TH2D* h_tauAmp;
   TH2D* h_tauConst;

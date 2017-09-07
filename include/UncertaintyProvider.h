@@ -1,6 +1,7 @@
 #ifndef UNCERTAINTYPROVIDER_H
 #define UNCERTAINTYPROVIDER_H
 
+#include <string>
 #include <vector>
 
 class TH1;
@@ -28,6 +29,8 @@ class UncertaintyTool{
   bool m_is_pPb;
   
   int m_sign;
+  std::string m_system;
+  TRandom3* rand;
 };
 
 //--------------------------------
@@ -41,8 +44,6 @@ class AngularUncertaintyTool : public UncertaintyTool{
   void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
 
  private:
-  TRandom3* rand;
-  
   TH2* hAngularUncertEta;
   TH2* hAngularUncertPhi;
 
@@ -61,8 +62,6 @@ class JERUncertaintyTool : public UncertaintyTool{
   void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
 
  private:
-  TRandom3* rand;
-  
   TH2* hJER;
   std::vector<TH1*> m_vJERhistos;
 };

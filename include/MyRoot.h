@@ -105,8 +105,8 @@ namespace CT{
 				      bool = false );
 
     static std::string GetYstarLabel( double, double,
-				      const std::string = "#it{y}*",
-				      bool = false );
+				      bool = false,
+				      const std::string = "#it{y}*");
 
     static std::string GetLabel( double, double,
 				 const std::string& = "",

@@ -259,8 +259,8 @@ std::string CT::AnalysisTools::GetEtaLabel( double etaMin,
 
 std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
 					      double ystarMax,
-					      std::string label,
-					      bool is_pPb ){
+					      bool is_pPb,
+					      std::string label){
   std::stringstream ss;
   if( is_pPb )
     { ss << boost::format("%3.2g<%s<%3.2g") % ystarMin % label % ystarMax;}

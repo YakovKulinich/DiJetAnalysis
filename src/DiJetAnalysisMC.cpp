@@ -92,7 +92,9 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
 
 }
 
-DiJetAnalysisMC::~DiJetAnalysisMC(){}
+DiJetAnalysisMC::~DiJetAnalysisMC(){
+  delete m_uncertaintyProvider;
+}
 
 void DiJetAnalysisMC::Initialize()
 {
@@ -145,7 +147,7 @@ void DiJetAnalysisMC::Initialize()
   std::cout << "SumSigmaEff = " << m_sumSigmaEff << std::endl;
 
   for( uint iG = 0; iG < m_nJzn; iG++ ){
-    TFile* fIn = TFile::Open( m_vJznFnameIn[iG].c_str() );
+    TFile* fIn  = TFile::Open( m_vJznFnameIn[iG].c_str() );
     TTree* tree = static_cast< TTree* >( fIn->Get( "tree" ) );
 
     int nEventsTotal = tree->GetEntries();
@@ -196,7 +198,7 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   // rest of plots are for combined slices
   m_vJznLabel.push_back( m_allName );
 
-  // only do this for teh d he default sample
+  // only do this for the default sample
   if( !m_uncertComp ){
     m_hAllEtaSpectReco  = CombineSamples( m_vHjznEtaSpectReco , m_etaSpectRecoName  );
     m_hAllEtaSpectTruth = CombineSamples( m_vHjznEtaSpectTruth, m_etaSpectTruthName );
@@ -220,21 +222,26 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   MakeDeltaPhi( m_vHjznDphiReco , m_vJznLabel, m_dPhiRecoName  );
   MakeDeltaPhi( m_vHjznDphiTruth, m_vJznLabel, m_dPhiTruthName );
 
+  /*
   m_hAllDphiRecoPtTruth = CombineSamples( m_vHjznDphiRecoPtTruth, m_dPhiRecoPtTruthName );
   m_hAllDphiTruthPtReco = CombineSamples( m_vHjznDphiTruthPtReco, m_dPhiTruthPtRecoName );
   MakeDeltaPhi( m_vHjznDphiRecoPtTruth, m_vJznLabel, m_dPhiRecoPtTruthName );
   MakeDeltaPhi( m_vHjznDphiTruthPtReco, m_vJznLabel, m_dPhiTruthPtRecoName );
+  */
   
   m_hAllDphiRespMat = CombineSamples( m_vHjznDphiRespMat, m_dPhiRespMatName );
   m_hAllAllRespMat  = CombineSamples( m_vHjznAllRespMat , m_allRespMatName  ); 
+  
   MakeDphiCFactorsRespMat( m_vHjznDphiTruth  , m_vHjznDphiReco,
 			   m_vHjznAllRespMat , m_vHjznDphiRespMat, m_vJznLabel,
 			   m_dPhiCFactorsName, m_allRespMatName, m_dPhiRespMatName );
 
+  /*
   // Make response matrix for pT
-  m_hAllPtRespMat   = CombineSamples( m_vHjznPtRespMat  , m_ptRespMatName   );
+  m_hAllPtRespMat  = CombineSamples( m_vHjznPtRespMat  , m_ptRespMatName   );
   MakePtResponseMatrix( m_vHjznPtRespMat, m_vJznLabel, m_ptRespMatName );
-
+  */
+  
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
   delete fOut;
@@ -631,10 +638,15 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       ApplyIsolation( vT_jets, 1.0 );
       
       std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
-      
+
       std::vector< TLorentzVector > vRR_paired_jets;
       std::vector< TLorentzVector > vRT_paired_jets;
       PairJets( vR_jets, vT_jets, vRR_paired_jets, vRT_paired_jets ); 
+
+      // this holds the weights.
+      // in some cases ( unfolding uncertainty )
+      // there will be an additional weight.
+      std::vector< double > vRR_paired_jet_weights;
 
       // If not running on default sample.
       // Apply uncertainties to all reco jets.
@@ -645,15 +657,13 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 	  m_uncertaintyProvider->ApplyUncertainty
 	    ( vRR_paired_jets[ iJet ],
 	      vRT_paired_jets[ iJet ],
-	      v_sysUncert[ iJet ][ std::abs( m_uncertComp ) - 1 ]);
+	      v_sysUncert[ iJet ][ std::abs( m_uncertComp ) - 1 ] );
 	}
       }
       
       // Do Dphi analysis
-      AnalyzeDeltaPhi
-	( m_vHjznDphiReco [iG], vRR_paired_jets, GetJetWeight );
-      AnalyzeDeltaPhi
-	( m_vHjznDphiTruth[iG], vT_jets, GetJetWeight );
+      AnalyzeDeltaPhi( m_vHjznDphiReco [iG], vRR_paired_jets, GetJetWeight );
+      AnalyzeDeltaPhi( m_vHjznDphiTruth[iG], vT_jets        , GetJetWeight );
 
       // Do Dphi analysis on reco/truth mix
       AnalyzeDeltaPhiTruthReco
@@ -782,8 +792,7 @@ void  DiJetAnalysisMC::AnalyzeResponseMatrix( THnSparse* hnDphi, THnSparse* hnPt
     
   // wont change unless we have a weightFcn
   // and then it varys depending on eta, phi, pt.
-  double weight = weightFcn ?
-    weightFcn( truthJet1_eta, truthJet1_phi, truthJet1_pt ) : 1;   
+  double weight = weightFcn ? weightFcn( truthJet1_eta, truthJet1_phi, truthJet1_pt ) : 1;   
 
   // fill for the dphi resp mat
   xDphi[0] = truthJet1_ystar;  
@@ -1036,9 +1045,9 @@ void DiJetAnalysisMC::CombineSamples( TH1* h_res,
     for( uint iG = 0; iG < vSampleHin.size(); iG++ ){
       if( vSampleHin[iG]->GetEntries() == 0 ){ continue; }
       
-      double valueBin    = vSampleHin      [iG]->GetBinContent( xBin );
-      double valueBinErr = vSampleHin      [iG]->GetBinError( xBin );
-      double nEntriesBin = vSampleNentIn   [iG]->GetBinContent( xBin );
+      double valueBin    = vSampleHin   [iG]->GetBinContent( xBin );
+      double valueBinErr = vSampleHin   [iG]->GetBinError( xBin );
+      double nEntriesBin = vSampleNentIn[iG]->GetBinContent( xBin );
       double weight      = m_vJznWeights[iG] / m_vJznSumOverlayWeights[iG];
 
       if( nEntriesBin < m_nMinEntriesFit || valueBin == 0 ){ continue; }
@@ -1156,6 +1165,7 @@ void DiJetAnalysisMC::MakePurityEff( TH2* hRespMat, TH1* hPurity, TH1* hEff ){
 //     Get Quantities / Plot 
 //---------------------------------
 void DiJetAnalysisMC::LoadHistograms(){
+
   TFile* fIn = TFile::Open( m_rawHistosFname.c_str() ); 
   
   for( uint iG = 0; iG < m_nJzn; iG++){
@@ -1266,6 +1276,7 @@ void DiJetAnalysisMC::LoadHistograms(){
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_allRespMatName.c_str(), jzn.c_str() ))));  
   }
+
   fIn->Close(); delete fIn;
 }
 
@@ -1276,7 +1287,7 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
   if( !vJznHin.size() ){ return; }
 
   // is same for all the other histos
-  int nBinsX = vJznHin.front()->GetNbinsX();
+  int  nBinsX = vJznHin.front()->GetNbinsX();
   double xMin = vJznHin.front()->GetXaxis()->GetXmin();
   double xMax = vJznHin.front()->GetXaxis()->GetXmax();
 
@@ -1475,9 +1486,9 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
       ( Form("h_%s_%s_%s",
 	     type.c_str(),
 	     sSigma.c_str(),
-	     anaTool->GetName(xLow, xUp, "Ystar").c_str() ),
+	     anaTool->GetName( xLow, xUp, "Ystar" ).c_str() ),
 	Form("%s;%s;%s",
-	     anaTool->GetYstarLabel( xLow, xUp ).c_str(),
+	     anaTool->GetYstarLabel( xLow, xUp, m_is_pPb ).c_str(),
 	     xAxisTitle.c_str(),
 	     yTitleSigma.c_str() ),
 	nBinsY, yMin, yMax );
@@ -1493,9 +1504,9 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
   }
 
   DrawCanvas( vMeansFinal ,
-	      Form("h_%s", type.c_str() ), sMean );
+	      Form( "h_%s", type.c_str() ), sMean );
   DrawCanvas( vSigmasFinal,
-	      Form("h_%s", type.c_str() ), sSigma );
+	      Form( "h_%s", type.c_str() ), sSigma );
 
   std::string fOutName =
     m_dirOut + "/" + type + "_" + m_labelOut + ".root";
@@ -2011,8 +2022,8 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    // Take projection onto the dPhi axis
 	    TH1* hT = hnT->Projection( 4 );
 	    TH1* hR = hnR->Projection( 4 );
-	    hT->SetName( Form( "h_T_%s", hTag.c_str() ) );
-	    hR->SetName( Form( "h_R_%s", hTag.c_str() ) );
+	    hT->SetName( Form( "h_T_%s_%s", label.c_str(), hTag.c_str() ) );
+	    hR->SetName( Form( "h_R_%s_%s", label.c_str(), hTag.c_str() ) );
 
 	    // because variable bin width, scale by bin width
 	    hT->Scale( 1.0, "width" );
@@ -2020,6 +2031,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 
 	    vProj.push_back( hR );
 	    vProj.push_back( hT );
+	    
 	    // subtract combinatoric contribution before normalizing
 	    anaTool->SubtractCombinatoric( hR );
 	    anaTool->SubtractCombinatoric( hT );
@@ -2032,54 +2044,66 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    TH1* hTreb = static_cast< TH1D* >
 	      ( hT->Rebin
 		( m_nVarDphiRebinnedBins,
-		  Form( "h_T_reb_%s", hTag.c_str() ),
+		  Form( "h_T_%s_reb_%s", label.c_str(), hTag.c_str() ),
 		  &m_varDphiRebinnedBinning[0] ) );   
 	    TH1* hRreb = static_cast< TH1D* >
 	      ( hR->Rebin
 		( m_nVarDphiRebinnedBins,
-		  Form( "h_R_reb_%s", hTag.c_str() ),
+		  Form( "h_R_%s_reb_%s", label.c_str(), hTag.c_str() ),
 		  &m_varDphiRebinnedBinning[0] ) );
-	    
+
+	    // rebin before dividing and normalizing.
+	    TH1* hTrebNorm = static_cast< TH1D* >
+	      ( hTreb->Clone( Form( "h_T_%s_rebNorm_%s", label.c_str(), hTag.c_str() ) ) );
+	    TH1* hRrebNorm = static_cast< TH1D* >
+	      ( hRreb->Clone( Form( "h_R_%s_rebNorm_%s", label.c_str(), hTag.c_str() ) ) );
+
 	    // now normalize hT, and hR.
-	    NormalizeDeltaPhi( hTreb );
-	    NormalizeDeltaPhi( hRreb );
+	    NormalizeDeltaPhi( hTrebNorm );
+	    NormalizeDeltaPhi( hRrebNorm );
 
 	    vProj.push_back( hTreb );
 	    vProj.push_back( hRreb );
    
+	    vProj.push_back( hTrebNorm );
+	    vProj.push_back( hRrebNorm );
+   
 	    hTreb->Write();
 	    hRreb->Write();
+
+	    hTrebNorm->Write();
+	    hRrebNorm->Write();
 
 	    // Make the ratio histogram. This is used to unfold bin-by-bin.
 	    // This gets saved, and drawn later.
 	    TH1* hC = static_cast< TH1D* >
-	      ( hTreb->Clone
-		( Form( "h_%s_%s_%s", nameCFactors.c_str(), m_allName.c_str(), hTag.c_str())));
+	      ( hTrebNorm->Clone
+		( Form( "h_%s_%s_%s", nameCFactors.c_str(), label.c_str(), hTag.c_str())));
 	    styleTool->SetHStyleRatio( hC );	  
-	    hC->Divide( hRreb );
+	    hC->Divide( hRrebNorm );
 	    vRatio.push_back( hC );
 	    
 	    // set factors and their errors.
-	    for( int xBin = 0; xBin <= hT->GetNbinsX(); xBin++ ){
-	      int cBin = hC->FindBin( hT->GetBinCenter(xBin) );
+	    for( int xBin = 0; xBin <= hTreb->GetNbinsX(); xBin++ ){
+	      int cBin = hC->FindBin( hTreb->GetBinCenter(xBin) );
 
 	      // if one of them is zero, leave it alone
-	      if( hT->GetBinContent( xBin ) == 0 ||
-		  hR->GetBinContent( xBin ) == 0 ){
+	      if( hTreb->GetBinContent( xBin ) == 0 ||
+		  hRreb->GetBinContent( xBin ) == 0 ){
 		hC->SetBinContent( cBin, 1 );
 		hC->SetBinError  ( cBin, 0 );
 		continue;
 	      }
 	      // set the factors below some minimum to zero.
 	      // the ratios and errors become horrible there
-	      if( xBin < hR->FindBin( m_dPhiUnfoldingMin ) ){
+	      if( xBin < hRreb->FindBin( m_dPhiUnfoldingMin ) ){
 		hC->SetBinContent( cBin, 1 );
 		hC->SetBinError  ( cBin, 0 );
 		continue;
 	      }
 		
-	      double vR = hR->GetBinContent( xBin  );
-	      double vT = hT->GetBinContent( xBin  );
+	      double vR = hRreb->GetBinContent( xBin  );
+	      double vT = hTreb->GetBinContent( xBin  );
 
 	      double vM = hAllRespMat->GetBinContent( cBin, cBin );
 
@@ -2087,7 +2111,12 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	      double newDphiError =
 		std::sqrt( std::pow( vT, 2 ) / std::pow( vR, 3 ) *
 			   ( 1 - std::pow( vM, 2 ) / ( vT * vR ) ) );
-      
+
+	      /*
+	      std::cout << xBin << "  vR = " << vR << "   vT = " << vT
+			<< "   vM = " << vM << "   error = " << newDphiError << std::endl;
+	      */
+	      
 	      hC->SetBinError  ( cBin, newDphiError );
 	    }
 	    

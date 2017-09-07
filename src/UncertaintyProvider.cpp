@@ -14,7 +14,10 @@
 //--------------------------------
 UncertaintyTool::UncertaintyTool( int uc, bool is_pPb )
   : m_uc( uc ), m_is_pPb( is_pPb ) {
-  m_sign = uc > 0 ? 1 : -1;
+
+  m_sign   = uc > 0 ? 1 : -1;
+  m_system = m_is_pPb ? "pPb" : "pp";
+  rand     = new TRandom3();
 }
 
 UncertaintyTool::~UncertaintyTool(){}
@@ -39,16 +42,117 @@ double UncertaintyTool::GetYstar( const TLorentzVector& jet )
 
 
 //--------------------------------
+//      Angular Uncertainty Tool 
+//--------------------------------
+
+AngularUncertaintyTool::AngularUncertaintyTool( int uc, bool is_pPb )
+  : UncertaintyTool( uc, is_pPb ){
+
+  // get the pythia8 eta sigm+mean file 
+  TFile* f_eta_p8 = new TFile( "data/recoTruthDeta_pp_mc_pythia8.root", "read" );
+  hAngularUncertEta = static_cast< TH2D* >( f_eta_p8->Get( "h_recoTruthDeta_sigma" ) );
+  hAngularUncertEta->SetName( "hAngularUncertEta" );
+  hAngularUncertEta->SetDirectory(0);
+  f_eta_p8->Close();
+
+  // clone this before modifying it.
+  hAngularResEta = static_cast< TH2D* >( hAngularUncertEta->Clone( "hAngularResEta" ) );
+
+    // get the reference herwig eta sigm+mean file 
+  TFile* f_eta_ref = new TFile( "data/recoTruthDeta_pp_mc_herwig.root", "read" );
+  TH2D* hAngularUncertEtaTmp = static_cast< TH2D* >( f_eta_ref->Get( "h_recoTruthDeta_sigma" ) );
+  hAngularUncertEtaTmp->SetDirectory(0);
+  f_eta_ref->Close();
+
+  // now subtract the pythia8 and the reference (herwig)
+  hAngularUncertEta->Add( hAngularUncertEtaTmp, -1 );
+
+  // get the pythia8 phi sigm+mean file 
+  TFile* f_phi_p8 = new TFile( "data/recoTruthDphi_pp_mc_pythia8.root", "read" );
+  hAngularUncertPhi = static_cast< TH2D* >( f_phi_p8->Get( "h_recoTruthDphi_sigma" ) );
+  hAngularUncertPhi->SetName( "hAngularUncertPhi" );
+  hAngularUncertPhi->SetDirectory(0);
+  f_phi_p8->Close();
+
+  // clone this before modifying it.
+  hAngularResPhi = static_cast< TH2D* >( hAngularUncertPhi->Clone( "hAngularResPhi" ) );
+
+    // get the reference herwig phi sigm+mean file 
+  TFile* f_phi_ref = new TFile( "data/recoTruthDphi_pp_mc_herwig.root", "read" );
+  TH2D* hAngularUncertPhiTmp = static_cast< TH2D* >( f_phi_ref->Get( "h_recoTruthDphi_sigma" ) );
+  hAngularUncertPhiTmp->SetDirectory(0);
+  f_phi_ref->Close();
+
+  // now subtract the pythia8 and the reference (herwig)
+  hAngularUncertPhi->Add( hAngularUncertPhiTmp, -1 );
+
+}
+
+AngularUncertaintyTool::~AngularUncertaintyTool(){
+
+  delete hAngularUncertEta;
+  delete hAngularUncertPhi;
+  delete hAngularResEta;
+  delete hAngularResPhi;
+}
+
+void AngularUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
+					       TLorentzVector& truthJet,
+					       double factor ){
+
+  float recoJetPt    = recoJet.Pt()/1000.;
+  float recoJetEta   = recoJet.Eta();
+  float recoJetYstar = GetYstar( recoJet );
+  float recoJetPhi   = recoJet.Phi();
+  float recoJetM     = recoJet.M();
+  
+  float truthJetEta   = truthJet.Eta();
+  float truthJetPhi   = truthJet.Phi();
+ 
+  float uncertaintyEta  = hAngularUncertEta->Interpolate
+    ( recoJetYstar, recoJetPt );
+  float uncertaintyPhi  = hAngularUncertPhi->Interpolate
+    ( recoJetYstar, recoJetPt );
+
+  float etaRes = hAngularResEta->Interpolate
+    ( recoJetYstar, recoJetPt ); 
+  float phiRes = hAngularResPhi->Interpolate
+    ( recoJetYstar, recoJetPt ); 
+ 
+  float smearingFactorSystEta =
+    sqrt( pow( etaRes + uncertaintyEta, 2 ) - pow( etaRes, 2 ) );
+  float smearingFactorSystPhi =
+    sqrt( pow( phiRes + uncertaintyPhi, 2 ) - pow( phiRes, 2 ) );
+
+  float correctionEta = rand->Gaus(0., smearingFactorSystEta);
+  float correctionPhi = rand->Gaus(0., smearingFactorSystPhi);
+          
+  float recoJetEtaNew = recoJetEta + truthJetEta * correctionEta;
+  float recoJetPhiNew = recoJetPhi + truthJetPhi * correctionPhi;
+
+  /*
+  std::cout << "----" << std::endl;
+  std::cout << uncertaintyEta << " ... " << etaRes << " ... "
+	    << correctionEta << " : " << recoJetEta << " -> " << recoJetEtaNew << std::endl;
+  std::cout << uncertaintyPhi << " ... " << phiRes << " ... "
+	    << correctionPhi << " : " << recoJetPhi << " -> " << recoJetPhiNew << std::endl;
+  */
+  
+  recoJet.SetPtEtaPhiM
+    ( recoJetPt * 1000, recoJetEtaNew, recoJetPhiNew, recoJetM );
+  
+}
+
+//--------------------------------
 //      JER Uncertainty Tool 
 //--------------------------------
 
 JERUncertaintyTool::JERUncertaintyTool( int uc, bool is_pPb )
   : UncertaintyTool( uc, is_pPb ){
-  std::string system = m_is_pPb ? "pPb" : "pp";
 
   // get the analysis jer 
   TFile* f_JER = new TFile
-    ( Form( "data/recoTruthRpt_%s_mc_pythia8.root", system.c_str() ), "read" );
+    ( Form( "data/recoTruthRpt_%s_mc_pythia8.root", m_system.c_str() ), "read" );
 
   hJER = static_cast<TH2D*>( f_JER->Get( "h_recoTruthRpt_sigma" ) );
   hJER->SetDirectory(0);
@@ -64,11 +168,13 @@ JERUncertaintyTool::JERUncertaintyTool( int uc, bool is_pPb )
   }
 
   f_HI_JER->Close();
-
-  rand = new TRandom3();
 }
 
-JERUncertaintyTool::~JERUncertaintyTool(){}
+JERUncertaintyTool::~JERUncertaintyTool(){
+  
+  delete hJER;
+  for( auto& h : m_vJERhistos ){ delete h; }
+}
 
 void JERUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
 					   TLorentzVector& truthJet,
@@ -96,8 +202,8 @@ void JERUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
     recoJetM = 0;
   }
   
-  recoJet.SetPtEtaPhiM( recoJetPtNew * 1000., recoJetEta,
-			recoJetPhi  , recoJetM );
+  recoJet.SetPtEtaPhiM
+    ( recoJetPtNew * 1000., recoJetEta, recoJetPhi, recoJetM );
 }
 
 //--------------------------------
@@ -106,6 +212,7 @@ void JERUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
 
 HIJESUncertaintyTool::HIJESUncertaintyTool( int uc, bool is_pPb )
   : UncertaintyTool( uc, is_pPb ){
+
   // load histograms for JES
   //HI JES <-> crosscalibration
   TFile* f_HI_JES = new TFile(  "data/cc_sys_090816.root" ,"read" );
@@ -113,10 +220,13 @@ HIJESUncertaintyTool::HIJESUncertaintyTool( int uc, bool is_pPb )
     m_vJEShistos.push_back( (TH1D*)f_HI_JES->Get(Form("fsys_rel_%i",ybin)));
     m_vJEShistos.back()->SetDirectory(0);
   }
+  
   f_HI_JES->Close();
 }
 
-HIJESUncertaintyTool::~HIJESUncertaintyTool(){}
+HIJESUncertaintyTool::~HIJESUncertaintyTool(){
+  for( auto& h : m_vJEShistos ){ delete h; }
+}
 
 void HIJESUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
 					     TLorentzVector& truthJet,
@@ -161,11 +271,13 @@ UncertaintyProvider::UncertaintyProvider( int uc, bool is_pPb ) : m_uncertaintyT
   int pos_uc = std::abs( uc );
 
   if( pos_uc > 0  && pos_uc <= 18 ){
-    m_uncertaintyTool = new JESUncertaintyTool( uc, is_pPb );
+    m_uncertaintyTool = new JESUncertaintyTool      ( uc, is_pPb );
   } else if( pos_uc == 19 ) {
-    m_uncertaintyTool = new HIJESUncertaintyTool( uc, is_pPb );
+    m_uncertaintyTool = new HIJESUncertaintyTool    ( uc, is_pPb );
   } else if( pos_uc == 20 ) {
-    m_uncertaintyTool = new JERUncertaintyTool( uc, is_pPb );
+    m_uncertaintyTool = new JERUncertaintyTool      ( uc, is_pPb );
+  } else if( pos_uc == 21 ) {
+    m_uncertaintyTool = new AngularUncertaintyTool  ( uc, is_pPb );
   } 
 }  
 

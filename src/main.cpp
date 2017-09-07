@@ -55,7 +55,6 @@ int main(int argc, char *argv[])
 	    << "   uncertComp: " << uncertComp
 	    << std::endl;
 
-  TApplication*   rootapp = NULL;  
   DiJetAnalysis* analysis = NULL;
 
   // reserve mode 8 for plotting MC and Data together

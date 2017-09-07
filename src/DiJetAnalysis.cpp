@@ -553,7 +553,7 @@ void  DiJetAnalysis::FillHistoWithJets( const TLorentzVector* jet1,
 
 double DiJetAnalysis::AdjustEtaForPP( double jetEta ){
   
-  if( m_is_pPb ) return jetEta;
+  if( m_is_pPb ){ return jetEta; }
   return jetEta  > 0 ? -1 * jetEta  : jetEta;
 }
 
@@ -828,6 +828,9 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 				  const std::string& name,
 				  bool isUnfolded ){
 
+  // These are "quality" check histograms
+  h_mult     = new TH1D( Form("h_mult_%s", name.c_str() ),
+			 ";Count;Multiplicity", 100,0,5000);
   h_tauSigma = new TH2D( Form("h_tauSigma_%s", name.c_str() ),
 			 ";#tau;#sigma"   , 60, 0., 0.6, 60, 0., 0.3 );
   h_tauAmp   = new TH2D( Form("h_tauAmp_%s"  , name.c_str() ),
@@ -961,7 +964,9 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->Draw();
 	    hDphi->SetYTitle("Normalized Count");
 	    hDphi->SetTitle("");
-    
+
+	    h_mult->Fill( hDphi->GetEntries() );
+	    
 	    // now fit
 	    TF1* fit = anaTool->FitDphi( hDphi, m_dPhiFittingMin, m_dPhiFittingMax );
 	    styleTool->SetHStyle( fit, 0 );
@@ -971,6 +976,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    h_tauAmp  ->Fill( fit->GetParameter(1), fit->GetParameter(0) );
 	    h_tauConst->Fill( fit->GetParameter(1), fit->GetParameter(3) );
 
+	    /*
 	    if( fit->GetParameter(2) < 0.01 ){ std::cout <<" ------------------ " <<  fit->GetParameter(2) << std::endl; }
 	    if( fit->GetParameter(0) < 0.0 ||
 		fit->GetParameter(1) < 0.0 ||
@@ -980,6 +986,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 							<<  fit->GetParameter(1) << " " 
 							<<  fit->GetParameter(2) << " " 
 							<<  fit->GetParameter(3) << std::endl; }
+	    */
 	    fit->Draw("same");
 
 	    double chi2NDF = fit->GetChisquare()/fit->GetNDF();
@@ -1032,9 +1039,11 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
     } // end loop over axis0
   } // end loop over iG
 
+  h_mult    ->Write();
   h_tauSigma->Write();
   h_tauAmp  ->Write();
   h_tauConst->Write();
+  delete h_mult;
   delete h_tauSigma;
   delete h_tauAmp;
   delete h_tauConst;
@@ -1547,6 +1556,7 @@ void DiJetAnalysis::MakeDphiTogether(){
 	  bool save = false ;
 	  
 	  pad1.cd();
+	  pad1.SetLogy();
 	  if( h_a->GetEntries() ){
 	    h_a->SetMinimum(0);
 	    h_a->SetNdivisions( 504, "Y" );
@@ -1723,7 +1733,7 @@ void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
 
 void DiJetAnalysis::SaveAsAll( const TCanvas& c,
 			       const std::string& name,
-			       bool together){
+			       bool together ){
 
   // only save png pdf if the doing nominal sample.
   // otherwise it is pretty useles.

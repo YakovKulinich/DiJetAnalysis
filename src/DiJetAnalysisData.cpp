@@ -994,7 +994,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
   double pDx = 0.05;
   
   std::string yTitle = "|#Delta#phi| width";
-  std::string xTitle = "|#Delta#phi|";
+  std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
