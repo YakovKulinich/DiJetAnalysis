@@ -1071,6 +1071,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
     hnDphi->Write();
   } // end loop over iG
 
+  
   h_mult    ->Write();
   h_tauSigma->Write();
   h_tauAmp  ->Write();
@@ -1082,7 +1083,18 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   
   for( auto& f  : vFits   ){ delete f;  }
   for( auto& h  : vDphi   ){ delete h;  }
-  for( auto& hn : vHnDphi ){ delete hn; }
+
+  // Save the THnSparse to separate file.
+  // This is used for unfolding later.
+  // Gets put into data/ dirrectory.
+  std::string fOutName =
+    m_dirOut + "/" + name + "_" + m_labelOut + ".root";
+  
+  TFile* fOut = new TFile( fOutName.c_str(), "RECREATE" );
+
+  for( auto& hn : vHnDphi ){ hn->Write(); delete hn; }
+
+  fOut->Close();
 }
 
 THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,

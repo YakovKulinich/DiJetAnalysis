@@ -218,15 +218,19 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   m_hAllDphiReco    = CombineSamples( m_vHjznDphiReco   , m_dPhiRecoName    );
   m_hAllDphiTruth   = CombineSamples( m_vHjznDphiTruth  , m_dPhiTruthName   );
   MakeDeltaPhi( m_vHjznDphiReco , m_vJznLabel, m_dPhiRecoName  );
+  fOut->cd();
   MakeDeltaPhi( m_vHjznDphiTruth, m_vJznLabel, m_dPhiTruthName );
+  fOut->cd();
 
   /*
   m_hAllDphiRecoPtTruth = CombineSamples( m_vHjznDphiRecoPtTruth, m_dPhiRecoPtTruthName );
   m_hAllDphiTruthPtReco = CombineSamples( m_vHjznDphiTruthPtReco, m_dPhiTruthPtRecoName );
   MakeDeltaPhi( m_vHjznDphiRecoPtTruth, m_vJznLabel, m_dPhiRecoPtTruthName );
+  fOut->cd();
   MakeDeltaPhi( m_vHjznDphiTruthPtReco, m_vJznLabel, m_dPhiTruthPtRecoName );
+  fOut->cd();
   */
-  
+    
   m_hAllDphiRespMat = CombineSamples( m_vHjznDphiRespMat, m_dPhiRespMatName );
   m_hAllAllRespMat  = CombineSamples( m_vHjznAllRespMat , m_allRespMatName  ); 
   
@@ -239,7 +243,6 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   m_hAllPtRespMat  = CombineSamples( m_vHjznPtRespMat  , m_ptRespMatName   );
   MakePtResponseMatrix( m_vHjznPtRespMat, m_vJznLabel, m_ptRespMatName );
   */
-  
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
   delete fOut;
@@ -307,7 +310,7 @@ void DiJetAnalysisMC::PlotHistosTogether(){
   // buggy with filenames
   // leave this out for now
   // more for performance studies
-  // MakeDphiRecoTruth();
+  MakeDphiRecoTruth();
 }
 
 //---------------------------------
@@ -649,7 +652,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       // If not running on default sample.
       // Apply uncertainties to all reco jets.
       if( m_uncertComp ){
-	m_uncertaintyProvider->RegisterUFactors( &v_sysUncert );
+	m_uncertaintyProvider->RegisterUFactors  ( &v_sysUncert );
 	m_uncertaintyProvider->ApplyUncertainties( vRR_paired_jets, vRT_paired_jets );
       }
       
@@ -914,7 +917,7 @@ void DiJetAnalysisMC::PairJets( std::vector< TLorentzVector >& vA_jets,
   
   for( auto& aJet : vA_jets){
     // check if this jet is in some useful pt range
-    // here we call taht useful range the range of the
+    // here we call that useful range the range of the
     // jer jer plots
     double aJetPt    = aJet.Pt()/1000.;
     if( aJetPt < m_ptTruthMin ||
@@ -1136,8 +1139,7 @@ double DiJetAnalysisMC::GetUncertaintyWeight( const TLorentzVector& jet1,
 					      const TLorentzVector& jet2 )
 {
 
-  // Will have m_uncertaintyProvider->GetWeight( jet1, jet2 );
-  return 1;
+  return m_uncertaintyProvider->GetUncertaintyWeight( jet1, jet2 );
 }
 
 
@@ -1593,9 +1595,9 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
   std::string outSuffix;
   std::string name_a  , name_b  , name_c , name_d ;
   std::string label_a , label_b , label_c, label_d;
-  std::string suffix_a, suffix_b;
+  std::string fName_a , fName_b;
 
-  GetInfoBoth( name_a, name_b, label_a, label_b, suffix_a, suffix_b );
+  GetInfoBoth( name_a, name_b, label_a, label_b, fName_a, fName_b );
   GetInfoBothRecoTruth( name_c, name_d, label_c, label_d );
   
   // Check if the directories exist.
@@ -1612,15 +1614,9 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
   TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
   TAxis* axis3 = m_dPP->GetTAxis(3); int nAxis3Bins = axis3->GetNbins();
 
-  TFile* fIn = TFile::Open
-    ( Form("%s/%s_%s/c_%s_%s.root",
-	   m_sOutput.c_str(), m_sOutput.c_str(),suffix_a.c_str(),
-	   m_myOutName.c_str(),suffix_a.c_str() ) );
-
-  TFile* fOut  = new TFile
-    ( Form("%s/%s/%s/c_%s_%s.root",
-	   m_sOutput.c_str(), m_allName.c_str(), outSuffix.c_str(),
-	   m_myOutName.c_str(), outSuffix.c_str() ), "update");
+  TFile* fIn  = TFile::Open( fName_a.c_str() );
+    
+  TFile* fOut = new TFile( Form( "%s.test", fName_a.c_str() ), "recreate");
 
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -1697,7 +1693,7 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
 	  
 	  TCanvas c("c","c", 800, 600 );
 	    
-	  TLegend leg( 0.27, 0.38, 0.38, 0.57 );
+	  TLegend leg( 0.15, 0.38, 0.26, 0.57 );
 	  styleTool->SetLegendStyle( &leg , 0.85 );
 
 	  if( h_a->GetEntries() ){
@@ -1714,6 +1710,7 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
 	    h_b->SetNdivisions( 505, "Y" );
 	    leg.AddEntry( h_b, Form("%s #Chi^{2}/NDF=%4.2f", label_b.c_str(), chi2NDF_b));
 	    h_b->Draw("epsame");
+	    f_b->SetLineStyle( 2 );
 	    f_b->Draw("same");
 	    save = true;
 	  }
@@ -1732,19 +1729,36 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
 	    h_d->SetNdivisions( 505, "Y" );
 	    leg.AddEntry( h_d, Form("%s #Chi^{2}/NDF=%4.2f", label_d.c_str(), chi2NDF_d));
 	    h_d->Draw("epsame");
-	    f_d->Draw("same");
+	    f_d->SetLineStyle( 2 );
+  	    f_d->Draw("same");
 	    save = true;
 	  }
 
 	  leg.Draw("same");
 
+	  double maximum;
+	  
 	  if( h_a->GetMaximum() > h_b->GetMaximum() ){
 	    h_a->SetMaximum( h_a->GetMaximum() * 1.1 );
 	    h_b->SetMaximum( h_a->GetMaximum() * 1.1 );
+	    maximum = anaTool->GetLogMaximum( h_a->GetMaximum() );
 	  } else {
 	    h_a->SetMaximum( h_b->GetMaximum() * 1.1 );
 	    h_b->SetMaximum( h_b->GetMaximum() * 1.1 );
+	    maximum = anaTool->GetLogMaximum( h_b->GetMaximum() );
 	  }
+		  
+	  h_a->SetMaximum( maximum );
+	  h_b->SetMaximum( maximum );
+	  h_c->SetMaximum( maximum );
+	  h_d->SetMaximum( maximum );
+
+	  h_a->SetMinimum( m_dPhiLogMin );
+	  h_b->SetMinimum( m_dPhiLogMin );
+	  h_c->SetMinimum( m_dPhiLogMin );
+	  h_d->SetMinimum( m_dPhiLogMin );
+
+	  c.SetLogy();
 
 	  DrawTopLeftLabels
 	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
@@ -1756,8 +1770,8 @@ void DiJetAnalysisMC::MakeDphiRecoTruth(){
 	    { SaveAsPdfPng( c, Form("h_%s_%s", m_dPhiName.c_str(), hTag.c_str() ), true ); }
 	  SaveAsROOT( c, Form("h_%s_%s", m_dPhiName.c_str(), hTag.c_str() ) );
 	  
-	  delete  f_a; delete  f_b; delete f_c; delete f_d;
-	  delete  h_a; delete  h_b; delete h_c; delete h_d;
+	  // delete  f_a; delete  f_b; delete f_c; delete f_d;
+	  // delete  h_a; delete  h_b; delete h_c; delete h_d;
 	} // end loop over axis3
       } // end loop over axis2
     } // end loop over ystar2
