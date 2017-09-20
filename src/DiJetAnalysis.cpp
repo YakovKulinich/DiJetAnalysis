@@ -171,7 +171,8 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   
   m_dPhiZoomLowBin  = m_nDphiBinsLarge;
   m_dPhiZoomHighBin = m_nVarDphiBins;
-  
+
+  /*
   m_varDphiRebinnedBinning.push_back( m_varDphiBinning[0]  );
   m_varDphiRebinnedBinning.push_back( m_varDphiBinning[3]  );
   m_varDphiRebinnedBinning.push_back( m_varDphiBinning[5]  );
@@ -188,6 +189,14 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
 
   m_dPhiRebinnedZoomLowBin  = 2;
   m_dPhiRebinnedZoomHighBin = m_nVarDphiRebinnedBins;
+  */
+
+  m_varDphiRebinnedBinning  = m_varDphiBinning;
+
+  m_nVarDphiRebinnedBins    = m_nVarDphiBins;
+
+  m_dPhiRebinnedZoomLowBin  = m_dPhiZoomLowBin;
+  m_dPhiRebinnedZoomHighBin = m_dPhiZoomHighBin; 
   
   int count = 0;
   for( auto & b : m_varDphiBinning ){ std::cout << count++ << "," << b << " -> "; }
@@ -453,8 +462,7 @@ bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets,
 }
 
 double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
-				       const std::vector< TLorentzVector >& v_jets,
-				       WeightFcn weightFcn ){
+				       const std::vector< TLorentzVector >& v_jets ){
   
   const TLorentzVector* jet1 = NULL; const TLorentzVector* jet2 = NULL;
 
@@ -474,16 +482,14 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
   std::vector< double > x;
   x.resize( hn->GetNdimensions() );
     
-  // wont change unless we have a weightFcn
-  // and then it varys depending on eta, phi, pt.
-  double weight = weightFcn ? weightFcn( jet1_eta, jet1_phi, jet1_pt ) : 1;   
+  double jetWeight = GetJetWeight( jet1_eta, jet1_phi, jet1_pt );   
   
   x[0] = jet1_ystar;  
   x[1] = jet2_ystar;
   x[2] = jet1_pt ;
   x[3] = jet2_pt ;
   x[4] = deltaPhi;
-  hn->Fill( &x[0], weight );
+  hn->Fill( &x[0], jetWeight );
   
   // for pp, fill twice. once for each side since
   // it is symmetric in pp. For pPb, continue
@@ -491,7 +497,7 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
   
   x[0] = -jet1_ystar;  
   x[1] = -jet2_ystar;
-  hn->Fill( &x[0], weight );
+  hn->Fill( &x[0], jetWeight );
   
   return deltaPhi;
 }
@@ -582,6 +588,13 @@ bool DiJetAnalysis::IsCentralYstar( const double& ystar )
 
 void DiJetAnalysis::NormalizeDeltaPhi( TH1* h )
 { if( h->GetEntries() ){ h->Scale( 1./h->Integral()) ; } }
+
+double DiJetAnalysis::GetJetWeight( double eta, double phi, double pt )
+{ return 1; }
+
+double DiJetAnalysis::GetUncertaintyWeight( const TLorentzVector& jet1,
+					    const TLorentzVector& jet2 )
+{ return 1; }
 
 TH1* DiJetAnalysis::CombineSamples( std::vector< TH1* >& vSampleHin,
 				    const std::string& name ){ return NULL; }  
@@ -840,7 +853,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   
   std::vector< TH1* > vDphi;
   std::vector< TF1* > vFits;
-
+  std::vector< THnSparse* > vHnDphi;
+  
   // ---- loop over group  ----
   // ---- (jzn or trigger) ----
   for( uint iG = 0; iG < vhn.size(); iG++ ){      
@@ -848,8 +862,13 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   
     std::string label = vLabel[iG];
 
-    if( label.compare( m_allName ) ){ continue; } 
-  
+    if( label.compare( m_allName ) ){ continue; }
+
+    THnSparse* hnDphi = static_cast< THnSparse* >
+      ( hn->Clone( Form( "h_%s_%s",  name.c_str(), label.c_str() ) ) );
+    hnDphi->Reset();
+    vHnDphi.push_back( hnDphi );
+    
     TAxis* axis0 = hn->GetAxis( m_dPP->GetAxisI(0) ); int nAxis0Bins = axis0->GetNbins();
     TAxis* axis1 = hn->GetAxis( m_dPP->GetAxisI(1) ); int nAxis1Bins = axis1->GetNbins();
     TAxis* axis2 = hn->GetAxis( m_dPP->GetAxisI(2) ); int nAxis2Bins = axis2->GetNbins();
@@ -943,12 +962,15 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	    // Take projection onto the dPhi axis
 	    std::string hDphiName = Form( "h_%s_%s_%s", name.c_str(), label.c_str(), hTag.c_str() );
+
 	    TH1* hDphi = hn->Projection( 4 );
 	    hDphi->SetName( hDphiName.c_str() );
 	    styleTool->SetHStyle( hDphi, 0 );
 	    hDphi->SetNdivisions( 505, "Y" );
 	    vDphi.push_back( hDphi );
 
+	    h_mult    ->Fill( hDphi->GetEntries() );
+	    
 	    // if its not unfolded result, subtract combinatoric, noramlize
 	    if( !isUnfolded ){
 	      // because variable bin width, scale by bin width
@@ -964,9 +986,17 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->Draw();
 	    hDphi->SetYTitle("Normalized Count");
 	    hDphi->SetTitle("");
-
-	    h_mult->Fill( hDphi->GetEntries() );
 	    
+	    // fill output THnSparse result
+	    std::vector< int > x  = m_dPP->GetMappedBins
+	      ( std::vector<int> { axis0Bin, axis1Bin, axis2Bin, axis3Bin } );
+	    x.push_back(0); // dPhiBin;
+	    for( int dPhiBin = 1; dPhiBin <= hDphi->GetNbinsX(); dPhiBin++ ){
+	      x[4] = dPhiBin;
+	      hnDphi->SetBinContent( &x[0], hDphi->GetBinContent( dPhiBin ) );
+	      hnDphi->SetBinError  ( &x[0], hDphi->GetBinError  ( dPhiBin ) );
+	    }
+
 	    // now fit
 	    TF1* fit = anaTool->FitDphi( hDphi, m_dPhiFittingMin, m_dPhiFittingMax );
 	    styleTool->SetHStyle( fit, 0 );
@@ -1037,6 +1067,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
         SaveAsAll( cWidths, Form("h_%s_%s_%s", name.c_str(), label.c_str(), hTagCW.c_str() ) );
       } // end loop over axis1     
     } // end loop over axis0
+    // save THnSparse dPhi to file
+    hnDphi->Write();
   } // end loop over iG
 
   h_mult    ->Write();
@@ -1048,8 +1080,9 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   delete h_tauAmp;
   delete h_tauConst;
   
-  for( auto& f : vFits ){ delete f; }
-  for( auto& h : vDphi ){ delete h; }
+  for( auto& f  : vFits   ){ delete f;  }
+  for( auto& h  : vDphi   ){ delete h;  }
+  for( auto& hn : vHnDphi ){ delete hn; }
 }
 
 THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
@@ -1132,13 +1165,13 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 		  anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
 		  anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() ); 
 
-	  // Get measured distribution
+	  // Get measured and truth distributions
 	  TH1* hDphiMeasured = static_cast<TH1D*>
 	    ( fInData->Get( Form( "h_%s_%s_%s", measuredName.c_str(), m_allName.c_str(), hTag.c_str())));
-	  // Get truth distribution
-
 	  TH1* hDphiTruth    = static_cast<TH1D*>
 	    (fInMC->Get( Form( "h_%s_%s_%s", m_dPhiTruthName.c_str(), m_allName.c_str(), hTag.c_str())));
+
+	  // Get the correction factors and response matrix
 	  TH1* hCFactors     = static_cast<TH1D*>
 	    (fInMC->Get( Form( "h_%s_%s_%s", m_dPhiCFactorsName.c_str(), m_allName.c_str(), hTag.c_str())));
 	  TH2* hDphiRespMat  = static_cast<TH2D*>

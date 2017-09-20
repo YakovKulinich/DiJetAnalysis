@@ -3,6 +3,8 @@
 
 #include <TH1.h>
 #include <TH2.h>
+#include <TH3.h>
+#include <THnSparse.h>
 #include <TFile.h>
 #include <TLorentzVector.h>
 #include <TRandom3.h>
@@ -22,6 +24,14 @@ UncertaintyTool::UncertaintyTool( int uc, bool is_pPb )
 
 UncertaintyTool::~UncertaintyTool(){}
 
+void UncertaintyTool::RegisterUFactors( std::vector< std::vector< float > >* p_vSysUncert )
+{ m_p_vSysUncert = p_vSysUncert; }
+
+
+double UncertaintyTool::GetUncertaintyWeight( const TLorentzVector& jet1,
+					      const TLorentzVector& jet2 )
+{ return 1; }
+
 int UncertaintyTool::GetEtaUJERBin(float eta){
 
   int yBin=0;
@@ -40,6 +50,22 @@ int UncertaintyTool::GetEtaUJERBin(float eta){
 double UncertaintyTool::GetYstar( const TLorentzVector& jet )
 { return m_is_pPb ? jet.Rapidity() + constants::BETAZ : jet.Rapidity(); }
 
+
+//--------------------------------
+//   Unfolding Uncertainty Tool
+//--------------------------------
+
+UnfoldingUncertaintyTool::UnfoldingUncertaintyTool( int uc, bool is_pPb )
+  : UncertaintyTool( uc, is_pPb ){}
+
+UnfoldingUncertaintyTool::~UnfoldingUncertaintyTool(){}
+
+void UnfoldingUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
+						   std::vector< TLorentzVector >& truthJets ){}
+
+double UnfoldingUncertaintyTool::GetUncertaintyWeight( const TLorentzVector& jet1,
+						       const TLorentzVector& jet2 )
+{ return 1; }
 
 //--------------------------------
 //      Angular Uncertainty Tool 
@@ -96,51 +122,54 @@ AngularUncertaintyTool::~AngularUncertaintyTool(){
   delete hAngularResPhi;
 }
 
-void AngularUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
-					       TLorentzVector& truthJet,
-					       double factor ){
+void AngularUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
+						 std::vector< TLorentzVector >& truthJets ){
 
-  float recoJetPt    = recoJet.Pt()/1000.;
-  float recoJetEta   = recoJet.Eta();
-  float recoJetYstar = GetYstar( recoJet );
-  float recoJetPhi   = recoJet.Phi();
-  float recoJetM     = recoJet.M();
+  for( uint iJet = 0; iJet < recoJets.size(); iJet++ ){
+    TLorentzVector& recoJet  = recoJets [ iJet ];
+    TLorentzVector& truthJet = truthJets[ iJet ];
+
+    float recoJetPt    = recoJet.Pt()/1000.;
+    float recoJetEta   = recoJet.Eta();
+    float recoJetYstar = GetYstar( recoJet );
+    float recoJetPhi   = recoJet.Phi();
+    float recoJetM     = recoJet.M();
   
-  float truthJetEta   = truthJet.Eta();
-  float truthJetPhi   = truthJet.Phi();
+    float truthJetEta   = truthJet.Eta();
+    float truthJetPhi   = truthJet.Phi();
  
-  float uncertaintyEta  = hAngularUncertEta->Interpolate
-    ( recoJetYstar, recoJetPt );
-  float uncertaintyPhi  = hAngularUncertPhi->Interpolate
-    ( recoJetYstar, recoJetPt );
+    float uncertaintyEta  = hAngularUncertEta->Interpolate
+      ( recoJetYstar, recoJetPt );
+    float uncertaintyPhi  = hAngularUncertPhi->Interpolate
+      ( recoJetYstar, recoJetPt );
 
-  float etaRes = hAngularResEta->Interpolate
-    ( recoJetYstar, recoJetPt ); 
-  float phiRes = hAngularResPhi->Interpolate
-    ( recoJetYstar, recoJetPt ); 
+    float etaRes = hAngularResEta->Interpolate
+      ( recoJetYstar, recoJetPt ); 
+    float phiRes = hAngularResPhi->Interpolate
+      ( recoJetYstar, recoJetPt ); 
  
-  float smearingFactorSystEta =
-    sqrt( pow( etaRes + uncertaintyEta, 2 ) - pow( etaRes, 2 ) );
-  float smearingFactorSystPhi =
-    sqrt( pow( phiRes + uncertaintyPhi, 2 ) - pow( phiRes, 2 ) );
+    float smearingFactorSystEta =
+      sqrt( pow( etaRes + uncertaintyEta, 2 ) - pow( etaRes, 2 ) );
+    float smearingFactorSystPhi =
+      sqrt( pow( phiRes + uncertaintyPhi, 2 ) - pow( phiRes, 2 ) );
 
-  float correctionEta = rand->Gaus(0., smearingFactorSystEta);
-  float correctionPhi = rand->Gaus(0., smearingFactorSystPhi);
+    float correctionEta = rand->Gaus(0., smearingFactorSystEta);
+    float correctionPhi = rand->Gaus(0., smearingFactorSystPhi);
           
-  float recoJetEtaNew = recoJetEta + truthJetEta * correctionEta;
-  float recoJetPhiNew = recoJetPhi + truthJetPhi * correctionPhi;
+    float recoJetEtaNew = recoJetEta + truthJetEta * correctionEta;
+    float recoJetPhiNew = recoJetPhi + truthJetPhi * correctionPhi;
 
-  /*
-  std::cout << "----" << std::endl;
-  std::cout << uncertaintyEta << " ... " << etaRes << " ... "
-	    << correctionEta << " : " << recoJetEta << " -> " << recoJetEtaNew << std::endl;
-  std::cout << uncertaintyPhi << " ... " << phiRes << " ... "
-	    << correctionPhi << " : " << recoJetPhi << " -> " << recoJetPhiNew << std::endl;
-  */
+    /*
+      std::cout << "----" << std::endl;
+      std::cout << uncertaintyEta << " ... " << etaRes << " ... "
+      << correctionEta << " : " << recoJetEta << " -> " << recoJetEtaNew << std::endl;
+      std::cout << uncertaintyPhi << " ... " << phiRes << " ... "
+      << correctionPhi << " : " << recoJetPhi << " -> " << recoJetPhiNew << std::endl;
+    */
   
-  recoJet.SetPtEtaPhiM
-    ( recoJetPt * 1000, recoJetEtaNew, recoJetPhiNew, recoJetM );
-  
+    recoJet.SetPtEtaPhiM
+      ( recoJetPt * 1000, recoJetEtaNew, recoJetPhiNew, recoJetM );
+  }
 }
 
 //--------------------------------
@@ -176,34 +205,39 @@ JERUncertaintyTool::~JERUncertaintyTool(){
   for( auto& h : m_vJERhistos ){ delete h; }
 }
 
-void JERUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
-					   TLorentzVector& truthJet,
-					   double factor ){
+void JERUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
+					     std::vector< TLorentzVector >& truthJets ){
 
-  float recoJetPt    = recoJet.Pt()/1000.;
-  float recoJetEta   = recoJet.Eta();
-  float recoJetYstar = GetYstar( recoJet );
-  float recoJetPhi   = recoJet.Phi();
-  float recoJetM     = recoJet.M();
+  for( uint iJet = 0; iJet < recoJets.size(); iJet++ ){
+    TLorentzVector& recoJet  = recoJets [ iJet ];
+    TLorentzVector& truthJet = truthJets[ iJet ];
+
   
-  float truthJetPt   = truthJet.Pt()/1000.;
+    float recoJetPt    = recoJet.Pt()/1000.;
+    float recoJetEta   = recoJet.Eta();
+    float recoJetYstar = GetYstar( recoJet );
+    float recoJetPhi   = recoJet.Phi();
+    float recoJetM     = recoJet.M();
+  
+    float truthJetPt   = truthJet.Pt()/1000.;
 
-  int   etaBin       = GetEtaUJERBin( recoJetEta );
-  float uncertainty  = m_vJERhistos[ etaBin ]->Interpolate( recoJetPt );
+    int   etaBin       = GetEtaUJERBin( recoJetEta );
+    float uncertainty  = m_vJERhistos[ etaBin ]->Interpolate( recoJetPt );
 
-  float JER          = hJER->Interpolate( recoJetYstar, recoJetPt ); 
-  float smearingFactorSyst = sqrt(pow(JER+uncertainty,2)-pow(JER,2));
+    float JER          = hJER->Interpolate( recoJetYstar, recoJetPt ); 
+    float smearingFactorSyst = sqrt(pow(JER+uncertainty,2)-pow(JER,2));
 
-  float correction   = rand->Gaus(0., smearingFactorSyst);
+    float correction   = rand->Gaus(0., smearingFactorSyst);
           
-  float recoJetPtNew = recoJetPt + truthJetPt * correction;
-  if ( recoJetPtNew < 10){
-    recoJetPtNew = 1;
-    recoJetM = 0;
-  }
+    float recoJetPtNew = recoJetPt + truthJetPt * correction;
+    if ( recoJetPtNew < 10){
+      recoJetPtNew = 1;
+      recoJetM = 0;
+    }
   
-  recoJet.SetPtEtaPhiM
-    ( recoJetPtNew * 1000., recoJetEta, recoJetPhi, recoJetM );
+    recoJet.SetPtEtaPhiM
+      ( recoJetPtNew * 1000., recoJetEta, recoJetPhi, recoJetM );
+  }
 }
 
 //--------------------------------
@@ -228,20 +262,24 @@ HIJESUncertaintyTool::~HIJESUncertaintyTool(){
   for( auto& h : m_vJEShistos ){ delete h; }
 }
 
-void HIJESUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
-					     TLorentzVector& truthJet,
-					     double factor){
+void HIJESUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
+					       std::vector< TLorentzVector >& truthJets ){
+
+  for( uint iJet = 0; iJet < recoJets.size(); iJet++ ){
+    TLorentzVector& recoJet  = recoJets[ iJet ];
   
-  double eta = recoJet.Eta();
-  double pT  = recoJet.Pt()/1000.;
+    double eta = recoJet.Eta();
+    double pT  = recoJet.Pt()/1000.;
   
-  int etaBin = GetEtaUJERBin( eta );
-  // need to subtract 1 after, the values are around 1.
-  double histoFactor = m_vJEShistos[ etaBin ]->Interpolate( pT );
-  histoFactor -= 1;
+    int etaBin = GetEtaUJERBin( eta );
+    // need to subtract 1 after, the values are around 1.
+    double histoFactor = m_vJEShistos[ etaBin ]->Interpolate( pT );
+    histoFactor -= 1;
     
-  recoJet.SetPtEtaPhiM( recoJet.Pt() * ( 1 + histoFactor * m_sign ),
-			recoJet.Eta(), recoJet.Phi(), recoJet.M() );
+    recoJet.SetPtEtaPhiM( recoJet.Pt() * ( 1 + histoFactor * m_sign ),
+			  recoJet.Eta(), recoJet.Phi(), recoJet.M() );
+
+  }
 }
 
 //--------------------------------
@@ -253,11 +291,16 @@ JESUncertaintyTool::JESUncertaintyTool( int uc, bool is_pPb )
 
 JESUncertaintyTool::~JESUncertaintyTool(){}
 
-void JESUncertaintyTool::ApplyUncertainty( TLorentzVector& recoJet,
-					   TLorentzVector& truthJet,
-					   double factor){
-  recoJet.SetPtEtaPhiM( recoJet.Pt() * ( 1 + factor * m_sign ),
-			recoJet.Eta(), recoJet.Phi(), recoJet.M() );
+void JESUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
+					     std::vector< TLorentzVector >& truthJets ){
+
+  for( uint iJet = 0; iJet < recoJets.size(); iJet++ ){
+    TLorentzVector& recoJet = recoJets[ iJet ];
+    double factor = (*m_p_vSysUncert)[ iJet ][ std::abs( m_uc ) - 1 ];
+      
+    recoJet.SetPtEtaPhiM( recoJet.Pt() * ( 1 + factor * m_sign ),
+			  recoJet.Eta(), recoJet.Phi(), recoJet.M() );
+  }
 }
 
 //--------------------------------
@@ -278,6 +321,8 @@ UncertaintyProvider::UncertaintyProvider( int uc, bool is_pPb ) : m_uncertaintyT
     m_uncertaintyTool = new JERUncertaintyTool      ( uc, is_pPb );
   } else if( pos_uc == 21 ) {
     m_uncertaintyTool = new AngularUncertaintyTool  ( uc, is_pPb );
+  } else if( pos_uc == 22 ) {
+    m_uncertaintyTool = new UnfoldingUncertaintyTool( uc, is_pPb );
   } 
 }  
 
@@ -285,9 +330,18 @@ UncertaintyProvider::~UncertaintyProvider(){
   delete m_uncertaintyTool; m_uncertaintyTool = NULL;
 }
 
-void UncertaintyProvider::ApplyUncertainty( TLorentzVector& recoJet,
-					    TLorentzVector& truthJet,
-					    double factor ){
+void UncertaintyProvider::RegisterUFactors( std::vector< std::vector< float > >* p_vSysUncert )
+{ m_uncertaintyTool->RegisterUFactors( p_vSysUncert ); }
 
-  m_uncertaintyTool->ApplyUncertainty( recoJet, truthJet, factor );
+void UncertaintyProvider::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
+					      std::vector< TLorentzVector >& truthJets ){
+
+  m_uncertaintyTool->ApplyUncertainties( recoJets, truthJets );
+}
+
+double UncertaintyProvider::GetUncertaintyWeight( const TLorentzVector& jet1,
+						  const TLorentzVector& jet2 )
+{
+
+  return m_uncertaintyTool->GetUncertaintyWeight( jet1, jet2 );
 }

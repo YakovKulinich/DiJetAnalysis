@@ -20,8 +20,6 @@ class TTree;
 
 class DeltaPhiProj;
 
-typedef double (*WeightFcn)( double, double, double );
-
 class DiJetAnalysis{
  public:
   DiJetAnalysis();
@@ -77,8 +75,7 @@ class DiJetAnalysis{
 			  const TLorentzVector*& );
   
   virtual double AnalyzeDeltaPhi( THnSparse*,
-				  const std::vector <TLorentzVector>&,
-				  WeightFcn = NULL );
+				  const std::vector <TLorentzVector>& );
 
   virtual bool  ApplyIsolation( std::vector<TLorentzVector>&,
 				double );
@@ -106,6 +103,11 @@ class DiJetAnalysis{
   
   void NormalizeDeltaPhi( TH1* );
 
+  virtual double GetJetWeight( double = 0, double = 0, double = 0 );
+
+  virtual double GetUncertaintyWeight( const TLorentzVector&,
+				       const TLorentzVector& );
+  
   virtual TH1*       CombineSamples( std::vector< TH1* >&,
 				     const std::string& = "" );
 

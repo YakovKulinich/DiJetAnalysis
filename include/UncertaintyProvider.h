@@ -6,6 +6,8 @@
 
 class TH1;
 class TH2;
+class TH3;
+class THnSparse;
 class TRandom3;
 class TLorentzVector;
 
@@ -17,9 +19,15 @@ class UncertaintyTool{
  public:
   UncertaintyTool( int, bool );
   virtual ~UncertaintyTool();
-  
-  virtual void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double ) {}
 
+  void RegisterUFactors( std::vector< std::vector< float > >* );
+  
+  virtual void ApplyUncertainties( std::vector< TLorentzVector >&,
+				   std::vector< TLorentzVector >& ) = 0;
+
+  virtual double GetUncertaintyWeight( const TLorentzVector&,
+				       const TLorentzVector& );
+  
   int GetEtaUJERBin( float eta );
 
   double GetYstar( const TLorentzVector& jet );
@@ -27,10 +35,31 @@ class UncertaintyTool{
  protected:
   int  m_uc;
   bool m_is_pPb;
+
+  std::vector< std::vector< float > >* m_p_vSysUncert;
   
   int m_sign;
   std::string m_system;
+
   TRandom3* rand;
+};
+
+//--------------------------------
+//    Unfolding Uncertainty Tool 
+//--------------------------------
+class UnfoldingUncertaintyTool : public UncertaintyTool{
+ public:
+  UnfoldingUncertaintyTool( int, bool );
+  ~UnfoldingUncertaintyTool();
+
+  void ApplyUncertainties( std::vector< TLorentzVector >&,
+			   std::vector< TLorentzVector >& );
+
+  double GetUncertaintyWeight( const TLorentzVector&,
+			       const TLorentzVector& );
+  
+ private:
+  THnSparse* hUnfoldingUncert;
 };
 
 //--------------------------------
@@ -41,8 +70,9 @@ class AngularUncertaintyTool : public UncertaintyTool{
   AngularUncertaintyTool( int, bool );
   ~AngularUncertaintyTool();
 
-  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
-
+  void ApplyUncertainties( std::vector< TLorentzVector >&,
+			   std::vector< TLorentzVector >& );
+  
  private:
   TH2* hAngularUncertEta;
   TH2* hAngularUncertPhi;
@@ -59,7 +89,8 @@ class JERUncertaintyTool : public UncertaintyTool{
   JERUncertaintyTool( int, bool );
   ~JERUncertaintyTool();
 
-  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
+  void ApplyUncertainties( std::vector< TLorentzVector >&,
+			   std::vector< TLorentzVector >& );
 
  private:
   TH2* hJER;
@@ -74,7 +105,8 @@ class HIJESUncertaintyTool : public UncertaintyTool{
   HIJESUncertaintyTool( int, bool );
   ~HIJESUncertaintyTool();
 
-  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
+  void ApplyUncertainties( std::vector< TLorentzVector >&,
+			   std::vector< TLorentzVector >& );
 
  private:
   std::vector<TH1*> m_vJEShistos;
@@ -88,7 +120,9 @@ class JESUncertaintyTool : public UncertaintyTool{
   JESUncertaintyTool( int, bool );
   ~JESUncertaintyTool();
   
-  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
+  void ApplyUncertainties( std::vector< TLorentzVector >&,
+			   std::vector< TLorentzVector >& );
+  
 };
 
 //--------------------------------
@@ -101,7 +135,13 @@ class UncertaintyProvider{
   UncertaintyProvider( int, bool );
   virtual ~UncertaintyProvider();
 
-  void ApplyUncertainty( TLorentzVector&, TLorentzVector&, double = 0 );
+  void RegisterUFactors( std::vector< std::vector< float > >* );
+  
+  void ApplyUncertainties( std::vector< TLorentzVector >&,
+			   std::vector< TLorentzVector >& );
+
+  double GetUncertaintyWeight( const TLorentzVector&,
+			       const TLorentzVector& );
   
  private:
   UncertaintyTool*  m_uncertaintyTool;

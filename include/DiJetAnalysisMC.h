@@ -52,14 +52,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void AnalyzeResponseMatrix( THnSparse*, THnSparse*, THnSparse*,
 			      const std::vector<TLorentzVector>&,
-			      const std::vector<TLorentzVector>&,
-			      WeightFcn = NULL );
+			      const std::vector<TLorentzVector>& );
 
   std::pair<double,double> AnalyzeDeltaPhiTruthReco
     ( THnSparse*, THnSparse*,
       const std::vector <TLorentzVector>&,
-      const std::vector <TLorentzVector>&,
-      WeightFcn = NULL );
+      const std::vector <TLorentzVector>& );
 
   //---------------------------
   //          Tools 
@@ -79,15 +77,21 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			     const std::string& = "" );    
   
   void CombineSamples( TH1*,
-		       std::vector< TH1*>&,
-		       std::vector< TH1*>&,
+		       std::vector< TH1* >&,
+		       std::vector< TH1* >&,
 		       const std::string& = "" );
 
-  TGraphAsymmErrors* CombineJZN
-    ( std::vector< TGraphAsymmErrors* >&,
-      std::vector< TH1*>& );
+  void CombineSamples( TH1*,
+		       std::vector< TH1* >&,
+		       std::vector< TH1* >&,
+		       std::vector< TH1* >&,
+		       std::vector< TH2* >&,
+		       const std::string& = "" );
+
+  double GetJetWeight( double = 0, double = 0, double = 0 );
   
-  static double GetJetWeight( double = 0, double = 0, double = 0 );
+  double GetUncertaintyWeight( const TLorentzVector&,
+			       const TLorentzVector& );
 
   void GetTypeTitle( const std::string&,
 		     std::string&, std::string& );
@@ -170,7 +174,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
     
   double m_sumSigmaEff;
 
-  static TH3* m_hPowhegWeights;
+  TH3* m_hPowhegWeights;
 
   //============ data =============
   // -------- maps ---------

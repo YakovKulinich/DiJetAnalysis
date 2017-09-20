@@ -23,8 +23,6 @@
 #include "DeltaPhiProj.h"
 #include "UncertaintyProvider.h"
 
-TH3* DiJetAnalysisMC::m_hPowhegWeights = NULL;
-
 DiJetAnalysisMC::DiJetAnalysisMC()
   : DiJetAnalysisMC( false, 0, 0 ) {}
 
@@ -650,25 +648,19 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 
       // If not running on default sample.
       // Apply uncertainties to all reco jets.
-      // The method still takes a jet one at a time
-      // This can be modified later if needed
       if( m_uncertComp ){
-	for( uint iJet = 0; iJet < vRR_paired_jets.size(); iJet++ ){
-	  m_uncertaintyProvider->ApplyUncertainty
-	    ( vRR_paired_jets[ iJet ],
-	      vRT_paired_jets[ iJet ],
-	      v_sysUncert[ iJet ][ std::abs( m_uncertComp ) - 1 ] );
-	}
+	m_uncertaintyProvider->RegisterUFactors( &v_sysUncert );
+	m_uncertaintyProvider->ApplyUncertainties( vRR_paired_jets, vRT_paired_jets );
       }
       
       // Do Dphi analysis
-      AnalyzeDeltaPhi( m_vHjznDphiReco [iG], vRR_paired_jets, GetJetWeight );
-      AnalyzeDeltaPhi( m_vHjznDphiTruth[iG], vT_jets        , GetJetWeight );
+      AnalyzeDeltaPhi( m_vHjznDphiReco [iG], vRR_paired_jets );
+      AnalyzeDeltaPhi( m_vHjznDphiTruth[iG], vT_jets         );
 
       // Do Dphi analysis on reco/truth mix
       AnalyzeDeltaPhiTruthReco
 	( m_vHjznDphiRecoPtTruth[iG], m_vHjznDphiTruthPtReco[iG],
-	  vRR_paired_jets, vRT_paired_jets, GetJetWeight );
+	  vRR_paired_jets, vRT_paired_jets );
       
       std::vector< TLorentzVector > vTR_paired_jets;
       std::vector< TLorentzVector > vTT_paired_jets;
@@ -676,7 +668,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 
       AnalyzeResponseMatrix
 	( m_vHjznDphiRespMat[iG], m_vHjznPtRespMat[iG], m_vHjznAllRespMat[iG],
-	  vTR_paired_jets, vTT_paired_jets, GetJetWeight );
+	  vTR_paired_jets, vTT_paired_jets );
       
       // loop over truth jets
       // denominator for efficiency because not all
@@ -689,10 +681,10 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 	double jetPhi    = tJet.Phi();
 	double jetPt     = tJet.Pt()/1000.;
 
-	double weight    = GetJetWeight( jetEta, jetPhi, jetPt );
+	double jetWeight = GetJetWeight( jetEta, jetPhi, jetPt );
 
 	m_vHjznEtaSpectTruth    [iG]->
-	  Fill( jetEtaAdj, jetPt, weight);
+	  Fill( jetEtaAdj, jetPt, jetWeight);
 
 	m_vHjznSpectTruth[iG]->Fill( jetPt );
       } // end loop over truth jets
@@ -727,30 +719,30 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     double jetPhiTruth = truthJet.Phi();
     double  jetPtTruth = truthJet.Pt()/1000.;
 	
-    double weightReco  = GetJetWeight( jetEtaReco , jetPhiReco , jetPtReco  );
-    double weightTruth = GetJetWeight( jetEtaTruth, jetPhiTruth, jetPtTruth );
+    double jetWeightReco  = GetJetWeight( jetEtaReco , jetPhiReco , jetPtReco  );
+    double jetWeightTruth = GetJetWeight( jetEtaTruth, jetPhiTruth, jetPtTruth );
 	
-    m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, weightReco );
-    m_vHjznEtaPtMap [iG]->Fill( jetEtaReco, jetPtReco , weightReco );
+    m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
+    m_vHjznEtaPtMap [iG]->Fill( jetEtaReco, jetPtReco , jetWeightReco );
 
     m_vHjznEtaSpectReco       [iG]->
-      Fill( jetEtaReco,  jetPtReco,  weightReco );
+      Fill( jetEtaReco,  jetPtReco,  jetWeightReco );
 
     m_vHjznEtaSpectTruthPaired[iG]->
-      Fill( jetEtaTruth,  jetPtTruth,  weightTruth );
+      Fill( jetEtaTruth,  jetPtTruth,  jetWeightTruth );
 
     m_vHjznRecoTruthRpt       [iG]->
-      Fill( jetEtaTruth, jetPtTruth, jetPtReco/jetPtTruth, weightTruth );
+      Fill( jetEtaTruth, jetPtTruth, jetPtReco/jetPtTruth, jetWeightTruth );
     m_vHjznRecoTruthRptNent   [iG]->
       Fill( jetEtaTruth, jetPtTruth );
 
     m_vHjznRecoTruthDeta      [iG]->
-      Fill( jetEtaTruth, jetPtTruth, jetEtaReco - jetEtaTruth, weightTruth );
+      Fill( jetEtaTruth, jetPtTruth, jetEtaReco - jetEtaTruth, jetWeightTruth );
     m_vHjznRecoTruthDetaNent  [iG]->
       Fill( jetEtaTruth, jetPtTruth );
 
     m_vHjznRecoTruthDphi      [iG]->
-      Fill( jetEtaTruth, jetPtTruth, jetPhiReco - jetPhiTruth, weightTruth );
+      Fill( jetEtaTruth, jetPtTruth, jetPhiReco - jetPhiTruth, jetWeightTruth );
     m_vHjznRecoTruthDphiNent  [iG]->
       Fill( jetEtaTruth, jetPtTruth  );
   } // end loop over pairs
@@ -758,8 +750,7 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
 
 void  DiJetAnalysisMC::AnalyzeResponseMatrix( THnSparse* hnDphi, THnSparse* hnPt, THnSparse* hnAll,
 					      const std::vector< TLorentzVector >& vR_jets,
-					      const std::vector< TLorentzVector >& vT_jets,
-					      WeightFcn weightFcn ){
+					      const std::vector< TLorentzVector >& vT_jets ){
 
   const TLorentzVector* recoJet1  = NULL; const TLorentzVector* recoJet2  = NULL;
   const TLorentzVector* truthJet1 = NULL; const TLorentzVector* truthJet2 = NULL;
@@ -790,10 +781,8 @@ void  DiJetAnalysisMC::AnalyzeResponseMatrix( THnSparse* hnDphi, THnSparse* hnPt
   std::vector< double > xPt  ( hnPt  ->GetNdimensions(), 0 );
   std::vector< double > xAll ( hnAll ->GetNdimensions(), 0 );
     
-  // wont change unless we have a weightFcn
-  // and then it varys depending on eta, phi, pt.
-  double weight = weightFcn ? weightFcn( truthJet1_eta, truthJet1_phi, truthJet1_pt ) : 1;   
-
+  double jetWeight = GetJetWeight( truthJet1_eta, truthJet1_phi, truthJet1_pt );   
+  
   // fill for the dphi resp mat
   xDphi[0] = truthJet1_ystar;  
   xDphi[1] = truthJet2_ystar;
@@ -801,7 +790,7 @@ void  DiJetAnalysisMC::AnalyzeResponseMatrix( THnSparse* hnDphi, THnSparse* hnPt
   xDphi[3] = truthJet2_pt ;
   xDphi[4] = recoDeltaPhi;
   xDphi[5] = truthDeltaPhi;
-  hnDphi->Fill( &xDphi[0], weight );
+  hnDphi->Fill( &xDphi[0], jetWeight );
 
   // fill for pt resp mat
   xPt[0] = truthJet1_ystar;  
@@ -810,7 +799,7 @@ void  DiJetAnalysisMC::AnalyzeResponseMatrix( THnSparse* hnDphi, THnSparse* hnPt
   xPt[3] = truthJet1_pt;
   xPt[4] = recoJet2_pt ;
   xPt[5] = truthJet2_pt;
-  hnPt->Fill( &xPt[0], weight );
+  hnPt->Fill( &xPt[0], jetWeight );
   // fill for all resp mat
   xAll[0] = truthJet1_ystar;  
   xAll[1] = truthJet2_ystar;
@@ -820,7 +809,7 @@ void  DiJetAnalysisMC::AnalyzeResponseMatrix( THnSparse* hnDphi, THnSparse* hnPt
   xAll[5] = truthJet2_pt;
   xAll[6] = recoDeltaPhi;
   xAll[7] = truthDeltaPhi;
-  hnAll->Fill( &xAll[0], weight );
+  hnAll->Fill( &xAll[0], jetWeight );
 
   // for pp, fill twice. once for each side since
   // it is symmetric in pp. For pPb, continue
@@ -828,22 +817,21 @@ void  DiJetAnalysisMC::AnalyzeResponseMatrix( THnSparse* hnDphi, THnSparse* hnPt
   
   xDphi[0] = -truthJet1_ystar;  
   xDphi[1] = -truthJet2_ystar;
-  hnDphi->Fill( &xDphi[0], weight );
+  hnDphi->Fill( &xDphi[0], jetWeight );
 
   xPt[0] = -truthJet1_ystar;  
   xPt[1] = -truthJet2_ystar;
-  hnPt->Fill( &xPt[0], weight );
+  hnPt->Fill( &xPt[0], jetWeight );
 
   xAll[0] = -truthJet1_ystar;  
   xAll[1] = -truthJet2_ystar;
-  hnAll->Fill( &xAll[0], weight );
+  hnAll->Fill( &xAll[0], jetWeight );
 }
 
 std::pair<double,double> DiJetAnalysisMC::AnalyzeDeltaPhiTruthReco
 ( THnSparse* hnA, THnSparse* hnB,
   const std::vector< TLorentzVector >& v_jets_A,
-  const std::vector< TLorentzVector >& v_jets_B,
-  WeightFcn weightFcn ){
+  const std::vector< TLorentzVector >& v_jets_B ){
 
   const TLorentzVector* jet1A = NULL; const TLorentzVector* jet2A = NULL;
   const TLorentzVector* jet1B = NULL; const TLorentzVector* jet2B = NULL;
@@ -879,24 +867,22 @@ std::pair<double,double> DiJetAnalysisMC::AnalyzeDeltaPhiTruthReco
   xA.resize( hnA->GetNdimensions() );
   xB.resize( hnB->GetNdimensions() );
   
-  // wont change unless we have a weightFcn
-  // and then it varys depending on eta, phi, pt.
-  double weightA = weightFcn ? weightFcn( jet1B_eta, jet1B_phi, jet1B_pt ) : 1;   
-  double weightB = weightFcn ? weightFcn( jet1A_eta, jet1A_phi, jet1A_pt ) : 1;
+  double jetWeightA = GetJetWeight( jet1B_eta, jet1B_phi, jet1B_pt );   
+  double jetWeightB = GetJetWeight( jet1A_eta, jet1A_phi, jet1A_pt );
 
   xA[0] = jet1A_ystar;  
   xA[1] = jet2A_ystar;
   xA[2] = jet1B_pt ;
   xA[3] = jet2B_pt ;
   xA[4] = deltaPhiA;
-  hnA->Fill( &xA[0], weightA );
+  hnA->Fill( &xA[0], jetWeightA );
 
   xB[0] = jet1A_ystar;  
   xB[1] = jet2A_ystar;
   xB[2] = jet1A_pt ;
   xB[3] = jet2A_pt ;
   xB[4] = deltaPhiB;
-  hnB->Fill( &xB[0], weightB );
+  hnB->Fill( &xB[0], jetWeightB );
   
   // for pp, fill twice. once for each side since
   // it is symmetric in pp. For pPb, continue
@@ -904,11 +890,11 @@ std::pair<double,double> DiJetAnalysisMC::AnalyzeDeltaPhiTruthReco
   
   xA[0] = -jet1A_ystar;  
   xA[1] = -jet2A_ystar;
-  hnA->Fill( &xA[0], weightA );
+  hnA->Fill( &xA[0], jetWeightA );
 
   xB[0] = -jet1A_ystar;  
   xB[1] = -jet2A_ystar;
-  hnB->Fill( &xB[0], weightB );
+  hnB->Fill( &xB[0], jetWeightB );
  
   return std::make_pair( deltaPhiA, deltaPhiB );
 }
@@ -1035,6 +1021,7 @@ void DiJetAnalysisMC::CombineSamples( TH1* h_res,
 				      std::vector< TH1* >& vSampleHin,
 				      std::vector< TH1* >& vSampleNentIn,
 				      const std::string& name ){
+
   // loop over xBins
   for( int xBin = 1; xBin <= h_res->GetNbinsX(); xBin++ ){
 
@@ -1074,6 +1061,66 @@ void DiJetAnalysisMC::CombineSamples( TH1* h_res,
   } // end loop over xBins
 }
 
+void DiJetAnalysisMC::CombineSamples( TH1* h_res,
+				      std::vector< TH1* >& vSampleHin,
+				      std::vector< TH1* >& vSampleNentInT,
+				      std::vector< TH1* >& vSampleNentInR,
+				      std::vector< TH2* >& vSampleRespMat,
+				      const std::string& name ){
+
+  // loop over xBins
+  for( int xBin = 1; xBin <= h_res->GetNbinsX(); xBin++ ){
+
+    double valTot      = 0;
+    double valErrorTot = 0;
+    double denomTot    = 0;
+
+    for( uint iG = 0; iG < vSampleHin.size(); iG++ ){
+      if( vSampleHin[iG]->GetEntries() == 0 ){ continue; }
+
+      double valueBin = vSampleHin    [iG]->GetBinContent( xBin );
+      double nEntT    = vSampleNentInT[iG]->GetBinContent( xBin );
+      double nEntR    = vSampleNentInR[iG]->GetBinContent( xBin );
+      double nEntMat  = vSampleRespMat[iG]->GetBinContent( xBin );
+      
+      double weight   = m_vJznWeights[iG] / m_vJznSumOverlayWeights[iG];
+
+      double newError =
+	std::sqrt( std::pow( nEntT, 2 ) / std::pow( nEntR, 3 ) *
+		   ( 1 - std::pow( nEntMat, 2 ) / ( nEntT * nEntR ) ) );
+
+      // if one of them is zero, leave it alone
+      if( nEntT == 0 || nEntR == 0 ){
+	newError = 0;
+      }
+      
+      std::cout << nEntT << " " << nEntR << " " << nEntMat << " " << newError << std::endl;
+
+      double val    = weight * nEntR * valueBin;
+      double valErr = weight * nEntR * newError;
+
+      valTot       += val;
+      valErrorTot  += valErr * valErr;
+
+      double denom  = weight * nEntR;
+      denomTot     += denom;
+    }
+
+    double valFinal      = valTot / denomTot;
+    double valErrorFinal = valErrorTot / ( denomTot * denomTot );
+    valErrorFinal        = std::sqrt( valErrorFinal );
+
+    std::cout << "---- " << valFinal << " " << valErrorFinal << std::endl;
+    
+    // check if we have NaN from
+    // dividing valTot by zero (denomTot)
+    if( std::isnan( valFinal ) ){ continue; }
+    
+    h_res->SetBinContent( xBin, valFinal );
+    h_res->SetBinError  ( xBin, valErrorFinal );
+  } // end loop over xBins
+}
+
 double DiJetAnalysisMC::GetJetWeight( double eta, double phi, double pt ){
   if( !m_hPowhegWeights ) { return 1; } 
   
@@ -1084,6 +1131,15 @@ double DiJetAnalysisMC::GetJetWeight( double eta, double phi, double pt ){
 
   return jet_weight;
 }
+
+double DiJetAnalysisMC::GetUncertaintyWeight( const TLorentzVector& jet1,
+					      const TLorentzVector& jet2 )
+{
+
+  // Will have m_uncertaintyProvider->GetWeight( jet1, jet2 );
+  return 1;
+}
+
 
 void DiJetAnalysisMC::GetTypeTitle( const std::string& type,
 				    std::string& yTitleMean,
@@ -1494,14 +1550,14 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
 	nBinsY, yMin, yMax );
     vSigmasFinal.push_back( hSigmaFinal );
 
-    CombineSamples( hMeanFinal , vYstarMeanTemp , vYstarNentTemp  );
-    CombineSamples( hSigmaFinal, vYstarSigmaTemp, vYstarNentTemp  );
+    CombineSamples( hMeanFinal , vYstarMeanTemp , vYstarNentTemp );
+    CombineSamples( hSigmaFinal, vYstarSigmaTemp, vYstarNentTemp );
 
     for( int yBin = 1; yBin <= nBinsY; yBin++ ){
       hMeanAll ->SetBinContent( xBin, yBin, hMeanFinal ->GetBinContent(yBin) );
       hSigmaAll->SetBinContent( xBin, yBin, hSigmaFinal->GetBinContent(yBin) );
     }
-  }
+  } // end loop over xBin
 
   DrawCanvas( vMeansFinal ,
 	      Form( "h_%s", type.c_str() ), sMean );
@@ -1725,6 +1781,7 @@ void DiJetAnalysisMC::MakePtResponseMatrix( std::vector< THnSparse* >& vhnPt,
   for( uint iG = 0; iG < vhnPt.size(); iG++ ){      
     // in data only draw for all
     std::string label = vLabel[iG];
+
     if( label.compare( m_allName ) ){ continue; } 
 
     THnSparse* hnPt   = vhnPt  [iG];
@@ -1847,24 +1904,37 @@ void DiJetAnalysisMC::MakePtResponseMatrix( std::vector< THnSparse* >& vhnPt,
   for( auto pe : vPurityEff   ){ delete pe; }
 }
 
-void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
-					       std::vector<THnSparse*>& vHnR,
-					       std::vector<THnSparse*>& vHnAllRespMat,
-					       std::vector<THnSparse*>& vHnDphiRespMat,
+void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
+					       std::vector< THnSparse* >& vHnR,
+					       std::vector< THnSparse* >& vHnAllRespMat,
+					       std::vector< THnSparse* >& vHnDphiRespMat,
 					       const std::vector< std::string >& vLabel,
 					       const std::string& nameCFactors,
 					       const std::string& nameAllRespMat,
 					       const std::string& nameDphiRespMat  ){
+
+  // these are just for garbage collection
   std::vector< TH1* > vProj;
-  std::vector< TH1* > vRatio;
-  std::vector< TH1* > vRespMat;
+  std::vector< TH1* > vCfactors;
+  std::vector< TH2* > vRespMat;
+
+  // these are needed to later combine the samples
+  std::vector< std::vector< TH1* > > vCfactorsJzn;
+  std::vector< std::vector< TH1* > > vNentTJzn;
+  std::vector< std::vector< TH1* > > vNentRJzn;
+  std::vector< std::vector< TH2* > > vRespMatJzn;
+
+  std::vector< TH1* > vCfactorsAll;
+
+  vCfactorsJzn.resize( m_nJzn );
+  vNentTJzn   .resize( m_nJzn );
+  vNentRJzn   .resize( m_nJzn );
+  vRespMatJzn .resize( m_nJzn );
   
   // ---- loop over group  ----
   // ---- (jzn or trigger) ----
   for( uint iG = 0; iG < vHnT.size(); iG++ ){      
     std::string label = vLabel[iG];
-
-    if( label.compare( m_allName ) ){ continue; } 
 
     THnSparse* hnT    = vHnT[iG];
     THnSparse* hnR    = vHnR[iG];
@@ -1910,10 +1980,10 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    axisDphiRespMat2->SetRange( axis2Bin, axis2Bin ); 
 	    axisDphiRespMat3->SetRange( axis3Bin, axis3Bin ); 
 	    
-	    double axis0Low , axis0Up;
-	    double axis1Low , axis1Up;
-	    double axis2Low , axis2Up;
-	    double axis3Low , axis3Up;
+	    double axis0Low, axis0Up;
+	    double axis1Low, axis1Up;
+	    double axis2Low, axis2Up;
+	    double axis3Low, axis3Up;
 	    anaTool->GetBinRange( axisT0, axis0Bin, axis0Bin, axis0Low, axis0Up );
 	    anaTool->GetBinRange( axisT1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 	    anaTool->GetBinRange( axisT2, axis2Bin, axis2Bin, axis2Low, axis2Up );
@@ -2013,11 +2083,12 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    
 	    DrawAtlasRight();
 	    
-	    SaveAsAll( cAll, hAllRespMat->GetName() );
+	    if( !label.compare( m_allName ) )
+	      { SaveAsAll( cAll, hAllRespMat->GetName() ); }
 	    hAllRespMat->Write();
-	    
+
 	    //---------------------------------------------------
-	    //               Correction Factors
+	    //   Counts, Rebinned, Normalized dPhi Histograms
 	    //---------------------------------------------------
 	    // Take projection onto the dPhi axis
 	    TH1* hT = hnT->Projection( 4 );
@@ -2029,14 +2100,14 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    hT->Scale( 1.0, "width" );
 	    hR->Scale( 1.0, "width" );
 
-	    vProj.push_back( hR );
-	    vProj.push_back( hT );
-	    
 	    // subtract combinatoric contribution before normalizing
 	    anaTool->SubtractCombinatoric( hR );
 	    anaTool->SubtractCombinatoric( hT );
 
 	    // write the unnormalized histograms.
+	    vProj.push_back( hT );
+	    vProj.push_back( hR );
+
 	    hT->Write();
 	    hR->Write();
 
@@ -2052,7 +2123,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 		  Form( "h_R_%s_reb_%s", label.c_str(), hTag.c_str() ),
 		  &m_varDphiRebinnedBinning[0] ) );
 
-	    // rebin before dividing and normalizing.
+	    // now normalize the rebinned histograms
 	    TH1* hTrebNorm = static_cast< TH1D* >
 	      ( hTreb->Clone( Form( "h_T_%s_rebNorm_%s", label.c_str(), hTag.c_str() ) ) );
 	    TH1* hRrebNorm = static_cast< TH1D* >
@@ -2074,16 +2145,20 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    hTrebNorm->Write();
 	    hRrebNorm->Write();
 
+	    //---------------------------------------------------
+	    //               Correction Factors
+	    //---------------------------------------------------
+	    
 	    // Make the ratio histogram. This is used to unfold bin-by-bin.
-	    // This gets saved, and drawn later.
+	    // later these are combined on a per-jz sample basis.
 	    TH1* hC = static_cast< TH1D* >
 	      ( hTrebNorm->Clone
 		( Form( "h_%s_%s_%s", nameCFactors.c_str(), label.c_str(), hTag.c_str())));
 	    styleTool->SetHStyleRatio( hC );	  
 	    hC->Divide( hRrebNorm );
-	    vRatio.push_back( hC );
+	    vCfactors.push_back( hC );
 	    
-	    // set factors and their errors.
+	    // set factors
 	    for( int xBin = 0; xBin <= hTreb->GetNbinsX(); xBin++ ){
 	      int cBin = hC->FindBin( hTreb->GetBinCenter(xBin) );
 
@@ -2112,18 +2187,14 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 		std::sqrt( std::pow( vT, 2 ) / std::pow( vR, 3 ) *
 			   ( 1 - std::pow( vM, 2 ) / ( vT * vR ) ) );
 
-	      /*
-	      std::cout << xBin << "  vR = " << vR << "   vT = " << vT
-			<< "   vM = " << vM << "   error = " << newDphiError << std::endl;
-	      */
-	      
 	      hC->SetBinError  ( cBin, newDphiError );
+
 	    }
 	    
 	    // Smooth the cfactors
 	    hC->GetXaxis()->SetRange
 	      ( m_dPhiRebinnedZoomLowBin, m_dPhiRebinnedZoomHighBin );
-	    hC->Smooth( 1, "R" );
+	    // hC->Smooth( 1, "R" );
 	    
 	    TCanvas cCFactors( "cCFactors", hC->GetName(), 800, 600 );
 	    cCFactors.SetLogz();
@@ -2138,14 +2209,51 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector<THnSparse*>& vHnT,
 	    
 	    SaveAsROOT( cCFactors, hC->GetName() );
 	    hC->Write();
+
+	    // keep track of only JZ slice counts and response matrixes.
+	    // these vectors are the ones that will be used to make the
+	    // the final correction factors.
+	    // For CFactor histograms, only keep track of ones with
+	    // "All". These factors will be changed on CombineSamples.
+	    if( label.compare( m_allName ) ){
+	      vCfactorsJzn[ iG ].push_back( hC );
+	      vNentTJzn   [ iG ].push_back( hTreb );
+	      vNentRJzn   [ iG ].push_back( hRreb );
+	      vRespMatJzn [ iG ].push_back( hAllRespMat );
+	    } else {
+	      vCfactorsAll.push_back( hC );
+	    }
 	  }
 	}
       }
     }
   }
-  for( auto& h : vProj    ){ delete h; }
-  for( auto& r : vRatio   ){ delete r; }
-  for( auto& r : vRespMat ){ delete r; }}
+
+  // now combine to make the final samples
+  for( uint ystarPtBin = 0; ystarPtBin < vCfactorsAll.size(); ystarPtBin++ ){
+
+    // prepare all jzn samples for each ystar1,2 pt1,2 bin
+    std::vector< TH1* > vCfactorsTmp;
+    std::vector< TH1* > vNentTTmp;
+    std::vector< TH1* > vNentRTmp;
+    std::vector< TH2* > vRespMatTmp;
+
+    for( uint iG = 0; iG < m_nJzn; iG++ ){
+      vCfactorsTmp.push_back( vCfactorsJzn[ iG ][ ystarPtBin ] );
+      vNentTTmp   .push_back( vNentTJzn   [ iG ][ ystarPtBin ] );
+      vNentRTmp   .push_back( vNentRJzn   [ iG ][ ystarPtBin ] );
+      vRespMatTmp .push_back( vRespMatJzn [ iG ][ ystarPtBin ] );
+    }
+
+    TH1* hCAll = vCfactorsAll[ ystarPtBin ]; 
+    CombineSamples( hCAll, vCfactorsTmp, vNentTTmp, vNentRTmp, vRespMatTmp);
+    hCAll->Write();
+  }
+
+  for( auto& h : vProj     ){ delete h; }
+  for( auto& f : vCfactors ){ delete f; }
+  for( auto& r : vRespMat  ){ delete r; }
+}
 
 //---------------------------
 //        Drawing
