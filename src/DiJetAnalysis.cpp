@@ -483,7 +483,7 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
   x.resize( hn->GetNdimensions() );
     
   double jetWeight = GetJetWeight( jet1_eta, jet1_phi, jet1_pt );   
-  
+
   x[0] = jet1_ystar;  
   x[1] = jet2_ystar;
   x[2] = jet1_pt ;
@@ -498,6 +498,70 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
   x[0] = -jet1_ystar;  
   x[1] = -jet2_ystar;
   hn->Fill( &x[0], jetWeight );
+  
+  return deltaPhi;
+}
+
+double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
+				       THnSparse* hnMig,
+				       const std::vector< TLorentzVector >& v_rJets,
+				       const std::vector< TLorentzVector >& v_tJets ){
+  
+  const TLorentzVector* rJet1 = NULL; const TLorentzVector* rJet2 = NULL;
+  const TLorentzVector* tJet1 = NULL; const TLorentzVector* tJet2 = NULL;
+
+  if( !GetDiJets( v_rJets, rJet1, rJet2 ) )
+    { return -1; }
+
+  if( !GetDiJets( v_tJets, tJet1, tJet2 ) )
+    { return -1; }  
+
+  double tJet2_pt    = tJet2->Pt()/1000.;
+  
+  double rJet1_pt    = rJet1->Pt()/1000.;
+  double rJet1_eta   = rJet1->Eta();
+  double rJet1_phi   = rJet1->Phi();
+  double rJet1_ystar = GetYstar( *rJet1 );
+
+  double rJet2_pt    = rJet2->Pt()/1000.;
+  double rJet2_ystar = GetYstar( *rJet2 );
+
+  double deltaPhi = anaTool->DeltaPhi( *rJet2, *rJet1 );
+
+  bool differentBin = false;
+  
+  for( uint bin = 0; bin < m_varPtBinning.size() - 1; bin++ ){
+    if( ! ( tJet2_pt >= m_varPtBinning[ bin ] && tJet2_pt < m_varPtBinning[ bin + 1 ] ) &&
+	( rJet2_pt >= m_varPtBinning[ bin ] && rJet2_pt < m_varPtBinning[ bin + 1 ] ) )
+      { differentBin = true;
+	// std::cout << rJet2_pt << " " << tJet2_pt << std::endl;
+	break;
+      }
+  }
+  
+  std::vector< double > x;
+  x.resize( hn->GetNdimensions() );
+    
+  double rJetWeight = GetJetWeight( rJet1_eta, rJet1_phi, rJet1_pt );   
+  
+  x[0] = rJet1_ystar;  
+  x[1] = rJet2_ystar;
+  x[2] = rJet1_pt ;
+  x[3] = rJet2_pt ;
+  x[4] = deltaPhi;
+  hn->Fill( &x[0], rJetWeight );
+
+  if( differentBin ){ hnMig->Fill( &x[0], rJetWeight ); }
+  
+  // for pp, fill twice. once for each side since
+  // it is symmetric in pp. For pPb, continue
+  if( m_is_pPb ){ return deltaPhi; }
+  
+  x[0] = -rJet1_ystar;  
+  x[1] = -rJet2_ystar;
+  hn->Fill( &x[0], rJetWeight );
+
+  if( differentBin ){ hnMig->Fill( &x[0], rJetWeight ); }
   
   return deltaPhi;
 }
@@ -911,12 +975,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	// ---- loop over axis2 ----
 	for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
 	  // set ranges
-	  axis2->SetRange( axis2Bin, axis2Bin );
-	  // set range back to whole range otherwise histograms
-	  // drawn for only one bin ( from projection ) beacuse
-	  // loop over axis3 ends at last bin in.
-	  axis3->SetRange( 1, -1 );
- 
+	  axis2->SetRange( axis2Bin, axis2Bin ); 
 	  double axis2Low , axis2Up;
 	  anaTool->GetBinRange
 	    ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
@@ -948,7 +1007,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	      { continue; }
 
 	    axis3->SetRange( axis3Bin, axis3Bin );
-
 	    double axis3Low , axis3Up;
 	    anaTool->GetBinRange
 	      ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
@@ -1103,7 +1161,6 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
   std::vector< TF1* > vDphiFits;
   
   std::vector< TH1* > vCFactors;
-  std::vector< TH2* > vDphiRespMat;
   
   TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
   TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
@@ -1186,14 +1243,11 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  // Get the correction factors and response matrix
 	  TH1* hCFactors     = static_cast<TH1D*>
 	    (fInMC->Get( Form( "h_%s_%s_%s", m_dPhiCFactorsName.c_str(), m_allName.c_str(), hTag.c_str())));
-	  TH2* hDphiRespMat  = static_cast<TH2D*>
-	    (fInMC->Get( Form( "h_%s_%s_%s", m_dPhiRespMatName.c_str(), m_allName.c_str(), hTag.c_str())));
 
 	  vDphi.push_back( hDphiMeasured );
 	  vDphi.push_back( hDphiTruth    );
 
 	  vCFactors.push_back( hCFactors     );
-	  vDphiRespMat.push_back( hDphiRespMat  );
 	  
        	  TF1* fitMeasured =  static_cast<TF1*>
 	    ( fInData->Get( Form( "f_h_%s_%s_%s", measuredName.c_str(), m_allName.c_str(), hTag.c_str())));
@@ -1370,7 +1424,6 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
   for( auto f  : vDphiFits    ){ delete f;  }
   for( auto h  : vDphi        ){ delete h ; }
 
-  for( auto rm : vDphiRespMat ){ delete rm; }
   for( auto r  : vCFactors    ){ delete r;  }
 
   hnUnfolded->Write();

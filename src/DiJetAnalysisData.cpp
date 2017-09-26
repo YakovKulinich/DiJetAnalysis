@@ -424,7 +424,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
       // dPhi for all triggers, matched
       if( GetDiJets( vR_jets, jet1, jet2 ) ){
 	if( JetInTrigRange( *jet1, iG ) ) {
-	  AnalyzeDeltaPhi( m_vHtriggerDphi[iG], vR_jets );
+	  // AnalyzeDeltaPhi( m_vHtriggerDphi[iG], vR_jets );
 	}
       }
   

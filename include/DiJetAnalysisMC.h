@@ -104,7 +104,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   
   void GetInfoUnfolding( std::string&, std::string&, std::string& );
 
-  void MakePurityEff( TH2*, TH1*, TH1* );
+  void AnalyzePurityEff( TH2*, TH1*, TH1* );
   
   //---------------------------
   //  Get Quantities / Plot 
@@ -129,6 +129,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 				const std::string& = "" ,
 				const std::string& = "" ,
 				const std::string& = "" ); 
+
+  void MakeMigration( std::vector<THnSparse*>&,
+		      const std::vector< std::string >&,
+		      const std::string& = "" );
   
   //---------------------------
   //        Drawing
@@ -214,6 +218,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   THnSparse* m_hAllDphiReco;
   THnSparse* m_hAllDphiTruth;
 
+  std::vector< THnSparse* > m_vHjznDphiMigration;
+  
+  THnSparse* m_hAllDphiMigration;
+  
   // --- dPhi truth reco together ----
   std::string m_dPhiRecoPtTruthName;
   std::string m_dPhiTruthPtRecoName;
@@ -231,10 +239,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // ----- pT Response Matrix -----
   std::vector< THnSparse* > m_vHjznPtRespMat;  
   THnSparse* m_hAllPtRespMat;
-
-  // ----- all Response Matrix -----
-  std::vector< THnSparse* > m_vHjznAllRespMat;  
-  THnSparse* m_hAllAllRespMat;
 
   //========= histos binning ========
   // ------ truth binning --------
