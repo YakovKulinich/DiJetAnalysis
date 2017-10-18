@@ -150,27 +150,27 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
   return true;
 }
 
-TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
+TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   
   auto EMG = [&]( double* x, double* par){
     return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
-    (TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
-     TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
-     TMath::Exp((constants::PI-x[0])/par[1]) *
-     ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])));
+    ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
+      TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
+      TMath::Exp((constants::PI-x[0])/par[1]) *
+      ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])));
   };
 
   // set range to be in range of fit
-  hProj->GetXaxis()->SetRangeUser( xLow, xHigh );
+  histo->GetXaxis()->SetRangeUser( xLow, xHigh );
   
-  TF1* dPhiFit = new TF1( Form("f_%s", hProj->GetName()), EMG, xLow, xHigh, 4);
+  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 4);
 
-  if( !hProj->GetEntries() )
+  if( !histo->GetEntries() )
     { return dPhiFit; }
   
   dPhiFit->SetParameters( 0.25, 0.20, 0.1, 0.0  );
   
-  hProj->Fit( dPhiFit->GetName(), "NQ0", "", xLow, xHigh );
+  histo->Fit( dPhiFit->GetName(), "NQ0", "", xLow, xHigh );
 
   // draw over whole range
   // dPhiFit->SetRange( 0, constants::PI );
@@ -178,24 +178,24 @@ TF1* CT::AnalysisTools::FitDphi( TH1* hProj, double xLow, double xHigh ){
   return dPhiFit;
 }
 
-TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh){
+TF1* CT::AnalysisTools::FitGaussian( TH1* histo, double xLow, double xHigh){
 
-  TF1* fit  = new TF1( Form("f_%s", hProj->GetName()), "gaus(0)" );
+  TF1* fit  = new TF1( Form("f_%s", histo->GetName()), "gaus(0)" );
 
-  double hXmin  = hProj->GetXaxis()->GetXmin();
-  double hXmax  = hProj->GetXaxis()->GetXmax();
+  double hXmin  = histo->GetXaxis()->GetXmin();
+  double hXmax  = histo->GetXaxis()->GetXmax();
   
   // fit once 
-  double mean   = hProj->GetMean();
-  double rms    = hProj->GetRMS();
+  double mean   = histo->GetMean();
+  double rms    = histo->GetRMS();
 
   double fitMin = mean - 2.0 * rms;
   double fitMax = mean + 2.0 * rms;
 
-  if( hProj->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
+  if( histo->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
     { return fit; }
   
-  hProj->Fit( fit->GetName(), "NQ0", "", fitMin, fitMax );
+  histo->Fit( fit->GetName(), "NQ0", "", fitMin, fitMax );
 
   // fit second time with better parameters
   mean   = fit->GetParameter(1);
@@ -204,13 +204,39 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* hProj, double xLow, double xHigh){
   fitMin = mean - 2.0 * rms;
   fitMax = mean + 2.0 * rms;
 
-  if( hProj->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
+  if( histo->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
     { return fit; }
   
   fit->SetRange( fitMin, fitMax );
   
-  hProj->Fit( fit->GetName(), "NQ0", "", fitMin, fitMax );
+  histo->Fit( fit->GetName(), "NQ0", "", fitMin, fitMax );
 
+  return fit;
+}
+
+TF1* CT::AnalysisTools::FitPol2( TH1* histo, double xLow, double xHigh){
+  TF1* fit  = new TF1( Form("f_%s", histo->GetName()), "pol2(0)", xLow, xHigh );
+
+  fit->SetParameters( 1, 1 );
+
+  histo->Fit( fit->GetName(), "NQ0", "", xLow, xHigh );
+  
+  return fit;
+}
+
+TF1* CT::AnalysisTools::FitLogPol2( TH1* histo, double xLow, double xHigh){
+
+  auto logPol2 = [&]( double* x, double* par){
+    return par[0] * TMath::Log( x[0] ) +
+    par[1] * TMath::Power( TMath::Log( x[1] ), 2 );
+  };
+  
+  TF1* fit  = new TF1( Form("f_%s", histo->GetName()), logPol2, xLow, xHigh, 2 );
+
+  fit->SetParameters( 1, 1 );
+
+  histo->Fit( fit->GetName(), "NQ0", "", xLow, xHigh );
+  
   return fit;
 }
 

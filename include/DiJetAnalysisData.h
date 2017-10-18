@@ -6,9 +6,13 @@
 class DiJetAnalysisData : public DiJetAnalysis{
  public:
   DiJetAnalysisData();
+
   DiJetAnalysisData( bool );
+
   DiJetAnalysisData( bool, int );
+
   DiJetAnalysisData( bool, int, int );
+
   ~DiJetAnalysisData();
 
   //---------------------------

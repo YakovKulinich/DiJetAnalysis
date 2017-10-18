@@ -9,9 +9,13 @@ class UncertaintyProvider;
 class DiJetAnalysisMC : public DiJetAnalysis{
  public:
   DiJetAnalysisMC();
+
   DiJetAnalysisMC( bool );
+
   DiJetAnalysisMC( bool, int );
+
   DiJetAnalysisMC( bool, int, int );
+
   ~DiJetAnalysisMC();
 
   //---------------------------
@@ -43,6 +47,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void ProcessEvents( int, int );
 
+ protected:
   //---------------------------
   //       Analysis
   //---------------------------
@@ -50,7 +55,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
-  void AnalyzeResponseMatrix( THnSparse*, THnSparse*, THnSparse*,
+  void AnalyzeResponseMatrix( THnSparse*, THnSparse*,
 			      const std::vector<TLorentzVector>&,
 			      const std::vector<TLorentzVector>& );
 
@@ -88,7 +93,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		       std::vector< TH2* >&,
 		       const std::string& = "" );
 
-  double GetJetWeight( double = 0, double = 0, double = 0 );
+  double GetJetWeight( const TLorentzVector& );
   
   double GetUncertaintyWeight( const TLorentzVector&,
 			       const TLorentzVector& );
@@ -124,9 +129,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void MakeDphiCFactorsRespMat( std::vector<THnSparse*>&,
 				std::vector<THnSparse*>&,
 				std::vector<THnSparse*>&,
-				std::vector<THnSparse*>&,
 				const std::vector< std::string >&,
-				const std::string& = "" ,
 				const std::string& = "" ,
 				const std::string& = "" ); 
 
@@ -142,7 +145,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		   const std::string& = "" );
 		 
 
-  void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
+  void DrawAtlasRight    ( double = 0, double = 0, double = CT::StyleTools::lSS );
 
   void DrawAtlasRightBoth( double = 0, double = 0, double = CT::StyleTools::lSS ); 
   
@@ -274,13 +277,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // --- variable pt binning resp mat ---
   std::vector< double > m_varPtBinningRespMat;
   uint m_nVarPtBinsRespMat;
-  
-  // ------ all response matrix ----
-  uint m_nAllRespMatDim;
-
-  std::vector< int >    m_nAllRespMatBins;
-  std::vector< double > m_allRespMatMin;
-  std::vector< double > m_allRespMatMax;
 };
 
 #endif

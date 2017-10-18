@@ -96,6 +96,10 @@ namespace CT{
     TF1* FitDphi    ( TH1*, double = 0, double = constants::PI );
     
     TF1* FitGaussian( TH1*, double = 0, double = 0 );
+
+    TF1* FitPol2    ( TH1*, double = 0, double = 0 );
+
+    TF1* FitLogPol2 ( TH1*, double = 0, double = 0 );
     
     void GetBinRange( TAxis*, int, int, double&, double& );
 

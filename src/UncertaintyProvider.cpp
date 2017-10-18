@@ -56,7 +56,11 @@ double UncertaintyTool::GetYstar( const TLorentzVector& jet )
 //--------------------------------
 
 UnfoldingUncertaintyTool::UnfoldingUncertaintyTool( int uc, bool is_pPb )
-  : UncertaintyTool( uc, is_pPb ){}
+  : UncertaintyTool( uc, is_pPb ){
+
+  // get the pp MC dPhi
+  TFile* fMC = TFile::Open( "data/dPhi_reco_pp_mc_pythia8.root" );
+}
 
 UnfoldingUncertaintyTool::~UnfoldingUncertaintyTool(){}
 
@@ -80,7 +84,8 @@ AngularUncertaintyTool::AngularUncertaintyTool( int uc, bool is_pPb )
   hAngularUncertEta->SetName( "hAngularUncertEta" );
   hAngularUncertEta->SetDirectory(0);
   f_eta_p8->Close();
-
+  delete f_eta_p8;
+  
   // clone this before modifying it.
   hAngularResEta = static_cast< TH2D* >( hAngularUncertEta->Clone( "hAngularResEta" ) );
 
@@ -89,6 +94,7 @@ AngularUncertaintyTool::AngularUncertaintyTool( int uc, bool is_pPb )
   TH2D* hAngularUncertEtaTmp = static_cast< TH2D* >( f_eta_ref->Get( "h_recoTruthDeta_sigma" ) );
   hAngularUncertEtaTmp->SetDirectory(0);
   f_eta_ref->Close();
+  delete f_eta_ref;
 
   // now subtract the pythia8 and the reference (herwig)
   hAngularUncertEta->Add( hAngularUncertEtaTmp, -1 );
@@ -99,6 +105,7 @@ AngularUncertaintyTool::AngularUncertaintyTool( int uc, bool is_pPb )
   hAngularUncertPhi->SetName( "hAngularUncertPhi" );
   hAngularUncertPhi->SetDirectory(0);
   f_phi_p8->Close();
+  delete f_phi_p8;
 
   // clone this before modifying it.
   hAngularResPhi = static_cast< TH2D* >( hAngularUncertPhi->Clone( "hAngularResPhi" ) );
@@ -108,7 +115,8 @@ AngularUncertaintyTool::AngularUncertaintyTool( int uc, bool is_pPb )
   TH2D* hAngularUncertPhiTmp = static_cast< TH2D* >( f_phi_ref->Get( "h_recoTruthDphi_sigma" ) );
   hAngularUncertPhiTmp->SetDirectory(0);
   f_phi_ref->Close();
-
+  delete f_phi_ref;
+  
   // now subtract the pythia8 and the reference (herwig)
   hAngularUncertPhi->Add( hAngularUncertPhiTmp, -1 );
 

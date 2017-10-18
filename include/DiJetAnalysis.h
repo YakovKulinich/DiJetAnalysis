@@ -21,12 +21,18 @@ class TTree;
 class DeltaPhiProj;
 
 class DiJetAnalysis{
+
  public:
   DiJetAnalysis();
+
   DiJetAnalysis( bool );
+
   DiJetAnalysis( bool, bool );
+
   DiJetAnalysis( bool, bool, int );
+
   DiJetAnalysis( bool, bool, int, int );
+
   virtual ~DiJetAnalysis();
 
   //---------------------------
@@ -109,7 +115,7 @@ class DiJetAnalysis{
   
   void NormalizeDeltaPhi( TH1* );
 
-  virtual double GetJetWeight( double = 0, double = 0, double = 0 );
+  virtual double GetJetWeight( const TLorentzVector& );
 
   virtual double GetUncertaintyWeight( const TLorentzVector&,
 				       const TLorentzVector& );
@@ -129,6 +135,8 @@ class DiJetAnalysis{
   virtual void GetInfoUnfolding( std::string&, std::string&, std::string& );
 
   TH1* BinByBinUnfolding( TH1*, TH1* );
+
+  TFile* GetListOfSystUncert( std::vector< int >&, std::map< int, TFile* >& );
   
   //---------------------------
   //   Get Quantities / Plot 
@@ -149,7 +157,7 @@ class DiJetAnalysis{
 
   virtual void MakeDphiTogether();
 
-  
+  virtual void MakeFinalPlotsTogether();
 
   //---------------------------
   //        Drawing
@@ -205,7 +213,6 @@ class DiJetAnalysis{
   
   std::string m_sMUT;
   std::string m_sRatio;
-  std::string m_sSystematics;
 
   std::string m_allName;
 
@@ -364,6 +371,7 @@ class DiJetAnalysis{
   
   std::string m_respMatName;
   std::string m_unfoldedName;
+  std::string m_systematicsName;
   
   std::string m_dPhiRecoName;
   std::string m_dPhiTruthName;
