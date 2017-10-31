@@ -55,7 +55,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
-  void AnalyzeResponseMatrix( THnSparse*, THnSparse*,
+  void AnalyzeResponseMatrix( THnSparse*, THnSparse*, THnSparse*, 
 			      const std::vector<TLorentzVector>&,
 			      const std::vector<TLorentzVector>& );
 
@@ -224,6 +224,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< THnSparse* > m_vHjznDphiMigration;
   
   THnSparse* m_hAllDphiMigration;
+
+  // ------- response matrix ---------
+  std::string m_dPhiRespMatName;
+  std::string m_dPhiRespMatRebName;
+
+  std::string m_ptRespMatName;
   
   // --- dPhi truth reco together ----
   std::string m_dPhiRecoPtTruthName;
@@ -239,6 +245,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< THnSparse* > m_vHjznDphiRespMat;  
   THnSparse* m_hAllDphiRespMat;
 
+  // -------- Rebinned Response Matrix --------     
+  std::vector< THnSparse* > m_vHjznDphiRespMatReb;  
+  THnSparse* m_hAllDphiRespMatReb;
+  
   // ----- pT Response Matrix -----
   std::vector< THnSparse* > m_vHjznPtRespMat;  
   THnSparse* m_hAllPtRespMat;
@@ -264,6 +274,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   uint m_nDphiRespMatDim;
 
   std::vector< int >    m_nDphiRespMatBins;
+  std::vector< int >    m_nDphiRespMatRebBins;
   std::vector< double > m_dPhiRespMatMin;
   std::vector< double > m_dPhiRespMatMax;
 

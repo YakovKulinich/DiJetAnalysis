@@ -21,6 +21,7 @@ bool CT::AnalysisTools::EpsilonEqual( double a, double b )
 // returns dphi in range 0<dphi<2pi
 double CT::AnalysisTools::DPhiFC
 ( const TLorentzVector& jet1, const TLorentzVector& jet2 ){
+
   double phi1 = jet1.Phi(); double phi2 = jet2.Phi();
   double deltaPhi = phi1 - phi2;
   while( deltaPhi < 0 ) deltaPhi += 2*constants::PI;
@@ -29,6 +30,7 @@ double CT::AnalysisTools::DPhiFC
 
 double CT::AnalysisTools::DeltaPhi
 ( const TLorentzVector& jet1, const TLorentzVector& jet2 ){
+
   double phi1 = jet1.Phi(); double phi2 = jet2.Phi();
   double deltaPhi = TMath::Abs(phi1 - phi2);
   if( deltaPhi > constants::PI ){ deltaPhi = 2*constants::PI - deltaPhi; };
@@ -36,7 +38,8 @@ double CT::AnalysisTools::DeltaPhi
 }
 
 double CT::AnalysisTools::DeltaR
-( const TLorentzVector& jet1, const TLorentzVector& jet2 ){  
+( const TLorentzVector& jet1, const TLorentzVector& jet2 ){
+  
   double deltaEta = jet1.Eta() - jet2.Eta();
   double deltaPhi = TMath::Abs( jet1.Phi() - jet2.Phi() );
   if(deltaPhi > TMath::Pi())
@@ -52,6 +55,7 @@ bool CT::AnalysisTools::sortByDecendingPt
 
 bool CT::AnalysisTools::TruncateHistoBins( THnSparse* hn,
 					   THnSparse* hnNent){
+  
   TAxis* aAxis = hn->GetAxis(0); TAxis* cAxis = hn->GetAxis(2);
   TAxis* bAxis = hn->GetAxis(1); TAxis* dAxis = hn->GetAxis(3); 
 
@@ -92,6 +96,7 @@ bool CT::AnalysisTools::TruncateHistoBins( TH3* h3 ){
 }
 
 bool CT::AnalysisTools::DoPrint( int ev ) {
+
   int statSize=1;
   if( ev != 0){
     double power=std::floor(log10(ev));
@@ -103,6 +108,7 @@ bool CT::AnalysisTools::DoPrint( int ev ) {
 
 std::vector<std::string> CT::AnalysisTools::vectorise
 (TString str, TString sep) {
+
   std::vector<std::string> result;
   TObjArray *strings = str.Tokenize(sep.Data());
   if (strings->GetEntries()==0) { delete strings; return result; }
@@ -114,14 +120,16 @@ std::vector<std::string> CT::AnalysisTools::vectorise
 
 std::vector<double> CT::AnalysisTools::vectoriseD
 (TString str, TString sep) {
+
   std::vector<double> result;
-  std::vector<std::string> vecS = vectorise(str,sep);
-  for (uint i=0;i<vecS.size();++i)
-    {result.push_back(std::stod(vecS[i]));}
-  return result;
+   std::vector<std::string> vecS = vectorise(str,sep);
+   for (uint i=0;i<vecS.size();++i)
+     {result.push_back(std::stod(vecS[i]));}
+   return result;
 }   
 
 bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xHigh ){
+
   auto combFit = [&]( double* x, double* par){ return par[0]; };
 
   // to estimate some combinatoric
@@ -132,7 +140,7 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
   if( !hProj->Integral( 1, hProj->FindBin( 1. ) ) ){ return false; }
 
   TF1 cFit( "cFit", combFit, 0, 1, 1 );
-  hProj->Fit( "cFit", "Q0", "", 0, 1 ); 
+  hProj->Fit( "cFit", "NQ", "", 0, 1 ); 
     
   double comb      = cFit.GetParameter(0);
   double combError = cFit.GetParError (0);
@@ -151,7 +159,7 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
 }
 
 TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
-  
+
   auto EMG = [&]( double* x, double* par){
     return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
     ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
@@ -159,19 +167,22 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
       TMath::Exp((constants::PI-x[0])/par[1]) *
       ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])));
   };
-
+  
   // set range to be in range of fit
   histo->GetXaxis()->SetRangeUser( xLow, xHigh );
   
-  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 4);
+  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 3);
 
   if( !histo->GetEntries() )
     { return dPhiFit; }
   
-  dPhiFit->SetParameters( 0.25, 0.20, 0.1, 0.0  );
-  
-  histo->Fit( dPhiFit->GetName(), "NQ0", "", xLow, xHigh );
+  dPhiFit->SetParameters( 0.30, 0.20, 0.20 );
 
+  int status = histo->Fit( dPhiFit->GetName(), "NQ", "", xLow, xHigh );
+
+  if( status ){ std::cout << " +++++++++++++ " << status
+			  << " " << dPhiFit->GetName() << std::endl; }
+  
   // draw over whole range
   // dPhiFit->SetRange( 0, constants::PI );
   
@@ -195,7 +206,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* histo, double xLow, double xHigh){
   if( histo->GetEntries() < 5 || fitMin < hXmin || fitMax > hXmax )
     { return fit; }
   
-  histo->Fit( fit->GetName(), "NQ0", "", fitMin, fitMax );
+  histo->Fit( fit->GetName(), "NQ", "", fitMin, fitMax );
 
   // fit second time with better parameters
   mean   = fit->GetParameter(1);
@@ -209,7 +220,7 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* histo, double xLow, double xHigh){
   
   fit->SetRange( fitMin, fitMax );
   
-  histo->Fit( fit->GetName(), "NQ0", "", fitMin, fitMax );
+  histo->Fit( fit->GetName(), "NQ", "", fitMin, fitMax );
 
   return fit;
 }
@@ -219,7 +230,7 @@ TF1* CT::AnalysisTools::FitPol2( TH1* histo, double xLow, double xHigh){
 
   fit->SetParameters( 1, 1 );
 
-  histo->Fit( fit->GetName(), "NQ0", "", xLow, xHigh );
+  histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
   
   return fit;
 }
@@ -235,7 +246,7 @@ TF1* CT::AnalysisTools::FitLogPol2( TH1* histo, double xLow, double xHigh){
 
   fit->SetParameters( 1, 1 );
 
-  histo->Fit( fit->GetName(), "NQ0", "", xLow, xHigh );
+  histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
   
   return fit;
 }

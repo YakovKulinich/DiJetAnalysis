@@ -137,6 +137,12 @@ class DiJetAnalysis{
   TH1* BinByBinUnfolding( TH1*, TH1* );
 
   TFile* GetListOfSystUncert( std::vector< int >&, std::map< int, TFile* >& );
+
+  void MakeDefaultBinning( std::vector< double >&, std::vector< double >&, int );
+
+  void MakeLinearBinning( std::vector< double >&, std::vector< double >&, int );
+
+  void MakeLogBinning( std::vector< double >&, std::vector< double >&, int );
   
   //---------------------------
   //   Get Quantities / Plot 
@@ -213,6 +219,7 @@ class DiJetAnalysis{
   
   std::string m_sMUT;
   std::string m_sRatio;
+  std::string m_sRebin;
 
   std::string m_allName;
 
@@ -335,14 +342,6 @@ class DiJetAnalysis{
   std::vector<double> m_varDphiBinning;
   uint m_nVarDphiBins;
 
-  int m_nDphiBinsLarge ; 
-  int m_nDphiBinsMedium; 
-  int m_nDphiBinsSmall ;
-  
-  int m_dPhiBinsLargeFactor ;
-  int m_dPhiBinsMediumFactor;
-  int m_dPhiBinsSmallFactor ;
-
   std::vector<double> m_varDphiRebinnedBinning;
   uint m_nVarDphiRebinnedBins;
 
@@ -376,11 +375,6 @@ class DiJetAnalysis{
   std::string m_dPhiRecoName;
   std::string m_dPhiTruthName;
   
-  std::string m_dPhiRespMatName;
-  std::string m_ptRespMatName;
-  
-  std::string m_allRespMatName;  
-
   std::string m_dPhiCFactorsName;
   std::string m_dPhiUnfoldedName;
   std::string m_dPhiSystematicsName;

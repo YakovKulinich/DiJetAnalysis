@@ -63,8 +63,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sData     = "data";
   m_sFinal    = "final";
   
-  m_sMUT         = "MUT";
-  m_sRatio       = "ratio";
+  m_sMUT      = "MUT";
+  m_sRatio    = "ratio";
+  m_sRebin    = "rebin";  
   
   // name for "All" histos
   // this is either merged JZN or Data from Triggers
@@ -141,61 +142,23 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
     ( 28 )( 35 )( 45 )( 90 );
   m_nVarPtBins = m_varPtBinning.size() - 1;
 
-  m_nDphiBinsLarge  = 4 ; m_dPhiBinsLargeFactor  = 10;
-  m_nDphiBinsMedium = 8 ; m_dPhiBinsMediumFactor = 2;
-  m_nDphiBinsSmall  = 4 ; m_dPhiBinsSmallFactor  = 1;
 
-  // --- variable dPhi binning ---
-  double smallBinWidth = constants::PI /
-    ( m_nDphiBinsSmall  * m_dPhiBinsSmallFactor  +
-      m_nDphiBinsMedium * m_dPhiBinsMediumFactor +
-      m_nDphiBinsLarge  * m_dPhiBinsLargeFactor );
+  // --- variable dPhi binning ----
+  int nDphiBinsLarge = 4;
 
-  for( int largeBin = 0; largeBin < m_nDphiBinsLarge; largeBin++ )
-    { m_varDphiBinning.push_back
-	( largeBin * smallBinWidth * m_dPhiBinsLargeFactor ); }
-  double mediumBinStart =
-    m_nDphiBinsLarge * smallBinWidth * m_dPhiBinsLargeFactor;
-  for( int mediumBin = 0; mediumBin < m_nDphiBinsMedium; mediumBin++ )
-    { m_varDphiBinning.push_back
-	( mediumBin * smallBinWidth * m_dPhiBinsMediumFactor + mediumBinStart ); }
-  double smallBinStart =
-    m_nDphiBinsLarge  * smallBinWidth * m_dPhiBinsLargeFactor +
-    m_nDphiBinsMedium * smallBinWidth * m_dPhiBinsMediumFactor;
-  for( int smallBin = 0; smallBin <= m_nDphiBinsSmall; smallBin++ )
-    { m_varDphiBinning.push_back
-	( smallBin * smallBinWidth * m_dPhiBinsSmallFactor + smallBinStart ); }
+  // MakeDefaultBinning( m_varDphiBinning, m_varDphiRebinnedBinning, nDphiBinsLarge );
+  MakeLinearBinning( m_varDphiBinning, m_varDphiRebinnedBinning, nDphiBinsLarge );
+  // m_varDphiRebinnedBinning = m_varDphiBinning;
   
-  m_nVarDphiBins = m_varDphiBinning.size() - 1;
-  
-  m_dPhiZoomLowBin  = m_nDphiBinsLarge;
-  m_dPhiZoomHighBin = m_nVarDphiBins;
-  /*
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[0]  );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[3]  );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[5]  );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[7]  );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[9]  );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[11] );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[12] );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[13] );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[14] );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[15] );
-  m_varDphiRebinnedBinning.push_back( m_varDphiBinning[16] );
-
+  m_nVarDphiBins         = m_varDphiBinning.size()         - 1;  
   m_nVarDphiRebinnedBins = m_varDphiRebinnedBinning.size() - 1;
 
-  m_dPhiRebinnedZoomLowBin  = 2;
-  m_dPhiRebinnedZoomHighBin = m_nVarDphiRebinnedBins;
-  */
-
-  m_varDphiRebinnedBinning  = m_varDphiBinning;
-
-  m_nVarDphiRebinnedBins    = m_nVarDphiBins;
-
-  m_dPhiRebinnedZoomLowBin  = m_dPhiZoomLowBin;
-  m_dPhiRebinnedZoomHighBin = m_dPhiZoomHighBin; 
+  m_dPhiZoomLowBin  = nDphiBinsLarge;
+  m_dPhiZoomHighBin = m_nVarDphiBins;
   
+  m_dPhiRebinnedZoomLowBin  = nDphiBinsLarge;
+  m_dPhiRebinnedZoomHighBin = m_nVarDphiRebinnedBins;
+    
   int count = 0;
   for( auto & b : m_varDphiBinning ){ std::cout << count++ << "," << b << " -> "; }
   std::cout << " --- " << std::endl;
@@ -264,27 +227,23 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_config->ReadFile( configName.c_str(), EEnvLevel(0));
   
   //=============== Histo Names ==================    
-  m_etaSpectName      = "etaSpect";
-  m_dPhiName          = "dPhi";
-  m_effName           = "eff";
-  m_purityName        = "purity";
+  m_etaSpectName       = "etaSpect";
+  m_dPhiName           = "dPhi";
+  m_effName            = "eff";
+  m_purityName         = "purity";
 
-  m_recoName          = "reco";
-  m_truthName         = "truth";
-  m_respMatName       = "respMat";
-  m_unfoldedName      = "unfolded";
-  m_systematicsName   = "systematics";
+  m_recoName           = "reco";
+  m_truthName          = "truth";
+  m_respMatName        = "respMat";
+  m_unfoldedName       = "unfolded";
+  m_systematicsName    = "systematics";
   
-  m_dPhiRecoName      = m_dPhiName + "_" + m_recoName;
-  m_dPhiTruthName     = m_dPhiName + "_" + m_truthName;
+  m_dPhiRecoName       = m_dPhiName + "_" + m_recoName;
+  m_dPhiTruthName      = m_dPhiName + "_" + m_truthName;
   
-  m_dPhiRespMatName   = m_dPhiName + "_" + m_respMatName;
-  m_ptRespMatName     = m_s_pt     + "_" + m_respMatName;
-
-  m_allRespMatName    = m_allName  + "_" + m_respMatName;
-  
-  m_dPhiCFactorsName  =
+  m_dPhiCFactorsName   =
     m_dPhiName + "_" + m_recoName + "_" + m_truthName + "_" + m_sRatio;
+
   m_dPhiUnfoldedName     = m_dPhiName  + "_" + m_unfoldedName;
   m_dPhiSystematicsName  = m_dPhiName  + "_" + m_systematicsName;
   
@@ -684,14 +643,12 @@ TH1* DiJetAnalysis::BinByBinUnfolding( TH1* hM, TH1* hC ){
     if( vM == 0 || vC == 0 ){ continue; }
     
     double eM = hM->GetBinError( xBin );
-    double eC = hC->GetBinError( cBin );
+
     // correction factor;
     double newDphi = vM * vC;
     // error on correction factor    
-    //double newDphiError =  newDphi * 
-    //  std::sqrt( std::pow( eM / vM, 2) + std::pow( eC / vC, 2) ) ; 
     double newDphiError = eM * vC; 
-
+    
     hUnf->SetBinContent( xBin, newDphi      );
     hUnf->SetBinError  ( xBin, newDphiError );
   }
@@ -726,6 +683,125 @@ TFile* DiJetAnalysis::GetListOfSystUncert( std::vector< int >& v_uc,
   }
   
   return fInDefault;
+}
+
+void DiJetAnalysis::MakeDefaultBinning( std::vector< double >& varBinning,
+					std::vector< double >& varRebinnedBinning,
+					int nLargeBins ){
+
+  std::cout << "DEFAULT BINNING" << std::endl;
+
+  int nDphiBinsLarge  = nLargeBins ; int dPhiBinsLargeFactor  = 10; 
+  int nDphiBinsMedium = 8          ; int dPhiBinsMediumFactor = 2;
+  int nDphiBinsSmall  = 4          ; int dPhiBinsSmallFactor  = 1;
+
+  double smallBinWidth =
+    constants::PI / ( nDphiBinsSmall  * dPhiBinsSmallFactor  +
+		      nDphiBinsMedium * dPhiBinsMediumFactor +
+		      nDphiBinsLarge  * dPhiBinsLargeFactor );
+  for( int largeBin = 0; largeBin < nDphiBinsLarge; largeBin++ )
+    { varBinning.push_back
+	( largeBin * smallBinWidth * dPhiBinsLargeFactor ); }
+
+  double mediumBinStart =
+    nDphiBinsLarge * smallBinWidth * dPhiBinsLargeFactor;
+  for( int mediumBin = 0; mediumBin < nDphiBinsMedium; mediumBin++ )
+    { varBinning.push_back
+	( mediumBin * smallBinWidth * dPhiBinsMediumFactor + mediumBinStart ); }
+
+  double smallBinStart =
+    nDphiBinsLarge  * smallBinWidth * dPhiBinsLargeFactor +
+    nDphiBinsMedium * smallBinWidth * dPhiBinsMediumFactor;
+  for( int smallBin = 0; smallBin <= nDphiBinsSmall; smallBin++ )
+    { varBinning.push_back
+	( smallBin * smallBinWidth * dPhiBinsSmallFactor + smallBinStart ); }
+  
+  varRebinnedBinning.push_back( varBinning[0]  );
+  varRebinnedBinning.push_back( varBinning[3]  );
+  varRebinnedBinning.push_back( varBinning[5]  );
+  varRebinnedBinning.push_back( varBinning[7]  );
+  varRebinnedBinning.push_back( varBinning[9]  );
+  varRebinnedBinning.push_back( varBinning[11] );
+  varRebinnedBinning.push_back( varBinning[12] );
+  varRebinnedBinning.push_back( varBinning[13] );
+  varRebinnedBinning.push_back( varBinning[14] );
+  varRebinnedBinning.push_back( varBinning[15] );
+  varRebinnedBinning.push_back( varBinning[16] );
+}
+  
+void DiJetAnalysis::MakeLinearBinning( std::vector< double >& varBinning,
+				       std::vector< double >& varRebinnedBinning,
+				       int nLargeBins ){
+
+  std::cout << "LINEAR BINNING" << std::endl;
+  
+  double varBinStart = 2 * constants::PI / 3;
+  double dPhiBinsLargeWidth = ( varBinStart ) / nLargeBins;
+  
+  for( int i = 0; i <= nLargeBins; i++ ){
+    varBinning.        push_back( i * dPhiBinsLargeWidth );
+    varRebinnedBinning.push_back( i * dPhiBinsLargeWidth );
+  }
+
+  int    nVarBins    = 12;
+  double finalWidth  = 0.05;
+
+  double dWidthPerBin =
+    ( constants::PI - varBinStart - nVarBins * finalWidth ) /
+    ( nVarBins / 2 - ( nVarBins * nVarBins ) / 2 );
+
+  std::cout << " !!!! dWidthPerBin : " << dWidthPerBin << std::endl;
+  
+  for( int i = 1; i <= nVarBins; i++ ){
+    double width = finalWidth - ( nVarBins - i ) * dWidthPerBin;
+    std:: cout << i << " : " << width << std::endl;
+    varBinning.push_back( varBinning.back() + width );
+  }
+
+  // for now, do a rebin of 2 in middle
+  // be careful total bins is a multiple of 2
+  for( int i = nLargeBins + 2; i < nVarBins + nLargeBins - 4; i += 2 ){
+    varRebinnedBinning.push_back( varBinning[ i ] );
+  }
+
+  // leave the last 4 as is.
+  for( int i = nVarBins + nLargeBins - 4; i <= nVarBins + nLargeBins; i++ ){
+    varRebinnedBinning.push_back( varBinning[ i ] );
+  }
+}
+ 
+void DiJetAnalysis::MakeLogBinning( std::vector< double >& varBinning,
+				    std::vector< double >& varRebinnedBinning,
+				    int nLargeBins ){
+  
+  std::cout << "LOGARITHMIC BINNING" << std::endl;
+
+  double varBinStart = 2 * constants::PI / 3;
+
+  int nLogBins = 12;
+   
+  double logMin   = TMath::Log10( varBinStart   );
+  double logMax   = TMath::Log10( constants::PI );
+  double logWidth = ( logMax - logMin ) / nLogBins; 
+
+  std::vector< double > varWidths;
+  
+  for( int i = 0; i < nLogBins; i++ ){
+    varWidths.push_back( TMath::Power( 10, logMin + logWidth * ( i + 1 ) ) -
+			 TMath::Power( 10, logMin + logWidth * i ) );
+  }
+
+  double dPhiBinsLargeWidth = ( varBinStart ) / nLargeBins;
+  
+  for( int i = 0; i <= nLargeBins; i++ ){
+    varBinning.push_back( i * dPhiBinsLargeWidth );
+  }
+
+  for( int i = 1; i <= nLogBins; i++ ){
+    varBinning.push_back( varBinning.back() + varWidths[ nLogBins - i ] );
+  }
+  
+  varRebinnedBinning  = varBinning;
 }
 
 //---------------------------
@@ -1006,6 +1082,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
 		anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() ); 
 
+	  // do this becaue it is set to last bin after one iteration
+	  axis3->SetRange( 1, -1 );
 	  TH1* hDphiWidths = hn->Projection( fAxisI );
 	  hDphiWidths->Reset();
 	  
@@ -1080,21 +1158,16 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
 
-	    h_tauSigma->Fill( fit->GetParameter(1), fit->GetParameter(2) );
 	    h_tauAmp  ->Fill( fit->GetParameter(1), fit->GetParameter(0) );
+	    h_tauSigma->Fill( fit->GetParameter(1), fit->GetParameter(2) );
 	    h_tauConst->Fill( fit->GetParameter(1), fit->GetParameter(3) );
 
-	    /*
-	    if( fit->GetParameter(2) < 0.01 ){ std::cout <<" ------------------ " <<  fit->GetParameter(2) << std::endl; }
-	    if( fit->GetParameter(0) < 0.0 ||
-		fit->GetParameter(1) < 0.0 ||
-		fit->GetParameter(2) < 0.0 ||
-		fit->GetParameter(3) < 0.0 ){ std::cout <<" ------------------- "
-							<<  fit->GetParameter(0) << " " 
-							<<  fit->GetParameter(1) << " " 
-							<<  fit->GetParameter(2) << " " 
-							<<  fit->GetParameter(3) << std::endl; }
-	    */
+	    if( fit->GetParError(1) > 0.5 ) { std::cout << " !!!!!!!!!!!! " << fit->GetName()
+							<< " " << fit->GetParameter(1)  
+							<< " " << fit->GetParError(1)  
+							<< " " << fit->GetParameter(2) 
+							<< " " << fit->GetParError(2) << std::endl; }
+	    
 	    fit->Draw("same");
 
 	    double chi2NDF = fit->GetChisquare()/fit->GetNDF();
@@ -1211,7 +1284,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
     Set( axis2Def->GetNbins(), axis2Def->GetXbins()->GetArray() );
   hnUnfolded->GetAxis(3)->
     Set( axis3Def->GetNbins(), axis3Def->GetXbins()->GetArray() );
-  hnUnfolded->GetAxis(4)->Set( m_nVarDphiBins,   &( m_varDphiBinning[0]  ) );
+  hnUnfolded->GetAxis(4)->Set( m_nVarDphiBins, &( m_varDphiBinning[0]  ) );
 
   hnUnfolded->GetAxis(0)->SetTitle( m_dPP->GetDefaultAxisLabel(0).c_str() );
   hnUnfolded->GetAxis(1)->SetTitle( m_dPP->GetDefaultAxisLabel(1).c_str() );
@@ -1279,7 +1352,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  TH1* hDphiUnfolded = BinByBinUnfolding
 	    ( hDphiMeasured,  hCFactors );
 	  hDphiUnfolded->SetName
-	    ( Form( "h_%s_%s_%s",m_dPhiUnfoldedName.c_str(), m_allName.c_str(), hTag.c_str()));
+	    ( Form( "h_%s_%s_%s", m_dPhiUnfoldedName.c_str(), m_allName.c_str(), hTag.c_str()));
 	  
 	  // fit with no combinatoric subtraction (already done);
 	  TF1* fitUnfolded = anaTool->FitDphi( hDphiUnfolded, m_dPhiFittingMin, m_dPhiFittingMax );
@@ -1396,7 +1469,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  hCFactors->GetXaxis()->SetRange
 	    ( m_dPhiRebinnedZoomLowBin, m_dPhiRebinnedZoomHighBin );
 	  hCFactors->GetXaxis()->SetNdivisions( 504 );	  
-	  hCFactors->Draw("e2p");
+	  hCFactors->Draw("ep");
 
 	  double xMin = m_dPhiZoomLow;
 	  double xMax = m_dPhiZoomHigh; 
@@ -1501,9 +1574,9 @@ void DiJetAnalysis::MakeDphiTogether(){
   TFile* fIn_a = TFile::Open( fName_a.c_str() );
   TFile* fIn_b = TFile::Open( fName_b.c_str() );
   TFile* fOut  = new TFile( m_fNameOutTogether.c_str() ,"recreate");
-
-  bool isRivet = false;
-  if( fName_b.find( "rivet" ) != std::string::npos ){ isRivet = true; }
+  
+  //  bool isRivet = false;
+  //  if( fName_b.find( "rivet" ) != std::string::npos ){ isRivet = true; }
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -1536,7 +1609,7 @@ void DiJetAnalysis::MakeDphiTogether(){
 	      anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 	      anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
       
-      TLegend legW( 0.25, 0.13, 0.9, 0.26 );
+      TLegend legW( 0.10, 0.08, 0.9, 0.22 );
       styleTool->SetLegendStyle( &legW );
       legW.SetNColumns(2);
       
@@ -1558,17 +1631,10 @@ void DiJetAnalysis::MakeDphiTogether(){
 	
 	std::string hNameW_a = "h_" + name_a + "_" + hTagW;
 	std::string hNameW_b = "h_" + name_b + "_" + hTagW;
-	
+
 	TH1* hW_a = static_cast<TH1D*>( fIn_a->Get( hNameW_a.c_str() ) );
-	TH1* hW_b = NULL;
-	if( !isRivet ){
-	  hW_b = static_cast<TH1D*>( fIn_b->Get( hNameW_b.c_str() ) );
-	} else {
-	  // get the same histogram... dont care about ratios
-	  // when comparing rivet to normal mc
-	  hW_b = static_cast< TH1D* >
-	    ( hW_a->Clone( Form("%s_clone", hNameW_a.c_str() ) ) );
-	}
+	TH1* hW_b = static_cast<TH1D*>( fIn_b->Get( hNameW_b.c_str() ) );
+
 	styleTool->SetHStyle( hW_a, style );
 	styleTool->SetHStyle( hW_b, style + 5 );
 	hW_a->SetMarkerSize( hW_a->GetMarkerSize() * 1.5 );
@@ -1667,7 +1733,7 @@ void DiJetAnalysis::MakeDphiTogether(){
 	  double chi2NDF_a = f_a->GetChisquare()/f_a->GetNDF();
 	  double chi2NDF_b = f_b->GetChisquare()/f_b->GetNDF();
 
-	  TLegend leg( 0.54, 0.16, 0.66, 0.33 );
+	  TLegend leg( 0.45, 0.10, 0.66, 0.28 );
 	  styleTool->SetLegendStyle( &leg , 0.85 );
 
 	  bool save = false ;

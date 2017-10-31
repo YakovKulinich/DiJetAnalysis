@@ -47,6 +47,7 @@ namespace constants{
   // Forward ranges in ystar
   const double FYSTARMIN = FETAMIN - BETAZ;
   const double FYSTARMAX = FETAMAX - BETAZ;
+  
   // central range in ystar
   const double CYSTARMAX = CETAMAX - BETAZ;
   
