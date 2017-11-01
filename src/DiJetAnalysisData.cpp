@@ -304,12 +304,11 @@ void DiJetAnalysisData::SetupHistograms(){
     AddHistogram( m_vHtriggerEtaSpectDenom.back() );
     
     // -------- dPhi --------
-    m_nDphiDim    = m_nDphiBins.size();
+    m_nDphiDim    = m_vNdPhiBins.size();
    
     THnSparse* hn =
       new THnSparseD( Form("h_%s_%s", m_dPhiName.c_str(), trigger.c_str() ), "",
-		      m_nDphiDim, &m_nDphiBins[0],
-		      &m_dPhiMin[0], &m_dPhiMax[0] );
+		      m_nDphiDim, &m_vNdPhiBins[0], &m_vDphiMin[0], &m_vDphiMax[0] );
     hn->GetAxis(0)->Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     hn->GetAxis(1)->Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     hn->GetAxis(2)->Set( m_nVarPtBins   , &( m_varPtBinning[0]    ) );

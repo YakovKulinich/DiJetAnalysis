@@ -169,18 +169,18 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   std::cout << "new amount of bins " << m_nVarDphiRebinnedBins << std::endl;
 
   // --- dPhiBins ---  
-  boost::assign::push_back( m_nDphiBins  )
+  boost::assign::push_back( m_vNdPhiBins )
     ( m_nVarYstarBins )( m_nVarYstarBins )
     ( m_nVarPtBins    )( m_nVarPtBins    )
     ( m_nVarDphiBins  );
     
-  boost::assign::push_back( m_dPhiMin  )
+  boost::assign::push_back( m_vDphiMin )
     ( 0 )( 0 )( 0 )( 0 )( 0 );
 
-  boost::assign::push_back( m_dPhiMax  )
+  boost::assign::push_back( m_vDphiMax )
     ( 1 )( 1 )( 1 )( 1 )( 1 );
 
-  m_nDphiDim     = m_nDphiBins.size();
+  m_nDphiDim     = m_vNdPhiBins.size();
   
   m_dPhiDphiMin  = 0;
   m_dPhiDphiMax  = constants::PI;
@@ -1268,8 +1268,8 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
   // make a THnSparse to fill with unfolded results.
   THnSparse* hnUnfolded =
     new THnSparseD( Form("h_%s_%s", hnUnfoldedName.c_str(), m_allName.c_str() ) , "",
-		    m_nDphiDim, &m_nDphiBins[0],
-		    &m_dPhiMin[0], &m_dPhiMax[0] );
+		    m_nDphiDim, &m_vNdPhiBins[0],
+		    &m_vDphiMin[0], &m_vDphiMax[0] );
 
   TAxis* axis0Def = m_dPP->GetDefaultTAxis( 0 );
   TAxis* axis1Def = m_dPP->GetDefaultTAxis( 1 );

@@ -55,7 +55,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
-  void AnalyzeResponseMatrix( THnSparse*, THnSparse*, THnSparse*, 
+  void AnalyzeResponseMatrix( THnSparse*, THnSparse*,
 			      const std::vector<TLorentzVector>&,
 			      const std::vector<TLorentzVector>& );
 
@@ -122,16 +122,16 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   
   void MakeDphiRecoTruth();
   
-  void MakePtResponseMatrix( std::vector<THnSparse*>&,
-			     const std::vector< std::string >&,
-			     const std::string& = "" );
-
   void MakeDphiCFactorsRespMat( std::vector<THnSparse*>&,
 				std::vector<THnSparse*>&,
 				std::vector<THnSparse*>&,
 				const std::vector< std::string >&,
 				const std::string& = "" ,
 				const std::string& = "" ); 
+
+  void MakePtResponseMatrix( std::vector<THnSparse*>&,
+			     const std::vector< std::string >&,
+			     const std::string& = "" );
 
   void MakeMigration( std::vector<THnSparse*>&,
 		      const std::vector< std::string >&,
@@ -248,10 +248,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // -------- Rebinned Response Matrix --------     
   std::vector< THnSparse* > m_vHjznDphiRespMatReb;  
   THnSparse* m_hAllDphiRespMatReb;
-  
-  // ----- pT Response Matrix -----
-  std::vector< THnSparse* > m_vHjznPtRespMat;  
-  THnSparse* m_hAllPtRespMat;
 
   //========= histos binning ========
   // ------ truth binning --------
@@ -273,17 +269,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // ---- dPhi Reponse Matrix ----- 
   uint m_nDphiRespMatDim;
 
-  std::vector< int >    m_nDphiRespMatBins;
-  std::vector< int >    m_nDphiRespMatRebBins;
-  std::vector< double > m_dPhiRespMatMin;
-  std::vector< double > m_dPhiRespMatMax;
-
-  // ---- pT Reponse Matrix ----- 
-  uint m_nPtRespMatDim;
-
-  std::vector< int >    m_nPtRespMatBins;
-  std::vector< double > m_pTRespMatMin;
-  std::vector< double > m_pTRespMatMax;
+  std::vector< int >    m_vNdPhiRespMatBins;
+  std::vector< int >    m_vNdPhiRespMatRebBins;
+  std::vector< double > m_vDphiRespMatMin;
+  std::vector< double > m_vDphiRespMatMax;
 
   // --- variable pt binning resp mat ---
   std::vector< double > m_varPtBinningRespMat;

@@ -351,9 +351,9 @@ class DiJetAnalysis{
   double m_dPhiDphiMin;
   double m_dPhiDphiMax;
   
-  std::vector< int >    m_nDphiBins;
-  std::vector< double > m_dPhiMin;
-  std::vector< double > m_dPhiMax;
+  std::vector< int >    m_vNdPhiBins;
+  std::vector< double > m_vDphiMin;
+  std::vector< double > m_vDphiMax;
     
   double m_dPhiWidthMin;
   double m_dPhiWidthMax;

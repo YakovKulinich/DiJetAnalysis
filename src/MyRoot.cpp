@@ -341,6 +341,20 @@ double CT::AnalysisTools::GetLogMaximum( double max ){
   return pow( 10, power );
 }
 
+void CT::AnalysisTools::ResetAxisRanges( TH1* h ){
+
+  h->GetXaxis()->SetRange( 1, -1 );
+  h->GetYaxis()->SetRange( 1, -1 );
+  h->GetZaxis()->SetRange( 1, -1 );
+}
+
+void CT::AnalysisTools::ResetAxisRanges( THnSparse* h ){
+
+  for( int i = 0; i < h->GetNdimensions(); i++ ){
+    h->GetAxis( i )->SetRange( 1, -1 );
+  }
+}
+
 // should be in miscallaneous
 void CT::AnalysisTools::CheckWriteDir( const char* c_dirOut ){
 

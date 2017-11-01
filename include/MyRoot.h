@@ -118,6 +118,10 @@ namespace CT{
 				 const std::string& = "" );
 
     double GetLogMaximum( double );
+
+    void ResetAxisRanges( TH1* );
+    
+    void ResetAxisRanges( THnSparse* );
     
     // this shuold be in miscallaneous
     void CheckWriteDir( const char* );
