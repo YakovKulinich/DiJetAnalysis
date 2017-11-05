@@ -1806,6 +1806,9 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
     
     for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){ 
       for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+
+	
+	
 	for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
 	  for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 	    // check we are in correct ystar and pt bins
@@ -2118,7 +2121,7 @@ void DiJetAnalysisMC::MakePtResponseMatrix( std::vector< THnSparse* >& vhnPt,
     // in data only draw for all
     std::string label = vLabel[iG];
 
-    if( label.compare( m_allName ) ){ continue; } 
+    if( !label.compare( m_allName ) ){ continue; } 
 
     THnSparse* hnPt   = vhnPt  [iG];
 
@@ -2237,8 +2240,74 @@ void DiJetAnalysisMC::MakePtResponseMatrix( std::vector< THnSparse* >& vhnPt,
 	// over some combination (top 4x4). Dont forget to reset
 	// the delta Phi ranges after this!
 
-      }
-    }
+	TAxis* dPhiRaxis = hnPt->GetAxis( 6 );
+	TAxis* dPhiTaxis = hnPt->GetAxis( 7 );
+
+	int nDphiRbins = dPhiRaxis->GetNbins();
+	int nDphiTbins = dPhiTaxis->GetNbins();
+
+	// keep this same for both of them for now.
+	// assume the have > 4 bins.
+	int dPhiBinRange = 4;
+	int dPhiBinBegin = nDphiRbins - dPhiBinRange + 1;
+	
+	for( int dPhiRbin = dPhiBinBegin; dPhiRbin <= nDphiRbins; dPhiRbin++ ){
+	  dPhiRaxis->SetRange( dPhiRbin, dPhiRbin );
+	  
+	  for( int dPhiTbin = dPhiBinBegin; dPhiTbin <= nDphiTbins; dPhiTbin++ ){
+	    dPhiTaxis->SetRange( dPhiTbin, dPhiTbin );
+
+	    for( uint ptN = 0; ptN < vPtLabel.size(); ptN++ ){
+	    
+	      TH2* hPtRespMatDphi = static_cast< TH2D* >
+		( hnPt->Projection( vPtProjDimY[ ptN ], vPtProjDimX[ ptN ] ) );
+
+	      // Make pT dPhi resp matrix
+	      std::string hTagDphi =
+		Form( "%s_dPhiR_%d_dPhiT_%d", hTag.c_str(), dPhiRbin, dPhiTbin ); 
+	      
+	      hPtRespMatDphi->SetName
+		( Form( "h_%s_%s_%s_%s_%s", namePt.c_str(), m_dPhiName.c_str(),
+			vPtLabel[ ptN ].c_str(), label.c_str(), hTagDphi.c_str() ) );
+	      styleTool->SetHStyle( hPtRespMatDphi, 0 );
+	      vRespMat.push_back( hPtRespMatDphi );
+
+	      TCanvas c1( "c1", hPtRespMatDphi->GetName(), 800, 600 );
+	      c1.SetLogz();
+
+	      gStyle->SetPaintTextFormat(".2f");
+	      hPtRespMatDphi->Scale( 1./hPtRespMatDphi->Integral() );
+	      hPtRespMatDphi->Draw("colz text");
+	      hPtRespMatDphi->SetTitle("");
+
+	      drawTool->DrawLeftLatex
+		( 0.13, 0.86, CT::AnalysisTools::GetLabel
+		  ( axis0Low, axis0Up, m_dPP->GetDefaultAxisLabel(0) ), 0.8 );
+	      drawTool->DrawLeftLatex
+		( 0.13, 0.79, CT::AnalysisTools::GetLabel
+		  ( axis1Low, axis1Up, m_dPP->GetDefaultAxisLabel(1) ), 0.8 );  
+
+	      drawTool->DrawLeftLatex
+		( 0.4, 0.86, Form( "#delta#phi_{Reco} Bin %d" , dPhiRbin ), 0.8 );
+	      drawTool->DrawLeftLatex
+		( 0.4, 0.79, Form( "#delta#phi_{Truth} Bin %d", dPhiTbin ), 0.8 );  
+
+	      DrawAtlasRight();
+	
+	      SaveAsAll( c1, hPtRespMatDphi->GetName() );
+	      hPtRespMatDphi->Write();
+	    }
+	  }
+	}
+
+	// Now reset the dphi bin ranges so we can still get
+	// total pT migration. Do not call ResetAxisRanges
+	// because we are in some range in ystar atm.
+	dPhiRaxis->SetRange( 1, -1 );
+	dPhiTaxis->SetRange( 1, -1 );
+	
+      } // end loop over ystar2
+    } // end loop over ystar1
   } // end loop over iG
   for( auto rm : vRespMat     ){ delete rm; }
   for( auto pe : vPurityEff   ){ delete pe; }

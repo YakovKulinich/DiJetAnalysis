@@ -147,8 +147,13 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   int nDphiBinsLarge = 4;
 
   // MakeDefaultBinning( m_varDphiBinning, m_varDphiRebinnedBinning, nDphiBinsLarge );
-  MakeLinearBinning( m_varDphiBinning, m_varDphiRebinnedBinning, nDphiBinsLarge );
+  // MakeLinearBinning( m_varDphiBinning, m_varDphiRebinnedBinning, nDphiBinsLarge );
   // m_varDphiRebinnedBinning = m_varDphiBinning;
+
+  m_varDphiBinning.push_back( 0 );
+  m_varDphiBinning.push_back( constants::PI );
+
+  m_varDphiRebinnedBinning = m_varDphiBinning;
   
   m_nVarDphiBins         = m_varDphiBinning.size()         - 1;  
   m_nVarDphiRebinnedBins = m_varDphiRebinnedBinning.size() - 1;
