@@ -82,6 +82,46 @@ bool CT::AnalysisTools::TruncateHistoBins( THnSparse* hn,
   return true;
 }
 
+bool CT::AnalysisTools::AverageOver( TH2* h2,
+				     const std::string& rc ){
+
+  TAxis* a1 = NULL;
+  TAxis* a2 = NULL;
+
+  // i, j are the loop indexes.
+  // i->a1, j->a2. i.e. for each bin in
+  // a1 we sum over all other bins in a2 (j)
+  // x or y can point to either i or j
+  int  i, j;;
+  int* x = NULL; int* y = NULL;
+
+  // average over rows. a1,i are y,
+  // sum over a2,j which are x
+  if( !rc.compare( "row" ) ){
+    a1 = h2->GetYaxis(); y = &i;
+    a2 = h2->GetXaxis(); x = &j;
+  } else if( !rc.compare( "column" ) ){
+    a1 = h2->GetXaxis(); x = &i;
+    a2 = h2->GetYaxis(); y = &j;
+  } else{
+    return false;
+  }
+
+  for( i = 1; i <= a1->GetNbins(); i++ ){
+    double iSum = 0;
+    for( j = 1; j <= a2->GetNbins(); j++ )
+      { iSum += h2->GetBinContent( *x, *y ); }
+
+    if( !iSum ){ continue; }
+    
+    for( j = 1 ; j <= a2->GetNbins(); j++ ){
+      double fraction = h2->GetBinContent( *x, *y ) / iSum;
+      h2->SetBinContent( *x, *y, fraction );
+    }
+  }
+  
+  return true;
+}
 
 bool CT::AnalysisTools::TruncateHistoBins( TH3* h3 ){
   for( int z = 1; z <= h3->GetZaxis()->GetNbins(); z++ ){
@@ -230,7 +270,9 @@ TF1* CT::AnalysisTools::FitPol2( TH1* histo, double xLow, double xHigh){
 
   fit->SetParameters( 1, 1 );
 
-  histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
+  if( histo->GetEntries() > 5 ){
+    histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
+  }
   
   return fit;
 }
@@ -343,15 +385,15 @@ double CT::AnalysisTools::GetLogMaximum( double max ){
 
 void CT::AnalysisTools::ResetAxisRanges( TH1* h ){
 
-  h->GetXaxis()->SetRange( 1, -1 );
-  h->GetYaxis()->SetRange( 1, -1 );
-  h->GetZaxis()->SetRange( 1, -1 );
+  h->GetXaxis()->SetRange( 0, 0 );
+  h->GetYaxis()->SetRange( 0, 0 );
+  h->GetZaxis()->SetRange( 0, 0 );
 }
 
 void CT::AnalysisTools::ResetAxisRanges( THnSparse* h ){
 
   for( int i = 0; i < h->GetNdimensions(); i++ ){
-    h->GetAxis( i )->SetRange( 1, -1 );
+    h->GetAxis( i )->SetRange( 0, 0 );
   }
 }
 
@@ -593,11 +635,10 @@ void CT::StyleTools::SetHStyle( TF1* funct, int iflag, double scale)
 }
 
 void CT::StyleTools::SetHStyleRatio( TH1* his, int iflag, double scale ){
-  SetHStyle( his, 0 );
+  SetHStyle( his, iflag );
   his->SetTitle("");
   his->SetMaximum( 2.0 );
   his->SetMinimum( 0.0 );
-  his->SetFillColor(46);
   his->GetYaxis()->SetNdivisions(503);
 }
 
@@ -625,7 +666,7 @@ void CT::StyleTools::SetLegendStyle(TLegend * legend, double scale)
   legend->SetFillStyle(0);
 }
 
-const double CT::StyleTools::lSS = 0.70;
+const double CT::StyleTools::lSS = 0.80;
 
 const double CT::StyleTools::hSS = 0.80;
 

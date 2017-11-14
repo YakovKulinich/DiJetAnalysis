@@ -107,7 +107,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void GetInfoBothRecoTruth( std::string&, std::string&,
 			     std::string&, std::string& );
   
-  void GetInfoUnfolding( std::string&, std::string&, std::string& );
+  void GetInfoUnfolding( std::string&, std::string&,
+			 std::string&, std::string& );
 
   void AnalyzePurityEff( TH2*, TH1*, TH1* );
   
@@ -132,10 +133,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void MakePtResponseMatrix( std::vector<THnSparse*>&,
 			     const std::vector< std::string >&,
 			     const std::string& = "" );
-
-  void MakeMigration( std::vector<THnSparse*>&,
-		      const std::vector< std::string >&,
-		      const std::string& = "" );
   
   //---------------------------
   //        Drawing
@@ -195,7 +192,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   
   std::vector< TH2* > m_vHjznEtaSpectReco;
   std::vector< TH2* > m_vHjznEtaSpectTruth;
-  std::vector< TH2* > m_vHjznEtaSpectTruthPaired;
   std::vector< TH1* > m_vHjznSpectTruth;
   
   TH2* m_hAllEtaSpectReco;
@@ -217,19 +213,20 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // -------------- dPhi -------------
   std::vector< THnSparse* > m_vHjznDphiReco;
   std::vector< THnSparse* > m_vHjznDphiTruth;
+  std::vector< THnSparse* > m_vHjznDphiRecoPairedTruth;
   
   THnSparse* m_hAllDphiReco;
   THnSparse* m_hAllDphiTruth;
-
-  std::vector< THnSparse* > m_vHjznDphiMigration;
-  
-  THnSparse* m_hAllDphiMigration;
+  THnSparse* m_hAllDphiRecoPairedTruth;
 
   // ------- response matrix ---------
   std::string m_dPhiRespMatName;
   std::string m_dPhiRespMatRebName;
 
   std::string m_ptRespMatName;
+
+  // ----- dPhi reco paired truth ----
+  std::string m_dPhiRecoPairedTruthName;
   
   // --- dPhi truth reco together ----
   std::string m_dPhiRecoPtTruthName;
@@ -250,6 +247,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   THnSparse* m_hAllDphiRespMatReb;
 
   //========= histos binning ========
+  
   // ------ truth binning --------
   double m_ptTruthWidth;
   double m_ptTruthMin;
@@ -265,6 +263,11 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   int    m_nDAngleRecoTruthBins;
   double m_dAngleRecoTruthMin;
   double m_dAngleRecoTruthMax;
+
+  // --- variable pt binning w/over+underflow ---
+  std::vector< double > m_varPtBinningRespMat;
+  uint m_nVarPtBinsRespMat;
+
   
   // ---- dPhi Reponse Matrix ----- 
   uint m_nDphiRespMatDim;
@@ -272,11 +275,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< int >    m_vNdPhiRespMatBins;
   std::vector< int >    m_vNdPhiRespMatRebBins;
   std::vector< double > m_vDphiRespMatMin;
-  std::vector< double > m_vDphiRespMatMax;
-
-  // --- variable pt binning resp mat ---
-  std::vector< double > m_varPtBinningRespMat;
-  uint m_nVarPtBinsRespMat;
+  std::vector< double > m_vDphiRespMatMax; 
 };
 
 #endif

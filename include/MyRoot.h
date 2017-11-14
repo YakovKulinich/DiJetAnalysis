@@ -86,6 +86,8 @@ namespace CT{
     
     bool TruncateHistoBins( TH3* h3 );
 
+    bool AverageOver( TH2*, const std::string& );
+    
     bool DoPrint( int ev );
 
     std::vector<std::string> vectorise(TString str, TString sep);

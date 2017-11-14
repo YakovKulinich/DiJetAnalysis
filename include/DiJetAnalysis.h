@@ -82,12 +82,6 @@ class DiJetAnalysis{
   
   virtual double AnalyzeDeltaPhi( THnSparse*,
 				  const std::vector <TLorentzVector>& );
-
-  virtual double AnalyzeDeltaPhi( THnSparse*,
-				  THnSparse*,
-				  const std::vector <TLorentzVector>&,
-				  const std::vector <TLorentzVector>& );
-
   
   virtual bool  ApplyIsolation( std::vector<TLorentzVector>&,
 				double );
@@ -114,7 +108,7 @@ class DiJetAnalysis{
   bool IsCentralYstar( const double& ystar );
   
   void NormalizeDeltaPhi( TH1* );
-
+ 
   virtual double GetJetWeight( const TLorentzVector& );
 
   virtual double GetUncertaintyWeight( const TLorentzVector&,
@@ -132,7 +126,8 @@ class DiJetAnalysis{
   virtual void GetInfoBoth( std::string&, std::string&, std::string&,
 			    std::string&, std::string&, std::string& );
 
-  virtual void GetInfoUnfolding( std::string&, std::string&, std::string& );
+  virtual void GetInfoUnfolding( std::string&, std::string&,
+				 std::string&, std::string& );
 
   TH1* BinByBinUnfolding( TH1*, TH1* );
 
@@ -214,15 +209,10 @@ class DiJetAnalysis{
   std::string m_sData;
   std::string m_sFinal;
   
-  std::string m_recoName;
-  std::string m_truthName;
-  
-  std::string m_sMUT;
+  std::string m_sCounts;
+  std::string m_sReb;
   std::string m_sRatio;
-  std::string m_sRebin;
-
-  std::string m_allName;
-
+  
   std::string m_unfoldingFileSuffix;
   std::string m_systematicsFileSuffix;
 
@@ -278,9 +268,33 @@ class DiJetAnalysis{
   std::string m_fNameRivetMC;
   
   std::string m_fNameUnfoldingMC;
+
+  //===== common histo names =======  
+  std::string m_allName;
+
+  std::string m_recoName;
+  std::string m_truthName;
+  std::string m_pairedName;
+
+  std::string m_dPhiName;
+  std::string m_etaSpectName;
+  std::string m_effName;
+  std::string m_purityName;
+
+  std::string m_cFactorName;
+  std::string m_respMatName;
+  std::string m_unfoldedName;
+  std::string m_systematicsName;
+ 
+  std::string m_dPhiRecoName;
+  std::string m_dPhiTruthName;
   
-  DeltaPhiProj* m_dPP;
-  
+  std::string m_dPhiCfactorsName;
+  std::string m_dPhiUnfoldedName;
+  std::string m_dPhiSystematicsName;
+
+  std::string m_dPhiRecoUnfoldedName;
+    
   // -------- eventCounter --------
   int m_ev;
   
@@ -301,6 +315,9 @@ class DiJetAnalysis{
   CT::AnalysisTools* anaTool;
   CT::DrawTools*     drawTool;
   CT::StyleTools*    styleTool;
+
+  //=== Set DeltaPhi Axes Order ===
+  DeltaPhiProj* m_dPP;
 
  protected:
   //======== histos binning =======
@@ -337,11 +354,12 @@ class DiJetAnalysis{
   // ---- variable pt binning ----
   std::vector<double> m_varPtBinning;
   uint m_nVarPtBins;
-
-  // --- variable dphi binnign ---
+  
+  // --- variable dphi binning ---
   std::vector<double> m_varDphiBinning;
   uint m_nVarDphiBins;
 
+  // --- rebinned variable dphi binning ---
   std::vector<double> m_varDphiRebinnedBinning;
   uint m_nVarDphiRebinnedBins;
 
@@ -361,25 +379,6 @@ class DiJetAnalysis{
   // -------- ratios ------
   double m_ratioMax;
   double m_ratioMin;
-  
-  //===== common histo names =======
-  std::string m_etaSpectName;
-  std::string m_dPhiName;
-  std::string m_effName;
-  std::string m_purityName;
-  
-  std::string m_respMatName;
-  std::string m_unfoldedName;
-  std::string m_systematicsName;
-  
-  std::string m_dPhiRecoName;
-  std::string m_dPhiTruthName;
-  
-  std::string m_dPhiCFactorsName;
-  std::string m_dPhiUnfoldedName;
-  std::string m_dPhiSystematicsName;
-
-  std::string m_dPhiRecoUnfoldedName;
 };
 
 #endif

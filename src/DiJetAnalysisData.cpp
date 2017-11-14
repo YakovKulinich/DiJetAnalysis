@@ -661,8 +661,8 @@ void DiJetAnalysisData::GetInfoBoth( std::string& name_a  , std::string& name_b 
     m_is_pPb  = false; Initialize();
     fName_b   = m_fNameOutUF;
   } else if( combinationBoth == 2 ){
-    name_a    = m_dPhiName + "_" + m_allName;
-    name_b    = m_dPhiName + "_" + m_allName;
+    name_a    = m_dPhiName + "_"  + m_allName;
+    name_b    = m_dPhiName + "_"  + m_allName;
     label_a   = "#it{p}+Pb";
     label_b   = "#it{pp}";
     m_is_pPb  = true; Initialize();
@@ -689,10 +689,12 @@ void DiJetAnalysisData::GetInfoBoth( std::string& name_a  , std::string& name_b 
 }
 
 void DiJetAnalysisData::GetInfoUnfolding( std::string& measuredName,
-					  std::string& measuredLabel,
+					  std::string& truthName,
+					  std::string& unfoldedLabel,
 					  std::string& typeLabel ){
   measuredName  = m_dPhiName;
-  measuredLabel = "|#Delta#phi|";
+  truthName     = m_dPhiTruthName;
+  unfoldedLabel = "|#Delta#phi|";
   typeLabel     = "Data";
 }
 
@@ -1188,8 +1190,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
       legW.Draw();
       
       DrawTopLeftLabels
-	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	  0, 0, 0, 0, 0.8 );
+	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, 0, 0, 0, 0);
 
       DrawAtlasRight();
 
@@ -1215,5 +1216,5 @@ void DiJetAnalysisData::DrawAtlasRight( double x0, double y0, double scale )
 
 void DiJetAnalysisData::DrawAtlasRightBoth( double x0, double y0, double scale ){
   drawTool->DrawAtlasInternal( scale );
-  drawTool->DrawRightLatex( 0.88, 0.87, "Data", 0.8 );	  	  
+  drawTool->DrawRightLatex( 0.88, 0.87, "Data" );	  	  
 } 
