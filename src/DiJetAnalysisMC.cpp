@@ -86,18 +86,17 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
   //=============== Histo Names ==================    
   m_etaSpectRecoName    = m_etaSpectName + "_" + m_recoName;
   m_etaSpectTruthName   = m_etaSpectName + "_" + m_truthName;
-  m_spectTruthName      = "spectra_" + m_truthName;
-
+  
   m_dPhiRespMatName    = m_dPhiName + "_" + m_respMatName;
   m_dPhiRespMatRebName = m_dPhiName + "_" + m_respMatName + "_" + m_sReb;
 
   m_ptRespMatName      = m_s_pt     + "_" + m_respMatName;
 
   m_dPhiRecoPairedTruthName =
-    m_dPhiName + "_" + m_recoName + "_" + m_pairedName + "_" + m_truthName;
+    m_dPhiName + "_" + m_recoName  + "_" + m_pairedName + "_" + m_truthName;
   
   m_dPhiRecoPtTruthName =
-    m_dPhiName + "_" + m_recoName + "_" + m_s_pt + "_" + m_truthName;
+    m_dPhiName + "_" + m_recoName  + "_" + m_s_pt + "_" + m_truthName;
   m_dPhiTruthPtRecoName =
     m_dPhiName + "_" + m_truthName + "_" + m_s_pt + "_" + m_recoName;
 
@@ -216,14 +215,6 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
 
   // only do this for the default sample
   if( !m_uncertComp ){
-    m_hAllEtaSpectReco  = CombineSamples( m_vHjznEtaSpectReco , m_etaSpectRecoName  );
-    m_hAllEtaSpectTruth = CombineSamples( m_vHjznEtaSpectTruth, m_etaSpectTruthName );
-    MakeSpectra( m_vHjznEtaSpectReco , m_vJznLabel, m_etaSpectRecoName );
-    MakeSpectra( m_vHjznEtaSpectTruth, m_vJznLabel, m_etaSpectTruthName  );
-
-    m_hAllSpectTruth = CombineSamples( m_vHjznSpectTruth, m_spectTruthName );
-    m_hAllSpectTruth->Write();
-    
     // need to cd into the original fout, because scale and res files are created 
     MakeScaleRes( m_vHjznRecoTruthRpt , m_vHjznRecoTruthRptNent , "recoTruthRpt"  );
     fOut->cd();
@@ -233,6 +224,11 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
     fOut->cd();
   }
   
+  m_hAllEtaSpectReco  = CombineSamples( m_vHjznEtaSpectReco , m_etaSpectRecoName  );
+  m_hAllEtaSpectTruth = CombineSamples( m_vHjznEtaSpectTruth, m_etaSpectTruthName );
+  MakeSpectra( m_vHjznEtaSpectReco , m_vJznLabel, m_etaSpectRecoName );
+  MakeSpectra( m_vHjznEtaSpectTruth, m_vJznLabel, m_etaSpectTruthName  );
+ 
   m_hAllDphiReco  = CombineSamples( m_vHjznDphiReco, m_dPhiRecoName   );
   MakeDeltaPhi( m_vHjznDphiReco , m_vJznLabel, m_dPhiRecoName  );
   fOut->cd();
@@ -260,7 +256,7 @@ void DiJetAnalysisMC::ProcessPlotHistos(){
   MakeDphiCFactorsRespMat( m_vHjznDphiTruth, m_vHjznDphiRecoPairedTruth, m_vHjznDphiRespMatReb,
 			   m_vJznLabel, m_dPhiRespMatName, m_dPhiCfactorsName );
 
-  MakePtResponseMatrix( m_vHjznDphiRespMatReb, m_vJznLabel, m_ptRespMatName );
+  // MakePtResponseMatrix( m_vHjznDphiRespMatReb, m_vJznLabel, m_ptRespMatName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -295,7 +291,6 @@ void DiJetAnalysisMC::DataMCCorrections(){
   // doing this for all triggers. Altohugh, this can be
   // repeated in a loop with m_allName subsitituted for trigger,
   // and subsequently added to the vectors above.  
-  std::cout << fInData->GetName() << " " << fInMC->GetName() << std::endl;
   THnSparse* m_hAllDphiRecoUnfolded =
     UnfoldDeltaPhi( fInData, fInMC, m_dPhiRecoUnfoldedName );
   m_vHDphiUnfolded.push_back( m_hAllDphiRecoUnfolded );
@@ -304,7 +299,7 @@ void DiJetAnalysisMC::DataMCCorrections(){
   // unfold on MC, just used for testing purpose.
   // make deltaPhi, give flag (true) that its unfolded response
   // so there is no comb subt or normalization or scaling
-  MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiRecoUnfoldedName, true );
+  MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiRecoUnfoldedName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
@@ -379,12 +374,6 @@ void DiJetAnalysisMC::SetupHistograms(){
     m_vHjznEtaSpectTruth.back()->GetXaxis()->
       Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_vHjznEtaSpectTruth.back() );
-
-    m_vHjznSpectTruth.push_back
-      ( new TH1D( Form("h_%s_%s", m_spectTruthName.c_str(), jzn.c_str() ), 
-		  ";#it{p}_{T}^{Truth} [GeV]",
-		  85, 15, 100 ) );
-    AddHistogram( m_vHjznSpectTruth.back() );
 
     // --------- recoTruthRpt ---------
     m_vHjznRecoTruthRpt.push_back
@@ -666,10 +655,9 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 
 	double jetWeight = GetJetWeight( tJet );
 
+	// simple filling of truth spectra
 	m_vHjznEtaSpectTruth    [iG]->
 	  Fill( jetEtaAdj, jetPt, jetWeight);
-
-	m_vHjznSpectTruth[iG]->Fill( jetPt );
       } // end loop over truth jets
 
       // do JER/JES, angular scales and resolution.
@@ -1205,12 +1193,6 @@ void DiJetAnalysisMC::LoadHistograms(){
 	  Get( Form("h_%s_%s", m_etaSpectTruthName.c_str(), jzn.c_str() ))));
     m_vHjznEtaSpectTruth.back()->SetDirectory(0);
     
-    m_vHjznSpectTruth.push_back 
-      ( static_cast< TH1D* >
-	( fIn->
-	  Get( Form("h_%s_%s", m_spectTruthName.c_str(), jzn.c_str() ))));
-    m_vHjznSpectTruth.back()->SetDirectory(0);
-    
     // --------- recoTruthRpt ---------
     m_vHjznRecoTruthRpt.push_back
       ( static_cast< TH3D* >
@@ -1248,11 +1230,11 @@ void DiJetAnalysisMC::LoadHistograms(){
     m_vHjznDphiReco.push_back
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_dPhiRecoName.c_str(), jzn.c_str() ))));  
-    
+    	
     m_vHjznDphiTruth.push_back
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_dPhiTruthName.c_str(), jzn.c_str() ))));  
-
+    
     m_vHjznDphiRecoPairedTruth.push_back
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_dPhiRecoPairedTruthName.c_str(), jzn.c_str() ))));  
@@ -1261,22 +1243,23 @@ void DiJetAnalysisMC::LoadHistograms(){
     m_vHjznDphiRecoPtTruth.push_back
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_dPhiRecoPtTruthName.c_str(), jzn.c_str() ))));  
-    
+      
     m_vHjznDphiTruthPtReco.push_back
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_dPhiTruthPtRecoName.c_str(), jzn.c_str() ))));  
-    
+      
     // -------- Dphi Response Matrix --------    
     m_vHjznDphiRespMat.push_back
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_dPhiRespMatName.c_str(), jzn.c_str() ))));  
-
+      
     // -------- Dphi Response Matrix --------    
     m_vHjznDphiRespMatReb.push_back
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_dPhiRespMatRebName.c_str(), jzn.c_str() ))));  
-  }
 
+  }
+  
   fIn->Close(); delete fIn;
 }
 
@@ -1846,8 +1829,8 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 
 	    int ystar1Bin =  vMappedaAxisBins[0];
 	    int ystar2Bin =  vMappedaAxisBins[1];
-	    // because of underflow bin we add 1.
-	    // first actual bin is 2 not 1.
+	    // because of underflow bin we add 1 to whatever 
+  	    // bin it actually is first actual bin is 2 not 1.
 	    int pt1Bin    =  vMappedaAxisBins[2] + 1; 
 	    int pt2Bin    =  vMappedaAxisBins[3] + 1;
 

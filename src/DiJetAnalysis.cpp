@@ -35,7 +35,6 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData )
 DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType )
   : DiJetAnalysis( is_pPb, isData, mcType, 0 ){}
 
-
 /* Constructor for DiJetAnalysis
  * 
  * Here, make histogram binning, load
@@ -57,6 +56,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_s_pt1  = "pT1";
   m_s_pt2  = "pT2";
 
+  m_sEta  = "eta";
+  m_sEta  = "ystar";
+  
   m_sOutput   = "output";  
   m_myOutName = "myOut";
   m_sMC       = "mc";
@@ -66,7 +68,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sCounts   = "Counts";
   m_sReb      = "Reb";
   m_sRatio    = "Ratio";
-  
+
   m_unfoldingFileSuffix = "UF";
   m_systematicsFileSuffix = "SYS";
   
@@ -239,8 +241,10 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_truthName       = "truth";
   m_pairedName      = "paired";
 
+  m_spectName       = "spect";
   m_dPhiName        = "dPhi";
-  m_etaSpectName    = "etaSpect";
+  m_etaSpectName    = m_sEta   + m_spectName;
+  m_ystarSpectName  = m_sYstar + m_spectName;
   m_effName         = "eff";
   m_purityName      = "purity";
   
@@ -955,8 +959,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
 
 void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 				  const std::vector< std::string >& vLabel,
-				  const std::string& name,
-				  bool isUnfolded ){
+				  const std::string& name ){
 
   // These are "quality" check histograms
   h_mult     = new TH1D( Form("h_mult_%s", name.c_str() ),
@@ -980,11 +983,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
     std::string label = vLabel[iG];
 
     if( label.compare( m_allName ) ){ continue; }
-
-    THnSparse* hnDphi = static_cast< THnSparse* >
-      ( hn->Clone( Form( "h_%s_%s",  name.c_str(), label.c_str() ) ) );
-    hnDphi->Reset();
-    vHnDphi.push_back( hnDphi );
     
     TAxis* axis0 = hn->GetAxis( m_dPP->GetAxisI(0) ); int nAxis0Bins = axis0->GetNbins();
     TAxis* axis1 = hn->GetAxis( m_dPP->GetAxisI(1) ); int nAxis1Bins = axis1->GetNbins();
@@ -1092,28 +1090,21 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    // this is the "default"
 	    TH1* hDphi = NULL;
 
-	    if( !isUnfolded ){
-	      // save the normalized counts histogram.
-	      hDphi = static_cast< TH1D* >
-		( hDphiCounts->Clone( hDphiName.c_str() ) );
-	      styleTool->SetHStyle( hDphi, 0 );
-	      hDphi->SetNdivisions( 505, "Y" );
-	      vDphi.push_back( hDphi );
+	    // save the normalized counts histogram.
+	    hDphi = static_cast< TH1D* >
+	      ( hDphiCounts->Clone( hDphiName.c_str() ) );
+	    styleTool->SetHStyle( hDphi, 0 );
+	    hDphi->SetNdivisions( 505, "Y" );
+	    vDphi.push_back( hDphi );
 	      
-	      // because variable bin width, scale by bin width
-	      hDphi->Scale( 1.0, "width" );
+	    // because variable bin width, scale by bin width
+	    hDphi->Scale( 1.0, "width" );
 	      
-	      // subtract combinatoric contribution before normalizing
-	      anaTool->SubtractCombinatoric( hDphi ); 
+	    // subtract combinatoric contribution before normalizing
+	    anaTool->SubtractCombinatoric( hDphi ); 
 
-	      // Normalize
-	      NormalizeDeltaPhi( hDphi );
-	    } else {
-	      // we are reading unfolded result
-	      // it is already normalized subracted
-	      hDphi = hDphiCounts;
-	      hDphi->SetName( hDphiName.c_str() );
-	    }
+	    // Normalize
+	    NormalizeDeltaPhi( hDphi );
 	    
 	    TCanvas c( "c", hDphi->GetName(), 800, 600 );
 	    
@@ -1121,16 +1112,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->SetYTitle("Normalized Count");
 	    hDphi->SetTitle("");
 	    
-	    // fill output THnSparse result
-	    std::vector< int > x  = m_dPP->GetMappedBins
-	      ( std::vector<int> { axis0Bin, axis1Bin, axis2Bin, axis3Bin } );
-	    x.push_back(0); // dPhiBin;
-	    for( int dPhiBin = 1; dPhiBin <= hDphi->GetNbinsX(); dPhiBin++ ){
-	      x[4] = dPhiBin;
-	      hnDphi->SetBinContent( &x[0], hDphi->GetBinContent( dPhiBin ) );
-	      hnDphi->SetBinError  ( &x[0], hDphi->GetBinError  ( dPhiBin ) );
-	    }
-
 	    // now fit
 	    TF1* fit = anaTool->FitDphi( hDphi, m_dPhiFittingMin, m_dPhiFittingMax );
 	    styleTool->SetHStyle( fit, 0 );
@@ -1157,12 +1138,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    SaveAsROOT( c, hDphi->GetName() );
 	    fit->Write();
 
-	    if( !isUnfolded ){
-	      hDphi->Write();
-	      hDphiCounts->Write();
-	    } else {
-	      hDphi->Write();
-	    }
+	    hDphi->Write();
+	    hDphiCounts->Write();
 	    
 	    if( fit->GetParameter(1) < 0 )
 	      { continue; }
@@ -1195,8 +1172,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
         SaveAsAll( cWidths, Form("h_%s_%s_%s", name.c_str(), label.c_str(), hTagCW.c_str() ) );
       } // end loop over axis1     
     } // end loop over axis0
-    // save THnSparse dPhi to file
-    hnDphi->Write();
   } // end loop over iG
 
   
@@ -1387,6 +1362,18 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  hDphiUnfoldedCounts->SetNdivisions( 505, "Y" );
 	  vDphi.push_back( hDphiUnfoldedCounts );
 
+	  // fill unfolded THnSparse result
+	  std::vector< int > x  = m_dPP->GetMappedBins
+	    ( std::vector<int> { axis0Bin, axis1Bin, axis2Bin, axis3Bin } );
+	  x.push_back(0); // dPhiBin;
+	  for( int dPhiBin = 1; dPhiBin <= hDphiUnfoldedCounts->GetNbinsX(); dPhiBin++ ){
+	    x[4] = dPhiBin;
+	    hnUnfolded->SetBinContent
+	      ( &x[0], hDphiUnfoldedCounts->GetBinContent( dPhiBin ) );
+	    hnUnfolded->SetBinError
+	      ( &x[0], hDphiUnfoldedCounts->GetBinError  ( dPhiBin ) );
+	  }
+
 	  // Clone the counts, then normalize
 	  TH1* hDphiUnfolded = static_cast< TH1D* >
 	    ( hDphiUnfoldedCounts->Clone( Form( "h_%s_%s_%s", m_dPhiUnfoldedName.c_str(),
@@ -1404,19 +1391,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  TF1* fitUnfolded = anaTool->FitDphi( hDphiUnfolded, m_dPhiFittingMin, m_dPhiFittingMax );
 
 	  // -------- Unfold Done ---------
-	  
-	  // fill unfolded THnSparse result
-	  std::vector< int > x  = m_dPP->GetMappedBins
-	    ( std::vector<int> { axis0Bin, axis1Bin, axis2Bin, axis3Bin } );
-	  x.push_back(0); // dPhiBin;
-	  for( int dPhiBin = 1; dPhiBin <= hDphiUnfolded->GetNbinsX(); dPhiBin++ ){
-	    x[4] = dPhiBin;
-	    hnUnfolded->SetBinContent
-	      ( &x[0], hDphiUnfolded->GetBinContent( dPhiBin ) );
-	    hnUnfolded->SetBinError
-	      ( &x[0], hDphiUnfolded->GetBinError  ( dPhiBin ) );
-	  }
-	  	  
+	  	  	  
 	  hDphiMeasured->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 	  hDphiUnfolded->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 	  hDphiTruth   ->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
@@ -1567,7 +1542,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  c.cd();
 
 	  // save this for debugging
-	  hDphiUnfoldedCounts->Write();
+	  // hDphiUnfoldedCounts->Write();
 	  
 	  // MUT is Measuerd Unfolded Truth
 	  SaveAsAll( c, Form( "h_%s_%s_MUT_%s",

@@ -139,7 +139,7 @@ void DiJetAnalysisData::DataMCCorrections(){
 
   // make deltaPhi, give flag (true) that its unfolded response
   // so there is no comb subt or normalization or scaling
-  MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiUnfoldedName, true );
+  MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiUnfoldedName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
@@ -447,12 +447,13 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	// the labels will be taken care of so it is ok
 	double jetEtaAdj = AdjustEtaForPP( jetEta );
 
-	// fill spectra 
-	m_vHtriggerEtaSpect[iG]->Fill( jetEtaAdj, jetPt );
-	
 	// check if the jet is in appropriate range
 	// for the trigger fired
 	if( !JetInTrigRange( jet, iG ) ){ continue; };
+
+	// fill spectra 
+	m_vHtriggerEtaSpect[iG]->Fill( jetEtaAdj, jetPt );
+
       } // end loop over jets
     } // end loop over iG
     // EFFICIENCIES - only for good run and LBN

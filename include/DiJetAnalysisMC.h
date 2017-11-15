@@ -188,15 +188,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // -------- spect --------
   std::string m_etaSpectRecoName;
   std::string m_etaSpectTruthName; 
-  std::string m_spectTruthName;
   
   std::vector< TH2* > m_vHjznEtaSpectReco;
   std::vector< TH2* > m_vHjznEtaSpectTruth;
-  std::vector< TH1* > m_vHjznSpectTruth;
   
   TH2* m_hAllEtaSpectReco;
   TH2* m_hAllEtaSpectTruth;
-  TH1* m_hAllSpectTruth;
   
   // --------- recoTruthRpt ---------
   std::vector< TH3* > m_vHjznRecoTruthRpt;

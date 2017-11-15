@@ -47,6 +47,16 @@ class DiJetAnalysis{
   //---------------------------
   virtual void RunOverTreeFillHistos( int, int ) = 0;
 
+  /*
+  virtual void ProcessPerformance   ( int, int ) = 0;
+
+  virtual void UnfoldPerformance    ( int, int ) = 0;
+
+  virtual void ProcessPhysics       ( int, int ) = 0;
+
+  virtual void UnfoldPhysics        ( int, int ) = 0;
+  */
+
   virtual void ProcessPlotHistos() = 0;
 
   virtual void DataMCCorrections() = 0;
@@ -150,8 +160,7 @@ class DiJetAnalysis{
   
   virtual void MakeDeltaPhi( std::vector<THnSparse*>&,
 			     const std::vector< std::string >&,
-			     const std::string& = "",
-			     bool = false );
+			     const std::string& = "" );
   
   virtual THnSparse* UnfoldDeltaPhi( TFile*, TFile*,
 				     const std::string& = "" );
@@ -202,6 +211,9 @@ class DiJetAnalysis{
   
   std::string m_s_pt1;
   std::string m_s_pt2;
+
+  std::string m_sEta;
+  std::string m_sYstar;
   
   std::string m_sOutput;
   std::string m_myOutName;
@@ -276,8 +288,10 @@ class DiJetAnalysis{
   std::string m_truthName;
   std::string m_pairedName;
 
+  std::string m_spectName;
   std::string m_dPhiName;
   std::string m_etaSpectName;
+  std::string m_ystarSpectName;
   std::string m_effName;
   std::string m_purityName;
 
