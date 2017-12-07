@@ -47,23 +47,17 @@ class DiJetAnalysis{
   //---------------------------
   virtual void RunOverTreeFillHistos( int, int ) = 0;
 
-  /*
-  virtual void ProcessPerformance   ( int, int ) = 0;
+  virtual void ProcessPerformance   () = 0;
 
-  virtual void UnfoldPerformance    ( int, int ) = 0;
+  virtual void UnfoldPerformance    () = 0;
 
-  virtual void ProcessPhysics       ( int, int ) = 0;
+  virtual void ProcessPhysics       () = 0;
 
-  virtual void UnfoldPhysics        ( int, int ) = 0;
-  */
+  virtual void UnfoldPhysics        () = 0;
 
-  virtual void ProcessPlotHistos() = 0;
+  virtual void MakeResultsTogether  ();
 
-  virtual void DataMCCorrections() = 0;
-
-  virtual void PlotHistosTogether() = 0;
-
-  virtual void ProcessSystematics() = 0;
+  virtual void ProcessSystematics   ();
   
   //---------------------------
   //       Fill Tree
@@ -89,6 +83,8 @@ class DiJetAnalysis{
   virtual bool GetDiJets( const std::vector<TLorentzVector>&,
 			  const TLorentzVector*&,
 			  const TLorentzVector*& );
+
+  virtual void AnalyzeSpectra( TH2*, const std::vector< TLorentzVector >& );
   
   virtual double AnalyzeDeltaPhi( THnSparse*,
 				  const std::vector <TLorentzVector>& );
@@ -105,8 +101,6 @@ class DiJetAnalysis{
 			  const TLorentzVector*,
 			  TH2*, double = 1.);
   
-  double AdjustEtaForPP( double );  
-
   double GetYstar( const TLorentzVector& );
 
   bool IsForwardDetector( const double& eta );
@@ -117,7 +111,7 @@ class DiJetAnalysis{
 
   bool IsCentralYstar( const double& ystar );
   
-  void NormalizeDeltaPhi( TH1* );
+  void NormalizeDeltaPhi( TH1*, TH1* = NULL, double = 0, bool = false );
  
   virtual double GetJetWeight( const TLorentzVector& );
 
@@ -133,13 +127,20 @@ class DiJetAnalysis{
   virtual THnSparse* CombineSamples( std::vector< THnSparse* >&,
 				     const std::string& = "" );  
 
-  virtual void GetInfoBoth( std::string&, std::string&, std::string&,
-			    std::string&, std::string&, std::string& );
+  virtual void GetSpectraLabels( std::string&, std::string&,
+				 const std::string& = "" );
 
-  virtual void GetInfoUnfolding( std::string&, std::string&,
-				 std::string&, std::string& );
+  
+  virtual void GetInfoTogether( std::string&, std::string&, std::string&,
+				std::string&, std::string&, std::string& );
 
-  TH1* BinByBinUnfolding( TH1*, TH1* );
+  virtual void GetSpectUnfoldingInfo( std::string&, std::string&, std::string&,
+				      std::string&, std::string& );
+  
+  virtual void GetDphiUnfoldingInfo( std::string&, std::string&,
+				     std::string&, std::string& );
+  
+  TH1*   BinByBinUnfolding( TH1*, TH1* );
 
   TFile* GetListOfSystUncert( std::vector< int >&, std::map< int, TFile* >& );
 
@@ -157,14 +158,21 @@ class DiJetAnalysis{
   virtual void MakeSpectra( std::vector< TH2* >&,
 			    const std::vector< std::string >&, 
 			    const std::string& = "" );
+
+  virtual TH2* UnfoldSpectra( TFile*, TFile*,
+			      const std::string& = "" );
   
   virtual void MakeDeltaPhi( std::vector<THnSparse*>&,
 			     const std::vector< std::string >&,
+			     const std::string& = "",
+			     TFile* fMC = NULL, 
 			     const std::string& = "" );
   
   virtual THnSparse* UnfoldDeltaPhi( TFile*, TFile*,
+				     const std::string& = "",
+				     TFile* = NULL,
 				     const std::string& = "" );
-
+  
   virtual void MakeDphiTogether();
 
   virtual void MakeFinalPlotsTogether();
@@ -220,10 +228,18 @@ class DiJetAnalysis{
   std::string m_sMC;
   std::string m_sData;
   std::string m_sFinal;
+
+  std::string m_sRaw;
+  std::string m_sPhys;
+  std::string m_sPerf;
   
   std::string m_sCounts;
   std::string m_sReb;
   std::string m_sRatio;
+
+  std::string m_rawFileSuffix;
+  std::string m_performanceFileSuffix;
+  std::string m_physicsFileSuffix;
   
   std::string m_unfoldingFileSuffix;
   std::string m_systematicsFileSuffix;
@@ -262,53 +278,74 @@ class DiJetAnalysis{
   std::string m_mcTypeName;
   std::string m_mcTypeLabel;
 
-  std::string m_uncertSuffix;
   std::string m_labelOut;
-
   std::string m_dirOut;
+  
+  std::string m_uncertSuffix;
+  
+  std::string m_fName;
+
+  std::string m_fNameRaw;
+  std::string m_fNamePerf;
+  std::string m_fNamePerfUF;
+  std::string m_fNamePhys;
+  std::string m_fNamePhysUF;
+  
+  std::string m_fNameDefRaw;
+  std::string m_fNameDefPerf;
+  std::string m_fNameDefPerfUF;
+  std::string m_fNameDefPhys;
+  std::string m_fNameDefPhysUF;
+
+  std::string m_fNameSYS;
+
   std::string m_dirOutTogether; 
+  std::string m_fNameTogether;
   
-  std::string m_rawHistosFname;
-
-  std::string m_fNameOutDefault;
-  std::string m_fNameOut;
-  std::string m_fNameOutDefaultUF;
-  std::string m_fNameOutUF;
-  std::string m_fNameOutSYS;
-  std::string m_fNameOutTogether;
-
   std::string m_fNameRivetMC;
-  
-  std::string m_fNameUnfoldingMC;
+
+  std::string m_fNamePerfUnfoldingMC;
+  std::string m_fNamePhysUnfoldingMC;
 
   //===== common histo names =======  
   std::string m_allName;
+
+  std::string m_spectName;
+  std::string m_dPhiName;
 
   std::string m_recoName;
   std::string m_truthName;
   std::string m_pairedName;
 
-  std::string m_spectName;
-  std::string m_dPhiName;
-  std::string m_etaSpectName;
-  std::string m_ystarSpectName;
-  std::string m_effName;
-  std::string m_purityName;
-
   std::string m_cFactorName;
   std::string m_respMatName;
   std::string m_unfoldedName;
-  std::string m_systematicsName;
- 
+
+  std::string m_etaSpectName;
+  std::string m_ystarSpectName;
+
+  std::string m_etaSpectTruthName; 
+  std::string m_ystarSpectTruthName; 
+  
+  std::string m_ystarSpectRespMatName;
+  
+  std::string m_etaSpectUnfoldedName;
+  std::string m_ystarSpectUnfoldedName;
+
+  std::string m_ystarSpectCfactorsName;
+    
   std::string m_dPhiRecoName;
   std::string m_dPhiTruthName;
   
   std::string m_dPhiCfactorsName;
   std::string m_dPhiUnfoldedName;
-  std::string m_dPhiSystematicsName;
 
-  std::string m_dPhiRecoUnfoldedName;
+  std::string m_systematicsName;
+  std::string m_dPhiSystematicsName;
     
+  std::string m_effName;
+  std::string m_purityName;
+
   // -------- eventCounter --------
   int m_ev;
   
@@ -353,6 +390,8 @@ class DiJetAnalysis{
   double m_ptSpectMin;
   double m_ptSpectMax;
 
+  double m_ptSpectYaxisMin;
+  
   // -------- eff ---------
   double m_effMin;
   double m_effMax;
@@ -368,6 +407,10 @@ class DiJetAnalysis{
   // ---- variable pt binning ----
   std::vector<double> m_varPtBinning;
   uint m_nVarPtBins;
+
+  // --- variable pt binning w/over+underflow ---
+  std::vector< double > m_varPtBinningRespMat;
+  uint m_nVarPtBinsRespMat;
   
   // --- variable dphi binning ---
   std::vector<double> m_varDphiBinning;

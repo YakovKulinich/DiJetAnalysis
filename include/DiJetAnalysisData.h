@@ -27,13 +27,15 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   void RunOverTreeFillHistos( int, int );
 
-  void ProcessPlotHistos();
+  void ProcessPerformance   ();
 
-  void DataMCCorrections();
-  
-  void PlotHistosTogether();
+  void UnfoldPerformance    ();
 
-  void ProcessSystematics();
+  void ProcessPhysics       ();
+
+  void UnfoldPhysics        ();
+
+  void ProcessSystematics   ();
   
   //---------------------------
   //       Fill Tree
@@ -76,11 +78,16 @@ class DiJetAnalysisData : public DiJetAnalysis{
   THnSparse* CombineSamples( std::vector< THnSparse* >&,
 			     const std::string& = "" );   
 
-  void GetInfoBoth( std::string&, std::string&, std::string&,
-		    std::string&, std::string&, std::string& );
+  void GetInfoTogether( std::string&, std::string&, std::string&,
+			std::string&, std::string&, std::string& );
 
-  void GetInfoUnfolding( std::string&, std::string&,
-			 std::string&, std::string& );
+
+  void GetSpectUnfoldingInfo( std::string&, std::string&, std::string&,
+			      std::string&, std::string& );
+
+
+  void GetDphiUnfoldingInfo( std::string&, std::string&,
+			     std::string&, std::string& );
   
   //---------------------------
   //  Get Quantities / Plot 
@@ -129,8 +136,10 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   // -------- spect --------  
   std::vector< TH2* > m_vHtriggerEtaSpect;
+  std::vector< TH2* > m_vHtriggerYstarSpect;
 
   TH2* m_hAllEtaSpect;
+  TH2* m_hAllYstarSpect;
   // ----- efficiencies ----
   std::vector< TH2* > m_vHtriggerEtaSpectSim;
   std::vector< TH2* > m_vHtriggerEtaSpectDenom;

@@ -32,13 +32,15 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   void RunOverTreeFillHistos( int, int );
 
-  void ProcessPlotHistos();
+  void ProcessPerformance   ();
 
-  void DataMCCorrections();
+  void UnfoldPerformance    ();
 
-  void PlotHistosTogether();
+  void ProcessPhysics       ();
 
-  void ProcessSystematics(){};
+  void UnfoldPhysics        ();
+
+  void MakeResultsTogether  ();
   
   //---------------------------
   //       Fill Tree
@@ -50,20 +52,24 @@ class DiJetAnalysisMC : public DiJetAnalysis{
  protected:
   //---------------------------
   //       Analysis
-  //---------------------------
+  //---------------------------  
   void AnalyzeScaleResolution( const std::vector< TLorentzVector >&,
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
-  void AnalyzeResponseMatrix( THnSparse*, THnSparse*,
-			      const std::vector<TLorentzVector>&,
-			      const std::vector<TLorentzVector>& );
+  void AnalyzeSpectRespMat( TH3*,
+			    const std::vector<TLorentzVector>&,
+			    const std::vector<TLorentzVector>& );
+  
+  void AnalyzeDphiRespMat( THnSparse*, THnSparse*,
+			   const std::vector<TLorentzVector>&,
+			   const std::vector<TLorentzVector>& );
 
   std::pair<double,double> AnalyzeDeltaPhiTruthReco
     ( THnSparse*, THnSparse*,
       const std::vector <TLorentzVector>&,
       const std::vector <TLorentzVector>& );
-
+  
   //---------------------------
   //          Tools 
   //---------------------------  
@@ -76,6 +82,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			     const std::string& = "" );
 
   TH2*       CombineSamples( std::vector< TH2* >&,
+			     const std::string& = "" );
+
+  TH3*       CombineSamples( std::vector< TH3* >&,
 			     const std::string& = "" );
   
   THnSparse* CombineSamples( std::vector< THnSparse* >&,
@@ -93,6 +102,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		       std::vector< TH2* >&,
 		       const std::string& = "" );
 
+  void SetCfactorsErrors( TH1*, TH1*, TH2*, TH1* );
+  
   double GetJetWeight( const TLorentzVector& );
   
   double GetUncertaintyWeight( const TLorentzVector&,
@@ -101,16 +112,19 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void GetTypeTitle( const std::string&,
 		     std::string&, std::string& );
 
-  void GetInfoBoth( std::string&, std::string&, std::string&,
-		    std::string&, std::string&, std::string& );
+  void GetInfoTogether( std::string&, std::string&, std::string&,
+			std::string&, std::string&, std::string& );
 
-  void GetInfoBothRecoTruth( std::string&, std::string&,
-			     std::string&, std::string& );
+  void GetInfoTogetherRecoTruth( std::string&, std::string&,
+				 std::string&, std::string& );
+
+  void GetSpectUnfoldingInfo( std::string&, std::string&, std::string&,
+			      std::string&, std::string& );
   
-  void GetInfoUnfolding( std::string&, std::string&,
-			 std::string&, std::string& );
+  void GetDphiUnfoldingInfo( std::string&, std::string&,
+			     std::string&, std::string& );
 
-  void AnalyzePurityEff( TH2*, TH1*, TH1* );
+  void GetPurityEff( TH2*, TH1*, TH1* );
   
   //---------------------------
   //  Get Quantities / Plot 
@@ -122,17 +136,24 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		     const std::string& );
   
   void MakeDphiRecoTruth();
+
+  void MakeSpectCFactorsRespMat( std::vector< TH2* >&,
+				 std::vector< TH2* >&,
+				 std::vector< TH3* >&,
+				 const std::vector< std::string >&,
+				 const std::string& = "",
+				 const std::string& = "" );
   
-  void MakeDphiCFactorsRespMat( std::vector<THnSparse*>&,
-				std::vector<THnSparse*>&,
-				std::vector<THnSparse*>&,
+  void MakeDphiCFactorsRespMat( std::vector< THnSparse* >&,
+				std::vector< THnSparse* >&,
+				std::vector< THnSparse* >&,
 				const std::vector< std::string >&,
 				const std::string& = "" ,
 				const std::string& = "" ); 
 
-  void MakePtResponseMatrix( std::vector<THnSparse*>&,
-			     const std::vector< std::string >&,
-			     const std::string& = "" );
+  void MakePtRespMat( std::vector< THnSparse* >&,
+		      const std::vector< std::string >&,
+		      const std::string& = "" );
   
   //---------------------------
   //        Drawing
@@ -163,7 +184,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //============ settings ============= 
   std::vector< int > m_vJznUsed;
   
-  std::vector< std::string > m_vJznLabel;
+  std::vector< std::string > m_vJznLabels;
   std::vector< std::string > m_vJznFnameIn;
 
   std::vector< double >  m_vJznSigma;
@@ -187,13 +208,26 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   // -------- spect --------
   std::string m_etaSpectRecoName;
-  std::string m_etaSpectTruthName; 
+  std::string m_ystarSpectRecoName;
   
   std::vector< TH2* > m_vHjznEtaSpectReco;
   std::vector< TH2* > m_vHjznEtaSpectTruth;
+  std::vector< TH2* > m_vHjznYstarSpectReco;
+  std::vector< TH2* > m_vHjznYstarSpectTruth;
   
   TH2* m_hAllEtaSpectReco;
   TH2* m_hAllEtaSpectTruth;
+  TH2* m_hAllYstarSpectReco;
+  TH2* m_hAllYstarSpectTruth;
+
+  // --- spectra response matrix ----
+  std::vector< TH3* > m_vHjznYstarSpectRespMat;
+
+  TH3* m_hAllYstarSpectRespMat;
+
+  // ------- unfolded spectra -------
+  std::string m_etaSpectRecoUnfoldedName;
+  std::string m_ystarSpectRecoUnfoldedName;
   
   // --------- recoTruthRpt ---------
   std::vector< TH3* > m_vHjznRecoTruthRpt;
@@ -216,14 +250,17 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   THnSparse* m_hAllDphiTruth;
   THnSparse* m_hAllDphiRecoPairedTruth;
 
-  // ------- response matrix ---------
+  // ---- dPhi reco paired truth -----
+  std::string m_dPhiRecoPairedTruthName;
+
+  // ----- dPhi response matrix ------
   std::string m_dPhiRespMatName;
   std::string m_dPhiRespMatRebName;
 
   std::string m_ptRespMatName;
 
-  // ----- dPhi reco paired truth ----
-  std::string m_dPhiRecoPairedTruthName;
+  // ------- dPhi reco unfolded ------
+  std::string m_dPhiRecoUnfoldedName;
   
   // --- dPhi truth reco together ----
   std::string m_dPhiRecoPtTruthName;
@@ -260,11 +297,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   int    m_nDAngleRecoTruthBins;
   double m_dAngleRecoTruthMin;
   double m_dAngleRecoTruthMax;
-
-  // --- variable pt binning w/over+underflow ---
-  std::vector< double > m_varPtBinningRespMat;
-  uint m_nVarPtBinsRespMat;
-
   
   // ---- dPhi Reponse Matrix ----- 
   uint m_nDphiRespMatDim;

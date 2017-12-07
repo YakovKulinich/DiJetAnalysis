@@ -75,50 +75,119 @@ void DiJetAnalysisData::RunOverTreeFillHistos( int nEvents,
   SaveOutputsFromTree();
 }
 
-void DiJetAnalysisData::ProcessPlotHistos(){
+void DiJetAnalysisData::ProcessPerformance(){
+
   LoadTriggers();
   LoadHistograms();
 
-  TFile* fOut = new TFile( m_fNameOutDefault.c_str(),"RECREATE");
+  TFile* fOut = new TFile( m_fNameDefPerf.c_str(),"RECREATE");
 
   // MakeEtaPhiPtMap( m_vHtriggerEtaPhiMap );
   // MakeEtaPhiPtMap( m_vHtriggerEtaPtMap  );
 
   // add a trigger "all" to collection
-  // rest of plots are for combined triggers
+  // rest of plots include combined triggers
   m_vTriggers.push_back( m_allName );
   
   m_hAllEtaSpect = CombineSamples( m_vHtriggerEtaSpect, m_etaSpectName );
   MakeSpectra( m_vHtriggerEtaSpect, m_vTriggers, m_etaSpectName );
 
-  MakeEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, m_effName );
-  
-  m_hAllDphi = CombineSamples( m_vHtriggerDphi, m_dPhiName );
-  MakeDeltaPhi( m_vHtriggerDphi, m_vTriggers, m_dPhiName );
+  m_hAllYstarSpect = CombineSamples( m_vHtriggerYstarSpect, m_ystarSpectName );
+  MakeSpectra( m_vHtriggerYstarSpect, m_vTriggers, m_ystarSpectName );
 
-  // Copy the filenames 
+  MakeEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, m_effName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
   std::cout << "......Closed  " << std::endl;
 }
 
-void DiJetAnalysisData::DataMCCorrections(){
+void DiJetAnalysisData::UnfoldPerformance(){
+
   // for now
   // Copy File with original dPhi, spectra, etc,
   // into file where histos with corrections are
   // going to be appended. 
-  TFile::Cp( m_fNameOutDefault.c_str(), m_fNameOutUF.c_str() );
-  std::cout << "Copy " << m_fNameOutDefault << " -> " << m_fNameOutUF << std::endl;
+  std::cout << "Copy " << m_fNameDefPerf << " -> " << m_fNamePerfUF << std::endl;
+  TFile::Cp( m_fNameDefPerf.c_str(), m_fNamePerfUF.c_str() );
+
+  // Open two for reading one for updating.
+  // open the MC file used for unfolding info.
+  // open the data file used for measured info.
+  // passed to unfolding function.
+  TFile* fInMC   = TFile::Open( m_fNamePerfUnfoldingMC.c_str() );
+  TFile* fInData = TFile::Open( m_fNamePerf.c_str()            );
+  TFile* fOut    = new TFile( m_fNamePerfUF.c_str(),"UPDATE"   );
+
+  std::cout << "----- Unfolding MC ------" << std::endl;
+  // make a vector with just the unfolded result.
+  // this is to send it to MakeDeltaPhi(..) to have
+  // unfolded results plotted separately
+  std::vector< TH2* >        m_vHspectUnfolded;
+  std::vector< std::string > m_vLabelsUnfolded;
+
+  // make unfolded THnSparse with similar naming convention
+  // as the other histograms. At this point, don't care about
+  // doing this for all triggers. Altohugh, this can be
+  // repeated in a loop with m_allName subsitituted for trigger,
+  // and subsequently added to the vectors above.  
+  TH2* m_hAllspectUnfolded =
+    UnfoldSpectra( fInData, fInMC, m_ystarSpectUnfoldedName );
+  m_vHspectUnfolded.push_back( m_hAllspectUnfolded );
+  m_vLabelsUnfolded.push_back( m_allName );
+
+  // unfold on MC, just used for testing purpose.
+  // so there is no comb subt or normalization or scaling
+  MakeSpectra( m_vHspectUnfolded, m_vLabelsUnfolded, m_ystarSpectUnfoldedName );
+
+  std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
+  fOut->Close(); delete fOut;
+  std::cout << "......Closed  " << std::endl;
+
+}
+
+void DiJetAnalysisData::ProcessPhysics(){
+
+  LoadTriggers();
+  LoadHistograms();
+
+  // THIS HAS TO BE CHANGED
+  TFile* fInMCPerf  = TFile::Open( m_fNamePerfUF.c_str() );
+
+  TFile* fOut = new TFile( m_fNamePhys.c_str(),"RECREATE");
+
+  // add a trigger "all" to collection
+  // rest of plots include combined triggers
+  m_vTriggers.push_back( m_allName );
+
+  m_hAllDphi = CombineSamples( m_vHtriggerDphi, m_dPhiName );
+  MakeDeltaPhi( m_vHtriggerDphi, m_vTriggers, m_dPhiName,
+		fInMCPerf, m_ystarSpectUnfoldedName );
+  
+  std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
+  fOut->Close(); delete fOut;
+  std::cout << "......Closed  " << std::endl;
+}
+
+void DiJetAnalysisData::UnfoldPhysics(){
+
+  // for now
+  // Copy File with original dPhi, spectra, etc,
+  // into file where histos with corrections are
+  // going to be appended. 
+  std::cout << "Copy " << m_fNamePhys << " -> " << m_fNamePhysUF << std::endl;
+  TFile::Cp( m_fNamePhys.c_str(), m_fNamePhysUF.c_str() );
+
   // Open two for reading one for updating.
   // open the MC file used for unfolding info.
   // open teh data file used for measured info.
   // passed to unfolding function.
-  TFile* fInMC   = TFile::Open( m_fNameUnfoldingMC.c_str() );
-  TFile* fInData = TFile::Open( m_fNameOutDefault.c_str()         );
-  TFile* fOut    = new TFile( m_fNameOutUF.c_str(),"UPDATE");
+  TFile* fInMC     = TFile::Open( m_fNamePhysUnfoldingMC.c_str()  );
+  TFile* fInData   = TFile::Open( m_fNameDefPhys.c_str()          );
+  TFile* fInMCPerf = TFile::Open( m_fNamePerfUF.c_str() );
+  TFile* fOut      = new TFile( m_fNamePhysUF.c_str(),"UPDATE"    );
 
-  std::cout << m_fNameUnfoldingMC << std::endl;
+  std::cout << m_fNamePhysUnfoldingMC << std::endl;
   
   std::cout << "----- Unfolding Data ------" << std::endl;
   // make a vector with just the unfolded result.
@@ -133,35 +202,19 @@ void DiJetAnalysisData::DataMCCorrections(){
   // repeated in a loop with m_allName subsitituted for trigger,
   // and subsequently added to the vectors above.  
   THnSparse* m_hAllDphiUnfolded =
-    UnfoldDeltaPhi( fInData, fInMC, m_dPhiUnfoldedName );
+    UnfoldDeltaPhi( fInData, fInMC, m_dPhiUnfoldedName,
+		    fInMCPerf, m_ystarSpectUnfoldedName );
   m_vHDphiUnfolded.push_back( m_hAllDphiUnfolded );
   m_vLabelUnfolded.push_back( m_allName );
 
   // make deltaPhi, give flag (true) that its unfolded response
   // so there is no comb subt or normalization or scaling
-  MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiUnfoldedName );
+  MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiUnfoldedName,
+		fInMCPerf, m_ystarSpectUnfoldedName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
   std::cout << "......Closed  " << std::endl;
-}
-
-void DiJetAnalysisData::PlotHistosTogether(){
-  // For Together "final"
-  // Check if the directories exist.
-  // If they don't, create them
-  m_dirOutTogether = m_sOutput;
-  anaTool->CheckWriteDir( m_dirOutTogether.c_str() );
-  m_dirOutTogether += "/" + m_allName;
-  anaTool->CheckWriteDir( m_dirOutTogether.c_str() );
-  m_dirOutTogether += "/" + m_labelOut + "_" + m_uncertSuffix;
-  anaTool->CheckWriteDir( m_dirOutTogether.c_str() );
-
-  m_fNameOutTogether =
-    m_dirOutTogether + "/c_" + m_myOutName + "_" +
-    m_labelOut + "_" + m_uncertSuffix + ".root" ;
-
-  MakeDphiTogether();
 }
 
 void DiJetAnalysisData::ProcessSystematics(){
@@ -276,19 +329,29 @@ void DiJetAnalysisData::SetupHistograms(){
       ( new TH2D( Form("h_%s_%s", m_etaSpectName.c_str(), trigger.c_str() ), 
 		  ";#eta;#it{p}_{T} [GeV];",
 		  m_nVarFwdEtaBins, 0, 1,
-		  m_nPtSpectBins,
-		  m_ptSpectMin, m_ptSpectMax ) ) ;
+		  m_nPtSpectBins,m_ptSpectMin, m_ptSpectMax ) ) ;
     m_vHtriggerEtaSpect.back()->GetXaxis()->
       Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_vHtriggerEtaSpect.back() );
+
+    m_vHtriggerYstarSpect.push_back
+      ( new TH2D( Form("h_%s_%s", m_ystarSpectName.c_str(), trigger.c_str() ), 
+		  ";#it{y}*;#it{p}_{T} [GeV];",
+		  m_nVarYstarBins, 0, 1,
+		  m_nVarPtBinsRespMat, 0, 1 ) ) ;
+    m_vHtriggerYstarSpect.back()->GetXaxis()->
+      Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    m_vHtriggerYstarSpect.back()->GetYaxis()->
+      Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+   
+    AddHistogram( m_vHtriggerYstarSpect.back() );
 
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( new TH2D ( Form("h_%sSim_%s", m_etaSpectName.c_str(), trigger.c_str() ), 
 		   ";#eta;#it{p}_{T} [GeV]",
 		   m_nVarFwdEtaBins, 0, 1,
-		   m_nPtSpectBins,
-		   m_ptSpectMin, m_ptSpectMax ) ) ;
+		   m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) ) ;
     m_vHtriggerEtaSpectSim.back()->GetXaxis()->
       Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_vHtriggerEtaSpectSim.back() );
@@ -297,8 +360,7 @@ void DiJetAnalysisData::SetupHistograms(){
       ( new TH2D( Form("h_%sDenom_%s", m_etaSpectName.c_str(), trigger.c_str() ), 
 		  ";#eta;#it{p}_{T} [GeV];",
 		  m_nVarFwdEtaBins, 0, 1,
-		  m_nPtSpectBins,
-		  m_ptSpectMin, m_ptSpectMax ) ) ;
+		  m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) ) ;
     m_vHtriggerEtaSpectDenom.back()->GetXaxis()->
       Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_vHtriggerEtaSpectDenom.back() );
@@ -430,29 +492,35 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
       // loop over jets 
       for( auto& jet : vR_jets ){
 	// cleaned jets have px, py, pz set to 0
-	if( jet.Pt() == 0 ) continue;
+	if( jet.Pt() <= 0 ) continue;
 	
 	// ETA-PHI
 	double jetEta = jet.Eta();
 	double jetPhi = jet.Phi();
-	double jetPt = jet.Pt()/1000.;
+	double jetPt  = jet.Pt()/1000.;
 	
 	m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
 	m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt ); 
 
-	// convert positive eta to negative because
-	// in pp it doesnt matter.
-	// our histos run in negative eta
-	// (due to pPb configuration)
-	// the labels will be taken care of so it is ok
-	double jetEtaAdj = AdjustEtaForPP( jetEta );
-
 	// check if the jet is in appropriate range
 	// for the trigger fired
-	if( !JetInTrigRange( jet, iG ) ){ continue; };
+	//	if( !JetInTrigRange( jet, iG ) ){ continue; };
 
+	double jetYstar = GetYstar( jet );
+	
 	// fill spectra 
-	m_vHtriggerEtaSpect[iG]->Fill( jetEtaAdj, jetPt );
+	m_vHtriggerEtaSpect[iG]->
+	  Fill( jetEta  , jetPt );
+	m_vHtriggerYstarSpect[iG]->
+	  Fill( jetYstar, jetPt );
+
+	// for pp fill both, pPb continue
+	if( m_is_pPb ){ continue; }
+
+	m_vHtriggerEtaSpect[iG]->
+	  Fill( -jetEta  , jetPt );
+	m_vHtriggerYstarSpect[iG]->
+	  Fill( -jetYstar, jetPt );
 
       } // end loop over jets
     } // end loop over iG
@@ -467,6 +535,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 //---------------------------
 //       Analysis
 //---------------------------
+
 bool DiJetAnalysisData::JetInTrigPtRange( const TLorentzVector& jet, int iG,
 					  double ptHighExtra ){  
   double jetPt = jet.Pt() / 1000.;
@@ -635,9 +704,9 @@ THnSparse* DiJetAnalysisData::CombineSamples( std::vector< THnSparse* >& vSample
   return h_res;
 }
 
-void DiJetAnalysisData::GetInfoBoth( std::string& name_a  , std::string& name_b  ,
-				     std::string& label_a , std::string& label_b ,
-				     std::string& fName_a , std::string& fName_b ){
+void DiJetAnalysisData::GetInfoTogether( std::string& name_a  , std::string& name_b  ,
+					 std::string& label_a , std::string& label_b ,
+					 std::string& fName_a , std::string& fName_b ){
 
   int combinationBoth = GetConfig()->GetValue( "combinationBoth", 0 );
 
@@ -648,51 +717,65 @@ void DiJetAnalysisData::GetInfoBoth( std::string& name_a  , std::string& name_b 
     name_b    = m_dPhiSystematicsName + "_" + m_allName;
     label_a   = "#it{p}+Pb";
     label_b   = "#it{pp}";
-    m_is_pPb  = true; Initialize();
-    fName_a   = m_fNameOutSYS;
+    m_is_pPb  = true;  Initialize();
+    fName_a   = m_fNameSYS;
     m_is_pPb  = false; Initialize();
-    fName_b   = m_fNameOutSYS;
+    fName_b   = m_fNameSYS;
   } else if( combinationBoth == 1 ){
     name_a    = m_dPhiUnfoldedName + "_" + m_allName;
     name_b    = m_dPhiUnfoldedName + "_" + m_allName;
     label_a   = "#it{p}+Pb";
     label_b   = "#it{pp}";
-    m_is_pPb  = true; Initialize();
-    fName_a   = m_fNameOutUF;
+    m_is_pPb  = true;  Initialize();
+    fName_a   = m_fNamePhysUF;
     m_is_pPb  = false; Initialize();
-    fName_b   = m_fNameOutUF;
+    fName_b   = m_fNamePhysUF;
   } else if( combinationBoth == 2 ){
     name_a    = m_dPhiName + "_"  + m_allName;
     name_b    = m_dPhiName + "_"  + m_allName;
     label_a   = "#it{p}+Pb";
     label_b   = "#it{pp}";
-    m_is_pPb  = true; Initialize();
-    fName_a   = m_fNameOutUF;
+    m_is_pPb  = true;  Initialize();
+    fName_a   = m_fNamePhysUF;
     m_is_pPb  = false; Initialize();
-    fName_b   = m_fNameOutUF;
+    fName_b   = m_fNamePhysUF;
   } else if ( combinationBoth == 3 ){
     name_a    = m_dPhiUnfoldedName + "_" + m_allName;
     name_b    = m_dPhiName + "_" + m_allName;
     label_a   = "Unfolded #it{pp}";
     label_b   = "#it{pp}";
     m_is_pPb  = false; Initialize();
-    fName_a   = m_fNameOutUF;
-    fName_b   = m_fNameOutUF;
+    fName_a   = m_fNamePhysUF;
+    fName_b   = m_fNamePhysUF;
   } else if ( combinationBoth == 4 ){
     name_a    = m_dPhiUnfoldedName + "_" + m_allName;
     name_b    = m_dPhiName + "_" + m_allName;
     label_a   = "Unfolded #it{p}+Pb";
     label_b   = "#it{p}+Pb";
     m_is_pPb  = true; Initialize();
-    fName_a   = m_fNameOutUF;
-    fName_b   = m_fNameOutUF;
+    fName_a   = m_fNamePhysUF;
+    fName_b   = m_fNamePhysUF;
   }
 }
 
-void DiJetAnalysisData::GetInfoUnfolding( std::string& measuredName,
-					  std::string& truthName,
-					  std::string& unfoldedLabel,
-					  std::string& typeLabel ){
+void DiJetAnalysisData::GetSpectUnfoldingInfo( std::string& measuredName,
+					       std::string& truthName,
+					       std::string& respMatName,
+					       std::string& unfoldedLabel,
+					       std::string& typeLabel ){
+
+  measuredName  = m_ystarSpectName;
+  truthName     = m_ystarSpectTruthName;
+  respMatName   = m_ystarSpectRespMatName;
+  unfoldedLabel = "dN/d#it{p}_{T}";;
+  typeLabel     = "Data";
+}
+
+void DiJetAnalysisData::GetDphiUnfoldingInfo( std::string& measuredName,
+					      std::string& truthName,
+					      std::string& unfoldedLabel,
+					      std::string& typeLabel ){
+
   measuredName  = m_dPhiName;
   truthName     = m_dPhiTruthName;
   unfoldedLabel = "|#Delta#phi|";
@@ -704,7 +787,8 @@ void DiJetAnalysisData::GetInfoUnfolding( std::string& measuredName,
 //---------------------------------
 
 void DiJetAnalysisData::LoadHistograms(){
-  TFile* fIn = TFile::Open( m_rawHistosFname.c_str() ); 
+  
+  TFile* fIn = TFile::Open( m_fNameDefRaw.c_str() ); 
 
   for( auto& trigger : m_vTriggers ){
     // -------- maps ---------
@@ -725,7 +809,13 @@ void DiJetAnalysisData::LoadHistograms(){
 	( fIn->Get
 	  ( Form("h_%s_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
     m_vHtriggerEtaSpect.back()->SetDirectory(0);
-    
+
+    m_vHtriggerYstarSpect.push_back
+      ( static_cast< TH2D *>
+	( fIn->Get
+	  ( Form("h_%s_%s", m_ystarSpectName.c_str(), trigger.c_str() ))));
+    m_vHtriggerYstarSpect.back()->SetDirectory(0);
+ 
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( static_cast< TH2D *>
@@ -844,7 +934,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     std::string cName  = trigger;
     std::string cLabel = trigger;
 
-    TCanvas c( "c", cLabel.c_str(), 800, 600 );
+    TCanvas c( cLabel.c_str(), cLabel.c_str(), 800, 600 );
     styleTool->SetCStyleGraph( c, xMin, m_effMin, xMax, m_effMax, gLabel );
     
     TLegend leg( lX0, lY0, lX1, lY1 );
@@ -908,7 +998,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     std::string cName  = anaTool->GetName( etaMin, etaMax, "Eta" );
     std::string cLabel = anaTool->GetEtaLabel( etaMin, etaMax, m_is_pPb );
     
-    TCanvas c( "c", cLabel.c_str(), 800, 600 );
+    TCanvas c( cLabel.c_str(), cLabel.c_str(), 800, 600 );
     styleTool->SetCStyleGraph( c, xMin, m_effMin, xMax, m_effMax, gLabel );
     
     TLegend leg( lX0, lY0, lX1, lY1 );
@@ -966,7 +1056,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
 
   TFile* fInDefault = GetListOfSystUncert( v_uc, mFinUC );
   
-  TFile* fOut  = new TFile( m_fNameOutSYS.c_str(), "recreate");
+  TFile* fOut  = new TFile( m_fNameSYS.c_str(), "recreate");
   
   std::string allUnfoldedName    = m_dPhiUnfoldedName    + "_" + m_allName;
   std::string allSystematicsName = m_dPhiSystematicsName + "_" + m_allName;

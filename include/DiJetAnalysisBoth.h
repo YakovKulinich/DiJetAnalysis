@@ -10,21 +10,30 @@ class DiJetAnalysisBoth : public DiJetAnalysis{
   DiJetAnalysisBoth( bool, bool );
   ~DiJetAnalysisBoth();
 
-
   void Initialize();
 
   void AdditionalSuffix( std::string& ){}
-  
-  // pure virtual function from DiJetAnalysis
+
+  //---------------------------
+  // Fill Tree / Plot Controls
+  //---------------------------
   void RunOverTreeFillHistos( int, int ){}
-  void ProcessPlotHistos(){}
-  void DataMCCorrections(){}
-  void PlotHistosTogether();
-  void ProcessSystematics(){}; 
+  void ProcessPerformance   (){};
+  void UnfoldPerformance    (){};
+  void ProcessPhysics       (){};
+  void UnfoldPhysics        (){};
+  void MakeResultsTogether  ();
+
+  //---------------------------
+  //       Fill Tree
+  //---------------------------
   void SetupHistograms(){}
 
   void ProcessEvents( int, int ){}
 
+  //---------------------------
+  //   Get Quantities / Plot 
+  //---------------------------
   void LoadHistograms(){}
   
   void MakeDphiTogether();

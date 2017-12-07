@@ -25,6 +25,7 @@ DiJetAnalysisBoth::DiJetAnalysisBoth( bool is_pPb, bool isReco )
 DiJetAnalysisBoth::~DiJetAnalysisBoth(){}
 
 void DiJetAnalysisBoth::Initialize(){
+
   m_system  = m_is_pPb ? m_s_pPb    : m_s_pp;
   m_mcLevel = m_isReco ? m_recoName : m_truthName;
 
@@ -43,11 +44,12 @@ void DiJetAnalysisBoth::Initialize(){
   }
 }
 
-void DiJetAnalysisBoth::PlotHistosTogether(){
+void DiJetAnalysisBoth::MakeResultsTogether(){
   MakeDphiTogether();
 }
 
 void DiJetAnalysisBoth::MakeDphiTogether(){
+
   // Check if the directories exist.
   // If they don't, create them
   std::string outDir = m_sOutput;

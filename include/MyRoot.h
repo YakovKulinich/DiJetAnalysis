@@ -156,6 +156,8 @@ namespace CT{
     
     // Legend Style
     void SetLegendStyle(TLegend * legend, double scale = lSS);
+
+    void HideAxis( TH1*, const std::string& );
   };
   
   //===================================
@@ -174,16 +176,16 @@ namespace CT{
 			  int color = 1 );
     void DrawAtlasInternal( double scale = StyleTools::lSS );
 
-    void DrawAtlasInternalDataRight( double x0, double y0, bool is_pPb,
-				     double scale = StyleTools::lSS );
-    void DrawAtlasInternalDataLeft ( double x0, double y0, bool is_pPb,
-				     double scale = StyleTools::lSS );
-    void DrawAtlasInternalMCRight  ( double x0, double y0,
-				     const std::string& mcType,
-				     double scale = StyleTools::lSS );
-    void DrawAtlasInternalMCLeft   ( double x0, double y0,
-				     const std::string& mcType,
-				     double scale = StyleTools::lSS );
+    void DrawAtlasInternalDataRight( double = 0, double = 0, bool = false,
+				     double = StyleTools::lSS );
+    void DrawAtlasInternalDataLeft ( double = 0, double = 0, bool = false,
+				     double = StyleTools::lSS );
+    void DrawAtlasInternalMCRight  ( double = 0, double = 0,
+				     const std::string& = "", int = 0,
+				     double = StyleTools::lSS );
+    void DrawAtlasInternalMCLeft   ( double = 0, double = 0,
+				     const std::string& = "", int = 0,
+				     double = StyleTools::lSS );
   };
 }
 

@@ -68,31 +68,38 @@ int main(int argc, char *argv[])
     analysis = static_cast< DiJetAnalysis* >
       ( new DiJetAnalysisBoth( is_pPb, isReco ) );
   }
+
+  gROOT->SetBatch(kTRUE);
   
   analysis->Initialize();
 
-  if( mode == 0 ) {
+  switch( mode ){
+  case 0:
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
-  } else if( mode == 1 ){
-    //rootapp = new TApplication("JetAnalysis",&argc, argv);
-    gROOT->SetBatch(kTRUE);
-    analysis->ProcessPlotHistos();
-    //rootapp->Run();
-  } else if( mode == 2 ){
-    //rootapp = new TApplication("JetAnalysis",&argc, argv);
-    gROOT->SetBatch(kTRUE);
-    analysis->DataMCCorrections();
-    //rootapp->Run();
-  } else if( mode == 3 ){
-    //rootapp = new TApplication("JetAnalysis",&argc, argv);
-    gROOT->SetBatch(kTRUE);
+    break;
+  case 1:
+    analysis->ProcessPerformance();
+    break;
+  case 2:
+    analysis->UnfoldPerformance();
+    break;
+  case 3:
+    analysis->ProcessPhysics();
+    break;
+  case 4:
+    analysis->UnfoldPhysics();
+    break;
+  case 5:
+    analysis->MakeResultsTogether();
+    break;
+  case 6:
     analysis->ProcessSystematics();
-    //rootapp->Run();
-  } else if(  mode == 4 || mode == 8 ){
-    //rootapp = new TApplication("JetAnalysis",&argc, argv);
-    gROOT->SetBatch(kTRUE);
-    analysis->PlotHistosTogether();
-    //rootapp->Run();
+    break;
+  case 8:
+    analysis->MakeResultsTogether();
+  default:
+    std::cout << "Wrong Mode. Exiting." << std::endl;
+    return 1;
   }
   
   delete analysis;

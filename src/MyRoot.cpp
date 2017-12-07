@@ -215,9 +215,13 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
 
   if( !histo->GetEntries() )
     { return dPhiFit; }
-  
-  dPhiFit->SetParameters( 0.30, 0.20, 0.20 );
 
+  double amp = histo->GetBinContent( histo->GetMaximumBin () );
+  
+  dPhiFit->SetParameters( amp, 0.20, 0.20 );
+  dPhiFit->SetParLimits ( 2, 1E-3, 1 );
+  
+  
   int status = histo->Fit( dPhiFit->GetName(), "NQ", "", xLow, xHigh );
 
   if( status ){ std::cout << " +++++++++++++ " << status
@@ -637,8 +641,8 @@ void CT::StyleTools::SetHStyle( TF1* funct, int iflag, double scale)
 void CT::StyleTools::SetHStyleRatio( TH1* his, int iflag, double scale ){
   SetHStyle( his, iflag );
   his->SetTitle("");
-  his->SetMaximum( 2.0 );
-  his->SetMinimum( 0.0 );
+  his->SetMaximum( 1.5 );
+  his->SetMinimum( 0.5 );
   his->GetYaxis()->SetNdivisions(503);
 }
 
@@ -664,6 +668,16 @@ void CT::StyleTools::SetLegendStyle(TLegend * legend, double scale)
   legend->SetLineWidth(1);
   legend->SetFillColor(0);
   legend->SetFillStyle(0);
+}
+
+void CT::StyleTools::HideAxis( TH1* h, const std::string& xyz ){
+  if( !xyz.compare("x") ){
+    h->GetXaxis()->SetLabelOffset(999);
+    h->GetXaxis()->SetLabelSize(0);
+  } else if( !xyz.compare("y") ){
+    h->GetYaxis()->SetLabelOffset(999);
+    h->GetYaxis()->SetLabelSize(0);
+  } // continue like this
 }
 
 const double CT::StyleTools::lSS = 0.80;
@@ -753,17 +767,39 @@ void CT::DrawTools::DrawAtlasInternalDataLeft
 // ============ MC ================
 
 void CT::DrawTools::DrawAtlasInternalMCRight
-( double x0, double y0, const std::string& mcType, double scale ){ 
+( double x0, double y0, const std::string& mcType, int mode, double scale ){ 
+
+  std::string system = "";
+  
+  // !is_pPb => mode = 0
+  if( mode == 0 ){
+    system = "#it{pp}";
+  } else if( mode == 1 ){
+    system = "#it{p}+Pb";
+  }
+  
   DrawRightLatex(0.88, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
-  DrawRightLatex(0.88 + x0, 0.86, mcType, scale, 1 );
+  DrawRightLatex( 0.88 + x0, 0.86,
+		  Form( "%s %s", system.c_str(), mcType.c_str() ), scale, 1 );
  }
 
 
 void CT::DrawTools::DrawAtlasInternalMCLeft
-( double x0, double y0, const std::string& mcType, double scale ){ 
+( double x0, double y0, const std::string& mcType, int mode, double scale ){ 
+
+  std::string system = "";
+  
+  // !is_pPb => mode = 0
+  if( mode == 0 ){
+    system = "#it{pp}";
+  } else if( mode == 1 ){
+    system = "#it{p}+Pb";
+  }
+
   DrawRightLatex(0.88, 0.93, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
 
-  DrawLeftLatex(0.18 + x0, 0.86, mcType, scale, 1 );
+  DrawLeftLatex( 0.18 + x0, 0.86,
+		 Form( "%s %s", system.c_str(), mcType.c_str() ), scale, 1 );
 }
