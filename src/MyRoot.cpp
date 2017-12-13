@@ -82,6 +82,60 @@ bool CT::AnalysisTools::TruncateHistoBins( THnSparse* hn,
   return true;
 }
 
+std::pair< double, double > CT::AnalysisTools::GetRMS
+( TH1* h, double xLow, double xUp, double ref ){
+
+  // rms is standard rms by definition
+  // rmsError is yi * xi ^ 2 * dyi 
+  double yixi2         = 0;
+  double yixi2Error    = 0;
+  
+  for ( int xBin = 1; xBin <= h->GetNbinsX(); xBin++ ){
+
+    double xBinCenter = h->GetBinCenter( xBin );
+        if ( xBinCenter < xLow ||
+	 xBinCenter > xUp ) continue;
+    
+    double yi  = h->GetBinContent( xBin );
+    double eYi = h->GetBinError  ( xBin );
+    
+    // avoid negative values
+    if ( yi < 0 ){ yi = 0; }
+
+    yixi2      += yi * std::pow
+      ( ( xBinCenter - ref ), 2 );
+
+    yixi2Error += yi * std::pow
+      ( ( xBinCenter - ref ), 2 ) * eYi;
+  }
+
+  int xBinLow = h->FindBin( xLow );
+  int xBinUp  = h->FindBin( xUp  );
+  
+  double integral      = 0;
+  double integralError = 0;
+
+  integral = h->IntegralAndError
+    ( xBinLow, xBinUp, integralError );
+
+  double rms      = 0;
+  double rmsError = 0;
+
+  if ( integral > 0 && yixi2 > 0 ){
+    rms      = std::sqrt( yixi2 / integral);
+    rmsError = std::sqrt( std::pow( rmsError / integral, 2 ) +
+			  std::pow( rms * integralError / integral , 2 ) );
+      
+    std::cout << " ---- " << integral << " " << integralError
+	      << " " << rms << " " << rmsError << std::endl;
+  } else {
+    rms      = 0;
+    rmsError = 0;
+  }
+
+  return std::make_pair( rms, rmsError );
+}
+
 bool CT::AnalysisTools::AverageOver( TH2* h2,
 				     const std::string& rc ){
 

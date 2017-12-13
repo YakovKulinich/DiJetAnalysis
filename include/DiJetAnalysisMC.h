@@ -206,6 +206,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< TH2* > m_vHjznEtaPhiMap;
   std::vector< TH2* > m_vHjznEtaPtMap;
 
+  TH2* m_hAllEtaPtMap;
+  
   // -------- spect --------
   std::string m_etaSpectRecoName;
   std::string m_ystarSpectRecoName;

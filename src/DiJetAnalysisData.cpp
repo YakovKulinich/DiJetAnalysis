@@ -82,13 +82,13 @@ void DiJetAnalysisData::ProcessPerformance(){
 
   TFile* fOut = new TFile( m_fNameDefPerf.c_str(),"RECREATE");
 
-  // MakeEtaPhiPtMap( m_vHtriggerEtaPhiMap );
-  // MakeEtaPhiPtMap( m_vHtriggerEtaPtMap  );
-
   // add a trigger "all" to collection
   // rest of plots include combined triggers
   m_vTriggers.push_back( m_allName );
-  
+
+  m_hAllEtaPtMap = CombineSamples( m_vHtriggerEtaPtMap, "etaPtMap" );
+  MakeEtaPhiPtMap( m_vHtriggerEtaPtMap , m_vTriggers, "etaPtMap" );
+
   m_hAllEtaSpect = CombineSamples( m_vHtriggerEtaSpect, m_etaSpectName );
   MakeSpectra( m_vHtriggerEtaSpect, m_vTriggers, m_etaSpectName );
 
@@ -403,6 +403,10 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   //----------------------------------------
   //  Open file and tree, Fill histograms
   //----------------------------------------
+
+  int nthreads = 4;
+  ROOT::EnableImplicitMT(nthreads);
+
   std::cout << "fNameIn: " << m_fNameIn << std::endl;
   
   TFile* fIn  = TFile::Open( m_fNameIn.c_str() );
@@ -504,7 +508,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 
 	// check if the jet is in appropriate range
 	// for the trigger fired
-	//	if( !JetInTrigRange( jet, iG ) ){ continue; };
+	if( !JetInTrigRange( jet, iG ) ){ continue; };
 
 	double jetYstar = GetYstar( jet );
 	
@@ -525,7 +529,9 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
       } // end loop over jets
     } // end loop over iG
     // EFFICIENCIES - only for good run and LBN
-    if( goodRunLBN ){ AnalyzeEff( vR_jets, vTrig_jets, mTriggerFired ); }    
+
+    if( goodRunLBN ){ AnalyzeEff( vR_jets, vTrig_jets, mTriggerFired ); }
+    
   } // -------- END EVENT LOOP ---------
   std::cout << "DONE! Has: " << nEventsTotal << " events." << std::endl;
 

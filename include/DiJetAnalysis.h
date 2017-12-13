@@ -155,6 +155,10 @@ class DiJetAnalysis{
   //---------------------------
   virtual void LoadHistograms() = 0;
 
+  virtual void MakeEtaPhiPtMap( std::vector< TH2* >&,
+				const std::vector< std::string >&, 
+				const std::string& = "" );
+  
   virtual void MakeSpectra( std::vector< TH2* >&,
 			    const std::vector< std::string >&, 
 			    const std::string& = "" );
@@ -259,8 +263,9 @@ class DiJetAnalysis{
 
   double m_dPhiRebinnedZoomLowBin;
   double m_dPhiRebinnedZoomHighBin;
-  
+
   double m_dPhiLogMin;
+  double m_dPhiLogMax;
   
   double m_dPhiFittingMin;
   double m_dPhiFittingMax;

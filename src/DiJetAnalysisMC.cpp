@@ -204,13 +204,13 @@ void DiJetAnalysisMC::ProcessPerformance(){
 
   TFile* fOut = new TFile( m_fNamePerf.c_str(),"RECREATE");
   
-  // MakeEtaPhiPtMap( m_vHjznEtaPhiMap );
-  MakeEtaPhiPtMap( m_vHjznEtaPtMap  );
-
   // add a slice "all" to collection
   // rest of plots include combined slices
   m_vJznLabels.push_back( m_allName );
 
+  m_hAllEtaPtMap = CombineSamples( m_vHjznEtaPtMap, "etaPtMap" );
+  MakeEtaPhiPtMap( m_vHjznEtaPtMap , m_vJznLabels, "etaPtMap" );
+  
   // only do this for the default sample
   if( !m_uncertComp ){
     // need to cd into the original fout, because scale and res files are created 
@@ -466,10 +466,14 @@ void DiJetAnalysisMC::SetupHistograms(){
       ( new TH3D( Form("h_%s_%s", m_ystarSpectRespMatName.c_str(), jzn.c_str() ), 
 		  ";#it{y}_{1}*;#it{p}_{T1}^{Reco} [GeV];#it{p}_{T1}^{Truth} [GeV]",
 		  m_nVarYstarBins, 0, 1,
-		  m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax,
-    		  m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) );
+		  m_nVarPtBinsRespMat, 0, 1,
+		  m_nVarPtBinsRespMat, 0, 1 ) );
     m_vHjznYstarSpectRespMat.back()->GetXaxis()->
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    m_vHjznYstarSpectRespMat.back()->GetYaxis()->
+      Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+    m_vHjznYstarSpectRespMat.back()->GetZaxis()->
+      Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
     AddHistogram( m_vHjznYstarSpectRespMat.back() );
     
     // --------- recoTruthRpt ---------
@@ -1296,7 +1300,7 @@ void DiJetAnalysisMC::GetInfoTogether( std::string& name_a  , std::string& name_
 
 void DiJetAnalysisMC::GetInfoTogetherRecoTruth
 ( std::string& name_a  , std::string& name_b  ,
-  std::string& label_a , std::string& label_boo ){
+  std::string& label_a , std::string& label_b ){
 
   name_a  = m_dPhiRecoPtTruthName + "_" + m_allName;
   name_b  = m_dPhiTruthPtRecoName + "_" + m_allName;
@@ -1974,12 +1978,12 @@ void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco
       TH1* hR = static_cast< TH1D* >
 	( hReco->ProjectionY( Form("h_R_%s_%s_%s_%s",
 				   m_ystarSpectName.c_str(), m_sCounts.c_str(),
-				   label.c_str(), hTag.c_str() ) ) );
+				   label.c_str(), hTag.c_str() ) , xBin, xBin ) );
 
       TH1* hT = static_cast< TH1D* >
 	( hTruth->ProjectionY( Form("h_T_%s_%s_%s_%s",
 				    m_ystarSpectName.c_str(), m_sCounts.c_str(),
-				    label.c_str(), hTag.c_str() ) ) );
+				    label.c_str(), hTag.c_str() ) , xBin, xBin ) );
 
       TH1* hC = static_cast< TH1D* >
 	  ( hT->Clone( Form("h_%s_%s_%s",
@@ -1990,7 +1994,7 @@ void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco
 
       hC->SetYTitle( "Correction Factor" );
 
-      // SetCfactorsErrors( hR, hT, hRespMat, hC );
+      SetCfactorsErrors( hR, hT, hRespMat, hC );
       
       // Do the fitting and drawing only for
       // the jzn individual samples. Do this later
@@ -2230,7 +2234,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	    hDphiRespMat->Write();
 
 	    if( !label.compare( m_allName ) )
-	      { SaveAsAll( cDphiRespMat, hDphiRespMat->GetName() ); }
+	      { SaveAsROOT( cDphiRespMat, hDphiRespMat->GetName() ); }
 	
 	    //---------------------------------------------------
 	    //   Counts, Rebinned, Normalized dPhi Histograms
@@ -2334,7 +2338,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	      vNentRJzn   [ iG ].push_back( hRreb );
 	      vRespMatJzn [ iG ].push_back( hDphiRespMat );
 
-	      // SaveAsAll( cCFactors, hC->GetName() );
+	      // SaveAsROOT( cCFactors, hC->GetName() );
 	    } else {
 	      vCfactorsAll.push_back( hC );
 	    }

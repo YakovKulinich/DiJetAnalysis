@@ -86,6 +86,9 @@ namespace CT{
     
     bool TruncateHistoBins( TH3* h3 );
 
+    std::pair< double, double> GetRMS
+      ( TH1*, double = 0, double = 0, double = 0 );
+
     bool AverageOver( TH2*, const std::string& );
     
     bool DoPrint( int ev );

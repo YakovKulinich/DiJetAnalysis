@@ -134,6 +134,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
   std::vector< TH2* > m_vHtriggerEtaPhiMap;
   std::vector< TH2* > m_vHtriggerEtaPtMap;
 
+  TH2* m_hAllEtaPhiMap;
+  TH2* m_hAllEtaPtMap;
   // -------- spect --------  
   std::vector< TH2* > m_vHtriggerEtaSpect;
   std::vector< TH2* > m_vHtriggerYstarSpect;
