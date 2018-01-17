@@ -35,6 +35,8 @@ class DiJetAnalysis{
 
   virtual ~DiJetAnalysis();
 
+  int a = 2;
+
   //---------------------------
   // Initialization Methods
   //---------------------------
@@ -130,16 +132,16 @@ class DiJetAnalysis{
   virtual void GetSpectraLabels( std::string&, std::string&,
 				 const std::string& = "" );
 
-  
-  virtual void GetInfoTogether( std::string&, std::string&, std::string&,
-				std::string&, std::string&, std::string& );
-
   virtual void GetSpectUnfoldingInfo( std::string&, std::string&, std::string&,
-				      std::string&, std::string& );
+				      std::string&, std::string&, std::string& ){}
   
   virtual void GetDphiUnfoldingInfo( std::string&, std::string&,
-				     std::string&, std::string& );
-  
+				     std::string&, std::string& ){}
+
+  virtual void GetInfoTogether( std::string&, std::string&, std::string&,
+				std::string&, std::string&, std::string&,
+				int = 0 ){}
+
   TH1*   BinByBinUnfolding( TH1*, TH1* );
 
   TFile* GetListOfSystUncert( std::vector< int >&, std::map< int, TFile* >& );
@@ -176,8 +178,10 @@ class DiJetAnalysis{
 				     const std::string& = "",
 				     TFile* = NULL,
 				     const std::string& = "" );
+
+  virtual void MakeSpectTogether( TFile* = NULL );
   
-  virtual void MakeDphiTogether();
+  virtual void MakeDphiTogether( TFile* = NULL );
 
   virtual void MakeFinalPlotsTogether();
 
@@ -326,25 +330,40 @@ class DiJetAnalysis{
   std::string m_respMatName;
   std::string m_unfoldedName;
 
+  // -------- spect --------
   std::string m_etaSpectName;
   std::string m_ystarSpectName;
 
+  std::string m_etaSpectRecoName;
+  std::string m_ystarSpectRecoName;
+  
   std::string m_etaSpectTruthName; 
   std::string m_ystarSpectTruthName; 
-  
+
+  // --- spectra response matrix ----
   std::string m_ystarSpectRespMatName;
-  
+
+  // ------- spectra cfactors -------
+  std::string m_ystarSpectCfactorsName;
+
+  // ------- unfolded spectra -------
   std::string m_etaSpectUnfoldedName;
   std::string m_ystarSpectUnfoldedName;
 
-  std::string m_ystarSpectCfactorsName;
-    
+  std::string m_etaSpectRecoUnfoldedName;
+  std::string m_ystarSpectRecoUnfoldedName;
+
+  // ------------- dPhi ---------------
   std::string m_dPhiRecoName;
   std::string m_dPhiTruthName;
-  
+
+  // ------- dPhi cfactors ------------
   std::string m_dPhiCfactorsName;
+
+  // ------- dPhi unfolded ------------
   std::string m_dPhiUnfoldedName;
 
+  // -------- systematics plots -------
   std::string m_systematicsName;
   std::string m_dPhiSystematicsName;
     
@@ -361,11 +380,6 @@ class DiJetAnalysis{
   std::vector< TF1*       > v_functs; // for writing
   std::vector< TGraphAsymmErrors* > v_graphs; // for writing
 
-  TH1D* h_mult;
-  TH2D* h_tauSigma;
-  TH2D* h_tauAmp;
-  TH2D* h_tauConst;
-  
  protected:
   //========= common tools ========
   CT::AnalysisTools* anaTool;

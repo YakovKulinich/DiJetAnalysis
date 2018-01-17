@@ -265,7 +265,7 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   // set range to be in range of fit
   histo->GetXaxis()->SetRangeUser( xLow, xHigh );
   
-  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 3);
+  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 3 );
 
   if( !histo->GetEntries() )
     { return dPhiFit; }
@@ -273,19 +273,43 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   double amp = histo->GetBinContent( histo->GetMaximumBin () );
   
   dPhiFit->SetParameters( amp, 0.20, 0.20 );
-  dPhiFit->SetParLimits ( 2, 1E-3, 1 );
-  
+  dPhiFit->SetParLimits ( 2, 1E-2, 1 );
   
   int status = histo->Fit( dPhiFit->GetName(), "NQ", "", xLow, xHigh );
 
   if( status ){ std::cout << " +++++++++++++ " << status
 			  << " " << dPhiFit->GetName() << std::endl; }
   
-  // draw over whole range
-  // dPhiFit->SetRange( 0, constants::PI );
+  return dPhiFit;
+}
+
+/*
+TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
+
+  auto exp = [&]( double* x, double* par){
+    return par[0] * TMath::Exp((x[0]-constants::PI)/par[1]);
+  };
+  
+  // set range to be in range of fit
+  histo->GetXaxis()->SetRangeUser( xLow, xHigh );
+  
+  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), exp, xLow, xHigh, 2);
+
+  if( !histo->GetEntries() )
+    { return dPhiFit; }
+
+  double amp = histo->GetBinContent( histo->GetMaximumBin () );
+  
+  dPhiFit->SetParameters( amp, 0.20 );
+  
+  int status = histo->Fit( dPhiFit->GetName(), "NQ", "", xLow, xHigh );
+
+  if( status ){ std::cout << " +++++++++++++ " << status
+			  << " " << dPhiFit->GetName() << std::endl; }
   
   return dPhiFit;
 }
+*/
 
 TF1* CT::AnalysisTools::FitGaussian( TH1* histo, double xLow, double xHigh){
 
@@ -436,11 +460,16 @@ std::string CT::AnalysisTools::GetLabel
 }
 
 double CT::AnalysisTools::GetLogMaximum( double max ){
-  double power = log10(max);
+  double power = std::log10(max);
   power = std::ceil(power);
-  return pow( 10, power );
+  return std::pow( 10, power );
 }
 
+double CT::AnalysisTools::GetLogMinimum( double min ){
+  double power = std::log10(min);
+  power = std::floor(power);
+  return std::pow( 10, power );
+}
 void CT::AnalysisTools::ResetAxisRanges( TH1* h ){
 
   h->GetXaxis()->SetRange( 0, 0 );
@@ -498,63 +527,63 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
     his->SetLineColor(kBlack);
     his->SetMarkerColor(kBlack);
     his->SetMarkerStyle(20);
-    his->SetMarkerSize(1.2);
+    his->SetMarkerSize(1.4);
   } 
   else if(iflag == 1 ){
     his->SetLineColor(kRed);
     his->SetMarkerColor(kRed);
     his->SetMarkerStyle(21);
-    his->SetMarkerSize(1.1);
+    his->SetMarkerSize(1.3);
   }
   else if(iflag == 2 ){
     his->SetLineColor(kAzure-3);
     his->SetMarkerColor(kAzure-3);
     his->SetMarkerStyle(33);
-    his->SetMarkerSize(1.8);
+    his->SetMarkerSize(2.0);
   }
   else if(iflag == 3 ){
     his->SetLineColor(kSpring-6);
     his->SetMarkerColor(kSpring-6);
     his->SetMarkerStyle(34);
-    his->SetMarkerSize(1.5);
+    his->SetMarkerSize(1.7);
   }
   else if(iflag == 4 ){
     his->SetLineColor(kOrange+1);
     his->SetLineWidth(2);
     his->SetMarkerColor(kOrange+1);
     his->SetMarkerStyle(29);
-    his->SetMarkerSize(1.6);
+    his->SetMarkerSize(1.8);
   }
   else if(iflag == 5 ){
     his->SetLineColor(kBlack);
     his->SetMarkerColor(kBlack);
     his->SetMarkerStyle(24);
-    his->SetMarkerSize(1.3);
+    his->SetMarkerSize(1.5);
   }
   else if(iflag == 6 ){
     his->SetLineColor(kRed);
     his->SetMarkerColor(kRed);
     his->SetMarkerStyle(25);
-    his->SetMarkerSize(1.2);
+    his->SetMarkerSize(1.4);
   }  
   else if(iflag == 7 ){
     his->SetLineColor(kAzure-3);
     his->SetMarkerColor(kAzure-3);
     his->SetMarkerStyle(27);
-    his->SetMarkerSize(1.9);
+    his->SetMarkerSize(2.1);
   }
   else if(iflag == 8 ){
     his->SetLineColor(kSpring-6);
     his->SetMarkerColor(kSpring-6);
     his->SetMarkerStyle(28);
-    his->SetMarkerSize(1.6);
+    his->SetMarkerSize(1.8);
   }
   else if(iflag == 9 ){
     his->SetLineColor(kOrange+1);
     his->SetLineWidth(2);
     his->SetMarkerColor(kOrange+1);
     his->SetMarkerStyle(30);
-    his->SetMarkerSize(1.7);
+    his->SetMarkerSize(1.9);
   }
 
 }
@@ -630,6 +659,10 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
 
 void CT::StyleTools::SetHStyle( TH1* his, int iflag, double scale)
 {
+  
+  his->GetXaxis()->SetNdivisions( 504 );
+  his->GetYaxis()->SetNdivisions( 504 );
+  
   his->SetLineWidth(2);
   his->SetStats(0);
 
@@ -650,8 +683,8 @@ void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, double scale)
 {
   graph->SetLineWidth(2);
 
-  graph->GetXaxis()->SetNdivisions( 505 );
-  graph->GetYaxis()->SetNdivisions( 505 );
+  graph->GetXaxis()->SetNdivisions( 504 );
+  graph->GetYaxis()->SetNdivisions( 504 );
   
   graph->GetXaxis()->SetTitleFont( 43 );
   graph->GetXaxis()->SetTitleSize( (int)(32 * scale) );  
@@ -734,9 +767,9 @@ void CT::StyleTools::HideAxis( TH1* h, const std::string& xyz ){
   } // continue like this
 }
 
-const double CT::StyleTools::lSS = 0.80;
+const double CT::StyleTools::lSS = 0.95;
 
-const double CT::StyleTools::hSS = 0.80;
+const double CT::StyleTools::hSS = 1.00;
 
 //===================================
 //          DRAWING STUFF
@@ -781,29 +814,29 @@ void CT::DrawTools::DrawCenterLatex
 
 void CT::DrawTools::DrawAtlasInternal( double scale ){
   DrawRightLatex
-    (0.88 , 0.93, "#bf{#font[72]{ATLAS}} Internal", scale, 1 );
+    (0.88 , 0.96, "#bf{#font[72]{ATLAS}} Internal", scale, 1 );
 }
 
 void CT::DrawTools::DrawAtlasInternalDataRight
 ( double x0, double y0, bool is_pPb, double scale ){
   DrawRightLatex
-    (0.88 , 0.93,"#bf{#font[72]{ATLAS}} Internal", scale, 1 );
+    (0.90 , 0.96,"#bf{#font[72]{ATLAS}} Internal", scale, 1 );
   if( is_pPb ){
     DrawRightLatex
-      (0.88 + x0, 0.87 + y0, Form("#it{p}+Pb 2016, %i #mub^{-1}",
+      (0.87 + x0, 0.87 + y0, Form("#it{p}+Pb 2016, %i #mub^{-1}",
 			     pPbLumi2016), scale, 1 );
   } else {
     DrawRightLatex
-      (0.88 + x0, 0.87 + y0,Form("#it{pp} 2015, %i pb^{-1}",
+      (0.87 + x0, 0.87 + y0,Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale, 1 );
   }
-  DrawRightLatex(0.88 + x0, 0.81 + y0, 
+  DrawRightLatex(0.87 + x0, 0.79 + y0, 
 		 "#sqrt{s_{NN}}=5.02 TeV", scale, 1 );
 }
 
 void CT::DrawTools::DrawAtlasInternalDataLeft
 ( double x0, double y0, bool is_pPb, double scale ){
-  DrawRightLatex(0.875, 0.93, 
+  DrawRightLatex(0.90, 0.96, 
 		 "#bf{#font[72]{ATLAS}} Internal", scale, 1 );
   if( is_pPb ){
     DrawLeftLatex(0.18 + x0, 0.87 + y0, 
@@ -814,7 +847,7 @@ void CT::DrawTools::DrawAtlasInternalDataLeft
 		   Form("#it{pp} 2015, %i pb^{-1}",
 			ppLumi2015), scale, 1 );
   }
-  DrawLeftLatex(0.18 + x0, 0.81 + y0, 
+  DrawLeftLatex(0.18 + x0, 0.79 + y0, 
 		"#sqrt{s_{NN}}=5.02 TeV", scale, 1 ); 
 }
 
@@ -832,9 +865,9 @@ void CT::DrawTools::DrawAtlasInternalMCRight
     system = "#it{p}+Pb";
   }
   
-  DrawRightLatex(0.88, 0.93, 
+  DrawRightLatex(0.88, 0.96, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
-  DrawRightLatex( 0.88 + x0, 0.86,
+  DrawRightLatex( 0.87 + x0, 0.87,
 		  Form( "%s %s", system.c_str(), mcType.c_str() ), scale, 1 );
  }
 
@@ -851,9 +884,9 @@ void CT::DrawTools::DrawAtlasInternalMCLeft
     system = "#it{p}+Pb";
   }
 
-  DrawRightLatex(0.88, 0.93, 
+  DrawRightLatex(0.88, 0.96, 
 		 "#bf{#font[72]{ATLAS}} Simulation Internal", scale, 1 );
 
-  DrawLeftLatex( 0.18 + x0, 0.86,
+  DrawLeftLatex( 0.18 + x0, 0.87,
 		 Form( "%s %s", system.c_str(), mcType.c_str() ), scale, 1 );
 }

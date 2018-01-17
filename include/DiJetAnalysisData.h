@@ -78,17 +78,17 @@ class DiJetAnalysisData : public DiJetAnalysis{
   THnSparse* CombineSamples( std::vector< THnSparse* >&,
 			     const std::string& = "" );   
 
-  void GetInfoTogether( std::string&, std::string&, std::string&,
-			std::string&, std::string&, std::string& );
-
-
   void GetSpectUnfoldingInfo( std::string&, std::string&, std::string&,
-			      std::string&, std::string& );
+			      std::string&, std::string&, std::string& );
 
 
   void GetDphiUnfoldingInfo( std::string&, std::string&,
 			     std::string&, std::string& );
   
+  void GetInfoTogether( std::string&, std::string&, std::string&,
+			std::string&, std::string&, std::string&,
+			int = 0 );
+
   //---------------------------
   //  Get Quantities / Plot 
   //---------------------------

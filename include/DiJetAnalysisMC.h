@@ -64,11 +64,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void AnalyzeDphiRespMat( THnSparse*, THnSparse*,
 			   const std::vector<TLorentzVector>&,
 			   const std::vector<TLorentzVector>& );
-
-  std::pair<double,double> AnalyzeDeltaPhiTruthReco
-    ( THnSparse*, THnSparse*,
-      const std::vector <TLorentzVector>&,
-      const std::vector <TLorentzVector>& );
   
   //---------------------------
   //          Tools 
@@ -112,17 +107,16 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void GetTypeTitle( const std::string&,
 		     std::string&, std::string& );
 
-  void GetInfoTogether( std::string&, std::string&, std::string&,
-			std::string&, std::string&, std::string& );
-
-  void GetInfoTogetherRecoTruth( std::string&, std::string&,
-				 std::string&, std::string& );
 
   void GetSpectUnfoldingInfo( std::string&, std::string&, std::string&,
-			      std::string&, std::string& );
+			      std::string&, std::string&, std::string& );;
   
   void GetDphiUnfoldingInfo( std::string&, std::string&,
 			     std::string&, std::string& );
+
+  void GetInfoTogether( std::string&, std::string&, std::string&,
+			std::string&, std::string&, std::string&,
+			int = 0 );
 
   void GetPurityEff( TH2*, TH1*, TH1* );
   
@@ -135,8 +129,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		     std::vector< TH2* >&,
 		     const std::string& );
   
-  void MakeDphiRecoTruth();
-
   void MakeSpectCFactorsRespMat( std::vector< TH2* >&,
 				 std::vector< TH2* >&,
 				 std::vector< TH3* >&,
@@ -209,9 +201,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   TH2* m_hAllEtaPtMap;
   
   // -------- spect --------
-  std::string m_etaSpectRecoName;
-  std::string m_ystarSpectRecoName;
-  
   std::vector< TH2* > m_vHjznEtaSpectReco;
   std::vector< TH2* > m_vHjznEtaSpectTruth;
   std::vector< TH2* > m_vHjznYstarSpectReco;
@@ -226,10 +215,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::vector< TH3* > m_vHjznYstarSpectRespMat;
 
   TH3* m_hAllYstarSpectRespMat;
-
-  // ------- unfolded spectra -------
-  std::string m_etaSpectRecoUnfoldedName;
-  std::string m_ystarSpectRecoUnfoldedName;
   
   // --------- recoTruthRpt ---------
   std::vector< TH3* > m_vHjznRecoTruthRpt;
@@ -263,16 +248,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   // ------- dPhi reco unfolded ------
   std::string m_dPhiRecoUnfoldedName;
-  
-  // --- dPhi truth reco together ----
-  std::string m_dPhiRecoPtTruthName;
-  std::string m_dPhiTruthPtRecoName;
-  
-  std::vector< THnSparse* > m_vHjznDphiRecoPtTruth;
-  std::vector< THnSparse* > m_vHjznDphiTruthPtReco;
-
-  THnSparse* m_hAllDphiRecoPtTruth;
-  THnSparse* m_hAllDphiTruthPtReco;
   
   // -------- Dphi Response Matrix --------     
   std::vector< THnSparse* > m_vHjznDphiRespMat;  

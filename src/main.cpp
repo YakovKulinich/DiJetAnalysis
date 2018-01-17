@@ -57,6 +57,8 @@ int main(int argc, char *argv[])
 
   DiJetAnalysis* analysis = NULL;
 
+  SetAtlasStyle();
+  
   // reserve mode 8 for plotting MC and Data together
   if( mode < 8 ){
     analysis = isData ?

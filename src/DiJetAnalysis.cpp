@@ -95,7 +95,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_dPhiZoomLow      = constants::PI / 2;
   m_dPhiZoomHigh     = constants::PI;
 
-  m_dPhiLogMin       = 1E-4;
+  m_dPhiLogMin       = 5E-4;
   m_dPhiLogMax       = 1E-0;
   
   // where to fit from 
@@ -268,13 +268,19 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_etaSpectName   = m_sEta  + "_" + m_spectName;
   m_ystarSpectName = m_sYstar+ "_" + m_spectName;
 
-  m_etaSpectTruthName      = m_etaSpectName + "_" + m_truthName;
+  m_etaSpectRecoName       = m_etaSpectName   + "_" + m_recoName;
+  m_ystarSpectRecoName     = m_ystarSpectName + "_" + m_recoName;
+
+  m_etaSpectTruthName      = m_etaSpectName   + "_" + m_truthName;
   m_ystarSpectTruthName    = m_ystarSpectName + "_" + m_truthName;
 
   m_ystarSpectRespMatName  = m_ystarSpectName + "_" + m_respMatName;
-
+  
   m_etaSpectUnfoldedName   = m_etaSpectName   + "_" + m_unfoldedName;
   m_ystarSpectUnfoldedName = m_ystarSpectName + "_" + m_unfoldedName; 
+
+  m_etaSpectRecoUnfoldedName   = m_etaSpectRecoName   + "_" + m_unfoldedName;
+  m_ystarSpectRecoUnfoldedName = m_ystarSpectRecoName + "_" + m_unfoldedName;
 
   m_ystarSpectCfactorsName = m_ystarSpectName + "_" + m_cFactorName;
   
@@ -325,8 +331,6 @@ void DiJetAnalysis::Initialize(){
 		     Form("P%d", m_uncertComp) :
 		     Form("N%d", -1 * m_uncertComp) ) : "0" ;
   
-  std::string unfoldingMC = m_mcTypeName;
-
   // set names for various output files.
   // for data only, we just have one.
   // no need to add unfolding suffix.
@@ -360,22 +364,22 @@ void DiJetAnalysis::Initialize(){
   std::string unfoldingMCdir =
     Form( "%s/%s_%s_%s_%s",
 	  m_sOutput.c_str(), m_sOutput.c_str(), system.c_str(),
-	  m_sMC.c_str(), unfoldingMC.c_str());
+	  m_sMC.c_str(), m_mcTypeName.c_str());
   
   // name of file that is used as input for performance unfolding
   m_fNamePerfUnfoldingMC
     = Form( "%s/%s_%s_%s_%s_%s_%s.root",
 	    unfoldingMCdir.c_str(), m_myOutName.c_str(),
-	    system.c_str(), m_sMC.c_str(), unfoldingMC.c_str(),
+	    system.c_str(), m_sMC.c_str(), m_mcTypeName.c_str(),
 	    m_sPerf.c_str(), m_uncertSuffix.c_str() );
 
   // name of file that is used as input for physics unfolding
   m_fNamePhysUnfoldingMC
     = Form( "%s/%s_%s_%s_%s_%s_%s.root",
 	    unfoldingMCdir.c_str(), m_myOutName.c_str(),
-	    system.c_str(), m_sMC.c_str(), unfoldingMC.c_str(),
-	    m_sPhys.c_str(), m_uncertSuffix.c_str() );
-  }
+	    system.c_str(), m_sMC.c_str(), m_mcTypeName.c_str(),
+	    m_sPhys.c_str(), m_uncertSuffix.c_str() );  
+}
 
 //---------------------------
 // Fill Tree / Plot Controls
@@ -397,8 +401,14 @@ void DiJetAnalysis::MakeResultsTogether(){
     m_dirOutTogether + "/" + m_myOutName + "_" +
     m_labelOut + "_" + m_uncertSuffix + ".root" ;
 
-  MakeDphiTogether();
+  TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
+  MakeSpectTogether( fOut );
+  MakeDphiTogether ( fOut );
+
+  std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
+  fOut->Close();
+  std::cout << "......Closed  " << fOut->GetName() << std::endl;
 }
 
 void DiJetAnalysis::ProcessSystematics(){}
@@ -413,13 +423,19 @@ void DiJetAnalysis::AddHistogram( TH1* h ){
   styleTool->SetHStyle( h, 0 );
 
   TH1* h1 = dynamic_cast< TH1* >(h);
-  if( h1 ){ h->SetNdivisions( 505, "X" ); }
+  if( h1 ){ h->SetNdivisions( 504, "X" ); }
 
   TH2* h2 = dynamic_cast< TH2* >(h);
-  if( h2 ){ h->SetNdivisions( 505, "XY" ); }
+  if( h2 ){
+    h->SetNdivisions( 504, "X" );
+    h->SetNdivisions( 504, "Y" );
+  }
 
   TH3* h3 = dynamic_cast< TH3* >(h);
-  if( h3 ){ h->SetNdivisions( 505, "XYZ" ); }
+  if( h3 ){
+    h->SetNdivisions( 504, "X" );
+    h->SetNdivisions( 504, "YZ" );
+  }
 }
 
 void DiJetAnalysis::AddHistogram( THnSparse* hn ){
@@ -690,28 +706,6 @@ void DiJetAnalysis::GetSpectraLabels( std::string& axisLabel, std::string& axisL
   }
 }
 
-void DiJetAnalysis::GetInfoTogether( std::string& name_a  , std::string& name_b  ,
-				     std::string& label_a , std::string& label_b ,
-				     std::string& suffix_a, std::string& suffix_b ){}
-
-void DiJetAnalysis::GetSpectUnfoldingInfo( std::string& measuredName,
-					   std::string& truthName,
-					   std::string& respMatName,
-					   std::string& unfoldedLabel,
-					   std::string& typeLabel){
-
-  measuredName  = ""; truthName     = ""; respMatName = "";
-  unfoldedLabel = ""; typeLabel     = "";
-}
-
-void DiJetAnalysis::GetDphiUnfoldingInfo( std::string& measuredName,
-					  std::string& truthName,
-					  std::string& unfoldedLabel,
-					  std::string& typeLabel){
-
-  measuredName  = "";  truthName     = "";
-  unfoldedLabel = "";  typeLabel     = "";
-}
 
 // hM is measured, hC is correction factor
 TH1* DiJetAnalysis::BinByBinUnfolding( TH1* hM, TH1* hC ){
@@ -719,7 +713,6 @@ TH1* DiJetAnalysis::BinByBinUnfolding( TH1* hM, TH1* hC ){
   TH1* hUnf = static_cast<TH1D*>( hM->Clone("h_unfolded") );
   hUnf->Reset();
   
-  //  for( int xBin = hM->FindBin( m_dPhiUnfoldingMin ); xBin <= hM->GetNbinsX(); xBin++ ){
   for( int xBin = 1; xBin <= hM->GetNbinsX(); xBin++ ){
     int cBin  = hC->FindBin( hM->GetBinCenter( xBin ) );
     
@@ -729,11 +722,18 @@ TH1* DiJetAnalysis::BinByBinUnfolding( TH1* hM, TH1* hC ){
     if( vM == 0 || vC == 0 ){ continue; }
     
     double eM = hM->GetBinError( xBin );
-
+    // double eC = hC->GetBinError( cBin );
+    
     // correction factor;
     double newDphi = vM * vC;
     // error on correction factor    
     double newDphiError = eM * vC; 
+
+    /*
+    double newDphiError =  newDphi * 
+      std::sqrt( std::pow( eM / vM, 2) +
+		 std::pow( eC / vC, 2) ) ; 
+    */
     
     hUnf->SetBinContent( xBin, newDphi      );
     hUnf->SetBinError  ( xBin, newDphiError );
@@ -928,7 +928,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
     
   if( !vSampleSpect.size() ){ return; }
   
-  std::string yAxisTitle = "dN/d#it{p}_{T}";
+  std::string yAxisTitle = "dN/d#it{p}_{T} [GeV]";
   // std::string yAxisTitle = "N_{jets}";
 
   // use this as reference because
@@ -952,33 +952,35 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
 	( hRef->GetXaxis(), xBin, xBin, xMin, xMax );
 
       std::string hTag = anaTool->GetName( xMin, xMax, axisLabel);
-      
-      TH1* h_spectCounts =
+
+      TH1* hSpectCounts =
 	vSampleSpect[iG]->
 	ProjectionY( Form("h_%s_%s_%s_%s",
 			  name.c_str(), m_sCounts.c_str(), label.c_str(), hTag.c_str() ),
 		     xBin, xBin );
 
-      TH1* h_spect = static_cast< TH1D* >
-	( h_spectCounts->Clone
+      TH1* hSpect = static_cast< TH1D* >
+	( hSpectCounts->Clone
 	  ( Form("h_%s_%s_%s",
 		 name.c_str(), label.c_str(), hTag.c_str() ) ) );
       
-      h_spect->SetTitle( anaTool->GetLabel( xMin, xMax, axisLabelTex ).c_str() );
-      h_spect->SetYTitle( yAxisTitle.c_str() );
-
-      vSpect[iG].push_back( h_spectCounts );
-      vSpect[iG].push_back( h_spect );
-
-      // in case var binning, scale by width
-      h_spect->Scale( 1., "width" );
+      hSpect->SetTitle( anaTool->GetLabel( xMin, xMax, axisLabelTex ).c_str() );
+      hSpect->SetYTitle( yAxisTitle.c_str() );
       
-      h_spect->Write();
-      h_spectCounts->Write();
+      vSpect[iG].push_back( hSpectCounts );
+      vSpect[iG].push_back( hSpect );
+      
+      // in case var binning, scale by width
+      hSpect->Scale( 1., "width" );
+      
+      hSpect->Write();
+      hSpectCounts->Write();
+      
       // get min max from the final histograms
       if( label.compare( m_allName )  ){ continue; }
-      if( max < h_spect->GetMaximum() ){ max = h_spect->GetMaximum(); }
-     } // end loop over xBin
+      if( max < hSpect->GetMaximum() ){ max = hSpect->GetMaximum(); }
+      
+    } // end loop over xBin
   } // end loop over iG
 
   // set maxima globally for all spectra hists.
@@ -1122,10 +1124,10 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
   std::string axisLabel, axisLabelTex;
   GetSpectraLabels( axisLabel, axisLabelTex, hUnfoldedName );
   
-  std::string measuredName, truthName, respMatName;
+  std::string measuredName, recoName, truthName, respMatName;
   std::string unfoldedLabel, typeMeasured;
-  GetSpectUnfoldingInfo( measuredName, truthName, respMatName,
-			 unfoldedLabel, typeMeasured );
+  GetSpectUnfoldingInfo( measuredName, recoName, truthName, 
+			 respMatName, unfoldedLabel, typeMeasured );
 
   // make final output histo for UnfSpect
   // leave for now, should be more general not hardcoded
@@ -1151,20 +1153,22 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
       ( fInData->Get( Form("h_%s_%s_%s_%s", measuredName.c_str(), m_sCounts.c_str(),
 			   m_allName.c_str(), hTag.c_str() ) ) );
 
-    std::cout << Form("h_%s_%s_%s_%s", measuredName.c_str(), m_sCounts.c_str(),
-		      m_allName.c_str(), hTag.c_str() ) << std::endl;
-    
-    TH1* hTruthCounts    = static_cast< TH1D* >
-      ( fInMC->Get( Form("h_%s_%s_%s_%s", truthName.c_str(), m_sCounts.c_str(),
-			 m_allName.c_str(), hTag.c_str() ) ) );
-    
     TH1* hMeasured = static_cast< TH1D* >
       ( fInData->Get( Form("h_%s_%s_%s", measuredName.c_str(),
 			   m_allName.c_str(), hTag.c_str() ) ) );
     
+    TH1* hReco     = static_cast< TH1D* >
+      ( fInMC->Get( Form("h_%s_%s_%s", recoName.c_str(),
+			 m_allName.c_str(), hTag.c_str() ) ) );
+    
+    TH1* hTruthCounts    = static_cast< TH1D* >
+      ( fInMC->Get( Form("h_%s_%s_%s_%s", truthName.c_str(), m_sCounts.c_str(),
+			 m_allName.c_str(), hTag.c_str() ) ) );
+
     TH1* hTruth    = static_cast< TH1D* >
       ( fInMC->Get( Form("h_%s_%s_%s", truthName.c_str(),
 			 m_allName.c_str(), hTag.c_str() ) ) );
+
     
     styleTool->SetHStyle( hMeasuredCounts, 1 );
     styleTool->SetHStyle( hTruthCounts   , 2 );
@@ -1231,13 +1235,13 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     hUnfolded->Write();
 
     // Now Draw everything.
-    TCanvas c( hUnfolded->GetName(), hUnfolded->GetName(), 800, 600 );
-    TPad pad1("pad1", "", 0.0, 0.25, 1.0, 1.0 );
+    TCanvas c( hUnfolded->GetName(), hUnfolded->GetName(), 800, 800 );
+    TPad pad1("pad1", "", 0.0, 0.35, 1.0, 1.0 );
     pad1.SetBottomMargin(0.0);
     pad1.Draw();
-    TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.24 );
+    TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.34 );
     pad2.SetTopMargin(0.05);
-    pad2.SetBottomMargin(0.2);
+    pad2.SetBottomMargin(0.25);
     pad2.Draw();
 
     pad1.cd();
@@ -1248,59 +1252,85 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     hUnfolded->SetTitle( "" );    
 
     double maximum =
-      hMeasured->GetMaximum() > hTruth->GetMaximum() ? 
-      hMeasured->GetMaximum() : hTruth->GetMaximum(); 
-
-    maximum =
-      hUnfolded->GetMaximum() > maximum ?
-      hUnfolded->GetMaximum() : maximum; 
+      hMeasured->GetMaximum() > hUnfolded->GetMaximum() ? 
+      hMeasured->GetMaximum() : hUnfolded->GetMaximum(); 
+    
+    double minimum =
+      hMeasured->GetMinimum() < hUnfolded->GetMinimum() ? 
+      hMeasured->GetMinimum() : hUnfolded->GetMinimum(); 
 
     maximum = anaTool->GetLogMaximum( maximum );
+    minimum = anaTool->GetLogMinimum( minimum );
     
     hMeasured->SetMaximum( maximum );
     hTruth   ->SetMaximum( maximum );
     hUnfolded->SetMaximum( maximum );
 
-    hMeasured->SetMinimum( m_ptSpectYaxisMin );
-    hTruth   ->SetMinimum( m_ptSpectYaxisMin );
-    hUnfolded->SetMaximum( m_ptSpectYaxisMin );
+    hMeasured->SetMinimum( minimum );
+    hTruth   ->SetMinimum( minimum );
+    hUnfolded->SetMinimum( minimum );
     
-    TLegend leg( 0.6, 0.6, 0.8, 0.8 );
+    TLegend leg( 0.71, 0.50, 0.90, 0.70 );
     styleTool->SetLegendStyle( &leg );
 
-    leg.AddEntry( hMeasured, typeMeasured.c_str() );
-    leg.AddEntry( hUnfolded, "Unfolded"           );
-    
-    hMeasured->Draw( "ep"         );
-    hUnfolded->Draw( "ep same"    );
+    leg.AddEntry( hMeasured, Form( "%s_{Reco}" , typeMeasured.c_str() ) );
+    leg.AddEntry( hUnfolded, Form( "%s_{UF}", typeMeasured.c_str() ) );
 
+    TH1* hRdataMC = NULL;
+    
     // only draw truth when there is MC
+    // otherwise, draw reco unfolded MC
+    // scaled to unfolded data.
     if( !m_isData ){
-      leg.AddEntry( hTruth, "Truth" );
-      hTruth->Draw( "histo same"    );
+      leg.AddEntry( hTruth, "MC_{Truth}" );
+      hTruth->Draw( "histo same" );
+    } else {
+      double integralData = hUnfolded->Integral( 2, m_nVarPtBinsRespMat - 1 );
+      double integralMC   = hReco    ->Integral( 2, m_nVarPtBinsRespMat - 1 );
+
+      double scalingFactor = integralData / integralMC;
+
+      hReco->Scale( scalingFactor );
+      hReco->SetFillColor( kAzure - 9 );
+      
+      leg.AddEntry( hReco, "MC_{UF}", "f" );
+      hReco->Draw ( "hist" );
     }
+
+    hMeasured->Draw( "ep same" );
+    hUnfolded->Draw( "ep same" );
     
     leg.Draw();
     
     DrawAtlasRight();    
     drawTool->DrawRightLatex
-      ( 0.4, 0.2, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
+      ( 0.45, 0.15, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
 
     // make ratios and draw cfactors
     pad2.cd();
 
-    TLegend legR( 0.12, 0.79, 0.52, 0.89 );
-    styleTool->SetLegendStyle( &legR );
-    legR.SetNColumns(2);
+    double legXmin = m_isData ? 0.35 : 0.55;
+    double legXmax = m_isData ? 0.85 : 0.90;
+    
+    TLegend legR( legXmin, 0.82, legXmax, 0.92 );
+    styleTool->SetLegendStyle( &legR, 0.9 );
+    legR.SetNColumns(3);
 	  
     // make sure to set range to rebinned.
     // the c-factors are from rebinned distributions.
     styleTool->SetHStyleRatio( hCfactors );
     hCfactors->SetYTitle( "Ratio" );
-    hCfactors->GetXaxis()->SetNdivisions( 504 );	  
-    hCfactors->Draw("ep");
+    hCfactors->SetXTitle( "#it{p}_{T} [GeV]" );
+    hCfactors->SetTitleOffset( 2.3, "x" );
 
-    std::cout << hCfactors->GetName() << " " << hCfactors->GetBinContent(2) << std::endl;
+    if( m_isData ){
+      hCfactors->SetMaximum( 1.75 );
+      hCfactors->SetMinimum( 0.50 );
+    } else{
+      hCfactors->SetMaximum( 1.15 );
+      hCfactors->SetMinimum( 0.55 );
+    }
+    hCfactors->Draw("ep");
     
     TH1* hR = static_cast< TH1D* >
       ( hUnfolded->
@@ -1311,13 +1341,26 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     hR->Divide( hMeasured );
     hR->Draw( "ep same" );
 	  
-    legR.AddEntry( hCfactors, "c-Factor" );
-    legR.AddEntry( hR , "Unfolded/Reco"  );
+    legR.AddEntry( hCfactors, "CF" );
+    legR.AddEntry( hR , Form( "%s_{UF}/%s_{Reco}",
+			      typeMeasured.c_str(), typeMeasured.c_str() ) );
 
+    // make ratio of data to reco
+    if( m_isData ){
+      hRdataMC = static_cast< TH1D* >
+	( hMeasured->
+	  Clone( Form( "h_%s_%s_%s_%s_%s", m_sRatio.c_str(),
+		       measuredName.c_str(), m_recoName.c_str(),
+		       m_allName.c_str(), hTag.c_str())));
+      styleTool->SetHStyleRatio( hRdataMC, 2 );
+      hRdataMC->Divide( hReco );
+      hRdataMC->Draw( "ep same" );
+      legR.AddEntry( hRdataMC, "Data_{UF}/MC_{UF}" );
+    }
+    
     legR.Draw();
 
     styleTool->HideAxis( hMeasured, "x" );
-    styleTool->HideAxis( hUnfolded, "x" );
     styleTool->HideAxis( hTruth   , "x" );
 
     double xMin = hR->GetXaxis()->GetXmin();
@@ -1328,29 +1371,17 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     line.Draw();
 
     TLine lineP25( xMin, 1.25, xMax, 1.25 );
-    lineP25.SetLineStyle( 3  );
+    lineP25.SetLineStyle( 2  );
     lineP25.SetLineColor( 12 );
     lineP25.SetLineWidth( 2  );
     lineP25.Draw();
-	  
+    
     TLine lineN25( xMin, 0.75, xMax, 0.75 );
-    lineN25.SetLineStyle( 3 );
+    lineN25.SetLineStyle( 2  );
     lineN25.SetLineColor( 12 );
     lineN25.SetLineWidth( 2  );
     lineN25.Draw();
-
-    TLine lineP50( xMin, 1.50, xMax, 1.50 );
-    lineP50.SetLineStyle( 3  );
-    lineP50.SetLineColor( 12 );
-    lineP50.SetLineWidth( 1  );
-    lineP50.Draw();
-	  
-    TLine lineN50( xMin, 0.50, xMax, 0.50 );
-    lineN50.SetLineStyle( 3 );
-    lineN50.SetLineColor( 12 );
-    lineN50.SetLineWidth( 1  );
-    lineN50.Draw();
-
+    
     // MUT is Measuerd Unfolded Truth
     SaveAsAll( c, Form( "h_%s_%s_MUT_%s",
 			m_ystarSpectUnfoldedName.c_str(),
@@ -1374,12 +1405,27 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 				  const std::string& spectName ){
 
   // These are "quality" check histograms
-  h_mult     = new TH1D( Form("h_mult_%s", dPhiName.c_str() ),
+  TH1D* h_mult     = new TH1D( Form("h_mult_%s", dPhiName.c_str() ),
 			 ";Count;Multiplicity", 100,0,5000);
-  h_tauSigma = new TH2D( Form("h_tauSigma_%s", dPhiName.c_str() ),
+  TH2D* h_tauSigma = new TH2D( Form("h_tauSigma_%s", dPhiName.c_str() ),
 			 ";#tau;#sigma"   , 60, 0., 0.6, 60, 0., 0.3 );
-  h_tauAmp   = new TH2D( Form("h_tauAmp_%s"  , dPhiName.c_str() ),
+  TH2D* h_tauAmp   = new TH2D( Form("h_tauAmp_%s"  , dPhiName.c_str() ),
 			 ";#tau;Amplitude", 60, 0., 0.6, 60, 0., 0.3 );
+
+
+  std::vector< std::string > v_listBadHist;
+  std::vector< std::string > v_listBadFits;
+  
+  TH1D* h_dPhiChi2 = new TH1D( Form( "h_dPhiChi2_%s", dPhiName.c_str() ),
+			       ";#Chi^{2}/NDF;Count", 20, 0, 10 );
+  TH1D* h_dPhiProb = new TH1D( Form( "h_dPhiProb_%s", dPhiName.c_str() ),
+			       ";Probability;Count", 20, 0, 1 );
+
+  h_dPhiChi2->Sumw2();
+  h_dPhiProb->Sumw2();
+  
+  styleTool->SetHStyle( h_dPhiChi2, 0 );
+  styleTool->SetHStyle( h_dPhiProb, 0 );
   
   std::vector< TH1* > vDphi;
   std::vector< TH1* > vSpect;
@@ -1432,10 +1478,11 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	
 	std::vector< TH1* > vDphiWidthsTemp;
 	TCanvas cWidths( "cWidths", "cWidths",800,600);
-	TLegend legW(0.57, 0.16, 0.89, 0.35);
-	int style = 0;
+	TLegend legW( 0.55, 0.2, 0.89, 0.38 );
 	styleTool->SetLegendStyle( &legW );
 
+	int style = 0;
+	
 	std::string hTagCW =
 	  Form( "%s_%s",
 	        anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
@@ -1454,7 +1501,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	     	anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
 		anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() ); 
-
+	  
 	  // do this becaue it is set to last bin after one iteration
 	  axis3->SetRange( 0, 0 );
 	  TH1* hDphiWidths = hn->Projection( fAxisI );
@@ -1464,10 +1511,31 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    ( Form( "h_%s_%s_%s", dPhiName.c_str(), label.c_str(), hTagW.c_str() ) );
 	  hDphiWidths->SetYTitle( "RMS (#pi - #Delta#phi)" );
 	  hDphiWidths->SetMarkerSize( hDphiWidths->GetMarkerSize() * 1.5 );
-	  hDphiWidths->SetNdivisions( 505, "X" );
-	  styleTool->SetHStyle( hDphiWidths, style++ );
+	  styleTool->SetHStyle( hDphiWidths, style );
 	  vDphiWidthsTemp.push_back( hDphiWidths );
-	  	  
+
+	  TH1* hDphiWidthsStat = hn->Projection( fAxisI );
+	  hDphiWidthsStat->Reset();
+	  
+	  hDphiWidthsStat->SetName
+	    ( Form( "h_%s_stat_%s_%s", dPhiName.c_str(), label.c_str(), hTagW.c_str() ) );
+	  hDphiWidthsStat->SetYTitle( "RMS (#pi - #Delta#phi)" );
+	  hDphiWidthsStat->SetMarkerSize( hDphiWidthsStat->GetMarkerSize() * 2 );
+	  styleTool->SetHStyle( hDphiWidthsStat, 5 + style );
+
+	  TH1* hDphiWidthsStat2 = hn->Projection( fAxisI );
+	  hDphiWidthsStat2->Reset();
+	  
+	  hDphiWidthsStat2->SetName
+	    ( Form( "h_%s_stat_%s_%s", dPhiName.c_str(), label.c_str(), hTagW.c_str() ) );
+	  hDphiWidthsStat2->SetYTitle( "RMS (#pi - #Delta#phi)" );
+	  hDphiWidthsStat2->SetMarkerSize( hDphiWidthsStat2->GetMarkerSize() * 2 );
+	  styleTool->SetHStyle( hDphiWidthsStat2, 5 + style );
+	  hDphiWidthsStat2->SetMarkerColor( kGreen );
+	  hDphiWidthsStat2->SetLineColor  ( kGreen );
+
+	  style++;
+	  
 	  legW.AddEntry
 	    ( hDphiWidths,
 	      anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ) .c_str() );
@@ -1501,7 +1569,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    TH1* hDphiCounts = hn->Projection( 4 );
 	    hDphiCounts->SetName( hDphiCountsName.c_str() );
 	    styleTool->SetHStyle( hDphiCounts, 0 );
-	    hDphiCounts->SetNdivisions( 505, "Y" );
 	    vDphi.push_back( hDphiCounts );
 
 	    h_mult->Fill( hDphiCounts->GetEntries() );
@@ -1514,13 +1581,12 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi = static_cast< TH1D* >
 	      ( hDphiCounts->Clone( hDphiName.c_str() ) );
 	    styleTool->SetHStyle( hDphi, 0 );
-	    hDphi->SetNdivisions( 505, "Y" );
 	    vDphi.push_back( hDphi );
 	      
 	    // Normalize with combinatoric subtraction after
 	    // scaling by width (the last parameter true)
 	    NormalizeDeltaPhi
-	      ( hDphi, hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true);
+	      ( hDphi, hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true );
 	    
 	    TCanvas c( hDphi->GetName(), hDphi->GetName(), 800, 600 );
 	    
@@ -1546,10 +1612,20 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    fit->Draw("same");
 
 	    double chi2NDF = fit->GetChisquare()/fit->GetNDF();
+	    double prob    = fit->GetProb();
 
+	    h_dPhiChi2->Fill( chi2NDF );
+	    h_dPhiProb->Fill( prob    );
+
+	    if( h_dPhiProb->FindBin( prob ) == 1 ){
+	      v_listBadHist.push_back( hDphi->GetName() );
+	      v_listBadFits.push_back( fit  ->GetName() );
+	    }
+	    
 	    hDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 
-	    drawTool->DrawLeftLatex( 0.5, 0.66, Form( "#Chi^{2}/NDF=%4.2f", chi2NDF ) );
+	    drawTool->DrawLeftLatex( 0.47, 0.62, Form( "#Chi^{2}/NDF=%4.2f", chi2NDF ) );
+	    drawTool->DrawLeftLatex( 0.47, 0.54, Form( "Prob=%4.2f"        , prob    ) );
 
 	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
@@ -1569,26 +1645,69 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double width      = std::sqrt( 2 * tau * tau + sigma * sigma ); 
 	    double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
 					   std::pow( 2 * sigma * sigmaError, 2 ) );
+
+	    std::cout << hDphi->GetName() << " " << width << " " << widthError << std::endl;
+	    
 	    // Now, put results on histogram
 	    std::pair< double, double > rmsAndError =
 	      anaTool->GetRMS( hDphi, m_dPhiFittingMin, m_dPhiFittingMax, constants::PI );
 
-	    // width = rmsAndError.first; widthError = rmsAndError.second;
+	    double widthStat      = rmsAndError.first;
+	    double widthStatError = rmsAndError.second;
 
-	    std::cout << "Tau        = " << tau   << " TauError   = " << tauError   << std::endl;
-	    std::cout << "Sigma      = " << sigma << " SigmaError = " << sigmaError << std::endl;
-	    std::cout << "Width      = " << width << " WidthError = " << widthError << std::endl;
+	    // Now, put results on histogram
+	    std::pair< double, double > rmsAndError2 =
+	      anaTool->GetRMS( hDphi, 1, m_dPhiFittingMax, constants::PI );
+
+	    double widthStat2      = rmsAndError2.first;
+	    double widthStat2Error = rmsAndError2.second;
+
+	    std::cout << "Tau   = " << tau   << " TauError   = " << tauError   << std::endl;
+	    std::cout << "Sigma = " << sigma << " SigmaError = " << sigmaError << std::endl;
+	    std::cout << "Width = " << width << " WidthError = " << widthError << std::endl;
 	    
-	    hDphiWidths->SetBinContent( axis3Bin, width );
+	    hDphiWidths->SetBinContent( axis3Bin, width      );
 	    hDphiWidths->SetBinError  ( axis3Bin, widthError );	    
-	   } // end loop over axis3
+
+	    hDphiWidthsStat->SetBinContent( axis3Bin, widthStat      );
+	    hDphiWidthsStat->SetBinError  ( axis3Bin, widthStatError );
+
+	    hDphiWidthsStat2->SetBinContent( axis3Bin, widthStat2      );
+	    hDphiWidthsStat2->SetBinError  ( axis3Bin, widthStat2Error );
+	  } // end loop over axis3
+
+	  TCanvas cWidthsAll( "cWidthsAll", "cWidthsAll",800,600);
+	  TLegend legWAll( 0.50, 0.2, 0.89, 0.38 );
+	  styleTool->SetLegendStyle( &legWAll );
+
+	  hDphiWidths->SetMinimum( m_dPhiWidthMin );
+	  hDphiWidths->SetMaximum( m_dPhiWidthMax );
+	
+	  hDphiWidths     ->Draw("epsame");
+	  hDphiWidthsStat ->Draw("epsame");
+	  hDphiWidthsStat2->Draw("epsame");
+
+	  legWAll.AddEntry( hDphiWidths     , "RMS Fit" );
+	  legWAll.AddEntry( hDphiWidthsStat , "Statistics 2#pi/3<#Delta#phi<#pi" );
+	  legWAll.AddEntry( hDphiWidthsStat2, "Statistics 1<#Delta#phi<#pi" );
+
+	  legWAll.Draw();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, 0, 0 );
+
+	  DrawAtlasRight();
+	  
+	  SaveAsAll( cWidthsAll, Form("h_%s_%s_All_%s", dPhiName.c_str(),
+				      label.c_str(), hTagW.c_str() ) );
+	  
 	} // end loop over axis2
 	
 	cWidths.cd();
 	for( auto& h : vDphiWidthsTemp ){
 	  h->SetMinimum( m_dPhiWidthMin );
 	  h->SetMaximum( m_dPhiWidthMax );
-	  h->SetNdivisions( 505, "Y" );
 	  h->SetTitle("");
 	  h->Draw("epsame");
 	  h->Write();
@@ -1606,6 +1725,28 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
     } // end loop over axis0
   } // end loop over iG
 
+  TCanvas c( "c", "c", 1200, 600 );
+  c.Divide( 2, 1 );
+
+  c.cd(1);
+  h_dPhiChi2->Draw("ep");
+  DrawAtlasRight();
+
+  c.cd(2);
+  h_dPhiProb->Draw("ep");
+  DrawAtlasRight();
+
+  SaveAsAll( c, Form( "h_chi2_prob_%s", dPhiName.c_str() ) );
+
+  delete h_dPhiChi2;
+  delete h_dPhiProb;
+
+  std::cout << " ------------ Bad Fits - " << v_listBadFits.size() << std::endl;
+  for( uint i = 0; i < v_listBadFits.size(); i++ ){
+    std::cout << v_listBadHist[i] << std::endl;
+    std::cout << v_listBadFits[i] << std::endl;
+    std::cout << "    --" << std::endl;
+  }
   
   h_mult    ->Write();
   h_tauSigma->Write();
@@ -1750,8 +1891,8 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  anaTool->GetBinRange
 	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
 	  	  
-	  TLegend leg( 0.7, 0.06, 0.9, 0.23 );
-	  styleTool->SetLegendStyle( &leg , 0.85 );
+	  TLegend leg( 0.68, 0.04, 0.92, 0.25 );
+	  styleTool->SetLegendStyle( &leg );
 	  
 	  std::string hTag =
 	    Form( "%s_%s_%s_%s",
@@ -1804,7 +1945,6 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	    ( Form( "h_%s_%s_%s_%s", m_dPhiUnfoldedName.c_str(),
 		    m_sCounts.c_str(), m_allName.c_str(), hTag.c_str()));
 	  styleTool->SetHStyle( hUnfoldedCounts, 0 );
-	  hUnfoldedCounts->SetNdivisions( 505, "Y" );
 	  vDphi.push_back( hUnfoldedCounts );
 
 	  // fill unfolded THnSparse result
@@ -1828,7 +1968,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  // Normalize
 	  NormalizeDeltaPhi( hUnfolded, hSpectCounts, 0.5 * ( axis1Up + axis1Low ) );
 	  TF1* fitUnfolded = anaTool->FitDphi( hUnfolded, m_dPhiFittingMin, m_dPhiFittingMax );
-
+	  
 	  // -------- Unfold Done ---------
 	  	  	  
 	  hMeasured->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
@@ -1836,18 +1976,18 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  hTruth   ->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 	  
 	  // Now Draw everything.
-	  TCanvas c( "c", "c", 800, 700 );
-	  TPad pad1("pad1", "", 0.0, 0.25, 1.0, 1.0 );
+	  TCanvas c( "c", "c", 800, 800 );
+	  TPad pad1("pad1", "", 0.0, 0.35, 1.0, 1.0 );
 	  pad1.SetBottomMargin(0.0);
 	  pad1.Draw();
-	  TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.24 );
+	  TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.34 );
 	  pad2.SetTopMargin(0.05);
-	  pad2.SetBottomMargin(0.2);
+	  pad2.SetBottomMargin(0.25);
 	  pad2.Draw();
 
 	  pad1.cd();
 	  pad1.SetLogy();
-
+	  
 	  hMeasured->Draw("ep same");	
 	  hTruth   ->Draw("histo same");
 	  hUnfolded->Draw("ep same");
@@ -1858,7 +1998,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  TF1* fitTruth    =  static_cast<TF1*>
 	    ( fInMC  ->Get( Form( "f_h_%s_%s_%s", truthName.c_str(),
 				  m_allName.c_str(), hTag.c_str())));
-
+	  
 	  styleTool->SetHStyle( fitMeasured, 0 );
 	  styleTool->SetHStyle( fitUnfolded, 0 );
 	  styleTool->SetHStyle( fitTruth   , 0 );
@@ -1871,9 +2011,9 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  fitUnfolded->SetLineColor( hUnfolded->GetLineColor() );
 	  fitTruth   ->SetLineColor( hTruth   ->GetLineColor() );
 
-	  fitMeasured->SetLineStyle( 3 );
-	  fitUnfolded->SetLineStyle( 3 );
-	  fitTruth   ->SetLineStyle( 3 );
+	  fitMeasured->SetLineStyle( 7 );
+	  fitUnfolded->SetLineStyle( 7 );
+	  fitTruth   ->SetLineStyle( 7 );
 
 	  fitMeasured->Draw("same");
 	  fitUnfolded->Draw("same");
@@ -1903,11 +2043,24 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	    
 	  DrawAtlasRight();
 
+	  // put the RMS there
+	  double   tau = fitUnfolded->GetParameter(1);
+	  double sigma = fitUnfolded->GetParameter(2);
+
+	  double   tauError = fitUnfolded->GetParError(1);
+	  double sigmaError = fitUnfolded->GetParError(2);
+
+	  double width      = std::sqrt( 2 * tau * tau + sigma * sigma ); 
+	  double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
+					 std::pow( 2 * sigma * sigmaError, 2 ) );
+
+	  drawTool->DrawLeftLatex( 0.19, 0.48, Form( "RMS = %5.3f #pm %5.3f", width, widthError ) );
+	    
 	  pad2.cd();
 
-	  TLegend legR( 0.12, 0.79, 0.52, 0.89 );
-	  styleTool->SetLegendStyle( &legR );
-	  legR.SetNColumns(2);
+	  TLegend legR( 0.2, 0.79, 0.6, 0.89 );
+	  styleTool->SetLegendStyle( &legR, 0.9 );
+	  legR.SetNColumns(3);
 	  
 	  // make sure to set range to rebinned.
 	  // the c-factors are from rebinned distributions.
@@ -1915,9 +2068,11 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  hCfactors->SetYTitle( "Ratio" );
 	  hCfactors->GetXaxis()->SetRange
 	    ( m_dPhiRebinnedZoomLowBin, m_dPhiRebinnedZoomHighBin );
-	  hCfactors->GetXaxis()->SetNdivisions( 504 );	  
+	  hCfactors->SetTitleOffset( 2.3, "x" );
+	  hCfactors->SetMaximum( 1.5 );
+	  hCfactors->SetMinimum( 0.5 );
 	  hCfactors->Draw("ep");
-
+	  
 	  TH1* hR = static_cast< TH1D* >
 	    ( hUnfolded->
 	      Clone( Form( "h_%s_%s_%s_%s_%s", m_sRatio.c_str(),
@@ -1925,11 +2080,40 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 			   m_allName.c_str(), hTag.c_str())));
 	  styleTool->SetHStyleRatio( hR, 1 );
 	  hR->Divide( hTruth );
-	  hR->Draw( "ep same" );
-	  
-	  legR.AddEntry( hCfactors, "c-Factor" );
-	  legR.AddEntry( hR , "Unfolded/Truth" );
+	  // hR->Draw( "ep same" );
 
+	  TH1* hRfit =  static_cast< TH1D* >
+	    ( hUnfolded->
+	      Clone( Form( "h_%s_fit_%s_%s_%s_%s", m_sRatio.c_str(),
+			   measuredName.c_str(), m_unfoldedName.c_str(),
+			   m_allName.c_str(), hTag.c_str())));
+	  styleTool->SetHStyleRatio( hRfit, 2 );
+	  hRfit->Reset();
+
+	  int xBinMin = hRfit->FindBin( m_dPhiFittingMin );
+
+	  for( int xBin = xBinMin; xBin <= hRfit->GetNbinsX(); xBin++ ){
+
+	    double binCenter = hRfit->GetBinCenter( xBin );
+
+	    if( !hUnfolded->GetBinContent( xBin ) ){ continue; };
+	    
+	    double ratio = fitUnfolded->Eval( binCenter ) /
+	      hUnfolded->GetBinContent( xBin );
+	    
+	    double ratioError = hUnfolded->GetBinError( xBin ) /
+	      fitUnfolded->Eval( binCenter );
+	      
+	    hRfit->SetBinContent( xBin, ratio      );
+	    hRfit->SetBinError  ( xBin, ratioError );
+	  }
+
+	  hRfit->Draw( "ep same" );
+	  
+	  legR.AddEntry( hCfactors,       "CF" );
+	  // legR.AddEntry( hR       , "UF/Truth" );
+	  legR.AddEntry( hRfit    ,   "Fit/UF" );
+	  
 	  legR.Draw();
 
 	  styleTool->HideAxis( hMeasured, "x" );
@@ -1944,29 +2128,31 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  line.Draw();
 
 	  TLine lineP25( xMin, 1.25, xMax, 1.25 );
-	  lineP25.SetLineStyle( 3  );
+	  lineP25.SetLineStyle( 2  );
 	  lineP25.SetLineColor( 12 );
 	  lineP25.SetLineWidth( 2  );
 	  lineP25.Draw();
 	  
 	  TLine lineN25( xMin, 0.75, xMax, 0.75 );
-	  lineN25.SetLineStyle( 3 );
+	  lineN25.SetLineStyle( 2  );
 	  lineN25.SetLineColor( 12 );
 	  lineN25.SetLineWidth( 2  );
 	  lineN25.Draw();
 
+	  /*
 	  TLine lineP50( xMin, 1.50, xMax, 1.50 );
-	  lineP50.SetLineStyle( 3  );
+	  lineP50.SetLineStyle( 2  );
 	  lineP50.SetLineColor( 12 );
 	  lineP50.SetLineWidth( 1  );
 	  lineP50.Draw();
 	  
 	  TLine lineN50( xMin, 0.50, xMax, 0.50 );
-	  lineN50.SetLineStyle( 3 );
+	  lineN50.SetLineStyle( 2  );
 	  lineN50.SetLineColor( 12 );
 	  lineN50.SetLineWidth( 1  );
 	  lineN50.Draw();
-
+	  */
+	  
 	  // save this for debugging
 	  // hUnfoldedCounts->Write();
 	  
@@ -2036,7 +2222,128 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
   return hnUnfoldedCountsAll;
 }
 
-void DiJetAnalysis::MakeDphiTogether(){
+void DiJetAnalysis::MakeSpectTogether( TFile* fOut ){
+
+  // here it is only done for ystar!
+  // later, tehre should be some switch
+  // if this is required for other binning.
+  // for example, eta.
+  
+  std::vector< TH1* > vH;
+  std::vector< TH1* > vR;
+  
+  std::string name_a , name_b  ;
+  std::string label_a, label_b ;
+  std::string fName_a, fName_b;
+
+  GetInfoTogether( name_a, name_b, label_a, label_b, fName_a, fName_b, 0 );
+
+  std::string ratio = Form("%s/%s", label_a.c_str(), label_b.c_str() );
+
+  double xMin = m_varPtBinningRespMat.front();
+  double xMax = m_varPtBinningRespMat.back();
+  
+  TLine line( xMin, 1, xMax, 1 );
+  line.SetLineWidth( 2 );
+
+  TLine lineP15( xMin, 1.15, xMax, 1.15 );
+  lineP15.SetLineStyle( 2  );
+  lineP15.SetLineColor( 12 );
+  lineP15.SetLineWidth( 2  );
+	  
+  TLine lineN15( xMin, 0.85, xMax, 0.85 );
+  lineN15.SetLineStyle( 2  );
+  lineN15.SetLineColor( 12 );
+  lineN15.SetLineWidth( 2  );
+  
+  std::string axisLabel, axisLabelTex;
+  GetSpectraLabels( axisLabel, axisLabelTex, name_a );
+  
+  TFile* fIn_a = TFile::Open( fName_a.c_str() );
+  TFile* fIn_b = TFile::Open( fName_b.c_str() );
+
+  fOut->cd();
+  
+  for( uint xBin = 1; xBin <= m_nVarYstarBins; xBin++ ){
+
+    double xLow  = m_varYstarBinning[ xBin - 1 ];
+    double xUp   = m_varYstarBinning[ xBin ];
+   
+    std::string hTag = anaTool->GetName( xLow, xUp, axisLabel);
+
+    std::string hName_a = "h_" + name_a + "_" + hTag;
+    std::string hName_b = "h_" + name_b + "_" + hTag;
+    
+    TH1* hSpect_a = static_cast< TH1D* >( fIn_a->Get( hName_a.c_str() ) );
+    TH1* hSpect_b = static_cast< TH1D* >( fIn_b->Get( hName_a.c_str() ) ); 
+
+    styleTool->SetHStyle( hSpect_a, 0 );
+    styleTool->SetHStyle( hSpect_b, 1 );
+
+    vH.push_back( hSpect_a );
+    vH.push_back( hSpect_b );
+    
+    TLegend leg( 0.65, 0.6, 0.85, 0.8 );
+    styleTool->SetLegendStyle( &leg );
+
+    leg.AddEntry( hSpect_a, label_a.c_str() );
+    leg.AddEntry( hSpect_b, label_b.c_str() );
+    
+    double scalingFactor =
+      hSpect_a->Integral( 2, m_nVarPtBinsRespMat - 1 ) /
+      hSpect_b->Integral( 2, m_nVarPtBinsRespMat - 1 );
+
+    hSpect_b->Scale( scalingFactor );
+    
+    TCanvas c( "c", "c", 800, 800 );
+    TPad pad1("pad1", "", 0.0, 0.35, 1.0, 1.0 );
+    pad1.SetBottomMargin(0);
+    pad1.Draw();
+    TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.34 );
+    pad2.SetTopMargin(0.05);
+    pad2.SetBottomMargin(0.25);
+    pad2.Draw();
+
+    pad2.cd();
+    
+    TH1* hR = static_cast< TH1D* >
+      ( hSpect_a->Clone( Form( "h_%s_%s_%s_%s", m_ystarSpectName.c_str(),
+			      m_sRatio.c_str(), m_allName.c_str(), hTag.c_str())));
+    styleTool->SetHStyleRatio( hR );
+    vR.push_back( hR );
+
+    hR->Divide( hSpect_b );
+    hR->SetYTitle( ratio.c_str() );
+    hR->SetTitleOffset( 2.3, "x" );
+    hR->Draw( "ep same" );
+
+    line.Draw();
+    lineP15.Draw(); lineN15.Draw();
+    
+    pad1.cd();
+    pad1.SetLogy();
+
+    styleTool->HideAxis( hSpect_a, "x" );
+    styleTool->HideAxis( hSpect_b, "x" );
+    
+    hSpect_a->Draw( "ep same" );
+    hSpect_b->Draw( "ep same" );
+
+    leg.Draw( "same" );
+
+    DrawAtlasRightBoth();
+
+    drawTool->DrawRightLatex
+      ( 0.45, 0.15, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
+        
+    SaveAsAll( c, Form("h_%s_%s", m_ystarSpectName.c_str(), hTag.c_str() ), true );
+  }
+
+  for( auto& h : vH ){ delete h; }
+  for( auto& r : vR ){ delete r; }
+}
+
+void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
   std::vector< TF1* > vF;
   std::vector< TH1* > vH;
@@ -2047,7 +2354,7 @@ void DiJetAnalysis::MakeDphiTogether(){
   std::string label_a, label_b ;
   std::string fName_a, fName_b;
 
-  GetInfoTogether( name_a, name_b, label_a, label_b, fName_a, fName_b );
+  GetInfoTogether( name_a, name_b, label_a, label_b, fName_a, fName_b, 1 );
 
   std::string ratio = Form("%s/%s", label_a.c_str(), label_b.c_str() );
    
@@ -2064,31 +2371,55 @@ void DiJetAnalysis::MakeDphiTogether(){
   line.SetLineWidth( 2 );
 
   TLine lineP25( xMin, 1.25, xMax, 1.25 );
-  lineP25.SetLineStyle( 3  );
+  lineP25.SetLineStyle( 2  );
   lineP25.SetLineColor( 12 );
   lineP25.SetLineWidth( 2  );
 	  
   TLine lineN25( xMin, 0.75, xMax, 0.75 );
-  lineN25.SetLineStyle( 3 );
+  lineN25.SetLineStyle( 2  );
   lineN25.SetLineColor( 12 );
   lineN25.SetLineWidth( 2  );
 
   TLine lineP50( xMin, 1.50, xMax, 1.50 );
-  lineP50.SetLineStyle( 3  );
+  lineP50.SetLineStyle( 2  );
   lineP50.SetLineColor( 12 );
   lineP50.SetLineWidth( 1  );
 	  
   TLine lineN50( xMin, 0.50, xMax, 0.50 );
-  lineN50.SetLineStyle( 3 );
+  lineN50.SetLineStyle( 2  );
   lineN50.SetLineColor( 12 );
   lineN50.SetLineWidth( 1  );
   
   TFile* fIn_a = TFile::Open( fName_a.c_str() );
   TFile* fIn_b = TFile::Open( fName_b.c_str() );
-  TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
+
+  xMin = m_dPhiZoomLow;
+  xMax = m_dPhiZoomHigh;
   
-  //  bool isRivet = false;
-  //  if( fName_b.find( "rivet" ) != std::string::npos ){ isRivet = true; }
+  TLine dPhiLine( xMin, 1, xMax, 1 );
+  dPhiLine.SetLineWidth( 2 );
+	  
+  TLine dPhiLineP25( xMin, 1.25, xMax, 1.25 );
+  dPhiLineP25.SetLineStyle( 3  );
+  dPhiLineP25.SetLineColor( 12 );
+  dPhiLineP25.SetLineWidth( 2  );
+	  
+  TLine dPhiLineN25( xMin, 0.75, xMax, 0.75 );
+  dPhiLineN25.SetLineStyle( 3 );
+  dPhiLineN25.SetLineColor( 12 );
+  dPhiLineN25.SetLineWidth( 2  );
+	  
+  TLine dPhiLineP50( xMin, 1.50, xMax, 1.50 );
+  dPhiLineP50.SetLineStyle( 3  );
+  dPhiLineP50.SetLineColor( 12 );
+  dPhiLineP50.SetLineWidth( 1  );
+	  
+  TLine dPhiLineN50( xMin, 0.50, xMax, 0.50 );
+  dPhiLineN50.SetLineStyle( 3 );
+  dPhiLineN50.SetLineColor( 12 );
+  dPhiLineN50.SetLineWidth( 1  );
+  
+  fOut->cd();
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -2106,11 +2437,11 @@ void DiJetAnalysis::MakeDphiTogether(){
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
       // Now Draw everything.
-      TCanvas cW( "cW", "cW", 800, 700 );
-      TPad pad1W("pad1W", "", 0.0, 0.25, 1.0, 1.0 );
+      TCanvas cW( "cW", "cW", 800, 800 );
+      TPad pad1W("pad1W", "", 0.0, 0.35, 1.0, 1.0 );
       pad1W.SetBottomMargin(0);
       pad1W.Draw();
-      TPad pad2W("pad2W", "", 0.0, 0.0, 1.0, 0.24 );
+      TPad pad2W("pad2W", "", 0.0, 0.0, 1.0, 0.34 );
       pad2W.SetTopMargin(0.05);
       pad2W.SetBottomMargin(0.25);
       pad2W.Draw();
@@ -2121,9 +2452,9 @@ void DiJetAnalysis::MakeDphiTogether(){
 	      anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 	      anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
       
-      TLegend legW( 0.10, 0.53, 0.9, 0.72 );
-      styleTool->SetLegendStyle( &legW );
-      legW.SetNColumns(2);
+      TLegend legW( 0.47, 0.05, 0.88, 0.45 );
+      styleTool->SetLegendStyle( &legW, 0.75 );
+      // legW.SetNColumns(2);
       
       int style = 0;
 
@@ -2146,40 +2477,47 @@ void DiJetAnalysis::MakeDphiTogether(){
 
 	TH1* hW_a = static_cast<TH1D*>( fIn_a->Get( hNameW_a.c_str() ) );
 	TH1* hW_b = static_cast<TH1D*>( fIn_b->Get( hNameW_b.c_str() ) );
-	
+
 	styleTool->SetHStyle( hW_a, style );
 	styleTool->SetHStyle( hW_b, style + 5 );
 	hW_a->SetMarkerSize( hW_a->GetMarkerSize() * 1.5 );
 	hW_b->SetMarkerSize( hW_b->GetMarkerSize() * 1.5 );
 	vHw.push_back( hW_a ); vHw.push_back( hW_b  );
-	
-	style++;
 
 	// switch back to cW canvas
 	// because a new one was creted in axis3 loop
 	cW.cd();
 	pad2W.cd();
+
 	// Make the ratio histogram.
 	TH1* hW_R = static_cast< TH1D* >
 	  ( hW_a->Clone( Form( "h_%s_%s_%s_%s", m_dPhiName.c_str(), m_sRatio.c_str(),
 			       m_allName.c_str(), hTagW.c_str())));
-	hW_R->SetMinimum( 0.25 );
-	hW_R->SetMaximum( 1.75 );
 	hW_R->Divide( hW_b );
 	hW_R->SetYTitle( ratio.c_str() );
+	hW_R->SetTitleOffset( 2.3, "x" );
+	styleTool->SetHStyleRatio( hW_R, style );
+	hW_R->SetMarkerSize( hW_R->GetMarkerSize() * 1.5 );
+	
 	vR.push_back( hW_R );
 	hW_R->Draw("ep same");
 
+	style++;
+	
 	pad1W.cd();
 
 	styleTool->HideAxis( hW_a, "x" );
 	styleTool->HideAxis( hW_b, "x" );
-	
-	legW.AddEntry ( hW_a,Form("%s %s", label_a.c_str(), anaTool->GetLabel
-				  ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));	
-	legW.AddEntry( hW_b, Form("%s %s", label_b.c_str(), anaTool->GetLabel
-				  ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));	
 
+	if( hW_a->GetMean() ){
+	  legW.AddEntry ( hW_a,Form("%s %s", label_a.c_str(), anaTool->GetLabel
+				    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));
+	}
+	if( hW_b->GetMean() ){
+	  legW.AddEntry( hW_b, Form("%s %s", label_b.c_str(), anaTool->GetLabel
+				    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));	
+	}
+	
 	hW_a->Draw("ep same X0");
 	hW_b->Draw("ep same X0");
 	
@@ -2192,16 +2530,16 @@ void DiJetAnalysis::MakeDphiTogether(){
 	  double axis3Low , axis3Up;
 	  anaTool->GetBinRange
 	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
-	  
-	  TCanvas c( "c", "c", 800, 700 );
-	  TPad pad1("pad1", "", 0.0, 0.25, 1.0, 1.0 );
+
+	  // Now Draw everything.
+	  TCanvas c( "c", "c", 800, 800 );
+	  TPad pad1("pad1", "", 0.0, 0.35, 1.0, 1.0 );
 	  pad1.SetBottomMargin(0);
 	  pad1.Draw();
-	  TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.24 );
+	  TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.34 );
 	  pad2.SetTopMargin(0.05);
 	  pad2.SetBottomMargin(0.25);
 	  pad2.Draw();
-
 
 	  std::string hTag =
 	    Form("%s_%s_%s_%s",
@@ -2219,14 +2557,14 @@ void DiJetAnalysis::MakeDphiTogether(){
 	  styleTool->SetHStyle( h_b, 1 );
 	  vH.push_back( h_a ); vH.push_back( h_b );
 	  
-	  TH1* h_R = static_cast< TH1D* >
+	  TH1* hR = static_cast< TH1D* >
 	    ( h_a->Clone( Form( "h_%s_%s_%s_%s", m_dPhiName.c_str(), m_sRatio.c_str(),
 				m_allName.c_str(), hTagW.c_str())));
-	  styleTool->SetHStyleRatio( h_R );
-	  h_R->Divide( h_b );
-	  h_R->GetXaxis()->SetNdivisions( 504 );
-	  h_R->SetYTitle( ratio.c_str() );
-	  vR.push_back( h_R );
+	  styleTool->SetHStyleRatio( hR );
+	  hR->Divide( h_b );
+	  hR->SetYTitle( ratio.c_str() );
+	  hR->SetTitleOffset( 2.3, "x" );
+	  vR.push_back( hR );
 
 	  pad1.cd();
 	  pad1.SetLogy();
@@ -2247,16 +2585,13 @@ void DiJetAnalysis::MakeDphiTogether(){
 
 	  // TLegend leg( 0.45, 0.10, 0.66, 0.28 );
 	  TLegend leg( 0.7, 0.06, 0.9, 0.23 );
-	  styleTool->SetLegendStyle( &leg , 0.85 );
+	  styleTool->SetLegendStyle( &leg , 0.9 );
 
 	  h_a->SetMinimum( m_dPhiLogMin );
 	  h_b->SetMinimum( m_dPhiLogMin );
 
 	  h_a->SetMaximum( m_dPhiLogMax );
 	  h_b->SetMaximum( m_dPhiLogMax );
-
-	  h_a->SetNdivisions( 504, "Y" );
-	  h_b->SetNdivisions( 504, "Y" );
 	  
 	  leg.AddEntry( h_a, label_a.c_str() );
 	  leg.AddEntry( h_b, label_b.c_str() );
@@ -2281,40 +2616,11 @@ void DiJetAnalysis::MakeDphiTogether(){
 	  DrawAtlasRightBoth();
 
 	  pad2.cd();
-	  h_R->Draw("ep same");
+	  hR->Draw("ep same");
 
-	  // lines to be drawn along axis3. this is
-	  // x-axis that widths are plotted as function of 
-	  double xMin = m_dPhiZoomLow;
-	  double xMax = m_dPhiZoomHigh;
-  
-	  TLine dPhiLine( xMin, 1, xMax, 1 );
-	  dPhiLine.SetLineWidth( 2 );
 	  dPhiLine.Draw();
-	  
-	  TLine dPhiLineP25( xMin, 1.25, xMax, 1.25 );
-	  dPhiLineP25.SetLineStyle( 3  );
-	  dPhiLineP25.SetLineColor( 12 );
-	  dPhiLineP25.SetLineWidth( 2  );
-	  dPhiLineP25.Draw();
-	  
-	  TLine dPhiLineN25( xMin, 0.75, xMax, 0.75 );
-	  dPhiLineN25.SetLineStyle( 3 );
-	  dPhiLineN25.SetLineColor( 12 );
-	  dPhiLineN25.SetLineWidth( 2  );
-	  dPhiLineN25.Draw();
-	  
-	  TLine dPhiLineP50( xMin, 1.50, xMax, 1.50 );
-	  dPhiLineP50.SetLineStyle( 3  );
-	  dPhiLineP50.SetLineColor( 12 );
-	  dPhiLineP50.SetLineWidth( 1  );
-	  dPhiLineP50.Draw();
-	  
-	  TLine dPhiLineN50( xMin, 0.50, xMax, 0.50 );
-	  dPhiLineN50.SetLineStyle( 3 );
-	  dPhiLineN50.SetLineColor( 12 );
-	  dPhiLineN50.SetLineWidth( 1  );
-	  dPhiLineN50.Draw();
+	  dPhiLineP25.Draw(); dPhiLineN25.Draw();
+	  // dPhiLineP50.Draw(); dPhiLineN50.Draw();
 
 	  SaveAsAll( c, Form("h_%s_%s", m_dPhiName.c_str(), hTag.c_str() ), true );
 	} // end loop over axis3
@@ -2349,12 +2655,7 @@ void DiJetAnalysis::MakeDphiTogether(){
   for( auto & r  : vR  ){ delete r ; }
   for( auto & h  : vH  ){ delete h ; }
   for( auto & hW : vHw ){ delete hW; }
-  
-  std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
-  fOut->Close();
-  std::cout << "......Closed  " << fOut->GetName() << std::endl;
 }
-
 
 void DiJetAnalysis::MakeFinalPlotsTogether(){}
 
@@ -2373,21 +2674,21 @@ void DiJetAnalysis::DrawTopLeftLabels( DeltaPhiProj* dPP,
 				       double axis3Low, double axis3Up,
 				       double scale ){
   drawTool->DrawLeftLatex
-    ( 0.13, 0.86, CT::AnalysisTools::GetLabel
+    ( 0.18, 0.86, CT::AnalysisTools::GetLabel
       ( axis0Low, axis0Up, dPP->GetAxisLabel(0) ), scale );
   // for now, modify later to be more dynamic
   // to the variables present 
   if( !( axis1Low || axis1Up ) ){ return ; }
   drawTool->DrawLeftLatex
-    ( 0.13, 0.79, CT::AnalysisTools::GetLabel
+    ( 0.18, 0.76, CT::AnalysisTools::GetLabel
       ( axis1Low, axis1Up, dPP->GetAxisLabel(1) ), scale );  
   if( !( axis2Low || axis2Up ) ){ return ; }
   drawTool->DrawLeftLatex
-    ( 0.13, 0.73, CT::AnalysisTools::GetLabel
+    ( 0.18, 0.67, CT::AnalysisTools::GetLabel
       ( axis2Low, axis2Up, dPP->GetAxisLabel(2) ), scale );
   if( !( axis3Low || axis3Up ) ){ return ; }
   drawTool->DrawLeftLatex
-    ( 0.13, 0.66, CT::AnalysisTools::GetLabel
+    ( 0.18, 0.57, CT::AnalysisTools::GetLabel
       ( axis3Low, axis3Up, dPP->GetAxisLabel(3) ), scale );
 }
 
@@ -2420,9 +2721,9 @@ void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
 void DiJetAnalysis::SaveAsAll( const TCanvas& c,
 			       const std::string& name,
 			       bool together ){
-
-  // only save png pdf if the doing nominal sample.
-  // otherwise it is pretty useles.
+  
+  // only save png pdf if the doing nominal sample. (0)
+  // otherwise it is too many pdf/pngs.
   if( !m_uncertComp )
     { SaveAsPdfPng( c, name, together ); }
   SaveAsROOT  ( c, name );

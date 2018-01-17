@@ -123,6 +123,7 @@ namespace CT{
 				 const std::string& = "" );
 
     double GetLogMaximum( double );
+    double GetLogMinimum( double );
 
     void ResetAxisRanges( TH1* );
     

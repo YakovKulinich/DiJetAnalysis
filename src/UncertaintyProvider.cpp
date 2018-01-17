@@ -59,7 +59,7 @@ UnfoldingUncertaintyTool::UnfoldingUncertaintyTool( int uc, bool is_pPb )
   : UncertaintyTool( uc, is_pPb ){
 
   // get the pp MC dPhi
-  TFile* fMC = TFile::Open( "data/dPhi_reco_pp_mc_pythia8.root" );
+  // TFile* fMC = TFile::Open( "data/dPhi_reco_pp_mc_pythia8.root" );
 }
 
 UnfoldingUncertaintyTool::~UnfoldingUncertaintyTool(){}
@@ -146,15 +146,15 @@ void AngularUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& 
     float truthJetEta   = truthJet.Eta();
     float truthJetPhi   = truthJet.Phi();
  
-    float uncertaintyEta  = hAngularUncertEta->Interpolate
-      ( recoJetYstar, recoJetPt );
-    float uncertaintyPhi  = hAngularUncertPhi->Interpolate
-      ( recoJetYstar, recoJetPt );
+    float uncertaintyEta  = hAngularUncertEta->
+      GetBinContent( hAngularUncertEta->FindBin( recoJetYstar, recoJetPt ) );
+    float uncertaintyPhi  = hAngularUncertPhi->
+      GetBinContent( hAngularUncertPhi->FindBin( recoJetYstar, recoJetPt ) );
 
-    float etaRes = hAngularResEta->Interpolate
-      ( recoJetYstar, recoJetPt ); 
-    float phiRes = hAngularResPhi->Interpolate
-      ( recoJetYstar, recoJetPt ); 
+    float etaRes = hAngularResEta->
+      GetBinContent( hAngularResEta->FindBin( recoJetYstar, recoJetPt ) );
+    float phiRes = hAngularResPhi->
+      GetBinContent( hAngularResPhi->FindBin( recoJetYstar, recoJetPt ) );
  
     float smearingFactorSystEta =
       sqrt( pow( etaRes + uncertaintyEta, 2 ) - pow( etaRes, 2 ) );
@@ -168,13 +168,13 @@ void AngularUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& 
     float recoJetPhiNew = recoJetPhi + truthJetPhi * correctionPhi;
 
     /*
-      std::cout << "----" << std::endl;
-      std::cout << uncertaintyEta << " ... " << etaRes << " ... "
-      << correctionEta << " : " << recoJetEta << " -> " << recoJetEtaNew << std::endl;
-      std::cout << uncertaintyPhi << " ... " << phiRes << " ... "
-      << correctionPhi << " : " << recoJetPhi << " -> " << recoJetPhiNew << std::endl;
+    std::cout << "----" << std::endl;
+    std::cout << uncertaintyEta << " ... " << etaRes << " ... "
+	      << correctionEta << " : " << recoJetEta << " -> " << recoJetEtaNew << std::endl;
+    std::cout << uncertaintyPhi << " ... " << phiRes << " ... "
+	      << correctionPhi << " : " << recoJetPhi << " -> " << recoJetPhiNew << std::endl;
     */
-  
+    
     recoJet.SetPtEtaPhiM
       ( recoJetPt * 1000, recoJetEtaNew, recoJetPhiNew, recoJetM );
   }
@@ -232,8 +232,12 @@ void JERUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& reco
     int   etaBin       = GetEtaUJERBin( recoJetEta );
     float uncertainty  = m_vJERhistos[ etaBin ]->Interpolate( recoJetPt );
 
-    float JER          = hJER->Interpolate( recoJetYstar, recoJetPt ); 
-    float smearingFactorSyst = sqrt(pow(JER+uncertainty,2)-pow(JER,2));
+    // float JER       = hJER->Interpolate( recoJetYstar, recoJetPt );
+    int   jerBin = hJER->FindBin( recoJetYstar, recoJetPt );
+    
+    float JER          = hJER->GetBinContent( jerBin ); 
+    float smearingFactorSyst =
+      std::sqrt( std::pow( JER + uncertainty, 2 ) - pow( JER, 2 ) );
 
     float correction   = rand->Gaus(0., smearingFactorSyst);
           
