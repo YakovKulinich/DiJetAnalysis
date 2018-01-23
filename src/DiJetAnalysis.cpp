@@ -195,13 +195,13 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   boost::assign::push_back( m_vNdPhiBins )
     ( m_nVarYstarBins )( m_nVarYstarBins )
     ( m_nVarPtBins    )( m_nVarPtBins    )
-    ( m_nVarDphiBins  );
+    ( m_nVarDphiBins  )(       2         );
     
   boost::assign::push_back( m_vDphiMin )
-    ( 0 )( 0 )( 0 )( 0 )( 0 );
+    ( 0 )( 0 )( 0 )( 0 )( 0 )( 0 );
 
   boost::assign::push_back( m_vDphiMax )
-    ( 1 )( 1 )( 1 )( 1 )( 1 );
+    ( 1 )( 1 )( 1 )( 1 )( 1 )( 2 );
 
   m_nDphiDim     = m_vNdPhiBins.size();
   
@@ -555,7 +555,11 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
   x[2] = jet1_pt ;
   x[3] = jet2_pt ;
   x[4] = deltaPhi;
+  x[5] = 0;
   hn->Fill( &x[0], jetWeight );
+
+  x[5] = 1;
+  hn->Fill( &x[0], jetWeight * deltaPhi );
   
   // for pp, fill twice. once for each side since
   // it is symmetric in pp. For pPb, continue
@@ -564,8 +568,11 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
   x[0] = -jet1_ystar;  
   x[1] = -jet2_ystar;
   hn->Fill( &x[0], jetWeight );
-  
-  return deltaPhi;
+
+  x[5] = 1;
+  hn->Fill( &x[0], jetWeight * deltaPhi );
+ 
+   return deltaPhi;
 }
 
 bool DiJetAnalysis::ApplyIsolation( std::vector<TLorentzVector>& v_jets,
@@ -1417,7 +1424,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   std::vector< std::string > v_listBadFits;
   
   TH1D* h_dPhiChi2 = new TH1D( Form( "h_dPhiChi2_%s", dPhiName.c_str() ),
-			       ";#Chi^{2}/NDF;Count", 20, 0, 10 );
+			       ";#Chi^{2}/NDF;Count", 20, 0, 5 );
   TH1D* h_dPhiProb = new TH1D( Form( "h_dPhiProb_%s", dPhiName.c_str() ),
 			       ";Probability;Count", 20, 0, 1 );
 
@@ -1427,6 +1434,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   styleTool->SetHStyle( h_dPhiChi2, 0 );
   styleTool->SetHStyle( h_dPhiProb, 0 );
   
+  std::vector< TH1*    > vHdPhi;
+  std::vector< TGraph* > vGdPhi;
   std::vector< TH1* > vDphi;
   std::vector< TH1* > vSpect;
   std::vector< TF1* > vFits;
@@ -1447,7 +1456,11 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
     TAxis* axis3 = hn->GetAxis( m_dPP->GetAxisI(3) ); int nAxis3Bins = axis3->GetNbins();
     
     int fAxisI   = m_dPP->GetAxisI(3);
- 
+    
+    int    dPhiAxisI = hn->GetNdimensions() - 2;
+    int   entryAxisI = hn->GetNdimensions() - 1;
+    TAxis* entryAxis = hn->GetAxis( entryAxisI );
+    
     // ---- loop over ystars ----
     for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
       // set ranges
@@ -1562,40 +1575,68 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    // Take projection onto the dPhi axis
 	    std::string hDphiName =
 	      Form( "h_%s_%s_%s", dPhiName.c_str(), label.c_str(), hTag.c_str() );
+	    std::string gDphiName =
+	      Form( "g_%s_%s_%s", dPhiName.c_str(), label.c_str(), hTag.c_str() );
 	    std::string hDphiCountsName =
 	      Form( "h_%s_%s_%s_%s",
 		    dPhiName.c_str(), m_sCounts.c_str(), label.c_str(), hTag.c_str() );
+	    std::string hDphiCountsSumName =
+	      Form( "h_%s_%s_sum_%s_%s",
+		    dPhiName.c_str(), m_sCounts.c_str(), label.c_str(), hTag.c_str() );
 	    
-	    TH1* hDphiCounts = hn->Projection( 4 );
+	    entryAxis->SetRange( 1, 1 );
+	    
+	    TH1* hDphiCounts = hn->Projection( dPhiAxisI );
 	    hDphiCounts->SetName( hDphiCountsName.c_str() );
 	    styleTool->SetHStyle( hDphiCounts, 0 );
-	    vDphi.push_back( hDphiCounts );
+	    vHdPhi.push_back( hDphiCounts );
+
+	    entryAxis->SetRange( 2, 2 );
+	    
+	    TH1* hDphiCountsSum = hn->Projection( dPhiAxisI );
+	    hDphiCountsSum->SetName( hDphiCountsSumName.c_str() );
+	    styleTool->SetHStyle( hDphiCountsSum, 0 );
+	    vHdPhi.push_back( hDphiCountsSum );
+
+	    TGraph* gDphi = anaTool->Barycenters( hDphiCounts, hDphiCountsSum );
+	    vGdPhi.push_back( gDphi );
+	    gDphi->SetName( gDphiName.c_str() );
+	    styleTool->SetHStyle( gDphi, 0 );
 
 	    h_mult->Fill( hDphiCounts->GetEntries() );
-
-	    // if its not unfolded result, subtract combinatoric, noramlize
-	    // this is the "default"
-	    TH1* hDphi = NULL;
-
+	    
 	    // save the normalized counts histogram.
-	    hDphi = static_cast< TH1D* >
+	    TH1* hDphi = static_cast< TH1D* >
 	      ( hDphiCounts->Clone( hDphiName.c_str() ) );
 	    styleTool->SetHStyle( hDphi, 0 );
-	    vDphi.push_back( hDphi );
+	    vHdPhi.push_back( hDphi );
 	      
 	    // Normalize with combinatoric subtraction after
 	    // scaling by width (the last parameter true)
 	    NormalizeDeltaPhi
 	      ( hDphi, hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true );
 	    
-	    TCanvas c( hDphi->GetName(), hDphi->GetName(), 800, 600 );
+	    anaTool->MatchGraphHistoX( gDphi, hDphi );
+
+	    // for canvas, since its tgraphasymmerrors.
+	    double x0 = m_dPhiZoomLow;
+	    double x1 = m_dPhiZoomHigh;
+	    double y0 = m_dPhiLogMin;
+	    double y1 = m_dPhiLogMax;
 	    
-	    hDphi->Draw();
-	    hDphi->SetYTitle("1/N_{jet_{1}} dN_{pair}/d|#Delta#phi|");
-	    hDphi->SetTitle("");
+	    y1 = anaTool->GetGraphMax( gDphi, m_dPhiFittingMin, m_dPhiFittingMax ) * 1.1;
+	    
+	    TCanvas c( hDphi->GetName(), hDphi->GetName(), 800, 600 );
+	    styleTool->SetCStyleGraph
+	      ( c, x0, y0, x1, y1, ";#Delta#phi;1/N_{jet_{1}} dN_{pair}/d|#Delta#phi|" );
+	    
+	    gDphi->Draw( "p" );
+	    // hDphi->Draw();
+	    // hDphi->SetYTitle("1/N_{jet_{1}} dN_{pair}/d|#Delta#phi|");
+	    gDphi->SetTitle("");
 	    
 	    // now fit
-	    TF1* fit = anaTool->FitDphi( hDphi, m_dPhiFittingMin, m_dPhiFittingMax );
+	    TF1* fit = anaTool->FitDphi( gDphi, m_dPhiFittingMin, m_dPhiFittingMax );
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
 
@@ -1617,7 +1658,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    h_dPhiChi2->Fill( chi2NDF );
 	    h_dPhiProb->Fill( prob    );
 
-	    if( h_dPhiProb->FindBin( prob ) == 1 ){
+	    if( prob < 0.05 ){
 	      v_listBadHist.push_back( hDphi->GetName() );
 	      v_listBadFits.push_back( fit  ->GetName() );
 	    }
@@ -1636,14 +1677,16 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    SaveAsROOT( c, hDphi->GetName() );
 	    fit->Write();
 
+	    gDphi->Write();
 	    hDphi->Write();
 	    hDphiCounts->Write();
+	    hDphiCountsSum->Write();
 	    
 	    if( fit->GetParameter(1) < 0 )
 	      { continue; }
 
-	    double width      = std::sqrt( 2 * tau * tau + sigma * sigma ); 
-	    double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
+	    double width      = std::sqrt( tau * tau + sigma * sigma ); 
+	    double widthError = std::sqrt( std::pow( 2 * tau   * tauError  , 2 ) +
 					   std::pow( 2 * sigma * sigmaError, 2 ) );
 
 	    std::cout << hDphi->GetName() << " " << width << " " << widthError << std::endl;
@@ -1756,7 +1799,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   delete h_tauAmp;
   
   for( auto& f : vFits  ){ delete f; }
-  for( auto& h : vDphi  ){ delete h; }
+  for( auto& h : vHdPhi ){ delete h; }
+  for( auto& h : vGdPhi ){ delete h; }
   for( auto& h : vSpect ){ delete h; }
   
   // Save the THnSparse to separate file.
@@ -1992,11 +2036,11 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  hTruth   ->Draw("histo same");
 	  hUnfolded->Draw("ep same");
 	  
-       	  TF1* fitMeasured =  static_cast<TF1*>
-	    ( fInData->Get( Form( "f_h_%s_%s_%s", measuredName.c_str(),
+       	  TF1* fitMeasured = static_cast<TF1*>
+	    ( fInData->Get( Form( "f_g_%s_%s_%s", measuredName.c_str(),
 				  m_allName.c_str(), hTag.c_str())));
-	  TF1* fitTruth    =  static_cast<TF1*>
-	    ( fInMC  ->Get( Form( "f_h_%s_%s_%s", truthName.c_str(),
+	  TF1* fitTruth    = static_cast<TF1*>
+	    ( fInMC  ->Get( Form( "f_g_%s_%s_%s", truthName.c_str(),
 				  m_allName.c_str(), hTag.c_str())));
 	  
 	  styleTool->SetHStyle( fitMeasured, 0 );
@@ -2575,8 +2619,8 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  h_a->Draw("epsame");
 	  h_b->Draw("epsame");
 	  
-	  TF1* f_a = static_cast<TF1*>( fIn_a->Get( Form("f_%s", hName_a.c_str())));
-	  TF1* f_b = static_cast<TF1*>( fIn_b->Get( Form("f_%s", hName_b.c_str())));
+	  TF1* f_a = static_cast<TF1*>( fIn_a->Get( Form("f_g_%s", hName_a.c_str())));
+	  TF1* f_b = static_cast<TF1*>( fIn_b->Get( Form("f_g_%s", hName_b.c_str())));
 	  styleTool->SetHStyle( f_a, 0 );
 	  styleTool->SetHStyle( f_b, 1 );
 	  f_a->SetLineColor( h_a->GetLineColor() );

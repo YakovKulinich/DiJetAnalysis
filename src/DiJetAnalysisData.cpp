@@ -1128,8 +1128,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
-      TCanvas cW( "c", "c", 800, 600 );
-      styleTool->SetCStyleGraph
+      TCanvas cW( "c", "c", 800, 600 )
+;      styleTool->SetCStyleGraph
 	( cW, x0, y0, x1, y1, gTitle.c_str() );
 
       TLegend legW( 0.25, 0.13, 0.9, 0.26 );

@@ -283,33 +283,33 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   return dPhiFit;
 }
 
-/*
-TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
+TF1* CT::AnalysisTools::FitDphi( TGraph* graph, double xLow, double xHigh ){
 
-  auto exp = [&]( double* x, double* par){
-    return par[0] * TMath::Exp((x[0]-constants::PI)/par[1]);
+  auto EMG = [&]( double* x, double* par){
+    return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
+    ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
+      TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
+      TMath::Exp((constants::PI-x[0])/par[1]) *
+      ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])));
   };
-  
-  // set range to be in range of fit
-  histo->GetXaxis()->SetRangeUser( xLow, xHigh );
-  
-  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), exp, xLow, xHigh, 2);
 
-  if( !histo->GetEntries() )
+  TF1* dPhiFit = new TF1( Form("f_%s", graph->GetName()), EMG, xLow, xHigh, 3 );
+
+  if( !graph->GetN() )
     { return dPhiFit; }
 
-  double amp = histo->GetBinContent( histo->GetMaximumBin () );
+  double amp = CT::AnalysisTools::GetGraphMax( graph, xLow, xHigh );
   
-  dPhiFit->SetParameters( amp, 0.20 );
+  dPhiFit->SetParameters( amp, 0.20, 0.20 );
+  dPhiFit->SetParLimits ( 2, 1E-2, 1 );
   
-  int status = histo->Fit( dPhiFit->GetName(), "NQ", "", xLow, xHigh );
+  int status = graph->Fit( dPhiFit->GetName(), "NQEX0", "", xLow, xHigh );
 
   if( status ){ std::cout << " +++++++++++++ " << status
 			  << " " << dPhiFit->GetName() << std::endl; }
   
   return dPhiFit;
 }
-*/
 
 TF1* CT::AnalysisTools::FitGaussian( TH1* histo, double xLow, double xHigh){
 
@@ -373,6 +373,67 @@ TF1* CT::AnalysisTools::FitLogPol2( TH1* histo, double xLow, double xHigh){
   histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
   
   return fit;
+}
+
+double CT::AnalysisTools::GetGraphMax( TGraph* g, double xMin, double xMax ){
+
+  double yMax = -1;
+
+  for( int i = 0; i < g->GetN(); i++ ){
+    double x = g->GetX()[i];
+    double y = g->GetY()[i];
+    if( x > xMax || x < xMin ){ continue; }
+    if( y > yMax ){ yMax = y; }
+  }
+
+  return yMax;
+}
+
+TGraph* CT::AnalysisTools::Barycenters( TH1* hEnt, TH1* hSum ){
+
+  TGraphAsymmErrors* g = new TGraphAsymmErrors( hEnt );
+
+  std::cout << hEnt->GetName() << std::endl;
+  
+  for( int i = 0; i < g->GetN(); i++ ){
+    double gX = g->GetX()[ i ];
+    double gY = g->GetY()[ i ];
+
+    int  xBin = hEnt->FindBin( gX );
+
+    double sum         = hSum->GetBinContent( xBin );
+    double gXnew       = sum / gY;
+    double deltaCenter = gXnew - hEnt->GetBinCenter( xBin );
+    double binWidth    = hEnt->GetBinWidth( xBin );
+
+    std::cout << i << " " << gXnew << " " << gY << std::endl;
+    
+    g->SetPoint( i, gXnew, gY );
+    g->SetPointEXlow ( i, 0.5 * binWidth + deltaCenter );
+    g->SetPointEXhigh( i, 0.5 * binWidth - deltaCenter );
+  }
+
+  return g;
+}
+
+void CT::AnalysisTools::MatchGraphHistoX( TGraph* g, TH1* h ){
+
+  TGraphAsymmErrors* gg = dynamic_cast< TGraphAsymmErrors* >( g );
+
+  if( !gg ){ return; }
+  
+  for( int i  = 0; i < gg->GetN(); i++ ){
+    double x  = gg->GetX()[i];
+    int xBin  = h->FindBin( x );
+    double y  = h->GetBinContent( xBin );
+    double ey = h->GetBinError( xBin );
+    if( y < 0 ){ gg->RemovePoint( i ); }
+    gg->SetPoint( i, x, y );
+    gg->SetPointEYlow ( i, ey );
+    gg->SetPointEYhigh( i, ey );
+    //gg->SetPointEXlow ( i , 0 );
+    //gg->SetPointEXhigh( i , 0 );
+  }
 }
 
 void CT::AnalysisTools::GetBinRange( TAxis* a,

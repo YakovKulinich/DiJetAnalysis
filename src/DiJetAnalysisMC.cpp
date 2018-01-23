@@ -299,10 +299,12 @@ void DiJetAnalysisMC::ProcessPhysics(){
   fOut->cd();
 
   m_hAllDphiRecoPairedTruth = CombineSamples( m_vHjznDphiRecoPairedTruth, m_dPhiRecoPairedTruthName );
+  /*
   MakeDeltaPhi( m_vHjznDphiRecoPairedTruth, m_vJznLabels, m_dPhiRecoPairedTruthName,
 		fInMCPerf, m_ystarSpectTruthName );
   fOut->cd();
-
+  */
+  
   m_hAllDphiRespMat    = CombineSamples( m_vHjznDphiRespMat   , m_dPhiRespMatName    );
   m_hAllDphiRespMatReb = CombineSamples( m_vHjznDphiRespMatReb, m_dPhiRespMatRebName );
   

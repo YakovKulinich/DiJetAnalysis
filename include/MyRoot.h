@@ -99,13 +99,21 @@ namespace CT{
 
     bool SubtractCombinatoric( TH1*, double = 0, double = 0 );
 
-    TF1* FitDphi    ( TH1*, double = 0, double = constants::PI );
+    TF1* FitDphi    ( TH1*   , double = 0, double = constants::PI );
+
+    TF1* FitDphi    ( TGraph*, double = 0, double = constants::PI );
     
     TF1* FitGaussian( TH1*, double = 0, double = 0 );
 
     TF1* FitPol2    ( TH1*, double = 0, double = 0 );
 
     TF1* FitLogPol2 ( TH1*, double = 0, double = 0 );
+
+    double GetGraphMax( TGraph*, double = 0, double = 0 );
+    
+    TGraph* Barycenters( TH1*, TH1* );
+
+    void MatchGraphHistoX( TGraph*, TH1* );
     
     void GetBinRange( TAxis*, int, int, double&, double& );
 
