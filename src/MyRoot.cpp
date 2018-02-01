@@ -252,6 +252,16 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
   return true;
 }
 
+void CT::AnalysisTools::UndoWidthScaling( TH1* h ){
+
+  // undo h->Scale( 1., "width" );
+  for( int xBin = 1; xBin <= h->GetNbinsX(); xBin++ ){
+    double binWidth   = h->GetBinWidth ( xBin );
+    h->SetBinContent( xBin, h->GetBinContent( xBin ) * binWidth );
+    h->SetBinError  ( xBin, h->GetBinError  ( xBin ) * binWidth );
+  }
+}
+
 TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
 
   auto EMG = [&]( double* x, double* par){
@@ -275,11 +285,18 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   dPhiFit->SetParameters( amp, 0.20, 0.20 );
   dPhiFit->SetParLimits ( 2, 1E-2, 1 );
   
-  int status = histo->Fit( dPhiFit->GetName(), "NQ", "", xLow, xHigh );
+  int status = histo->Fit( dPhiFit->GetName(), "NQI", "", xLow, xHigh );
 
   if( status ){ std::cout << " +++++++++++++ " << status
 			  << " " << dPhiFit->GetName() << std::endl; }
-  
+
+  int nIt = 1;
+  while( dPhiFit->GetProb() < 0.05 && nIt <= 5 ){
+    histo->Fit( dPhiFit->GetName(), "NQI", "", xLow + 0.1 * nIt, xHigh );
+    dPhiFit->SetRange( xLow + 0.1 * nIt, xHigh );
+    nIt++;
+  }
+
   return dPhiFit;
 }
 
@@ -406,7 +423,7 @@ TGraph* CT::AnalysisTools::Barycenters( TH1* hEnt, TH1* hSum ){
     double deltaCenter = gXnew - hEnt->GetBinCenter( xBin );
     double binWidth    = hEnt->GetBinWidth( xBin );
 
-    std::cout << i << " " << gXnew << " " << gY << std::endl;
+    std::cout << i << " " << gY << " " << sum << std::endl;
     
     g->SetPoint( i, gXnew, gY );
     g->SetPointEXlow ( i, 0.5 * binWidth + deltaCenter );
@@ -416,7 +433,21 @@ TGraph* CT::AnalysisTools::Barycenters( TH1* hEnt, TH1* hSum ){
   return g;
 }
 
-void CT::AnalysisTools::MatchGraphHistoX( TGraph* g, TH1* h ){
+void CT::AnalysisTools::MatchGraphGraphX( TGraph* g1, TGraph * g2 ){
+
+  TGraphAsymmErrors* gg1 = dynamic_cast< TGraphAsymmErrors* >( g1 );
+  TGraphAsymmErrors* gg2 = dynamic_cast< TGraphAsymmErrors* >( g2 );
+
+  if( !gg1 || !gg2 ){ return; }
+  
+  for( int i  = 0; i < gg1->GetN(); i++ ){
+    gg1->SetPoint( i, gg2->GetX()[i], gg1->GetY()[i] );
+    gg1->SetPointEYlow ( i, gg2->GetErrorXlow ( i ) );
+    gg1->SetPointEYhigh( i, gg2->GetErrorXhigh( i ) );
+  }
+}
+
+void CT::AnalysisTools::MatchGraphHistoY( TGraph* g, TH1* h ){
 
   TGraphAsymmErrors* gg = dynamic_cast< TGraphAsymmErrors* >( g );
 
@@ -431,8 +462,6 @@ void CT::AnalysisTools::MatchGraphHistoX( TGraph* g, TH1* h ){
     gg->SetPoint( i, x, y );
     gg->SetPointEYlow ( i, ey );
     gg->SetPointEYhigh( i, ey );
-    //gg->SetPointEXlow ( i , 0 );
-    //gg->SetPointEXhigh( i , 0 );
   }
 }
 
@@ -794,11 +823,10 @@ void CT::StyleTools::SetHStyleRatio( TH1* his, int iflag, double scale ){
   his->GetYaxis()->SetNdivisions(503);
 }
 
-TH1F* CT::StyleTools::SetCStyleGraph ( TCanvas& c,
+TH1F* CT::StyleTools::SetCStyleGraph ( TPad& c,
 				       double x0, double y0,
 				       double x1, double y1,
 				       const std::string& title ){
-  c.DrawFrame( x0, y0, x1, y1, title.c_str() );
   TH1F* hF = c.DrawFrame( x0, y0, x1, y1, title.c_str() );
   hF->GetXaxis()->SetNdivisions(505);  
   hF->GetYaxis()->SetNdivisions(510);  

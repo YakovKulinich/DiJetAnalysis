@@ -1093,8 +1093,9 @@ void DiJetAnalysisMC::CombineSamples( TH1* h_res,
 
 void DiJetAnalysisMC::SetCfactorsErrors( TH1* hR, TH1* hT, TH2* hM, TH1* hC ){
 
+  std::cout << hT->GetName() << std::endl;
   // set factors
-  for( int xBin = 0; xBin <= hT->GetNbinsX(); xBin++ ){
+  for( int xBin = 1; xBin <= hT->GetNbinsX(); xBin++ ){
     int cBin = hC->FindBin( hT->GetBinCenter(xBin) );
 
     // if one of them is zero, leave it alone
@@ -1118,7 +1119,7 @@ void DiJetAnalysisMC::SetCfactorsErrors( TH1* hR, TH1* hT, TH2* hM, TH1* hC ){
     std::cout << xBin << " " << vT << " " << vR << " "
 	      << vM << "  C = " << hC->GetBinContent( xBin )
 	      << "   err = " << newDphiError << std::endl;
-
+    
     hC->SetBinError( cBin, newDphiError );
   }
 }
@@ -1206,24 +1207,33 @@ void DiJetAnalysisMC::GetInfoTogether( std::string& name_a , std::string& name_b
   int combinationBoth = GetConfig()->GetValue( "combinationBoth", 0 );
 
   if( combinationBoth == 0 ){
-    name_a   +=  "_" + m_recoName  + "_" + m_allName;
-    name_b   +=  "_" + m_truthName + "_" + m_allName;
+    name_a   +=  "_" + m_recoName;
+    name_b   +=  "_" + m_truthName;
     label_a  = "Reco_{MC}";
     label_b  = "Truth_{MC}";
     fName_a  = *pFname;
     fName_b  = *pFname;
   } else if ( combinationBoth == 1 ){
-    name_a   +=  "_" + m_recoName + "_" + m_allName;
-    name_b   +=  "_" + m_recoName + "_" + m_unfoldedName + "_" + m_allName;
+    name_a   +=  "_" + m_recoName;
+    name_b   +=  "_" + m_recoName;
     label_a  = "Reco_{MC}";
     label_b  = "UF_{MC}";
     fName_a  = *pFname;
     fName_b  = *pFname;
   } else if ( combinationBoth == 2 ){
-    name_a   +=  "_" + m_recoName + "_" + m_unfoldedName + "_" + m_allName;
-    name_b   +=  "_" + m_recoName + "_" + m_unfoldedName + "_" + m_allName;
-    label_a  = "UF #it{p}+Pb";
-    label_b  = "UF #it{pp}";
+    name_a   +=  "_" + m_recoName + "_" + m_unfoldedName;
+    name_b   +=  "_" + m_recoName + "_" + m_unfoldedName;
+    label_a  = "#it{p}+Pb";
+    label_b  = "#it{pp}";
+    m_is_pPb = true;  DiJetAnalysis::Initialize();
+    fName_a  = *pFname;
+    m_is_pPb = false; DiJetAnalysis::Initialize();
+    fName_b  = *pFname;
+  } else if ( combinationBoth == 3 ){
+    name_a   +=  "_" + m_truthName;
+    name_b   +=  "_" + m_truthName;
+    label_a  = "#it{p}+Pb";
+    label_b  = "#it{pp}";
     m_is_pPb = true;  DiJetAnalysis::Initialize();
     fName_a  = *pFname;
     m_is_pPb = false; DiJetAnalysis::Initialize();

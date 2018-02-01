@@ -771,8 +771,8 @@ void DiJetAnalysisData::GetInfoTogether( std::string& name_a , std::string& name
   if( combinationBoth == 0 ){
     // here a and b are for same file. one is for
     // default points, one is for systematics.
-    name_a    += "_" + m_unfoldedName    + "_" + m_allName;
-    name_b    += "_" + m_systematicsName + "_" + m_allName;
+    name_a    += "_" + m_unfoldedName;
+    name_b    += "_" + m_systematicsName;
     label_a   = "#it{p}+Pb";
     label_b   = "#it{pp}";
     m_is_pPb  = true;  Initialize();
@@ -780,36 +780,32 @@ void DiJetAnalysisData::GetInfoTogether( std::string& name_a , std::string& name
     m_is_pPb  = false; Initialize();
     fName_b   = *pFname;
   } else if( combinationBoth == 1 ){
-    name_a    += "_" + m_unfoldedName + "_" + m_allName;
-    name_b    += "_" + m_unfoldedName + "_" + m_allName;
-    label_a   = "UF #it{p}+Pb";
-    label_b   = "UF #it{pp}";
+    name_a    += "_" + m_unfoldedName;
+    name_b    += "_" + m_unfoldedName;
+    label_a   = "#it{p}+Pb";
+    label_b   = "#it{pp}";
     m_is_pPb  = true;  Initialize();
     fName_a   = *pFname;
     m_is_pPb  = false; Initialize();
     fName_b   = *pFname;
   } else if( combinationBoth == 2 ){
-    name_a    += "_" + m_allName;
-    name_b    += "_" + m_allName;
-    label_a   = "Reco #it{p}+Pb";
-    label_b   = "Reco #it{pp}";
+    label_a   = "Rec #it{p}+Pb";
+    label_b   = "Rec #it{pp}";
     m_is_pPb  = true;  Initialize();
     fName_a   = *pFname;
     m_is_pPb  = false; Initialize();
     fName_b   = *pFname;
   } else if ( combinationBoth == 3 ){
-    name_a    += "_" + m_unfoldedName + "_" + m_allName;
-    name_b    += "_" + m_allName;
-    label_a   = "UF #it{pp}";
-    label_b   = "#it{pp}";
+    name_a    += "_" + m_unfoldedName;
+    label_a   = "#it{pp}";
+    label_b   = "Rec #it{pp}";
     m_is_pPb  = false; Initialize();
     fName_a   = *pFname;
     fName_b   = *pFname;
   } else if ( combinationBoth == 4 ){
-    name_a    += "_" + m_unfoldedName + "_" + m_allName;
-    name_b    += "_" + m_allName;
-    label_a   = "UF #it{p}+Pb";
-    label_b   = "#it{p}+Pb";
+    name_a    += "_" + m_unfoldedName;
+    label_a   = "#it{p}+Pb";
+    label_b   = "Rec #it{p}+Pb";
     m_is_pPb  = true; Initialize();
     fName_a   = *pFname;
     fName_b   = *pFname;

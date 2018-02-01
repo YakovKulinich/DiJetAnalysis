@@ -113,7 +113,7 @@ class DiJetAnalysis{
 
   bool IsCentralYstar( const double& ystar );
   
-  void NormalizeDeltaPhi( TH1*, TH1* = NULL, double = 0, bool = false );
+  void NormalizeDeltaPhi( TH1*, TH1* = NULL, double = 0, bool = true );
  
   virtual double GetJetWeight( const TLorentzVector& );
 
@@ -146,13 +146,14 @@ class DiJetAnalysis{
 
   TFile* GetListOfSystUncert( std::vector< int >&, std::map< int, TFile* >& );
 
-  void MakeDefaultBinning( std::vector< double >&, std::vector< double >&, int );
+  void MakeDefaultBinning( std::vector< double >&, std::vector< double >&,
+			   int = 4, int = 8, int = 4);
 
   void MakeLinearBinning( std::vector< double >&, std::vector< double >&, int );
 
   void MakeLogBinning( std::vector< double >&, std::vector< double >&, int );
   
-  //---------------------------
+  //---------------------------фыва
   //   Get Quantities / Plot 
   //---------------------------
   virtual void LoadHistograms() = 0;
@@ -244,7 +245,8 @@ class DiJetAnalysis{
   std::string m_sCounts;
   std::string m_sReb;
   std::string m_sRatio;
-
+  std::string m_sSum;
+  
   std::string m_rawFileSuffix;
   std::string m_performanceFileSuffix;
   std::string m_physicsFileSuffix;
@@ -321,6 +323,8 @@ class DiJetAnalysis{
 
   std::string m_spectName;
   std::string m_dPhiName;
+  std::string m_widthName;
+  std::string m_yieldName;
 
   std::string m_recoName;
   std::string m_truthName;
@@ -452,6 +456,9 @@ class DiJetAnalysis{
   double m_dPhiWidthMin;
   double m_dPhiWidthMax;
 
+  double m_dPhiYieldMin;
+  double m_dPhiYieldMax;
+  
   // -------- ratios ------
   double m_ratioMax;
   double m_ratioMin;

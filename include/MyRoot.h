@@ -99,6 +99,8 @@ namespace CT{
 
     bool SubtractCombinatoric( TH1*, double = 0, double = 0 );
 
+    void UndoWidthScaling( TH1* );
+    
     TF1* FitDphi    ( TH1*   , double = 0, double = constants::PI );
 
     TF1* FitDphi    ( TGraph*, double = 0, double = constants::PI );
@@ -113,7 +115,9 @@ namespace CT{
     
     TGraph* Barycenters( TH1*, TH1* );
 
-    void MatchGraphHistoX( TGraph*, TH1* );
+    void MatchGraphGraphX( TGraph*, TGraph* );
+    
+    void MatchGraphHistoY( TGraph*, TH1* );
     
     void GetBinRange( TAxis*, int, int, double&, double& );
 
@@ -163,7 +167,7 @@ namespace CT{
     void SetHStyleRatio( TH1* , int  = 0, double = hSS );
 
     // For Canvas where you draw efficiency
-    TH1F* SetCStyleGraph( TCanvas&, double, double, double, double,
+    TH1F* SetCStyleGraph( TPad&, double, double, double, double,
 			  const std::string& );
     
     // Legend Style
