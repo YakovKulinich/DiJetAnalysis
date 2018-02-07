@@ -50,7 +50,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //       Analysis
   //---------------------------
   bool JetInTrigPtRange  ( const TLorentzVector&, int,
-			   double = 0);
+			   double = 0 );
   
   bool JetInTrigEtaRange ( const TLorentzVector&, int );
   
@@ -62,7 +62,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   
   void AnalyzeEff( std::vector< TLorentzVector >&,
 		   std::vector< TLorentzVector >&,
-		   std::map< int, bool >&);
+		   std::map< int, bool >& );
   
   //---------------------------
   //       Tools
@@ -98,7 +98,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
 			 std::vector< TH2* >&,
 			 const std::string& );
 
-  void MakeSystematicsGraphs();
+  void MakeSystematicsGraphs( const std::string& = "" );
   
   //---------------------------
   //        Drawing

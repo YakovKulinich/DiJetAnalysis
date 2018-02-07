@@ -101,7 +101,6 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   
   // where to fit from 
   m_dPhiFittingMin   = 2 * constants::PI / 3;
-  // m_dPhiFittingMin   = 2.4;
   m_dPhiFittingMax   = constants::PI;
   
   // sets range of unfolding and where
@@ -168,7 +167,8 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   /*
   MakeDefaultBinning( m_varDphiBinning, m_varDphiRebinnedBinning,
 		      nDphiBinsLarge, nDphiBinsMedium, nDphiBinsSmall );
-  */ 
+  */
+  
   MakeLinearBinning ( m_varDphiBinning, m_varDphiRebinnedBinning, nDphiBinsLarge );
   
   /*
@@ -301,7 +301,6 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_dPhiUnfoldedName    = m_dPhiName + "_" + m_unfoldedName;
   
   m_systematicsName     = "systematics";
-  m_dPhiSystematicsName = m_dPhiName + "_" + m_systematicsName;
 
   m_effName        = "eff";
   m_purityName     = "purity";
@@ -732,11 +731,11 @@ TH1* DiJetAnalysis::BinByBinUnfolding( TH1* hM, TH1* hC ){
     
     double vM = hM->GetBinContent( xBin );
     double vC = hC->GetBinContent( cBin );
-
+    
     if( vM == 0 || vC == 0 ){ continue; }
     
     double eM = hM->GetBinError( xBin );
-    // double eC = hC->GetBinError( cBin );
+    double eC = hC->GetBinError( cBin );
     
     // correction factor;
     double newDphi = vM * vC;
@@ -872,6 +871,12 @@ void DiJetAnalysis::MakeLinearBinning( std::vector< double >& varBinning,
   for( int i = nVarBins + nLargeBins - 4; i <= nVarBins + nLargeBins; i++ ){
     varRebinnedBinning.push_back( varBinning[ i ] );
   }
+
+  /*
+  for( int i = nVarBins + nLargeBins - 4; i <= nVarBins + nLargeBins; i += 2 ){
+    varRebinnedBinning.push_back( varBinning[ i ] );
+  }
+  */
 }
  
 void DiJetAnalysis::MakeLogBinning( std::vector< double >& varBinning,
@@ -1462,6 +1467,13 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
     int    dPhiAxisI = hn->GetNdimensions() - 2;
     int   entryAxisI = hn->GetNdimensions() - 1;
     TAxis* entryAxis = hn->GetAxis( entryAxisI );
+
+    int nCol = 5, nRow = 6;
+    
+    TCanvas cAll( "cAll", "cAll", 4800, 3600 );
+    cAll.Divide( nCol, nRow, 0, 0 );
+
+    int cAllPadI = 0;
     
     // ---- loop over ystars ----
     for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
@@ -1678,6 +1690,18 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
 
+	    TF1* fit2 = anaTool->FitDphi( hDphi, 2.4, m_dPhiFittingMax );
+	    styleTool->SetHStyle( fit2, 0 );
+	    fit2->SetLineColor( kRed );
+	    fit2->SetName( Form( "%s_2", fit->GetName() ) );
+	    vFits.push_back( fit2 );
+
+	    TF1* fit3 = anaTool->FitDphi( hDphi, 2.7, m_dPhiFittingMax );
+	    styleTool->SetHStyle( fit3, 0 );
+	    fit3->SetLineColor( kBlue );
+	    fit3->SetName( Form( "%s_3", fit->GetName() ) );
+	    vFits.push_back( fit3 );
+	    
 	    double   amp = fit->GetParameter(0);
 	    double   tau = fit->GetParameter(1);
 	    double sigma = fit->GetParameter(2);
@@ -1688,11 +1712,20 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    h_tauAmp  ->Fill( tau, amp   );
 	    h_tauSigma->Fill( tau, sigma );
 	  
-	    fit->Draw("same");
+	    fit ->Draw("same");
+	    fit2->Draw("same");
+	    fit3->Draw("same");
 
-	    double chi2NDF = fit->GetChisquare()/fit->GetNDF();
-	    double prob    = fit->GetProb();
+	    double chi2NDF  = fit->GetChisquare()/fit->GetNDF();
+	    double prob     = fit->GetProb();
 
+	    double chi2NDF2 = fit2->GetChisquare()/fit->GetNDF();
+	    double prob2    = fit2->GetProb();
+	    
+	    double chi2NDF3 = fit3->GetChisquare()/fit->GetNDF();
+	    double prob3    = fit3->GetProb();
+
+	    
 	    h_dPhiChi2->Fill( chi2NDF );
 	    h_dPhiProb->Fill( prob    );
 
@@ -1703,9 +1736,17 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    
 	    hDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 
+	    /*
 	    drawTool->DrawLeftLatex( 0.65, 0.33, Form( "#Chi^{2}/NDF=%4.2f", chi2NDF ) );
 	    drawTool->DrawLeftLatex( 0.65, 0.25, Form( "Prob=%4.2f"        , prob    ) );
-
+	    */
+	    drawTool->DrawLeftLatex
+	      ( 0.52, 0.33, Form( "Prob=(%4.2f, #color[2]{%4.2f}, #color[4]{%4.2f})"
+				  , prob   , prob2   , prob3    ) );
+	    drawTool->DrawLeftLatex
+	      ( 0.47, 0.25, Form( "#Chi^{2}/NDF=(%4.2f, #color[2]{%4.2f}, #color[4]{%4.2f})"
+				  , chi2NDF, chi2NDF2, chi2NDF3 ) );
+	    
 	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 		axis2Low, axis2Up, axis3Low, axis3Up );
@@ -1719,6 +1760,45 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->Write();
 	    hDphiCounts->Write();
 	    hDphiCountsSum->Write();
+
+	    // draw onto common canvas
+	    cAll.cd( cAllPadI + 1 );
+	    gPad->SetLogy();
+	    hDphi->Draw();
+	    fit->Draw("same");
+	    fit2->Draw("same");
+	    fit3->Draw("same");
+
+	    DrawTopLeftLabels
+	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+		axis2Low, axis2Up, axis3Low, axis3Up );
+
+	    double dx = 0, dy = 0;
+	    
+	    if( cAllPadI == nCol - 1 ){ DrawAtlasRight(); }
+	    if( cAllPadI % nCol > 0 ){
+	      hDphi->SetYTitle("");
+	      dx = 0.1;
+	    } else {
+	      hDphi->GetYaxis()->SetTitleOffset(3.4);
+	      dx = 0.15;
+	    }
+
+	    if( cAllPadI / nCol <  nRow - 1 ){
+	      hDphi->SetXTitle("");
+	      dy = - 0.1;
+	    } else {
+	      hDphi->GetXaxis()->SetTitleOffset(4);
+	    }
+
+	    drawTool->DrawLeftLatex
+	      ( 0.52 + dx, 0.33 + dy, Form( "Prob=(%4.2f, #color[2]{%4.2f}, #color[4]{%4.2f})"
+				  , prob   , prob2   , prob3    ) );
+	    drawTool->DrawLeftLatex
+	      ( 0.47 + dx, 0.25 + dy, Form( "#Chi^{2}/NDF=(%4.2f, #color[2]{%4.2f}, #color[4]{%4.2f})"
+				  , chi2NDF, chi2NDF2, chi2NDF3 ) );
+	    
+	    cAllPadI++;
 	    
 	    if( fit->GetParameter(1) < 0 )
 	      { continue; }
@@ -1850,8 +1930,9 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
       } // end loop over axis1     
     } // end loop over axis0
-  } // end loop over iG
-
+    SaveAsAll( cAll, Form("h_%s_%s", dPhiName. c_str(),label.c_str() ) );
+  }// end loop over iG
+  
   TCanvas c( "c", "c", 1200, 600 );
   c.Divide( 2, 1 );
 
@@ -1892,8 +1973,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   // Save the THnSparse to separate file.
   // This is used for unfolding later.
   // Gets put into data/ dirrectory.
-  std::string fOutName =
-    m_dirOut + "/" + dPhiName + "_" + m_labelOut + ".root";
+  std::string fOutName =  "data/" + dPhiName + "_" + m_labelOut + ".root";
   
   TFile* fOut = new TFile( fOutName.c_str(), "RECREATE" );
 

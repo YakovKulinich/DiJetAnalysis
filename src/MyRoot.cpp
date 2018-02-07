@@ -290,13 +290,15 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   if( status ){ std::cout << " +++++++++++++ " << status
 			  << " " << dPhiFit->GetName() << std::endl; }
 
+  /*
   int nIt = 1;
   while( dPhiFit->GetProb() < 0.05 && nIt <= 5 ){
     histo->Fit( dPhiFit->GetName(), "NQI", "", xLow + 0.1 * nIt, xHigh );
     dPhiFit->SetRange( xLow + 0.1 * nIt, xHigh );
     nIt++;
   }
-
+  */
+  
   return dPhiFit;
 }
 

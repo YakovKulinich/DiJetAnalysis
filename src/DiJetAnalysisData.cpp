@@ -218,7 +218,8 @@ void DiJetAnalysisData::UnfoldPhysics(){
 }
 
 void DiJetAnalysisData::ProcessSystematics(){
-  MakeSystematicsGraphs();
+  MakeSystematicsGraphs( m_dPhiName  );
+  MakeSystematicsGraphs( m_yieldName );
 }
 
 //---------------------------------
@@ -461,6 +462,17 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     ApplyIsolation( vR_jets, 1.0 );
     
     std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
+
+    /*
+    if( vR_jets.size() >= 3 ){
+      double firstJetPt  = vR_jets[0].Pt()/1000.;
+      double secondJetPt = vR_jets[1].Pt()/1000.;
+      double thirdJetPt  = vR_jets[2].Pt()/1000.;
+
+      if( ( firstJetPt + secondJetPt ) * 0.5 < 0.4 * thirdJetPt )
+	{ continue; }
+    }
+    */
     
     // some runs and lbn are bad
     // for efficiency plots
@@ -797,14 +809,14 @@ void DiJetAnalysisData::GetInfoTogether( std::string& name_a , std::string& name
     fName_b   = *pFname;
   } else if ( combinationBoth == 3 ){
     name_a    += "_" + m_unfoldedName;
-    label_a   = "#it{pp}";
+    label_a   = "UF #it{pp}";
     label_b   = "Rec #it{pp}";
     m_is_pPb  = false; Initialize();
     fName_a   = *pFname;
     fName_b   = *pFname;
   } else if ( combinationBoth == 4 ){
     name_a    += "_" + m_unfoldedName;
-    label_a   = "#it{p}+Pb";
+    label_a   = "UF #it{p}+Pb";
     label_b   = "Rec #it{p}+Pb";
     m_is_pPb  = true; Initialize();
     fName_a   = *pFname;
@@ -1079,7 +1091,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
   } 
 }
 
-void DiJetAnalysisData::MakeSystematicsGraphs(){
+void DiJetAnalysisData::MakeSystematicsGraphs( const std::string& name ){
 
   std::vector< int > v_uc;
   std::map< int, TFile* > mFinUC;
@@ -1088,11 +1100,11 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
   
   TFile* fOut  = new TFile( m_fNameSYS.c_str(), "recreate");
   
-  std::string allUnfoldedName    = m_dPhiUnfoldedName    + "_" + m_allName;
-  std::string allSystematicsName = m_dPhiSystematicsName + "_" + m_allName;
+  std::string allUnfoldedName    = name + "_" + m_unfoldedName    + "_" + m_allName;
+  std::string allSystematicsName = name + "_" + m_systematicsName + "_" + m_allName;
 
   std::vector< TH1* > vHdef;
-  std::vector< TGraphAsymmErrors* > vGw;
+  std::vector< TGraphAsymmErrors* > vG;
   
   TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
   TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
@@ -1102,12 +1114,18 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
   // for canvas, since its tgraphasymmerrors.
   double x0 = axis3->GetXmin();
   double x1 = axis3->GetXmax(); 
-  double y0 = m_dPhiWidthMin;
-  double y1 = m_dPhiWidthMax;
+
+  bool isDphi = true; 
+  if( name.find( m_dPhiName ) == std::string::npos )
+    { isDphi = false; }
+
+  double y0 = isDphi ? m_dPhiWidthMin : m_dPhiYieldMin;
+  double y1 = isDphi ? m_dPhiWidthMax : m_dPhiYieldMax;
 
   double pDx = 0.05;
   
-  std::string yTitle = "|#Delta#phi| width";
+  std::string yTitle = isDphi ?
+    "|#Delta#phi| width" : "Pair Jet Per Jet_{1} Yield";
   std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
@@ -1120,20 +1138,24 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
       if( !m_dPP->CorrectPhaseSpace
 	  ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
 	{ continue; }
+      
       double axis1Low, axis1Up;
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
-      TCanvas cW( "c", "c", 800, 600 )
-;      styleTool->SetCStyleGraph
-	( cW, x0, y0, x1, y1, gTitle.c_str() );
+      TCanvas c( "c", "c", 800, 600 );
+      styleTool->SetCStyleGraph
+	( c, x0, y0, x1, y1, gTitle.c_str() );
 
-      TLegend legW( 0.25, 0.13, 0.9, 0.26 );
-      styleTool->SetLegendStyle( &legW );
-      legW.SetNColumns(2);
+      // for yields, use log scale on yaxis
+      if( !isDphi ){ c.SetLogy(); }
+	
+      TLegend leg( 0.25, 0.13, 0.9, 0.26 );
+      styleTool->SetLegendStyle( &leg );
+      leg.SetNColumns(2);
 
       // tag for widths canvas
-      std::string hTagCW =
+      std::string hTagC =
 	Form ("%s_%s",
 	      anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 	      anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
@@ -1273,8 +1295,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
 	gNominal    ->SetName( gNominalName.c_str() );
 	gSystematics->SetName( gSystematicsName.c_str() );
 
-	vGw.push_back( gNominal );
-	vGw.push_back( gSystematics );
+	vG.push_back( gNominal );
+	vG.push_back( gSystematics );
 	
 	styleTool->SetHStyle( gNominal    , style );
 	styleTool->SetHStyle( gSystematics, style );
@@ -1300,7 +1322,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
        	gNominal->GetXaxis()->SetRangeUser( x0, x1 );
        	gNominal->GetYaxis()->SetRangeUser( y0, y1 );
 
-	legW.AddEntry
+	leg.AddEntry
 	    ( gNominal,
 	      anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str() );	
 	
@@ -1313,20 +1335,21 @@ void DiJetAnalysisData::MakeSystematicsGraphs(){
       } // end loop over axis2
 
       // Draw the final canvas with all of the graphs.
-      legW.Draw();
+      leg.Draw();
       
       DrawTopLeftLabels
 	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, 0, 0, 0, 0);
 
       DrawAtlasRight();
 
-      SaveAsAll( cW, Form("h_%s_%s_%s", m_dPhiName.c_str(),
-			  m_sFinal.c_str(), hTagCW.c_str()) ); 
+      SaveAsAll( c, Form("h_%s_%s_%s", name.c_str(),
+			 m_sFinal.c_str(), hTagC.c_str()) );
+      
     } // end loop over axis1     
   } // end loop over axis0
 
   for( auto& h : vHdef ){ delete h; }
-  for( auto& g : vGw   ){ delete g; }
+  for( auto& g : vG    ){ delete g; }
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;

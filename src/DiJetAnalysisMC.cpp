@@ -662,6 +662,17 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       
       std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
 
+      /*
+      if( vT_jets.size() >= 3 ){
+	double firstJetPt  = vT_jets[0].Pt()/1000.;
+	double secondJetPt = vT_jets[1].Pt()/1000.;
+	double thirdJetPt  = vT_jets[2].Pt()/1000.;
+
+	if( ( firstJetPt + secondJetPt ) * 0.5 < 0.4 * thirdJetPt )
+	  { continue; }
+      }
+      */
+      
       std::vector< TLorentzVector > vRR_paired_jets;
       std::vector< TLorentzVector > vRT_paired_jets;
       PairJets( vR_jets, vT_jets, vRR_paired_jets, vRT_paired_jets ); 
@@ -1238,6 +1249,15 @@ void DiJetAnalysisMC::GetInfoTogether( std::string& name_a , std::string& name_b
     fName_a  = *pFname;
     m_is_pPb = false; DiJetAnalysis::Initialize();
     fName_b  = *pFname;
+  } else if ( combinationBoth == 4 ){
+    name_a   +=  "_" + m_truthName;
+    name_b   +=  "_" + m_truthName;
+    label_a  = "#it{pp} 1";
+    label_b  = "#it{pp} 2";
+    m_is_pPb = false;  DiJetAnalysis::Initialize();
+    fName_a  = *pFname + ".1";
+    m_is_pPb = false; DiJetAnalysis::Initialize();
+    fName_b  = *pFname + ".2";
   }
 }
 
@@ -1591,9 +1611,7 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
   DrawCanvas( vSigmasFinal,
 	      Form( "h_%s", type.c_str() ), sSigma );
 
-  std::string fOutName =
-    m_dirOut + "/" + type + "_" + m_labelOut + ".root";
-  
+  std::string fOutName = "data/" + type + "_" + m_labelOut + ".root";
   TFile* fOut = new TFile( fOutName.c_str(), "RECREATE" );
   
   hMeanAll->Write();

@@ -89,7 +89,7 @@ AngularUncertaintyTool::AngularUncertaintyTool( int uc, bool is_pPb )
   // clone this before modifying it.
   hAngularResEta = static_cast< TH2D* >( hAngularUncertEta->Clone( "hAngularResEta" ) );
 
-    // get the reference herwig eta sigm+mean file 
+  // get the reference herwig eta sigm+mean file 
   TFile* f_eta_ref = new TFile( "data/recoTruthDeta_pp_mc_herwig.root", "read" );
   TH2D* hAngularUncertEtaTmp = static_cast< TH2D* >( f_eta_ref->Get( "h_recoTruthDeta_sigma" ) );
   hAngularUncertEtaTmp->SetDirectory(0);
