@@ -366,28 +366,6 @@ void DiJetAnalysis::Initialize(){
   m_fNameSYS = m_fName + "_" + m_systematicsFileSuffix;
   
   std::cout << "fNameRaw: " << m_fNameRaw << std::endl;
-
-  m_fNameRivetMC = "data/rivet_" + system + ".root";
-
-  // directory of where unfolding MC files are
-  std::string unfoldingMCdir =
-    Form( "%s/%s_%s_%s_%s",
-	  m_sOutput.c_str(), m_sOutput.c_str(), system.c_str(),
-	  m_sMC.c_str(), m_mcTypeName.c_str());
-  
-  // name of file that is used as input for performance unfolding
-  m_fNamePerfUnfoldingMC
-    = Form( "%s/%s_%s_%s_%s_%s_%s.root",
-	    unfoldingMCdir.c_str(), m_myOutName.c_str(),
-	    system.c_str(), m_sMC.c_str(), m_mcTypeName.c_str(),
-	    m_sPerf.c_str(), m_uncertSuffix.c_str() );
-
-  // name of file that is used as input for physics unfolding
-  m_fNamePhysUnfoldingMC
-    = Form( "%s/%s_%s_%s_%s_%s_%s.root",
-	    unfoldingMCdir.c_str(), m_myOutName.c_str(),
-	    system.c_str(), m_sMC.c_str(), m_mcTypeName.c_str(),
-	    m_sPhys.c_str(), m_uncertSuffix.c_str() );  
 }
 
 //---------------------------
@@ -491,9 +469,9 @@ bool DiJetAnalysis::GetFwdCentJets( const std::vector< TLorentzVector>& v_jets,
     if( jetFwd && jetCent )
       { break; }
   }
+
   // check we have at least one jet 
-  if( !jetFwd && !jetCent ){ return false; }
-  return true;
+  return ( jetFwd || jetCent ) ? true : false;
 }
 
 bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets, 
@@ -509,9 +487,7 @@ bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets,
   }
   
   // make sure we have two jets
-  if( !jet1 || !jet2 )
-    { return false; }
-  return true;
+  return ( jet1 && jet2 ) ? true : false;
 }
 
 void DiJetAnalysis::AnalyzeSpectra( TH2* hSpect,
@@ -649,10 +625,9 @@ double DiJetAnalysis::GetYstar( const TLorentzVector& jet )
 { return m_is_pPb ? jet.Rapidity() + constants::BETAZ : jet.Rapidity(); }
 
 bool DiJetAnalysis::IsForwardDetector( const double& eta ){
-  
-  if( std::abs( eta ) < constants::FETAMAX &&
-      std::abs( eta ) > constants::FETAMIN ){ return true; }
-  return false;
+
+  return ( std::abs( eta ) < constants::FETAMAX &&
+	   std::abs( eta ) > constants::FETAMIN ) ? true : false;
 }
 
 bool DiJetAnalysis::IsCentralDetector( const double& eta )
@@ -1446,7 +1421,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   std::vector< TH1* > vDphi;
   std::vector< TH1* > vSpect;
   std::vector< TF1* > vFits;
-  std::vector< THnSparse* > vHnDphi;
   
   // ---- loop over group  ----
   // ---- (jzn or trigger) ----
@@ -1969,17 +1943,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   for( auto& h : vHdPhi ){ delete h; }
   for( auto& h : vGdPhi ){ delete h; }
   for( auto& h : vSpect ){ delete h; }
-  
-  // Save the THnSparse to separate file.
-  // This is used for unfolding later.
-  // Gets put into data/ dirrectory.
-  std::string fOutName =  "data/" + dPhiName + "_" + m_labelOut + ".root";
-  
-  TFile* fOut = new TFile( fOutName.c_str(), "RECREATE" );
-
-  for( auto& hn : vHnDphi ){ hn->Write(); delete hn; }
-
-  fOut->Close();
 }
 
 THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,

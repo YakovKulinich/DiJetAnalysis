@@ -52,18 +52,22 @@ class DiJetAnalysisMC : public DiJetAnalysis{
  protected:
   //---------------------------
   //       Analysis
-  //---------------------------  
+  //---------------------------
+  double AnalyzeDeltaPhi( THnSparse*,
+			  const std::vector <TLorentzVector >&,
+			  const std::vector <TLorentzVector >& );
+  
   void AnalyzeScaleResolution( const std::vector< TLorentzVector >&,
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
   void AnalyzeSpectRespMat( TH3*,
-			    const std::vector<TLorentzVector>&,
-			    const std::vector<TLorentzVector>& );
+			    const std::vector< TLorentzVector >&,
+			    const std::vector< TLorentzVector >& );
   
   void AnalyzeDphiRespMat( THnSparse*, THnSparse*,
-			   const std::vector<TLorentzVector>&,
-			   const std::vector<TLorentzVector>& );
+			   const std::vector< TLorentzVector >&,
+			   const std::vector< TLorentzVector >& );
   
   //---------------------------
   //          Tools 
@@ -73,6 +77,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		 std::vector< TLorentzVector >&,
 		 std::vector< TLorentzVector >& );
 
+  double GetSpectWeight( const TLorentzVector& );
+
+  double GetDphiWeight( const TLorentzVector&, const TLorentzVector& );
+  
   TH1*       CombineSamples( std::vector< TH1* >&,
 			     const std::string& = "" );
 
@@ -231,14 +239,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // -------------- dPhi -------------
   std::vector< THnSparse* > m_vHjznDphiReco;
   std::vector< THnSparse* > m_vHjznDphiTruth;
-  std::vector< THnSparse* > m_vHjznDphiRecoPairedTruth;
   
   THnSparse* m_hAllDphiReco;
   THnSparse* m_hAllDphiTruth;
-  THnSparse* m_hAllDphiRecoPairedTruth;
-
-  // ---- dPhi reco paired truth -----
-  std::string m_dPhiRecoPairedTruthName;
 
   // ----- dPhi response matrix ------
   std::string m_dPhiRespMatName;

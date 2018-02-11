@@ -50,27 +50,6 @@ int UncertaintyTool::GetEtaUJERBin(float eta){
 double UncertaintyTool::GetYstar( const TLorentzVector& jet )
 { return m_is_pPb ? jet.Rapidity() + constants::BETAZ : jet.Rapidity(); }
 
-
-//--------------------------------
-//   Unfolding Uncertainty Tool
-//--------------------------------
-
-UnfoldingUncertaintyTool::UnfoldingUncertaintyTool( int uc, bool is_pPb )
-  : UncertaintyTool( uc, is_pPb ){
-
-  // get the pp MC dPhi
-  // TFile* fMC = TFile::Open( "data/dPhi_reco_pp_mc_pythia8.root" );
-}
-
-UnfoldingUncertaintyTool::~UnfoldingUncertaintyTool(){}
-
-void UnfoldingUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
-						   std::vector< TLorentzVector >& truthJets ){}
-
-double UnfoldingUncertaintyTool::GetUncertaintyWeight( const TLorentzVector& jet1,
-						       const TLorentzVector& jet2 )
-{ return 1; }
-
 //--------------------------------
 //      Angular Uncertainty Tool 
 //--------------------------------
@@ -333,8 +312,6 @@ UncertaintyProvider::UncertaintyProvider( int uc, bool is_pPb ) : m_uncertaintyT
     m_uncertaintyTool = new JERUncertaintyTool      ( uc, is_pPb );
   } else if( pos_uc == 21 ) {
     m_uncertaintyTool = new AngularUncertaintyTool  ( uc, is_pPb );
-  } else if( pos_uc == 22 ) {
-    m_uncertaintyTool = new UnfoldingUncertaintyTool( uc, is_pPb );
   } 
 }  
 

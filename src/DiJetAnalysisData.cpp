@@ -35,14 +35,14 @@ DiJetAnalysisData::DiJetAnalysisData( bool is_pPb, int mcType )
   : DiJetAnalysisData( is_pPb, mcType, 0 ){}
 
 DiJetAnalysisData::DiJetAnalysisData( bool is_pPb, int mcType, int uncertComp )
-  : DiJetAnalysis( is_pPb, true, mcType, uncertComp )
-{
+  : DiJetAnalysis( is_pPb, true, mcType, uncertComp ){
+  
   //========== Set Histogram Binning =============
 
   //==================== Cuts ====================
 
   //================== Settings ==================
-  m_mbTriggerName = "";
+  m_mbTriggerName      = "";
   
   m_mbTriggerI         = -1;
   m_lowestCentTriggerI = -1;
@@ -61,6 +61,29 @@ void DiJetAnalysisData::Initialize(){
   m_fNameIn = m_is_pPb ?
     "/home/yakov/Projects/atlas/data/pPb/pPb.root" :
     "/home/yakov/Projects/atlas/data/pp/pp.root"  ;
+
+  // directory of where unfolding MC files are
+
+  std::string system = m_is_pPb ? m_s_pPb : m_s_pp;
+
+  std::string unfoldingMCdir =
+    Form( "%s/%s_%s_%s_%s",
+	  m_sOutput.c_str(), m_sOutput.c_str(), system.c_str(),
+	  m_sMC.c_str(), m_mcTypeName.c_str());
+  
+  // name of file that is used as input for performance unfolding
+  m_fNamePerfUnfoldingMC
+    = Form( "%s/%s_%s_%s_%s_%s_%s.root",
+	    unfoldingMCdir.c_str(), m_myOutName.c_str(),
+	    system.c_str(), m_sMC.c_str(), m_mcTypeName.c_str(),
+	    m_sPerf.c_str(), m_uncertSuffix.c_str() );
+
+  // name of file that is used as input for physics unfolding
+  m_fNamePhysUnfoldingMC
+    = Form( "%s/%s_%s_%s_%s_%s_%s.root",
+	    unfoldingMCdir.c_str(), m_myOutName.c_str(),
+	    system.c_str(), m_sMC.c_str(), m_mcTypeName.c_str(),
+	    m_sPhys.c_str(), m_uncertSuffix.c_str() );  
 }
 
 //---------------------------
@@ -462,17 +485,6 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     ApplyIsolation( vR_jets, 1.0 );
     
     std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
-
-    /*
-    if( vR_jets.size() >= 3 ){
-      double firstJetPt  = vR_jets[0].Pt()/1000.;
-      double secondJetPt = vR_jets[1].Pt()/1000.;
-      double thirdJetPt  = vR_jets[2].Pt()/1000.;
-
-      if( ( firstJetPt + secondJetPt ) * 0.5 < 0.4 * thirdJetPt )
-	{ continue; }
-    }
-    */
     
     // some runs and lbn are bad
     // for efficiency plots

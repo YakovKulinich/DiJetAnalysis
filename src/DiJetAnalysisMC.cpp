@@ -40,8 +40,7 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
   m_ptTruthWidth  = 5;
   m_ptTruthMin    = 20;
   m_ptTruthMax    = 120;
-  m_nPtTruthBins  =
-    (m_ptTruthMax - m_ptTruthMin) / m_ptTruthWidth;
+  m_nPtTruthBins  = (m_ptTruthMax - m_ptTruthMin) / m_ptTruthWidth;
 
   // ---- JES/PRes/Etc ----- 
   // --- variable eta/ystar binning ---
@@ -77,9 +76,6 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
   m_dRmax = 0.2;
 
   //=============== Histo Names ==================    
-  m_dPhiRecoPairedTruthName =
-    m_dPhiName + "_" + m_recoName  + "_" + m_pairedName + "_" + m_truthName;
-
   m_dPhiRespMatName        = m_dPhiName + "_" + m_respMatName;
   m_dPhiRespMatRebName     = m_dPhiName + "_" + m_respMatName + "_" + m_sReb;
 
@@ -223,7 +219,7 @@ void DiJetAnalysisMC::ProcessPerformance(){
   // make ystar spectra response matrix
   m_hAllYstarSpectRespMat = CombineSamples( m_vHjznYstarSpectRespMat, m_ystarSpectRespMatName );
 
-  MakeSpectCFactorsRespMat( m_vHjznYstarSpectReco,  m_vHjznYstarSpectTruth, m_vHjznYstarSpectRespMat,
+  MakeSpectCFactorsRespMat( m_vHjznYstarSpectReco, m_vHjznYstarSpectTruth, m_vHjznYstarSpectRespMat,
 			    m_vJznLabels, m_ystarSpectCfactorsName, m_ystarSpectRespMatName );
      
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
@@ -291,24 +287,16 @@ void DiJetAnalysisMC::ProcessPhysics(){
   m_hAllDphiReco  = CombineSamples( m_vHjznDphiReco, m_dPhiRecoName   );
   MakeDeltaPhi( m_vHjznDphiReco , m_vJznLabels, m_dPhiRecoName,
 		fInMCPerf, m_ystarSpectRecoName );
-  fOut->cd();
 
   m_hAllDphiTruth = CombineSamples( m_vHjznDphiTruth, m_dPhiTruthName );
   MakeDeltaPhi( m_vHjznDphiTruth, m_vJznLabels, m_dPhiTruthName,
 		fInMCPerf, m_ystarSpectTruthName );
-  fOut->cd();
 
-  m_hAllDphiRecoPairedTruth = CombineSamples( m_vHjznDphiRecoPairedTruth, m_dPhiRecoPairedTruthName );
-  /*
-  MakeDeltaPhi( m_vHjznDphiRecoPairedTruth, m_vJznLabels, m_dPhiRecoPairedTruthName,
-		fInMCPerf, m_ystarSpectTruthName );
-  fOut->cd();
-  */
   
   m_hAllDphiRespMat    = CombineSamples( m_vHjznDphiRespMat   , m_dPhiRespMatName    );
   m_hAllDphiRespMatReb = CombineSamples( m_vHjznDphiRespMatReb, m_dPhiRespMatRebName );
   
-  MakeDphiCFactorsRespMat( m_vHjznDphiTruth, m_vHjznDphiRecoPairedTruth, m_vHjznDphiRespMatReb,
+  MakeDphiCFactorsRespMat( m_vHjznDphiTruth, m_vHjznDphiReco, m_vHjznDphiRespMatReb,
 			   m_vJznLabels, m_dPhiCfactorsName, m_dPhiRespMatName );
 
   /*
@@ -543,17 +531,6 @@ void DiJetAnalysisMC::SetupHistograms(){
     m_vHjznDphiTruth.push_back( hnDphiTruth );
     AddHistogram( hnDphiTruth );
 
-    THnSparse* hnDphiRecoPairedTruth =
-      new THnSparseD( Form("h_%s_%s", m_dPhiRecoPairedTruthName.c_str(), jzn.c_str() ), "",
-		      m_nDphiDim, &m_vNdPhiBins[0], &m_vDphiMin[0], &m_vDphiMax[0] );
-    hnDphiRecoPairedTruth->GetAxis(0)->Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
-    hnDphiRecoPairedTruth->GetAxis(1)->Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
-    hnDphiRecoPairedTruth->GetAxis(2)->Set( m_nVarPtBins   , &( m_varPtBinning[0]    ) );
-    hnDphiRecoPairedTruth->GetAxis(3)->Set( m_nVarPtBins   , &( m_varPtBinning[0]    ) );
-    hnDphiRecoPairedTruth->GetAxis(4)->Set( m_nVarDphiBins , &( m_varDphiBinning[0]  ) );
-    m_vHjznDphiRecoPairedTruth.push_back( hnDphiRecoPairedTruth );
-    AddHistogram( hnDphiRecoPairedTruth );
-    
     // -------- Dphi Response Matrix --------    
     THnSparse* hnDphiRespMat =
       new THnSparseD( Form("h_%s_%s", m_dPhiRespMatName.c_str(), jzn.c_str() ), "",
@@ -607,6 +584,7 @@ void DiJetAnalysisMC::SetupHistograms(){
 }
 
 void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){ 
+
   // collections and variables
   std::vector< TLorentzVector >    vT_jets;
   std::vector< TLorentzVector >* p_vT_jets = &vT_jets;
@@ -642,8 +620,9 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 				  startEventIn : nEventsTotal - 1;
     endEvent     = startEvent + nEvents < nEventsTotal ?
 					  startEvent + nEvents : nEventsTotal;
-
-    std::cout << startEvent << " " << endEvent << " " << nEventsTotal << " " << nEvents << std::endl;
+    
+    std::cout << startEvent << " " << endEvent << " "
+	      << nEventsTotal << " " << nEvents << std::endl;
     
     // -------- EVENT LOOP ---------
     for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
@@ -653,7 +632,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 	std::cout << "\nEvent : " << m_ev 
 		  << "    has : " << vR_jets.size() << " reco jets"
 		  << "    and : " << vT_jets.size() << " truth jets"
-		  << std::endl; 
+		  << std::endl;
       }
 
       ApplyCleaning ( vR_jets, v_isCleanJet );
@@ -662,41 +641,20 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       
       std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
 
-      /*
-      if( vT_jets.size() >= 3 ){
-	double firstJetPt  = vT_jets[0].Pt()/1000.;
-	double secondJetPt = vT_jets[1].Pt()/1000.;
-	double thirdJetPt  = vT_jets[2].Pt()/1000.;
-
-	if( ( firstJetPt + secondJetPt ) * 0.5 < 0.4 * thirdJetPt )
-	  { continue; }
-      }
-      */
-      
-      std::vector< TLorentzVector > vRR_paired_jets;
-      std::vector< TLorentzVector > vRT_paired_jets;
-      PairJets( vR_jets, vT_jets, vRR_paired_jets, vRT_paired_jets ); 
-
       std::vector< TLorentzVector > vTR_paired_jets;
       std::vector< TLorentzVector > vTT_paired_jets;
       PairJets( vT_jets, vR_jets, vTT_paired_jets, vTR_paired_jets );
-
-      // this holds the weights.
-      // in some cases ( unfolding uncertainty )
-      // there will be an additional weight.
-      std::vector< double > vRR_paired_jet_weights;
 
       // If not running on default sample.
       // Apply uncertainties to all reco jets.
       if( m_uncertComp ){
 	m_uncertaintyProvider->RegisterUFactors  ( &v_sysUncert );
-	m_uncertaintyProvider->ApplyUncertainties( vRR_paired_jets, vRT_paired_jets );
+	m_uncertaintyProvider->ApplyUncertainties( vTR_paired_jets, vTT_paired_jets );
       }
       
       // Do Dphi analysis
-      AnalyzeDeltaPhi( m_vHjznDphiReco [iG], vR_jets );
-      AnalyzeDeltaPhi( m_vHjznDphiTruth[iG], vT_jets );
-      AnalyzeDeltaPhi( m_vHjznDphiRecoPairedTruth [iG], vRR_paired_jets );
+      AnalyzeDeltaPhi( m_vHjznDphiReco [iG], vTR_paired_jets, vTT_paired_jets );
+      AnalyzeDeltaPhi( m_vHjznDphiTruth[iG], vT_jets, vT_jets );
 
       AnalyzeDphiRespMat
 	( m_vHjznDphiRespMat[iG], m_vHjznDphiRespMatReb[iG], vTR_paired_jets, vTT_paired_jets );
@@ -710,24 +668,22 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       AnalyzeSpectra( m_vHjznEtaSpectReco [iG], vTR_paired_jets );
       
       // fill single jet spectra 
-      if( vR_jets.size() ){
+      if( vTT_paired_jets.size() ){
 	m_vHjznYstarSpectReco[iG]->
-	  Fill( GetYstar( vR_jets.front() ), vR_jets.front().Pt()/1000. );
+	  Fill( GetYstar( vTR_paired_jets.front() ),
+		vTR_paired_jets.front().Pt()/1000. );
+	m_vHjznYstarSpectTruth[iG]->
+	  Fill( GetYstar( vTT_paired_jets.front() ),
+		vTT_paired_jets.front().Pt()/1000. );
 	// fill both sides for pp
 	if( !m_is_pPb ){
 	  m_vHjznYstarSpectReco[iG]->
-	    Fill( -GetYstar( vR_jets.front() ), vR_jets.front().Pt()/1000. );
+	    Fill( -GetYstar( vTR_paired_jets.front() ),
+		  vTR_paired_jets.front().Pt()/1000. );
+	  m_vHjznYstarSpectTruth[iG]->
+	    Fill( -GetYstar( vTT_paired_jets.front() ),
+		  vTT_paired_jets.front().Pt()/1000. );
 	}
-      }
-      if( vT_jets.size() ){
-	m_vHjznYstarSpectTruth[iG]->
-	  Fill( GetYstar( vT_jets.front() ), vT_jets.front().Pt()/1000. );
-	// fill both sides for pp
-	if( !m_is_pPb ){
-	m_vHjznYstarSpectTruth[iG]->
-	  Fill( -GetYstar( vT_jets.front() ), vT_jets.front().Pt()/1000. );
-	}
-
       }
 
       // fill single speectra response matrix
@@ -747,24 +703,76 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 //          Analysis
 //---------------------------
 
+double DiJetAnalysisMC::AnalyzeDeltaPhi( THnSparse* hn,
+					 const std::vector< TLorentzVector >& vR_jets,
+					 const std::vector< TLorentzVector >& vT_jets ){
+  
+  const TLorentzVector* rJet1 = NULL; const TLorentzVector* rJet2 = NULL;
+  const TLorentzVector* tJet1 = NULL; const TLorentzVector* tJet2 = NULL;
+
+  if( !GetDiJets( vR_jets, rJet1, rJet2 ) ||
+      !GetDiJets( vT_jets, rJet1, rJet2 ) )
+    { return -1; }
+
+  double rJet1_pt    = rJet1->Pt()/1000.;
+  double rJet1_ystar = GetYstar( *rJet1 );
+
+  double rJet2_pt    = rJet2->Pt()/1000.;
+  double rJet2_ystar = GetYstar( *rJet2 );
+  
+  double deltaPhi = anaTool->DeltaPhi( *rJet2, *rJet1 );
+  
+  std::vector< double > x;
+  x.resize( hn->GetNdimensions() );
+    
+  double jetWeight =
+    GetJetWeight( *rJet1 ) * GetDphiWeight( *tJet1, *tJet2 );
+
+  x[0] = rJet1_ystar;  
+  x[1] = rJet2_ystar;
+  x[2] = rJet1_pt ;
+  x[3] = rJet2_pt ;
+  x[4] = deltaPhi;
+  x[5] = 0;
+  hn->Fill( &x[0], jetWeight );
+
+  x[5] = 1;
+  hn->Fill( &x[0], jetWeight * deltaPhi );
+  
+  // for pp, fill twice. once for each side since
+  // it is symmetric in pp. For pPb, continue
+  if( m_is_pPb ){ return deltaPhi; }
+
+  x[0] = -rJet1_ystar;  
+  x[1] = -rJet2_ystar;
+  x[5] = 0;
+  hn->Fill( &x[0], jetWeight );
+
+  x[5] = 1;
+  hn->Fill( &x[0], jetWeight * deltaPhi );
+ 
+  return deltaPhi;
+}
+
+
 void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector >& vR_jets,
 					      const std::vector< TLorentzVector >& vT_jets,
 					      const int iG ){
   // loop over for
   for( uint iJet = 0; iJet < vR_jets.size(); iJet ++ ){ 
-    const TLorentzVector& recoJet  = vR_jets[iJet];
-    const TLorentzVector& truthJet = vT_jets[iJet];
+    const TLorentzVector& rJet = vR_jets[iJet];
+    const TLorentzVector& tJet = vT_jets[iJet];
     
-    double jetEtaReco  = recoJet.Eta();
-    double jetPhiReco  = recoJet.Phi();
-    double  jetPtReco  = recoJet.Pt()/1000.;
+    double jetEtaReco  = rJet.Eta();
+    double jetPhiReco  = rJet.Phi();
+    double  jetPtReco  = rJet.Pt()/1000.;
 
-    double jetEtaTruth = truthJet.Eta();
-    double jetPhiTruth = truthJet.Phi();
-    double  jetPtTruth = truthJet.Pt()/1000.;
+    double jetEtaTruth = tJet.Eta();
+    double jetPhiTruth = tJet.Phi();
+    double  jetPtTruth = tJet.Pt()/1000.;
 	
-    double jetWeightReco  = GetJetWeight( recoJet  );
-    double jetWeightTruth = GetJetWeight( truthJet );
+    double jetWeightReco  = GetJetWeight( rJet  );
+    double jetWeightTruth = GetJetWeight( tJet );
 	
     m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
     m_vHjznEtaPtMap [iG]->Fill( jetEtaReco, jetPtReco , jetWeightReco );
@@ -792,21 +800,21 @@ void DiJetAnalysisMC::AnalyzeSpectRespMat( TH3* hRespMat,
   
   if( vR_jets.size() && vT_jets.size() ){
 
-    const TLorentzVector* recoJet  = &vR_jets.front();
-    const TLorentzVector* truthJet = &vT_jets.front();
+    const TLorentzVector* rJet = &vR_jets.front();
+    const TLorentzVector* tJet = &vT_jets.front();
 
     
-    double recoJet_pt     = recoJet->Pt()/1000.;
+    double rJet_pt    = rJet->Pt()/1000.;
   
-    double truthJet_pt    = truthJet->Pt()/1000.;
-    double truthJet_ystar = GetYstar( *truthJet );
+    double tJet_pt    = tJet->Pt()/1000.;
+    double tJet_ystar = GetYstar( *tJet );
     
-    hRespMat->Fill(  truthJet_ystar, recoJet_pt, truthJet_pt );
+    hRespMat->Fill(  tJet_ystar, rJet_pt, tJet_pt );
 
     // for pp fill plus minus ystar
     if( m_is_pPb ){ return; }
 
-    hRespMat->Fill( -truthJet_ystar, recoJet_pt, truthJet_pt );
+    hRespMat->Fill( -tJet_ystar, rJet_pt, tJet_pt );
   }
 }
 
@@ -815,38 +823,37 @@ void DiJetAnalysisMC::AnalyzeDphiRespMat( THnSparse* hnDphi,
 					  const std::vector< TLorentzVector >& vR_jets,
 					  const std::vector< TLorentzVector >& vT_jets ){
 
-  const TLorentzVector* recoJet1  = NULL; const TLorentzVector* recoJet2  = NULL;
-  const TLorentzVector* truthJet1 = NULL; const TLorentzVector* truthJet2 = NULL;
+  const TLorentzVector* rJet1 = NULL; const TLorentzVector* rJet2 = NULL;
+  const TLorentzVector* tJet1 = NULL; const TLorentzVector* tJet2 = NULL;
 
-  if( !GetDiJets( vR_jets, recoJet1 , recoJet2  ) )
-    { return; }
-  if( !GetDiJets( vT_jets, truthJet1, truthJet2 ) )
-    { return; }
+  if( !GetDiJets( vR_jets, rJet1, rJet2  ) ||
+      !GetDiJets( vT_jets, tJet1, tJet2 ) ) { return; }
 
-  double recoJet1_pt    = recoJet1->Pt()/1000.;
+  double rJet1_pt    = rJet1->Pt()/1000.;
   
-  double recoJet2_pt    = recoJet2->Pt()/1000.;
+  double rJet2_pt    = rJet2->Pt()/1000.;
   
-  double truthJet1_pt    = truthJet1->Pt()/1000.;
-  double truthJet1_ystar = GetYstar( *truthJet1 );
+  double tJet1_pt    = tJet1->Pt()/1000.;
+  double tJet1_ystar = GetYstar( *tJet1 );
 
-  double truthJet2_pt    = truthJet2->Pt()/1000.;
-  double truthJet2_ystar = GetYstar( *truthJet2 );
+  double tJet2_pt    = tJet2->Pt()/1000.;
+  double tJet2_ystar = GetYstar( *tJet2 );
   
-  double recoDeltaPhi    = anaTool->DeltaPhi( *recoJet2 , *recoJet1  );
-  double truthDeltaPhi   = anaTool->DeltaPhi( *truthJet2, *truthJet1 );
+  double recoDeltaPhi    = anaTool->DeltaPhi( *rJet2, *rJet1  );
+  double truthDeltaPhi   = anaTool->DeltaPhi( *tJet2, *tJet1 );
   
   std::vector< double > xDphi( hnDphi->GetNdimensions(), 0 );
     
-  double jetWeight = GetJetWeight( *truthJet1 );
+  double jetWeight =
+    GetJetWeight( *tJet1 ) * GetDphiWeight( *tJet1, *tJet2 );
 
   // fill for Dphi resp mat
-  xDphi[0] = truthJet1_ystar;  
-  xDphi[1] = truthJet2_ystar;
-  xDphi[2] = recoJet1_pt ;
-  xDphi[3] = truthJet1_pt;
-  xDphi[4] = recoJet2_pt ;
-  xDphi[5] = truthJet2_pt;
+  xDphi[0] = tJet1_ystar;  
+  xDphi[1] = tJet2_ystar;
+  xDphi[2] = rJet1_pt ;
+  xDphi[3] = tJet1_pt;
+  xDphi[4] = rJet2_pt ;
+  xDphi[5] = tJet2_pt;
   xDphi[6] = recoDeltaPhi;
   xDphi[7] = truthDeltaPhi;
   hnDphi   ->Fill( &xDphi[0], jetWeight );
@@ -857,8 +864,8 @@ void DiJetAnalysisMC::AnalyzeDphiRespMat( THnSparse* hnDphi,
   if( m_is_pPb ){ return; }
   
   // fill for Dphi resp mat
-  xDphi[0] = -truthJet1_ystar;  
-  xDphi[1] = -truthJet2_ystar;
+  xDphi[0] = -tJet1_ystar;  
+  xDphi[1] = -tJet2_ystar;
   hnDphi   ->Fill( &xDphi[0], jetWeight );
   hnDphiReb->Fill( &xDphi[0], jetWeight );
 }
@@ -903,6 +910,7 @@ void DiJetAnalysisMC::PairJets( std::vector< TLorentzVector >& vA_jets,
       // to avoid changing the vector size, skip if
       // its pt is zero.
       if( bJet.Pt() == 0 ){ continue; }
+      // take the closest bjet to ajet
       double deltaR = anaTool->DeltaR( bJet, aJet );
       if( deltaR <= deltaRmin ) {	
 	pairedBJet = &bJet;
@@ -921,7 +929,18 @@ void DiJetAnalysisMC::PairJets( std::vector< TLorentzVector >& vA_jets,
     vB_paired_jets.push_back( *pairedBJet );
   } // end loop over truth jets
 }
- 
+
+double DiJetAnalysisMC::GetSpectWeight( const TLorentzVector& jet ){
+
+  return 1;
+}
+
+double DiJetAnalysisMC::GetDphiWeight( const TLorentzVector& jet1,
+				       const TLorentzVector& jet2 ){
+
+  return 1;
+}
+
 TH1* DiJetAnalysisMC::CombineSamples( std::vector< TH1* >& vSampleHin,
 				      const std::string& name ){
   if( !vSampleHin.size() ){ return NULL; }
@@ -1379,10 +1398,6 @@ void DiJetAnalysisMC::LoadHistograms(){
       ( static_cast< THnSparse *>
 	( fIn->Get( Form("h_%s_%s", m_dPhiTruthName.c_str(), jzn.c_str() ))));  
     
-    m_vHjznDphiRecoPairedTruth.push_back
-      ( static_cast< THnSparse *>
-	( fIn->Get( Form("h_%s_%s", m_dPhiRecoPairedTruthName.c_str(), jzn.c_str() ))));  
-          
     // -------- Dphi Response Matrix --------    
     m_vHjznDphiRespMat.push_back
       ( static_cast< THnSparse *>

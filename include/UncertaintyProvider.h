@@ -45,24 +45,6 @@ class UncertaintyTool{
 };
 
 //--------------------------------
-//    Unfolding Uncertainty Tool 
-//--------------------------------
-class UnfoldingUncertaintyTool : public UncertaintyTool{
- public:
-  UnfoldingUncertaintyTool( int, bool );
-  ~UnfoldingUncertaintyTool();
-
-  void ApplyUncertainties( std::vector< TLorentzVector >&,
-			   std::vector< TLorentzVector >& );
-
-  double GetUncertaintyWeight( const TLorentzVector&,
-			       const TLorentzVector& );
-  
- private:
-  THnSparse* hUnfoldingUncert;
-};
-
-//--------------------------------
 //      Angular Uncertainty Tool 
 //--------------------------------
 class AngularUncertaintyTool : public UncertaintyTool{

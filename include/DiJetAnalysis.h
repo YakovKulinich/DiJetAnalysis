@@ -89,13 +89,13 @@ class DiJetAnalysis{
   virtual void AnalyzeSpectra( TH2*, const std::vector< TLorentzVector >& );
   
   virtual double AnalyzeDeltaPhi( THnSparse*,
-				  const std::vector <TLorentzVector>& );
+				  const std::vector <TLorentzVector >& );
   
-  virtual bool  ApplyIsolation( std::vector<TLorentzVector>&,
+  virtual bool  ApplyIsolation( std::vector< TLorentzVector >&,
 				double );
     
-  virtual bool  ApplyCleaning ( std::vector<TLorentzVector>&, 
-			        std::vector<bool>& );
+  virtual bool  ApplyCleaning ( std::vector< TLorentzVector >&, 
+			        std::vector< bool >& );
   //---------------------------
   //       Tools
   //---------------------------  
@@ -312,11 +312,6 @@ class DiJetAnalysis{
 
   std::string m_dirOutTogether; 
   std::string m_fNameTogether;
-  
-  std::string m_fNameRivetMC;
-
-  std::string m_fNamePerfUnfoldingMC;
-  std::string m_fNamePhysUnfoldingMC;
 
   //===== common histo names =======  
   std::string m_allName;

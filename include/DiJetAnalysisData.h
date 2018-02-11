@@ -129,6 +129,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   double m_centMbCorrection;
 
+  std::string m_fNamePerfUnfoldingMC;
+  std::string m_fNamePhysUnfoldingMC;
+  
   //============ data =============
   // -------- maps ---------
   std::vector< TH2* > m_vHtriggerEtaPhiMap;
