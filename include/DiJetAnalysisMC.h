@@ -30,6 +30,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   // Fill Tree / Plot Controls
   //---------------------------
+  void RunOverTreeMakeWeights( int, int );
+
+  void ProcessWeights();
+  
   void RunOverTreeFillHistos( int, int );
 
   void ProcessPerformance   ();
@@ -47,6 +51,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   void SetupHistograms();
 
+  void LoadWeights();
+  
+  void ProcessEventsForWeights( int, int );
+    
   void ProcessEvents( int, int );
 
  protected:
@@ -115,12 +123,17 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void GetTypeTitle( const std::string&,
 		     std::string&, std::string& );
 
+  void GetSpectWeightInfo( std::string&, std::string&,
+			   std::string&, std::string& );
 
+  void GetDphiWeightInfo ( std::string&, std::string&,
+			   std::string&, std::string& );
+  
   void GetSpectUnfoldingInfo( std::string&, std::string&, std::string&,
 			      std::string&, std::string&, std::string& );;
   
-  void GetDphiUnfoldingInfo( std::string&, std::string&,
-			     std::string&, std::string& );
+  void GetDphiUnfoldingInfo ( std::string&, std::string&,
+			      std::string&, std::string& );
 
   void GetInfoTogether( std::string&, std::string&, std::string&,
 			std::string&, std::string&, std::string&,
@@ -131,7 +144,11 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   //  Get Quantities / Plot 
   //---------------------------
-  void LoadHistograms();
+  void LoadHistograms( int = 0 );
+
+  TH1*      MakeSpectWeights( TFile* = NULL );
+
+  THnSparse* MakeDphiWeights( TFile* = NULL );
 
   void MakeScaleRes( std::vector< TH3* >&,
 		     std::vector< TH2* >&,
@@ -201,6 +218,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   TH3* m_hPowhegWeights;
 
+  std::string m_fNamePerfWeightData;
+  std::string m_fNamePhysWeightData;
+
+  TH1*       m_spectWeight;
+  THnSparse*  m_dPhiWeight;
+  
   //============ data =============
   // -------- maps ---------
   std::vector< TH2* > m_vHjznEtaPhiMap;

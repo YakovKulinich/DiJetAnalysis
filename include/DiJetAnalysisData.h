@@ -92,7 +92,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //  Get Quantities / Plot 
   //---------------------------
-  void LoadHistograms();
+  void LoadHistograms( int = 0 );
 
   void MakeEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,

@@ -34,7 +34,7 @@ class DiJetAnalysisBoth : public DiJetAnalysis{
   //---------------------------
   //   Get Quantities / Plot 
   //---------------------------
-  void LoadHistograms(){}
+  void LoadHistograms( int = 0 ){}
   
   void MakeDphiTogether();
 

@@ -97,7 +97,7 @@ namespace CT{
 
     std::vector<double> vectoriseD(TString str, TString sep);
 
-    bool SubtractCombinatoric( TH1*, double = 0, double = 0 );
+    bool SubtractCombinatoric( TH1*, double = 0, double = 1 );
 
     void UndoWidthScaling( TH1* );
     

@@ -175,7 +175,7 @@ void DiJetAnalysisData::ProcessPhysics(){
   LoadHistograms();
 
   // THIS HAS TO BE CHANGED
-  TFile* fInMCPerf  = TFile::Open( m_fNamePerfUF.c_str() );
+  TFile* fInMCPerf  = TFile::Open( m_fNamePerf.c_str() );
 
   TFile* fOut = new TFile( m_fNamePhys.c_str(),"RECREATE");
 
@@ -184,8 +184,7 @@ void DiJetAnalysisData::ProcessPhysics(){
   m_vTriggers.push_back( m_allName );
 
   m_hAllDphi = CombineSamples( m_vHtriggerDphi, m_dPhiName );
-  MakeDeltaPhi( m_vHtriggerDphi, m_vTriggers, m_dPhiName,
-		fInMCPerf, m_ystarSpectUnfoldedName );
+  MakeDeltaPhi( m_vHtriggerDphi, m_vTriggers, m_dPhiName, fInMCPerf, m_ystarSpectName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
@@ -840,7 +839,7 @@ void DiJetAnalysisData::GetInfoTogether( std::string& name_a , std::string& name
 //     Get Quantities / Plot 
 //---------------------------------
 
-void DiJetAnalysisData::LoadHistograms(){
+void DiJetAnalysisData::LoadHistograms( int opt ){
   
   TFile* fIn = TFile::Open( m_fNameDefRaw.c_str() ); 
 

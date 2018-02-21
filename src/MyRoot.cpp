@@ -233,8 +233,8 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
   // on that range.
   if( !hProj->Integral( 1, hProj->FindBin( 1. ) ) ){ return false; }
 
-  TF1 cFit( "cFit", combFit, 0, 1, 1 );
-  hProj->Fit( "cFit", "NQ", "", 0, 1 ); 
+  TF1 cFit( "cFit", combFit, xLow, xHigh, 1 );
+  hProj->Fit( "cFit", "N", "", xLow, xHigh ); 
     
   double comb      = cFit.GetParameter(0);
   double combError = cFit.GetParError (0);
@@ -273,7 +273,7 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   };
   
   // set range to be in range of fit
-  histo->GetXaxis()->SetRangeUser( xLow, xHigh );
+  histo->GetXaxis()->SetRange( 1, -1 );
   
   TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 3 );
 
@@ -412,8 +412,6 @@ TGraph* CT::AnalysisTools::Barycenters( TH1* hEnt, TH1* hSum ){
 
   TGraphAsymmErrors* g = new TGraphAsymmErrors( hEnt );
 
-  std::cout << hEnt->GetName() << std::endl;
-  
   for( int i = 0; i < g->GetN(); i++ ){
     double gX = g->GetX()[ i ];
     double gY = g->GetY()[ i ];
@@ -424,8 +422,6 @@ TGraph* CT::AnalysisTools::Barycenters( TH1* hEnt, TH1* hSum ){
     double gXnew       = sum / gY;
     double deltaCenter = gXnew - hEnt->GetBinCenter( xBin );
     double binWidth    = hEnt->GetBinWidth( xBin );
-
-    std::cout << i << " " << gY << " " << sum << std::endl;
     
     g->SetPoint( i, gXnew, gY );
     g->SetPointEXlow ( i, 0.5 * binWidth + deltaCenter );

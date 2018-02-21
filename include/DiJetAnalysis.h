@@ -47,6 +47,10 @@ class DiJetAnalysis{
   //---------------------------
   // Fill Tree / Plot Controls
   //---------------------------
+  virtual void RunOverTreeMakeWeights( int, int );
+
+  virtual void ProcessWeights();
+  
   virtual void RunOverTreeFillHistos( int, int ) = 0;
 
   virtual void ProcessPerformance   () = 0;
@@ -153,10 +157,10 @@ class DiJetAnalysis{
 
   void MakeLogBinning( std::vector< double >&, std::vector< double >&, int );
   
-  //---------------------------фыва
+  //---------------------------
   //   Get Quantities / Plot 
   //---------------------------
-  virtual void LoadHistograms() = 0;
+  virtual void LoadHistograms( int = 0 ) = 0;
 
   virtual void MakeEtaPhiPtMap( std::vector< TH2* >&,
 				const std::vector< std::string >&, 
@@ -172,7 +176,7 @@ class DiJetAnalysis{
   virtual void MakeDeltaPhi( std::vector<THnSparse*>&,
 			     const std::vector< std::string >&,
 			     const std::string& = "",
-			     TFile* fMC = NULL, 
+			     TFile* = NULL, 
 			     const std::string& = "" );
   
   virtual THnSparse* UnfoldDeltaPhi( TFile*, TFile*,
@@ -241,7 +245,8 @@ class DiJetAnalysis{
   std::string m_sRaw;
   std::string m_sPhys;
   std::string m_sPerf;
-  
+
+  std::string m_sWeights;
   std::string m_sCounts;
   std::string m_sReb;
   std::string m_sRatio;
@@ -250,7 +255,8 @@ class DiJetAnalysis{
   std::string m_rawFileSuffix;
   std::string m_performanceFileSuffix;
   std::string m_physicsFileSuffix;
-  
+
+  std::string m_unweightedFileSuffix;
   std::string m_unfoldingFileSuffix;
   std::string m_systematicsFileSuffix;
 
@@ -297,12 +303,14 @@ class DiJetAnalysis{
   std::string m_fName;
 
   std::string m_fNameRaw;
+  std::string m_fNameRawUW;
   std::string m_fNamePerf;
   std::string m_fNamePerfUF;
   std::string m_fNamePhys;
   std::string m_fNamePhysUF;
   
   std::string m_fNameDefRaw;
+  std::string m_fNameDefRawUW;
   std::string m_fNameDefPerf;
   std::string m_fNameDefPerfUF;
   std::string m_fNameDefPhys;

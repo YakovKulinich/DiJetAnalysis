@@ -76,6 +76,12 @@ int main(int argc, char *argv[])
   analysis->Initialize();
 
   switch( mode ){
+  case -1:
+    analysis->RunOverTreeMakeWeights( nEvents, startEvent ); 
+    break;
+  case -2:
+    analysis->ProcessWeights();
+    break;
   case 0:
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 
     break;
