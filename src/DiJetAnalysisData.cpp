@@ -361,11 +361,11 @@ void DiJetAnalysisData::SetupHistograms(){
       ( new TH2D( Form("h_%s_%s", m_ystarSpectName.c_str(), trigger.c_str() ), 
 		  ";#it{y}*;#it{p}_{T} [GeV];",
 		  m_nVarYstarBins, 0, 1,
-		  m_nVarPtBinsRespMat, 0, 1 ) ) ;
+		  m_nVarPtBinsUfOf, 0, 1 ) ) ;
     m_vHtriggerYstarSpect.back()->GetXaxis()->
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     m_vHtriggerYstarSpect.back()->GetYaxis()->
-      Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+      Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
    
     AddHistogram( m_vHtriggerYstarSpect.back() );
 
@@ -684,6 +684,7 @@ void DiJetAnalysisData::CleanEfficiency( TGraphAsymmErrors* g, int iG ){
 
 TH1* DiJetAnalysisData::CombineSamples( std::vector< TH1* >& vSampleHin,
 					const std::string& name ){
+
   if( !vSampleHin.size() ){ return NULL; }
 
   TH1* h_res = static_cast< TH1D* >
@@ -701,6 +702,7 @@ TH1* DiJetAnalysisData::CombineSamples( std::vector< TH1* >& vSampleHin,
 
 TH2* DiJetAnalysisData::CombineSamples( std::vector< TH2* >& vSampleHin,
 					const std::string& name ){
+
   if( !vSampleHin.size() ){ return NULL; }
 
   TH2* h_res = static_cast< TH2D* >
@@ -718,18 +720,37 @@ TH2* DiJetAnalysisData::CombineSamples( std::vector< TH2* >& vSampleHin,
 
 THnSparse* DiJetAnalysisData::CombineSamples( std::vector< THnSparse* >& vSampleHin,
 					      const std::string& name  ){
+
   if( !vSampleHin.size() ){ return NULL; }
   
   THnSparse* h_res = static_cast< THnSparseD* >
     ( vSampleHin[0]->Clone( Form("h_%s_%s", name.c_str() , m_allName.c_str() ) ) );
   h_res->Reset();
   
+  std::vector< int > x { 1, 2, 1, 1, 6, 1 };
+  std::vector< int > xR{ 1, 2, 1, 1, 7, 1 }; 
+  std::vector< int > xL{ 1, 2, 1, 1, 5, 1 }; 
+  
+  std::cout << h_res->GetName() << std::endl;
   for( uint iG = 0; iG < vSampleHin.size(); iG++ ){
     double scale = m_vTriggersPrescale[iG];
     h_res->Add( vSampleHin[iG], scale );
+    std::cout << m_vTriggers[ iG ] << " - " << vSampleHin[iG]->GetBinContent( &x[0] ) << " "
+	      << vSampleHin[iG]->GetBinError( &x[0] ) << " " << scale << std::endl;
+    std::cout << "   L - " << vSampleHin[iG]->GetBinContent( &xL[0] ) << " "
+	      << vSampleHin[iG]->GetBinError( &xL[0] ) << std::endl;
+    std::cout << "   R - " << vSampleHin[iG]->GetBinContent( &xR[0] ) << " "
+	      << vSampleHin[iG]->GetBinError( &xR[0] ) << std::endl;
   }
   vSampleHin.push_back( h_res );
-  
+
+  std::cout << h_res->GetBinContent( &x[0] ) << " "
+	    << h_res->GetBinError  ( &x[0] ) << std::endl;
+  std::cout << "   L - " << h_res->GetBinContent( &xL[0] ) << " "
+	    << h_res->GetBinError  ( &xL[0] ) << std::endl;
+  std::cout << "   R - " <<  h_res->GetBinContent( &xR[0] ) << " "
+	    << h_res->GetBinError  ( &xR[0] ) << std::endl;
+
   return h_res;
 }
 

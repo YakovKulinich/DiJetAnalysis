@@ -44,24 +44,26 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
 
   // ---- JES/PRes/Etc ----- 
   // --- variable eta/ystar binning ---
-  m_nRPtRecoTruthBins   = 100;
-  m_rPtRecoTruthMin     = 0;  m_rPtRecoTruthMax = 2;
+  m_nRPtRecoTruthBins = 100;
+  m_rPtRecoTruthMin   = 0;
+  m_rPtRecoTruthMax   = 2;
 
   m_nDAngleRecoTruthBins = 100;
-  m_dAngleRecoTruthMin   = -0.5; m_dAngleRecoTruthMax = 0.5;
+  m_dAngleRecoTruthMin   = -0.5;
+  m_dAngleRecoTruthMax   = 0.5;
   
   // --- Dphi Resp Matrix binning ---  
 
   boost::assign::push_back( m_vNdPhiRespMatBins )
-    ( m_nVarYstarBins     )( m_nVarYstarBins     )
-    ( m_nVarPtBinsRespMat )( m_nVarPtBinsRespMat )
-    ( m_nVarPtBinsRespMat )( m_nVarPtBinsRespMat )
-    ( m_nVarDphiBins      )( m_nVarDphiBins      );
+    ( m_nVarYstarBins  )( m_nVarYstarBins  )
+    ( m_nVarPtBinsUfOf )( m_nVarPtBinsUfOf )
+    ( m_nVarPtBinsUfOf )( m_nVarPtBinsUfOf )
+    ( m_nVarDphiBins   )( m_nVarDphiBins   );
 
   boost::assign::push_back( m_vNdPhiRespMatRebBins )
-    ( m_nVarYstarBins     )( m_nVarYstarBins     )
-    ( m_nVarPtBinsRespMat )( m_nVarPtBinsRespMat )
-    ( m_nVarPtBinsRespMat )( m_nVarPtBinsRespMat )
+    ( m_nVarYstarBins  )( m_nVarYstarBins  )
+    ( m_nVarPtBinsUfOf )( m_nVarPtBinsUfOf )
+    ( m_nVarPtBinsUfOf )( m_nVarPtBinsUfOf )
     ( m_nVarDphiRebinnedBins  )( m_nVarDphiRebinnedBins  );
   
   boost::assign::push_back( m_vDphiRespMatMin  )
@@ -78,11 +80,10 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
   //=============== Histo Names ==================    
   m_dPhiRespMatName        = m_dPhiName + "_" + m_respMatName;
   m_dPhiRespMatRebName     = m_dPhiName + "_" + m_respMatName + "_" + m_sReb;
+  m_ptRespMatName          = m_s_pt     + "_" + m_respMatName;
 
   m_dPhiRecoUnfoldedName   = m_dPhiRecoName + "_" + m_unfoldedName;
   
-  m_ptRespMatName          = m_s_pt     + "_" + m_respMatName;
-
   //============== tool ===============
   m_uncertaintyProvider = new UncertaintyProvider( m_uncertComp, m_is_pPb );
 
@@ -367,13 +368,12 @@ void DiJetAnalysisMC::ProcessPhysics(){
   
   m_hAllDphiRespMat    = CombineSamples( m_vHjznDphiRespMat   , m_dPhiRespMatName    );
   m_hAllDphiRespMatReb = CombineSamples( m_vHjznDphiRespMatReb, m_dPhiRespMatRebName );
-  
+
   MakeDphiCFactorsRespMat( m_vHjznDphiTruth, m_vHjznDphiReco, m_vHjznDphiRespMatReb,
 			   m_vJznLabels, m_dPhiCfactorsName, m_dPhiRespMatName );
 
-  /*
-    MakePtRespMat( m_vHjznDphiRespMatReb, m_vJznLabels, m_ptRespMatName );
-  */
+  
+  // MakePtRespMat( m_vHjznDphiRespMatReb, m_vJznLabels, m_ptRespMatName );
 
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -487,22 +487,22 @@ void DiJetAnalysisMC::SetupHistograms(){
       ( new TH2D( Form("h_%s_%s", m_ystarSpectRecoName.c_str(), jzn.c_str() ), 
 		  ";#it{y}_{1}*;#it{p}_{T1}^{Reco} [GeV]",
 		  m_nVarYstarBins, 0, 1,
-		  m_nVarPtBinsRespMat, 0, 1 ) );
+		  m_nVarPtBinsUfOf, 0, 1 ) );
     m_vHjznYstarSpectReco.back()->GetXaxis()->
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     m_vHjznYstarSpectReco.back()->GetYaxis()->
-      Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+      Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
     AddHistogram( m_vHjznYstarSpectReco.back() );
     
     m_vHjznYstarSpectTruth.push_back
       ( new TH2D( Form("h_%s_%s", m_ystarSpectTruthName.c_str(), jzn.c_str() ), 
 		  ";#it{y}_{1}*;#it{p}_{T1}^{Truth} [GeV]",
 		  m_nVarYstarBins, 0, 1,
-		  m_nVarPtBinsRespMat, 0, 1 ) );
+		  m_nVarPtBinsUfOf, 0, 1 ) );
     m_vHjznYstarSpectTruth.back()->GetXaxis()->
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     m_vHjznYstarSpectTruth.back()->GetYaxis()->
-      Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+      Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
    AddHistogram( m_vHjznYstarSpectTruth.back() );
 
     // --- spectra response matrix ----
@@ -510,14 +510,14 @@ void DiJetAnalysisMC::SetupHistograms(){
       ( new TH3D( Form("h_%s_%s", m_ystarSpectRespMatName.c_str(), jzn.c_str() ), 
 		  ";#it{y}_{1}*;#it{p}_{T1}^{Reco} [GeV];#it{p}_{T1}^{Truth} [GeV]",
 		  m_nVarYstarBins, 0, 1,
-		  m_nVarPtBinsRespMat, 0, 1,
-		  m_nVarPtBinsRespMat, 0, 1 ) );
+		  m_nVarPtBinsUfOf, 0, 1,
+		  m_nVarPtBinsUfOf, 0, 1 ) );
     m_vHjznYstarSpectRespMat.back()->GetXaxis()->
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     m_vHjznYstarSpectRespMat.back()->GetYaxis()->
-      Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+      Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
     m_vHjznYstarSpectRespMat.back()->GetZaxis()->
-      Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+      Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
     AddHistogram( m_vHjznYstarSpectRespMat.back() );
     
     // --------- recoTruthRpt ---------
@@ -608,14 +608,14 @@ void DiJetAnalysisMC::SetupHistograms(){
       new THnSparseD( Form("h_%s_%s", m_dPhiRespMatName.c_str(), jzn.c_str() ), "",
 		      m_nDphiRespMatDim, &m_vNdPhiRespMatBins[0],
 		      &m_vDphiRespMatMin[0], &m_vDphiRespMatMax[0] );
-    hnDphiRespMat->GetAxis(0)->Set( m_nVarYstarBins    , &( m_varYstarBinning[0]     ) );
-    hnDphiRespMat->GetAxis(1)->Set( m_nVarYstarBins    , &( m_varYstarBinning[0]     ) );
-    hnDphiRespMat->GetAxis(2)->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
-    hnDphiRespMat->GetAxis(3)->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
-    hnDphiRespMat->GetAxis(4)->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
-    hnDphiRespMat->GetAxis(5)->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
-    hnDphiRespMat->GetAxis(6)->Set( m_nVarDphiBins     , &( m_varDphiBinning[0]      ) );
-    hnDphiRespMat->GetAxis(7)->Set( m_nVarDphiBins     , &( m_varDphiBinning[0]      ) );
+    hnDphiRespMat->GetAxis(0)->Set( m_nVarYstarBins , &( m_varYstarBinning[0]  ) );
+    hnDphiRespMat->GetAxis(1)->Set( m_nVarYstarBins , &( m_varYstarBinning[0]  ) );
+    hnDphiRespMat->GetAxis(2)->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
+    hnDphiRespMat->GetAxis(3)->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
+    hnDphiRespMat->GetAxis(4)->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
+    hnDphiRespMat->GetAxis(5)->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
+    hnDphiRespMat->GetAxis(6)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
+    hnDphiRespMat->GetAxis(7)->Set( m_nVarDphiBins  , &( m_varDphiBinning[0]   ) );
 
     m_vHjznDphiRespMat.push_back( hnDphiRespMat );
     AddHistogram( hnDphiRespMat );
@@ -633,12 +633,12 @@ void DiJetAnalysisMC::SetupHistograms(){
       new THnSparseD( Form("h_%s_%s", m_dPhiRespMatRebName.c_str(), jzn.c_str() ), "",
 		      m_nDphiRespMatDim, &m_vNdPhiRespMatRebBins[0],
 		      &m_vDphiRespMatMin[0], &m_vDphiRespMatMax[0] );
-    hnDphiRespMatReb->GetAxis(0)->Set( m_nVarYstarBins    , &( m_varYstarBinning[0]     ) );
-    hnDphiRespMatReb->GetAxis(1)->Set( m_nVarYstarBins    , &( m_varYstarBinning[0]     ) );
-    hnDphiRespMatReb->GetAxis(2)->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
-    hnDphiRespMatReb->GetAxis(3)->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
-    hnDphiRespMatReb->GetAxis(4)->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
-    hnDphiRespMatReb->GetAxis(5)->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+    hnDphiRespMatReb->GetAxis(0)->Set( m_nVarYstarBins , &( m_varYstarBinning[0]  ) );
+    hnDphiRespMatReb->GetAxis(1)->Set( m_nVarYstarBins , &( m_varYstarBinning[0]  ) );
+    hnDphiRespMatReb->GetAxis(2)->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
+    hnDphiRespMatReb->GetAxis(3)->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
+    hnDphiRespMatReb->GetAxis(4)->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
+    hnDphiRespMatReb->GetAxis(5)->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
     hnDphiRespMatReb->GetAxis(6)->Set( m_nVarDphiRebinnedBins, &( m_varDphiRebinnedBinning[0] ) );
     hnDphiRespMatReb->GetAxis(7)->Set( m_nVarDphiRebinnedBins, &( m_varDphiRebinnedBinning[0] ) );
 
@@ -666,10 +666,15 @@ void DiJetAnalysisMC::LoadWeights(){
   m_dPhiWeight  = static_cast< THnSparse* >
     ( fWeights->Get( Form( "h_%s_%s_%s", m_dPhiName.c_str(), m_sWeights.c_str(),
 			   m_allName.c_str() ) ) );
-
-  m_spectWeight->SetDirectory( 0 );
+  m_dPhiWeightTest  = static_cast< TH1D* >
+    ( fWeights->Get( "h_dPhi_weights_All_40_Ystar1_27_28_Pt1_35_28_Pt2_35_40_Ystar2_27" ) );
+  
+  m_spectWeight->SetDirectory(0);
+  m_dPhiWeightTest->SetDirectory(0);
   fWeights->Close();
 }
+
+TH2* hW = new TH2D( "hW", "hW", 16, 0, 16, 100, 0, 10 );
 
 void DiJetAnalysisMC::ProcessEventsForWeights( int nEventsIn, int startEventIn ){ 
 
@@ -684,7 +689,9 @@ void DiJetAnalysisMC::ProcessEventsForWeights( int nEventsIn, int startEventIn )
   std::vector< bool >* p_v_isCleanJet = &v_isCleanJet;
 
   for( uint iG = 0; iG < m_nJzn; iG++){
-     
+
+    int nBadPairsR = 0;
+    
     std::cout << "fNameIn: " << m_vJznFnameIn[iG] << std::endl;
   
     TFile* fIn  = TFile::Open( m_vJznFnameIn[iG].c_str() );
@@ -712,7 +719,7 @@ void DiJetAnalysisMC::ProcessEventsForWeights( int nEventsIn, int startEventIn )
     for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
       tree->GetEntry( m_ev );
             
-      if( anaTool->DoPrint(m_ev) ) {
+      if( anaTool->DoPrint( m_ev ) ) {
 	std::cout << "\nEvent : " << m_ev 
 		  << "    has : " << vR_jets.size() << " reco jets"
 		  << "    and : " << vT_jets.size() << " truth jets"
@@ -730,30 +737,26 @@ void DiJetAnalysisMC::ProcessEventsForWeights( int nEventsIn, int startEventIn )
       PairJets( vT_jets, vR_jets, vTT_paired_jets, vTR_paired_jets );
 
       // Do Dphi analysis
-      DiJetAnalysis::AnalyzeDeltaPhi( m_vHjznDphiReco[iG], vTR_paired_jets );
+      if( DiJetAnalysis::AnalyzeDeltaPhi( m_vHjznDphiReco[iG], vTR_paired_jets ) < 0 )
+	{ nBadPairsR++; }
 
       // fill single jet spectra 
       if( vTT_paired_jets.size() ){
 	m_vHjznYstarSpectReco[iG]->
 	  Fill( GetYstar( vTR_paired_jets.front() ),
 		vTR_paired_jets.front().Pt()/1000. );
-	m_vHjznYstarSpectTruth[iG]->
-	  Fill( GetYstar( vTT_paired_jets.front() ),
-		vTT_paired_jets.front().Pt()/1000. );
 	// fill both sides for pp
 	if( !m_is_pPb ){
 	  m_vHjznYstarSpectReco[iG]->
 	    Fill( -GetYstar( vTR_paired_jets.front() ),
 		  vTR_paired_jets.front().Pt()/1000. );
-	  m_vHjznYstarSpectTruth[iG]->
-	    Fill( -GetYstar( vTT_paired_jets.front() ),
-		  vTT_paired_jets.front().Pt()/1000. );
 	}
       }
     } // -------- END EVENT LOOP ---------
    
     std::cout << "DONE WITH " << m_vJznLabels[iG] << std::endl;
-
+    std::cout << "Number of bad RECO  - " << nBadPairsR << std::endl;
+ 
     fIn->Close(); delete fIn;
   } // end loop over a JZ sample
 }
@@ -774,7 +777,9 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
   std::vector< std::vector< float > >* p_v_sysUncert = & v_sysUncert;
   
   for( uint iG = 0; iG < m_nJzn; iG++){
-     
+
+    int nBadPairsR = 0, nBadPairsT = 0;
+
     std::cout << "fNameIn: " << m_vJznFnameIn[iG] << std::endl;
   
     TFile* fIn  = TFile::Open( m_vJznFnameIn[iG].c_str() );
@@ -815,25 +820,27 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       ApplyIsolation( vT_jets, 1.0 );
       
       std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
-
+      
       std::vector< TLorentzVector > vTR_paired_jets;
       std::vector< TLorentzVector > vTT_paired_jets;
       PairJets( vT_jets, vR_jets, vTT_paired_jets, vTR_paired_jets );
 
+      // for( auto& j : vTT_paired_jets ){ std::cout << j.Pt()/1000. << ", "; } std::cout << std::endl;
+      
       // If not running on default sample.
       // Apply uncertainties to all reco jets.
       if( m_uncertComp ){
 	m_uncertaintyProvider->RegisterUFactors  ( &v_sysUncert );
 	m_uncertaintyProvider->ApplyUncertainties( vTR_paired_jets, vTT_paired_jets );
       }
-      
-      // Do Dphi analysis
-      AnalyzeDeltaPhi( m_vHjznDphiReco [iG], vTR_paired_jets, vTR_paired_jets );
-      AnalyzeDeltaPhi( m_vHjznDphiTruth[iG], vTT_paired_jets, vTR_paired_jets );
 
+      if( AnalyzeDeltaPhi( m_vHjznDphiReco [iG], vTR_paired_jets, vTR_paired_jets ) < 0 )
+	{ nBadPairsR++;  }
+      if( AnalyzeDeltaPhi( m_vHjznDphiTruth[iG], vTT_paired_jets, vTR_paired_jets ) < 0 )
+        { nBadPairsT++; }
       AnalyzeDphiRespMat
-	( m_vHjznDphiRespMat[iG], m_vHjznDphiRespMatReb[iG], vTR_paired_jets, vTT_paired_jets );
-
+        ( m_vHjznDphiRespMat[iG], m_vHjznDphiRespMatReb[iG], vTR_paired_jets, vTT_paired_jets );
+      	    
       // loop over truth jets
       // denominator for efficiency because not all
       // reco jets are reconstructed for a truth jet
@@ -841,23 +848,21 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       AnalyzeSpectra( m_vHjznEtaSpectTruth[iG], vT_jets );
       // make spectra for the reco jets paired to truth
       AnalyzeSpectra( m_vHjznEtaSpectReco [iG], vTR_paired_jets );
+
       
       // fill single jet spectra 
       if( vTT_paired_jets.size() ){
-	m_vHjznYstarSpectReco[iG]->
-	  Fill( GetYstar( vTR_paired_jets.front() ),
-		vTR_paired_jets.front().Pt()/1000. );
-	m_vHjznYstarSpectTruth[iG]->
-	  Fill( GetYstar( vTT_paired_jets.front() ),
-		vTT_paired_jets.front().Pt()/1000. );
+	double spectWeight = GetSpectWeight( vTT_paired_jets.front() );
+	m_vHjznYstarSpectReco[iG]->Fill( GetYstar( vTR_paired_jets.front() ),
+					 vTR_paired_jets.front().Pt()/1000., spectWeight);
+	m_vHjznYstarSpectTruth[iG]->Fill( GetYstar( vTT_paired_jets.front() ),
+					  vTT_paired_jets.front().Pt()/1000., spectWeight );
 	// fill both sides for pp
 	if( !m_is_pPb ){
-	  m_vHjznYstarSpectReco[iG]->
-	    Fill( -GetYstar( vTR_paired_jets.front() ),
-		  vTR_paired_jets.front().Pt()/1000. );
-	  m_vHjznYstarSpectTruth[iG]->
-	    Fill( -GetYstar( vTT_paired_jets.front() ),
-		  vTT_paired_jets.front().Pt()/1000. );
+	  m_vHjznYstarSpectReco[iG]->Fill( -GetYstar( vTR_paired_jets.front() ),
+					   vTR_paired_jets.front().Pt()/1000., spectWeight );
+	  m_vHjznYstarSpectTruth[iG]->Fill( -GetYstar( vTT_paired_jets.front() ),
+					    vTT_paired_jets.front().Pt()/1000., spectWeight );
 	}
       }
 
@@ -869,9 +874,14 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
     } // -------- END EVENT LOOP ---------
    
     std::cout << "DONE WITH " << m_vJznLabels[iG] << std::endl;
-
+    std::cout << "Number of bad RECO  - " << nBadPairsR << std::endl;
+    std::cout << "Number of bad TRUTH - " << nBadPairsT << std::endl;
+    
     fIn->Close(); delete fIn;
   } // end loop over a JZ sample
+  TFile* f = new TFile("myOut.root", "RECREATE" );
+  hW->Write();
+  f->Close();   
 }
 
 //---------------------------
@@ -881,51 +891,65 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 double DiJetAnalysisMC::AnalyzeDeltaPhi( THnSparse* hn,
 					 const std::vector< TLorentzVector >& v_jets,
 					 const std::vector< TLorentzVector >& vW_jets ){
-  
+
   const TLorentzVector* jet1  = NULL; const TLorentzVector* jet2  = NULL;
   const TLorentzVector* wJet1 = NULL; const TLorentzVector* wJet2 = NULL;
 
   if( !GetDiJets(  v_jets,  jet1,  jet2 ) ||
       !GetDiJets( vW_jets, wJet1, wJet2 ) )
     { return -1; }
-
-  double jet1_pt    = jet1->Pt()/1000.;
-  double jet1_ystar = GetYstar( *jet1 );
-
-  double jet2_pt    = jet2->Pt()/1000.;
-  double jet2_ystar = GetYstar( *jet2 );
   
-  double deltaPhi   = anaTool->DeltaPhi( *jet2, *jet1 );
+  double jetPt1    = jet1->Pt()/1000.;
+  double jetYstar1 = GetYstar( *jet1 );
+  double jetPt2    = jet2->Pt()/1000.;
+  double jetYstar2 = GetYstar( *jet2 );
+
+  double dPhi      = anaTool->DeltaPhi(  *jet2,  *jet1 );
+  double dPhiW     = anaTool->DeltaPhi( *wJet2, *wJet1 );
+  // double jetWeight = GetJetWeight( *jet1 ) * GetDphiWeight( *wJet1, *wJet2 );
+  double jetWeight = GetJetWeight( *jet1 ) * GetSpectWeight( *wJet1 );
+  // double jetWeight = ( -1./constants::PI ) * dPhiW + 1.5;
+  // double jetWeight = 1;
+  std::vector< double > p{ jetYstar1, jetYstar2, jetPt1, jetPt2, dPhi, 0.5 };
   
-  std::vector< double > x;
-  x.resize( hn->GetNdimensions() );
-    
-  double jetWeight = GetJetWeight( *jet1 ) * GetDphiWeight( *wJet1, *wJet2 );
+  hn->Fill( &p[0], jetWeight );
 
-  x[0] = jet1_ystar;  
-  x[1] = jet2_ystar;
-  x[2] = jet1_pt ;
-  x[3] = jet2_pt ;
-  x[4] = deltaPhi;
-  x[5] = 0;
-  hn->Fill( &x[0], jetWeight );
+  /*
+  double wJetPt1    = wJet1->Pt()/1000.;
+  double wJetYstar1 = GetYstar( *wJet1 );
+  double wJetPt2    = wJet2->Pt()/1000.;
+  double wJetYstar2 = GetYstar( *wJet2 );
+  double dPhiW      = anaTool->DeltaPhi( *wJet2, *wJet1 );
+  
+  int dPhiBinW = hn->GetAxis(4)->FindBin( dPhiW );
+  
+  if( std::abs(jetYstar1) < 4.0 && std::abs(jetYstar1) > 2.7 &&
+      std::abs(jetYstar2) < 4.0 && std::abs(jetYstar2) > 2.7 &&
+      jetPt1 > 28 && jetPt1 < 35 && jetPt2 > 28 && jetPt2 < 35 ){
 
-  x[5] = 1;
-  hn->Fill( &x[0], jetWeight * deltaPhi );
+    TString hName( hn->GetName() );
+
+    if( hName.Contains( m_recoName.c_str() ) ){
+      std::cout << "----------------- RECO -----------------" << std::endl;
+    } else if( hName.Contains( m_truthName.c_str() ) ){
+      std::cout << "----------------- TRUTH ----------------" << std::endl;
+    }
+
+    std::cout << "J - " <<  jetPt1 << " " <<  jetPt2 << " " <<  jetYstar1 << " " <<  jetYstar2 << std::endl;
+    std::cout << "W - " << wJetPt1 << " " << wJetPt2 << " " << wJetYstar1 << " " << wJetYstar2 << std::endl;
+    std::cout << dPhiBinW << " " << dPhiW << " " << jetWeight << std::endl;
+  }
+  */  
   
   // for pp, fill twice. once for each side since
   // it is symmetric in pp. For pPb, continue
-  if( m_is_pPb ){ return deltaPhi; }
+  if( m_is_pPb ){ return dPhi; }
 
-  x[0] = -jet1_ystar;  
-  x[1] = -jet2_ystar;
-  x[5] = 0;
-  hn->Fill( &x[0], jetWeight );
-
-  x[5] = 1;
-  hn->Fill( &x[0], jetWeight * deltaPhi );
+  p[0] = -jetYstar1;  
+  p[1] = -jetYstar2;
+  hn->Fill( &p[0], jetWeight );
  
-  return deltaPhi;
+  return dPhi;
 }
 
 
@@ -945,7 +969,7 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     double jetPhiTruth = tJet.Phi();
     double  jetPtTruth = tJet.Pt()/1000.;
 	
-    double jetWeightReco  = GetJetWeight( rJet  );
+    double jetWeightReco  = GetJetWeight( rJet );
     double jetWeightTruth = GetJetWeight( tJet );
 	
     m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
@@ -1003,33 +1027,35 @@ void DiJetAnalysisMC::AnalyzeDphiRespMat( THnSparse* hnDphi,
   if( !GetDiJets( vR_jets, rJet1, rJet2 ) ||
       !GetDiJets( vT_jets, tJet1, tJet2 ) ) { return; }
 
-  double rJet1_pt    = rJet1->Pt()/1000.;
+  double rjetPt1    = rJet1->Pt()/1000.;
   
-  double rJet2_pt    = rJet2->Pt()/1000.;
+  double rjetPt2    = rJet2->Pt()/1000.;
   
-  double tJet1_pt    = tJet1->Pt()/1000.;
-  double tJet1_ystar = GetYstar( *tJet1 );
+  double tjetPt1    = tJet1->Pt()/1000.;
+  double tjetYstar1 = GetYstar( *tJet1 );
 
-  double tJet2_pt    = tJet2->Pt()/1000.;
-  double tJet2_ystar = GetYstar( *tJet2 );
+  double tjetPt2    = tJet2->Pt()/1000.;
+  double tjetYstar2 = GetYstar( *tJet2 );
   
-  double recoDeltaPhi    = anaTool->DeltaPhi( *rJet2, *rJet1  );
-  double truthDeltaPhi   = anaTool->DeltaPhi( *tJet2, *tJet1 );
+  double recoDphi    = anaTool->DeltaPhi( *rJet2, *rJet1 );
+  double truthDphi   = anaTool->DeltaPhi( *tJet2, *tJet1 );
   
   std::vector< double > xDphi( hnDphi->GetNdimensions(), 0 );
     
-  double jetWeight =
-    GetJetWeight( *tJet1 ) * GetDphiWeight( *rJet1, *rJet2 );
-
+  // double jetWeight = GetJetWeight( *tJet1 ) * GetDphiWeight( *tJet1, *tJet2 );
+  double jetWeight = GetJetWeight( *tJet1 ) * GetSpectWeight( *tJet1 );
+  // double jetWeight = ( -1./constants::PI ) * truthDphi + 1.5;
+  // double jetWeight = 1;
+  
   // fill for Dphi resp mat
-  xDphi[0] = tJet1_ystar;  
-  xDphi[1] = tJet2_ystar;
-  xDphi[2] = rJet1_pt ;
-  xDphi[3] = tJet1_pt;
-  xDphi[4] = rJet2_pt ;
-  xDphi[5] = tJet2_pt;
-  xDphi[6] = recoDeltaPhi;
-  xDphi[7] = truthDeltaPhi;
+  xDphi[0] = tjetYstar1;  
+  xDphi[1] = tjetYstar2;
+  xDphi[2] = rjetPt1 ;
+  xDphi[3] = tjetPt1;
+  xDphi[4] = rjetPt2 ;
+  xDphi[5] = tjetPt2;
+  xDphi[6] = recoDphi;
+  xDphi[7] = truthDphi;
   hnDphi   ->Fill( &xDphi[0], jetWeight );
   hnDphiReb->Fill( &xDphi[0], jetWeight );
   
@@ -1038,8 +1064,8 @@ void DiJetAnalysisMC::AnalyzeDphiRespMat( THnSparse* hnDphi,
   if( m_is_pPb ){ return; }
   
   // fill for Dphi resp mat
-  xDphi[0] = -tJet1_ystar;  
-  xDphi[1] = -tJet2_ystar;
+  xDphi[0] = -tjetYstar1;  
+  xDphi[1] = -tjetYstar2;
   hnDphi   ->Fill( &xDphi[0], jetWeight );
   hnDphiReb->Fill( &xDphi[0], jetWeight );
 }
@@ -1057,16 +1083,6 @@ void DiJetAnalysisMC::PairJets( std::vector< TLorentzVector >& vA_jets,
   if( !vA_jets.size() || !vB_jets.size() ){ return; }
   
   for( auto& aJet : vA_jets){
-
-    /*
-    // check if this jet is in some useful pt range
-    // here we call that useful range the range of the
-    // jer jer plots
-    double aJetPt    = aJet.Pt()/1000.;
-    if( aJetPt <  m_ptTruthMin ||
-	aJetPt >= m_ptTruthMax )
-      { continue; }
-    */
     
     // also ignore jets outside of a certain ystar range.
     double aJetYstar = GetYstar( aJet );
@@ -1118,9 +1134,35 @@ double DiJetAnalysisMC::GetDphiWeight( const TLorentzVector& jet1,
   double jetPt1    = jet1.Pt() / 1000.;
   double jetPt2    = jet2.Pt() / 1000.;
   double dPhi      = anaTool->DeltaPhi( jet1, jet2 );
-  std::vector< double > c{ jetYstar1, jetYstar2, jetPt1, jetPt2, dPhi };
 
-  return m_dPhiWeight->GetBinContent( m_dPhiWeight->GetBin( &c[0] ) );
+  // fix this later.
+  // weights only given for negative jetYstar1
+  // only do this for pp case.
+  if( !m_is_pPb && jetYstar1 > 0 ){ jetYstar1 *= -1; jetYstar2 *= -1; }
+  
+  std::vector< double > p{ jetYstar1, jetYstar2, jetPt1, jetPt2, dPhi, 0.5 };
+  
+  int jetYstar1Bin = m_dPhiWeight->GetAxis(0)->FindBin( jetYstar1 );
+  int jetYstar2Bin = m_dPhiWeight->GetAxis(1)->FindBin( jetYstar2 );
+  int jetPt1Bin    = m_dPhiWeight->GetAxis(2)->FindBin( jetPt1 );
+  int jetPt2Bin    = m_dPhiWeight->GetAxis(3)->FindBin( jetPt2 );
+  int dPhiBin      = m_dPhiWeight->GetAxis(4)->FindBin( dPhi );
+  std::vector< int > b{ jetYstar1Bin, jetYstar2Bin, jetPt1Bin, jetPt2Bin, dPhiBin, 1 };
+
+  double weight = m_dPhiWeight->GetBinContent( m_dPhiWeight->GetBin( &p[0] ) );
+
+  /*
+  if( std::abs(jetYstar1) < 4.0 && std::abs(jetYstar1) > 2.7 &&
+      std::abs(jetYstar2) < 4.0 && std::abs(jetYstar2) > 2.7 &&
+      jetPt1 > 28 && jetPt1 < 35 && jetPt2 > 28 && jetPt2 < 35 ){
+    std::cout << "+++++++++++++++" << std::endl;
+    for( auto pp : p ){ std::cout << pp << ", " ;} std::cout << std::endl;
+    for( auto bb : b ){ std::cout << bb << ", " ;} std::cout << std::endl;
+    std::cout << dPhiBin << " " << dPhi << " " << weight << std::endl;
+  }
+  */
+  
+  return weight;
 }
 
 TH1* DiJetAnalysisMC::CombineSamples( std::vector< TH1* >& vSampleHin,
@@ -1328,8 +1370,8 @@ void DiJetAnalysisMC::SetCfactorsErrors( TH1* hR, TH1* hT, TH2* hM, TH1* hC ){
       std::sqrt( std::pow( vT, 2 ) / std::pow( vR, 3 ) *
 		 ( 1 - std::pow( vM, 2 ) / ( vT * vR ) ) );
 
-    std::cout << xBin << " " << vT << " " << vR << " "
-	      << vM << "  C = " << hC->GetBinContent( xBin )
+    std::cout << xBin << "   T = " << vT << "   R = " << vR << "   M = "
+	      << vM << "    C = " << hC->GetBinContent( xBin )
 	      << "   err = " << newDphiError << std::endl;
     
     hC->SetBinError( cBin, newDphiError );
@@ -1337,12 +1379,13 @@ void DiJetAnalysisMC::SetCfactorsErrors( TH1* hR, TH1* hT, TH2* hM, TH1* hC ){
 }
 
 double DiJetAnalysisMC::GetJetWeight( const TLorentzVector& jet ){
+
   if( !m_hPowhegWeights ) { return 1; } 
   
   int xb = m_hPowhegWeights->GetXaxis()->FindBin( jet.Pt()/1000. );
   int yb = m_hPowhegWeights->GetYaxis()->FindBin( jet.Eta()      );
   int zb = m_hPowhegWeights->GetZaxis()->FindBin( jet.Phi()      );
-  float jet_weight = m_hPowhegWeights->GetBinContent( xb, yb, zb);
+  float jet_weight = m_hPowhegWeights->GetBinContent( xb, yb, zb );
 
   return jet_weight;
 }
@@ -1373,21 +1416,21 @@ void DiJetAnalysisMC::GetSpectWeightInfo( std::string& name_a , std::string& nam
 					  std::string& fName_a, std::string& fName_b ){
 
   
-  // a is MC, b is Data
-  name_a   = m_ystarSpectRecoName;
-  name_b   = m_ystarSpectName;
-  fName_a  = m_fNamePerf;
-  fName_b  = m_fNamePerfWeightData;
+  // a is Data, b is MC
+  name_a   = m_ystarSpectName;
+  name_b   = m_ystarSpectRecoName;
+  fName_a  = m_fNamePerfWeightData;
+  fName_b  = m_fNamePerf;
 }
 
 void DiJetAnalysisMC::GetDphiWeightInfo ( std::string& name_a , std::string& name_b,
 					  std::string& fName_a, std::string& fName_b ){
-  
-  // a is MC, b is Data
-  name_a   = m_dPhiRecoName;
-  name_b   = m_dPhiName;
-  fName_a  = m_fNamePhys;
-  fName_b  = m_fNamePhysWeightData;
+ 
+  // a is Data, b is MC
+  name_a   = m_dPhiName;
+  name_b   = m_dPhiRecoName;
+  fName_a  = m_fNamePhysWeightData;
+  fName_b  = m_fNamePhys;
 }
 
 void DiJetAnalysisMC::GetSpectUnfoldingInfo( std::string& measuredName,
@@ -1447,7 +1490,7 @@ void DiJetAnalysisMC::GetInfoTogether( std::string& name_a , std::string& name_b
     fName_b  = *pFname;
   } else if ( combinationBoth == 1 ){
     name_a   +=  "_" + m_recoName;
-    name_b   +=  "_" + m_recoName;
+    name_b   +=  "_" + m_recoName + "_" + m_unfoldedName;
     label_a  = "Reco_{MC}";
     label_b  = "UF_{MC}";
     fName_a  = *pFname;
@@ -1638,8 +1681,8 @@ TH1* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
   std::cout << fName_d  << std::endl;
   std::cout << fName_mc << std::endl;
 
-  double xMin = m_varPtBinningRespMat[ 1 ];
-  double xMax = m_varPtBinningRespMat[ m_nVarYstarBins - 1 ];
+  double xMin = m_varPtBinningUfOf[ 1 ];
+  double xMax = m_varPtBinningUfOf[ m_nVarYstarBins - 1 ];
   
   TLine line( xMin, 1, xMax, 1 );
   line.SetLineWidth( 2 );
@@ -1657,7 +1700,7 @@ TH1* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
   std::string axisLabel, axisLabelTex;
   GetSpectraLabels( axisLabel, axisLabelTex, name_d );
   
-  TFile* fIn_d = TFile::Open( fName_d.c_str() );
+  TFile* fIn_d  = TFile::Open( fName_d .c_str() );
   TFile* fIn_mc = TFile::Open( fName_mc.c_str() );
 
   fOut->cd();
@@ -1665,9 +1708,9 @@ TH1* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
   TH1* hAll =
     new TH2D( Form( "h_%s_%s_%s", m_spectName.c_str(), m_sWeights.c_str(),
 		    m_allName.c_str() ), ";#it{p}_{T1};#eta_{1}",
-	      m_nVarYstarBins, 0, 1, m_nVarPtBinsRespMat, 0, 1 );
-  hAll->GetXaxis()->Set( m_nVarYstarBins    , &( m_varYstarBinning    [0] ) );
-  hAll->GetYaxis()->Set( m_nVarPtBinsRespMat, &( m_varPtBinningRespMat[0] ) );
+	      m_nVarYstarBins, 0, 1, m_nVarPtBinsUfOf, 0, 1 );
+  hAll->GetXaxis()->Set( m_nVarYstarBins , &( m_varYstarBinning [0] ) );
+  hAll->GetYaxis()->Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
   
   for( uint xBin = 1; xBin <= m_nVarYstarBins; xBin++ ){
 
@@ -1683,13 +1726,16 @@ TH1* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
     TH1* h_mc = static_cast< TH1D* >( fIn_mc->Get( hName_mc.c_str() ) ); 
     vH.push_back( h_d ); vH.push_back( h_mc );
     
-    double integralA = h_d ->Integral( 2, m_nVarPtBinsRespMat - 1 );
-    double integralB = h_mc->Integral( 2, m_nVarPtBinsRespMat - 1 );
+    double integralA = h_d ->Integral( 2, m_nVarPtBinsUfOf - 1 );
+    double integralB = h_mc->Integral( 2, m_nVarPtBinsUfOf - 1 );
 
     double scalingFactor = integralA / integralB;
 
     h_mc->Scale( scalingFactor );
 
+    h_d ->Write();
+    h_mc->Write();
+    
     TH1* hR = static_cast< TH1D* >
     ( h_d->Clone( Form( "h_%s_%s_%s_%s", m_spectName.c_str(), m_sWeights.c_str(),
 			       m_allName.c_str(), hTag.c_str() ) ) );
@@ -1698,15 +1744,19 @@ TH1* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
 
     hR->Divide( h_mc );
 
-    for( uint yBin = 1; yBin <= m_nVarPtBinsRespMat; yBin++ ){
+    for( uint yBin = 1; yBin <= m_nVarPtBinsUfOf; yBin++ ){
+      /*
+      if( yBin == 1 ){
+	hR->SetBinContent( yBin, 1 );
+	hR->SetBinError  ( yBin, 0 );
+      }
+      */
       double val      = hR->GetBinContent( yBin );
       double valError = hR->GetBinError  ( yBin );
       hAll->SetBinContent( xBin, yBin, val      );
       hAll->SetBinError  ( xBin, yBin, valError );
     }
     
-    hR->GetXaxis()->SetRange( 2,  m_nVarPtBinsRespMat - 1 );
-
     TCanvas c( "c", "c", 800, 600 );
 
     hR->SetYTitle( "Data/MC" );
@@ -1854,31 +1904,61 @@ THnSparse* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
 	  double scalingFactor = integralD / integralMC;
 
 	  h_mc->Scale( scalingFactor );
-
+	  h_d ->Write();
+	  h_mc->Write();
+	  
 	  TH1* hR = static_cast< TH1D* >
-	    ( h_mc->Clone( Form( "h_%s_%s_%s_%s", m_dPhiName.c_str(), m_sWeights.c_str(),
+	    ( h_d->Clone( Form( "h_%s_%s_%s_%s", m_dPhiName.c_str(), m_sWeights.c_str(),
 				m_allName.c_str(), hTagDphi.c_str())));
 	  styleTool->SetHStyleRatio( hR );
-	  hR->Divide( h_d );
+	  hR->Divide( h_mc );
 	  vR.push_back( hR );
 
 	  hR->SetYTitle( "Data/MC" );
-	  // hR->Smooth( 1, "R" );
+	  hR->Smooth( 1, "R" );
 
 	  // fill unfolded THnSparse result
-	  std::vector< int > x  = m_dPP->GetMappedBins
+	  std::vector< int > x1  = m_dPP->GetMappedBins
 	    ( std::vector<int> { axis0Bin, axis1Bin, axis2Bin, axis3Bin } );
-	  x.push_back(0); x.push_back(0); 
+	  x1.push_back(0); x1.push_back(0); 
+	  /*
+	  std::vector< int > x2  = x1;
+	  x2[0] = m_nVarYstarBins - x1[0] + 1;
+	  x2[1] = m_nVarYstarBins - x1[1] + 1;
+	  */
 	  for( int dPhiBin = 1; dPhiBin <= hR->GetNbinsX(); dPhiBin++ ){
-	    x[4] = dPhiBin;
-	    x[5] = 1;
-	    hnAll->SetBinContent( &x[0], hR->GetBinContent( dPhiBin ) );
-	    hnAll->SetBinError  ( &x[0], hR->GetBinError  ( dPhiBin ) );
+	    x1[4] = dPhiBin;
+	    x1[5] = 1;
+	    hnAll->SetBinContent( &x1[0], hR->GetBinContent( dPhiBin ) );
+	    hnAll->SetBinError  ( &x1[0], hR->GetBinError  ( dPhiBin ) );
+
+	    /*
+	    // if its pp, set for other side as well
+	    if( !m_is_pPb ){
+	      x2[4] = dPhiBin;
+	      x2[5] = 1;
+	      std::cout << axis3Bin << " !!!!!!!!!!!! " << std::endl; 
+	      for( auto x : x1 ){ std::cout << x << ", "; }
+	      std::cout << std::endl;
+	      for( auto x : x2 ){ std::cout << x << ", "; }
+	      std::cout << std::endl;
+	      std::cout << x1[0] << " -> ";
+	      std::cout << x2[0] << std::endl;
+	      std::cout << x1[1] << " -> ";
+	      std::cout << x2[1] << std::endl;
+	      std::cout << hR->GetBinContent( dPhiBin ) << " "
+			<< hnAll->GetBin( &x1[0] ) << " "
+			<< hnAll->GetBin( &x2[0] ) << std::endl;
+	      hnAll->SetBinContent( &x2[0], hR->GetBinContent( dPhiBin ) );
+	      hnAll->SetBinError  ( &x2[0], hR->GetBinError  ( dPhiBin ) );
+	    }
+	    */
 	  }
 	  
 	  TCanvas c( "c", "c", 800, 600 );
 	  
 	  // hR->Fit( "pol2", "Q", "", xMin, xMax );
+	  hR->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 	  
 	  hR->Draw();
 	  line.Draw();
@@ -1892,7 +1972,7 @@ THnSparse* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
 	      axis2Low, axis2Up, axis3Low, axis3Up );
 
 	  SaveAsAll( c, hR->GetName() );
-    
+	  
 	  hR->Write();
 	}  // end loop over axis3
       }  // end loop over axis2
@@ -2481,9 +2561,11 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	    TH1* hR = hnR->Projection( 4 );
 
 	    hT->SetName( Form( "h_T_%s_%s_%s_%s",
-			       m_dPhiName.c_str(), m_sCounts.c_str(), label.c_str(), hTag.c_str() ) );
+			       m_dPhiName.c_str(), m_sCounts.c_str(),
+			       label.c_str(), hTag.c_str() ) );
 	    hR->SetName( Form( "h_R_%s_%s_%s_%s",
-			       m_dPhiName.c_str(), m_sCounts.c_str(), label.c_str(), hTag.c_str() ) );
+			       m_dPhiName.c_str(), m_sCounts.c_str(),
+			       label.c_str(), hTag.c_str() ) );
 
 	    // write the unnormalized histograms.
 	    vProj.push_back( hT );
@@ -2496,14 +2578,16 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	    TH1* hTreb = static_cast< TH1D* >
 	      ( hT->Rebin
 		( m_nVarDphiRebinnedBins,
-		  Form( "h_T_%s_%s_%s_%s",
-			m_dPhiName.c_str(), m_sReb.c_str(), label.c_str(), hTag.c_str() ),
+		  Form( "h_T_%s_%s_%s_%s_%s",
+			m_dPhiName.c_str(), m_sCounts.c_str(),
+			m_sReb.c_str(), label.c_str(), hTag.c_str() ),
 		  &m_varDphiRebinnedBinning[0] ) );   
 	    TH1* hRreb = static_cast< TH1D* >
 	      ( hR->Rebin
 		( m_nVarDphiRebinnedBins,
-		  Form( "h_R_%s_%s_%s_%s",
-			m_dPhiName.c_str(), m_sReb.c_str(), label.c_str(), hTag.c_str() ),
+		  Form( "h_R_%s_%s_%s_%s_%s",
+			m_dPhiName.c_str(), m_sCounts.c_str(),
+			m_sReb.c_str(), label.c_str(), hTag.c_str() ),
 		  &m_varDphiRebinnedBinning[0] ) );
    
 	    vProj.push_back( hTreb );

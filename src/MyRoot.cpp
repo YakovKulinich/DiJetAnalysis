@@ -234,7 +234,7 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
   if( !hProj->Integral( 1, hProj->FindBin( 1. ) ) ){ return false; }
 
   TF1 cFit( "cFit", combFit, xLow, xHigh, 1 );
-  hProj->Fit( "cFit", "N", "", xLow, xHigh ); 
+  hProj->Fit( "cFit", "NQ", "", xLow, xHigh ); 
     
   double comb      = cFit.GetParameter(0);
   double combError = cFit.GetParError (0);
@@ -283,21 +283,47 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   double amp = histo->GetBinContent( histo->GetMaximumBin () );
   
   dPhiFit->SetParameters( amp, 0.20, 0.20 );
+  dPhiFit->SetParLimits ( 1, 1E-3, 1 );
   dPhiFit->SetParLimits ( 2, 1E-2, 1 );
   
   int status = histo->Fit( dPhiFit->GetName(), "NQI", "", xLow, xHigh );
 
   if( status ){ std::cout << " +++++++++++++ " << status
 			  << " " << dPhiFit->GetName() << std::endl; }
+  
+  return dPhiFit;
+}
 
-  /*
-  int nIt = 1;
-  while( dPhiFit->GetProb() < 0.05 && nIt <= 5 ){
-    histo->Fit( dPhiFit->GetName(), "NQI", "", xLow + 0.1 * nIt, xHigh );
-    dPhiFit->SetRange( xLow + 0.1 * nIt, xHigh );
-    nIt++;
-  }
-  */
+TF1* CT::AnalysisTools::FitDphiWC( TH1* histo, double xLow, double xHigh ){
+
+  auto EMG = [&]( double* x, double* par){
+    return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
+    ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
+      TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
+      TMath::Exp((constants::PI-x[0])/par[1]) *
+      ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])))
+    + par[3];
+  };
+  
+  // set range to be in range of fit
+  histo->GetXaxis()->SetRange( 1, -1 );
+  
+  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 4 );
+
+  if( !histo->GetEntries() )
+    { return dPhiFit; }
+
+  double amp = histo->GetBinContent( histo->GetMaximumBin () );
+  
+  dPhiFit->SetParameters( amp, 0.20, 0.1, 0);
+  dPhiFit->SetParLimits ( 1, 1E-3, 1 );
+  dPhiFit->SetParLimits ( 2, 1E-2, 1 );
+  dPhiFit->SetParLimits ( 3, 0,    1 );
+  
+  int status = histo->Fit( dPhiFit->GetName(), "NQI", "", xLow, xHigh );
+
+  if( status ){ std::cout << " +++++++++++++ " << status
+			  << " " << dPhiFit->GetName() << std::endl; }
   
   return dPhiFit;
 }

@@ -58,6 +58,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void ProcessEvents( int, int );
 
  protected:
+
   //---------------------------
   //       Analysis
   //---------------------------
@@ -223,6 +224,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   TH1*       m_spectWeight;
   THnSparse*  m_dPhiWeight;
+  TH1*    m_dPhiWeightTest;
   
   //============ data =============
   // -------- maps ---------
@@ -265,23 +267,23 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   
   THnSparse* m_hAllDphiReco;
   THnSparse* m_hAllDphiTruth;
-
+  
   // ----- dPhi response matrix ------
+
   std::string m_dPhiRespMatName;
   std::string m_dPhiRespMatRebName;
 
   std::string m_ptRespMatName;
 
-  // ------- dPhi reco unfolded ------
-  std::string m_dPhiRecoUnfoldedName;
-  
-  // -------- Dphi Response Matrix --------     
   std::vector< THnSparse* > m_vHjznDphiRespMat;  
   THnSparse* m_hAllDphiRespMat;
 
   // -------- Rebinned Response Matrix --------     
   std::vector< THnSparse* > m_vHjznDphiRespMatReb;  
   THnSparse* m_hAllDphiRespMatReb;
+
+  // ------- dPhi reco unfolded ------
+  std::string m_dPhiRecoUnfoldedName;
 
   //========= histos binning ========
   

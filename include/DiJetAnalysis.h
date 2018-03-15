@@ -435,8 +435,8 @@ class DiJetAnalysis{
   uint m_nVarPtBins;
 
   // --- variable pt binning w/over+underflow ---
-  std::vector< double > m_varPtBinningRespMat;
-  uint m_nVarPtBinsRespMat;
+  std::vector< double > m_varPtBinningUfOf;
+  uint m_nVarPtBinsUfOf;
   
   // --- variable dphi binning ---
   std::vector<double> m_varDphiBinning;
