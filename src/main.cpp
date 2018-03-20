@@ -77,10 +77,16 @@ int main(int argc, char *argv[])
 
   switch( mode ){
   case -1:
-    analysis->RunOverTreeMakeWeights( nEvents, startEvent ); 
+    analysis->RunOverTreeFillSpect( nEvents, startEvent ); 
     break;
   case -2:
-    analysis->ProcessWeights();
+    analysis->ProcessSpectWeights();
+    break;
+  case -3:
+    analysis->RunOverTreeFillDphi( nEvents, startEvent ); 
+    break;
+  case -4:
+    analysis->ProcessDphiWeights();
     break;
   case 0:
     analysis->RunOverTreeFillHistos( nEvents, startEvent ); 

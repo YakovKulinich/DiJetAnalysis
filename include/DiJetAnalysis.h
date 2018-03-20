@@ -47,10 +47,14 @@ class DiJetAnalysis{
   //---------------------------
   // Fill Tree / Plot Controls
   //---------------------------
-  virtual void RunOverTreeMakeWeights( int, int );
+  virtual void RunOverTreeFillSpect( int, int ){}
 
-  virtual void ProcessWeights();
-  
+  virtual void ProcessSpectWeights(){}
+
+  virtual void RunOverTreeFillDphi( int, int ){}
+    
+  virtual void ProcessDphiWeights(){}
+
   virtual void RunOverTreeFillHistos( int, int ) = 0;
 
   virtual void ProcessPerformance   () = 0;
@@ -246,6 +250,7 @@ class DiJetAnalysis{
   std::string m_sPhys;
   std::string m_sPerf;
 
+  std::string m_sFine;
   std::string m_sWeights;
   std::string m_sCounts;
   std::string m_sReb;
@@ -339,13 +344,14 @@ class DiJetAnalysis{
 
   // -------- spect --------
   std::string m_etaSpectName;
-  std::string m_ystarSpectName;
-
-  std::string m_etaSpectRecoName;
-  std::string m_ystarSpectRecoName;
   
-  std::string m_etaSpectTruthName; 
-  std::string m_ystarSpectTruthName; 
+  std::string m_ystarSpectName;
+  std::string m_ystarSpectRecoName;
+  std::string m_ystarSpectTruthName;
+
+  std::string m_ystarSpectFineName;
+  std::string m_ystarSpectFineRecoName;
+  std::string m_ystarSpectFineTruthName;
 
   // --- spectra response matrix ----
   std::string m_ystarSpectRespMatName;
@@ -354,10 +360,7 @@ class DiJetAnalysis{
   std::string m_ystarSpectCfactorsName;
 
   // ------- unfolded spectra -------
-  std::string m_etaSpectUnfoldedName;
   std::string m_ystarSpectUnfoldedName;
-
-  std::string m_etaSpectRecoUnfoldedName;
   std::string m_ystarSpectRecoUnfoldedName;
 
   // ------------- dPhi ---------------

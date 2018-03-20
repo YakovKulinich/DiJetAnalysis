@@ -73,6 +73,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sPerf     = "perf";
   m_sPhys     = "phys";
 
+  m_sFine     = "fine";
   m_sWeights  = "weights";
   m_sCounts   = "counts";
   m_sReb      = "reb";
@@ -132,7 +133,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_ptSpectMax   = 100;
   m_nPtSpectBins = ( m_ptSpectMax - m_ptSpectMin ) / 2 ; 
 
-  m_ptSpectYaxisMin = 1E0;
+  m_ptSpectYaxisMin = 1E1;
   
   // -------- eff ---------
   m_effMin = 0.;
@@ -278,24 +279,20 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_respMatName    = "respMat";
   m_unfoldedName   = "unfolded";
 
-  m_etaSpectName   = m_sEta  + "_" + m_spectName;
-  m_ystarSpectName = m_sYstar+ "_" + m_spectName;
-
-  m_etaSpectRecoName       = m_etaSpectName   + "_" + m_recoName;
-  m_ystarSpectRecoName     = m_ystarSpectName + "_" + m_recoName;
-
-  m_etaSpectTruthName      = m_etaSpectName   + "_" + m_truthName;
-  m_ystarSpectTruthName    = m_ystarSpectName + "_" + m_truthName;
-
-  m_ystarSpectRespMatName  = m_ystarSpectName + "_" + m_respMatName;
+  m_etaSpectName        = m_sEta + "_" + m_spectName;
   
-  m_etaSpectUnfoldedName   = m_etaSpectName   + "_" + m_unfoldedName;
-  m_ystarSpectUnfoldedName = m_ystarSpectName + "_" + m_unfoldedName; 
+  m_ystarSpectName      = m_sYstar + "_" + m_spectName;
+  m_ystarSpectRecoName  = m_ystarSpectName + "_" + m_recoName;
+  m_ystarSpectTruthName = m_ystarSpectName + "_" + m_truthName;
 
-  m_etaSpectRecoUnfoldedName   = m_etaSpectRecoName   + "_" + m_unfoldedName;
+  m_ystarSpectFineName      = m_ystarSpectName + "_" + m_sFine;
+  m_ystarSpectFineRecoName  = m_ystarSpectFineName + "_" + m_recoName;
+  m_ystarSpectFineTruthName = m_ystarSpectFineName + "_" + m_truthName;
+
+  m_ystarSpectRespMatName      = m_ystarSpectName + "_" + m_respMatName;  
+  m_ystarSpectCfactorsName     = m_ystarSpectName + "_" + m_cFactorName;
+  m_ystarSpectUnfoldedName     = m_ystarSpectName + "_" + m_unfoldedName; 
   m_ystarSpectRecoUnfoldedName = m_ystarSpectRecoName + "_" + m_unfoldedName;
-
-  m_ystarSpectCfactorsName = m_ystarSpectName + "_" + m_cFactorName;
   
   m_dPhiRecoName   = m_dPhiName + "_" + m_recoName;
   m_dPhiTruthName  = m_dPhiName + "_" + m_truthName;
@@ -377,10 +374,6 @@ void DiJetAnalysis::Initialize(){
 //---------------------------
 // Fill Tree / Plot Controls
 //---------------------------
-
-void DiJetAnalysis::RunOverTreeMakeWeights( int nEventsIn, int startEventIn ){}
-
-void DiJetAnalysis::ProcessWeights(){}
 
 void DiJetAnalysis::MakeResultsTogether(){
 
@@ -511,17 +504,17 @@ void DiJetAnalysis::AnalyzeSpectra( TH2* hSpect,
   for( auto& jet : vJets ){
     if( jet.Pt() <= 0 ){ continue; }
 	
-    double jetEta    = jet.Eta();
+    double jetYstar  = GetYstar( jet );
     double jetPt     = jet.Pt()/1000.;
-
+    
     double jetWeight = GetJetWeight( jet );
 
-    hSpect->Fill(  jetEta,  jetPt,  jetWeight );	
+    hSpect->Fill(  jetYstar,  jetPt,  jetWeight );	
 
     // for pp fill both sides
     if( m_is_pPb ){ continue; }
 
-    hSpect->Fill( -jetEta,  jetPt,  jetWeight );	
+    hSpect->Fill( -jetYstar,  jetPt,  jetWeight );	
   }
 }
 
@@ -820,12 +813,9 @@ void DiJetAnalysis::MakeLinearBinning( std::vector< double >& varBinning,
   double dWidthPerBin =
     ( constants::PI - varBinStart - nVarBins * finalWidth ) /
     ( nVarBins / 2 - ( nVarBins * nVarBins ) / 2 );
-
-  std::cout << " !!!! dWidthPerBin : " << dWidthPerBin << std::endl;
   
   for( int i = 1; i <= nVarBins; i++ ){
     double width = finalWidth - ( nVarBins - i ) * dWidthPerBin;
-    std:: cout << i << " : " << width << std::endl;
     varBinning.push_back( varBinning.back() + width );
   }
 
@@ -891,7 +881,7 @@ void DiJetAnalysis::MakeEtaPhiPtMap( std::vector< TH2* >& vSampleMaps,
 
   uint nSamples = vSampleMaps.size();
   
-  TCanvas c_map("c_map","c_map",800,600);
+  TCanvas c_map( "c_map", "c_map", 800, 600 );
 
   for( uint iG = 0; iG < nSamples; iG++ ){
     std::string label = vLabels[iG];
@@ -963,14 +953,14 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
       vSpect      [iG].push_back( hSpect );
       vSpectCounts[iG].push_back( hSpectCounts );
       
-      // in case var binning, scale by width
+      // scale by width of bins to get dN/dpT
       hSpect->Scale( 1., "width" );
       
       hSpect->Write();
       hSpectCounts->Write();
       
       // get min max from the final histograms
-      if( label.compare( m_allName )  ){ continue; }
+      if( label.compare( m_allName ) ){ continue; }
       if( max < hSpect->GetMaximum() ){ max = hSpect->GetMaximum(); }
       
     } // end loop over xBin

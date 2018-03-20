@@ -30,9 +30,13 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   // Fill Tree / Plot Controls
   //---------------------------
-  void RunOverTreeMakeWeights( int, int );
+  void RunOverTreeFillSpect( int, int );
 
-  void ProcessWeights();
+  void ProcessSpectWeights();
+  
+  void RunOverTreeFillDphi( int, int );
+
+  void ProcessDphiWeights();
   
   void RunOverTreeFillHistos( int, int );
 
@@ -51,10 +55,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   void SetupHistograms();
 
-  void LoadWeights();
+  void LoadSpectWeights();
+
+  void LoadDphiWeights();
   
-  void ProcessEventsForWeights( int, int );
-    
+  void ProcessEventsForWeights( int, int, int = 0 );
+   
   void ProcessEvents( int, int );
 
  protected:
@@ -62,9 +68,16 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
-  double AnalyzeDeltaPhi( THnSparse*,
-			  const std::vector <TLorentzVector >&,
-			  const std::vector <TLorentzVector >& );
+  double AnalyzeDeltaPhiWithWeight
+    ( THnSparse*,
+      const std::vector <TLorentzVector >&,
+      const std::vector <TLorentzVector >&,
+      int = 0);
+
+  double AnalyzeDeltaPhiWithDphiWeight
+    ( THnSparse*,
+      const std::vector <TLorentzVector >&,
+      const std::vector <TLorentzVector >& );
   
   void AnalyzeScaleResolution( const std::vector< TLorentzVector >&,
 			       const std::vector< TLorentzVector >&,
@@ -222,9 +235,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::string m_fNamePerfWeightData;
   std::string m_fNamePhysWeightData;
 
-  TH1*       m_spectWeight;
+  TH1*        m_spectWeight;
   THnSparse*  m_dPhiWeight;
-  TH1*    m_dPhiWeightTest;
+  std::vector< TF1* > m_vSpectWeightFits;
   
   //============ data =============
   // -------- maps ---------
@@ -234,15 +247,15 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   TH2* m_hAllEtaPtMap;
   
   // -------- spect --------
-  std::vector< TH2* > m_vHjznEtaSpectReco;
-  std::vector< TH2* > m_vHjznEtaSpectTruth;
   std::vector< TH2* > m_vHjznYstarSpectReco;
   std::vector< TH2* > m_vHjznYstarSpectTruth;
+  std::vector< TH2* > m_vHjznYstarSpectFineReco;
+  std::vector< TH2* > m_vHjznYstarSpectFineTruth;
   
-  TH2* m_hAllEtaSpectReco;
-  TH2* m_hAllEtaSpectTruth;
   TH2* m_hAllYstarSpectReco;
   TH2* m_hAllYstarSpectTruth;
+  TH2* m_hAllYstarSpectFineReco;
+  TH2* m_hAllYstarSpectFineTruth;
 
   // --- spectra response matrix ----
   std::vector< TH3* > m_vHjznYstarSpectRespMat;

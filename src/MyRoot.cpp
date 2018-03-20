@@ -392,10 +392,22 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* histo, double xLow, double xHigh){
   return fit;
 }
 
+TF1* CT::AnalysisTools::FitPol1( TH1* histo, double xLow, double xHigh){
+  TF1* fit  = new TF1( Form("f_%s", histo->GetName()), "pol1(0)", xLow, xHigh );
+
+  fit->SetParameters( 1, 1 );
+
+  if( histo->GetEntries() > 5 ){
+    histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
+  }
+  
+  return fit;
+}
+
 TF1* CT::AnalysisTools::FitPol2( TH1* histo, double xLow, double xHigh){
   TF1* fit  = new TF1( Form("f_%s", histo->GetName()), "pol2(0)", xLow, xHigh );
 
-  fit->SetParameters( 1, 1 );
+  fit->SetParameters( 1, 1, 1 );
 
   if( histo->GetEntries() > 5 ){
     histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );

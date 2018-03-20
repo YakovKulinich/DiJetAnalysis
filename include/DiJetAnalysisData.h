@@ -49,16 +49,16 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
-  bool JetInTrigPtRange  ( const TLorentzVector&, int,
+  bool JetInTrigPtRange  ( const TLorentzVector*, int,
 			   double = 0 );
   
-  bool JetInTrigEtaRange ( const TLorentzVector&, int );
+  bool JetInTrigEtaRange ( const TLorentzVector*, int );
   
-  bool JetInTrigRange    ( const TLorentzVector&, int );
+  bool JetInTrigRange    ( const TLorentzVector*, int );
 
-  bool TrigJetAboveThold ( const TLorentzVector&, int );
+  bool TrigJetAboveThold ( const TLorentzVector*, int );
   
-  bool TrigJetInTrigRange( const TLorentzVector&, int );
+  bool TrigJetInTrigRange( const TLorentzVector*, int );
   
   void AnalyzeEff( std::vector< TLorentzVector >&,
 		   std::vector< TLorentzVector >&,
@@ -140,11 +140,11 @@ class DiJetAnalysisData : public DiJetAnalysis{
   TH2* m_hAllEtaPhiMap;
   TH2* m_hAllEtaPtMap;
   // -------- spect --------  
-  std::vector< TH2* > m_vHtriggerEtaSpect;
   std::vector< TH2* > m_vHtriggerYstarSpect;
+  std::vector< TH2* > m_vHtriggerYstarSpectFine;
 
-  TH2* m_hAllEtaSpect;
   TH2* m_hAllYstarSpect;
+  TH2* m_hAllYstarSpectFine;
   // ----- efficiencies ----
   std::vector< TH2* > m_vHtriggerEtaSpectSim;
   std::vector< TH2* > m_vHtriggerEtaSpectDenom;
