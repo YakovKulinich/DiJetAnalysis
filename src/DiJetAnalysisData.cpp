@@ -50,6 +50,7 @@ DiJetAnalysisData::DiJetAnalysisData( bool is_pPb, int mcType, int uncertComp )
   m_centMbCorrection   = 0;
 
   //=============== Histo Names ==================    
+  m_ystarSpectFineRunsName = m_ystarSpectFineName + "_" + m_sRuns;
 }
 
 DiJetAnalysisData::~DiJetAnalysisData(){}
@@ -326,6 +327,29 @@ void DiJetAnalysisData::LoadTriggers(){
       m_vTriggersEffPtHigh[ m_mbTriggerI ];
     std::cout << "m_centMbCorrection: " << m_centMbCorrection << std::endl;
   }
+
+  std::vector< int >    vRuns = anaTool->vectoriseI
+    ( GetConfig()->GetValue
+      ( Form("runs.%s",triggerMenu.c_str()), "" ), " ");
+  std::vector< double > vLumi = anaTool->vectoriseD
+    ( GetConfig()->GetValue
+      ( Form("lumi.%s",triggerMenu.c_str()), "" ), " ");
+  m_nRuns = vRuns.size();
+
+  for( uint r = 0; r < m_nRuns; r++ ){
+    int     runNumber = vRuns[r];
+    double luminosity = vLumi[r];
+    m_mRunBin [ runNumber ] = r + 1;
+    m_mRunLumi[ runNumber ] = luminosity;
+  }
+  
+  for( const auto& m : m_mRunBin ){
+    std::cout << m.first << " : " << m.second << std::endl;
+  }
+  
+  for( const auto& m : m_mRunLumi ){
+    std::cout << m.first << " : " << m.second << std::endl;
+  }
 }
 
 void DiJetAnalysisData::SetupHistograms(){
@@ -368,6 +392,16 @@ void DiJetAnalysisData::SetupHistograms(){
     m_vHtriggerYstarSpectFine.back()->GetXaxis()->
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     AddHistogram( m_vHtriggerYstarSpectFine.back() );
+
+    m_vHtriggerYstarSpectFineRuns.push_back
+      ( new TH3D( Form("h_%s_%s", m_ystarSpectFineRunsName.c_str(), trigger.c_str() ), 
+		  ";#eta;#it{p}_{T} [GeV];",
+		  m_nVarYstarBins, 0, 1,
+		  m_nPtSpectBins,m_ptSpectMin, m_ptSpectMax,
+		  m_nRuns, 0, m_nRuns ) ) ;
+    m_vHtriggerYstarSpectFineRuns.back()->GetXaxis()->
+      Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    AddHistogram( m_vHtriggerYstarSpectFineRuns.back() );
 
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
@@ -524,10 +558,17 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 
 	m_vHtriggerYstarSpect[iG]->
 	  Fill( jetYstar1, jetPt1 );
-
+	m_vHtriggerYstarSpectFine[iG]->
+	  Fill( jetYstar1, jetPt1 );
+	m_vHtriggerYstarSpectFineRuns[iG]->
+	  Fill( jetYstar1, jetPt1, m_mRunBin[runNumber] - 1 );	
 	if( !m_is_pPb ){
 	  m_vHtriggerYstarSpect[iG]->
 	    Fill( -jetYstar1, jetPt1 );
+	  m_vHtriggerYstarSpectFine[iG]->
+	    Fill( -jetYstar1, jetPt1 );
+	  m_vHtriggerYstarSpectFineRuns[iG]->
+	    Fill( -jetYstar1, jetPt1, m_mRunBin[runNumber] - 1 );
 	}
       }
 
@@ -537,23 +578,29 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	double jetPt = jet.Pt()/1000.;
 
 	// check if jet is in trigger range
-	if( !JetInTrigRange( &jet, iG ) ) continue;
+	// if( !JetInTrigRange( &jet, iG ) ) continue;
 	
 	// ETA-PHI
 	double jetEta   = jet.Eta();
 	double jetPhi   = jet.Phi();
-	double jetYstar = GetYstar( jet );
+	// double jetYstar = GetYstar( jet );
 	
 	m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
 	m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
 
+	/*
 	m_vHtriggerYstarSpectFine[iG]->
 	  Fill( jetYstar, jetPt );
+	m_vHtriggerYstarSpectFineRuns[iG]->
+	  Fill( jetYstar, jetPt, m_mRunBin[runNumber] - 1 );
 
 	if( !m_is_pPb ){
 	  m_vHtriggerYstarSpectFine[iG]->
 	    Fill( -jetYstar, jetPt );
+	  m_vHtriggerYstarSpectFineRuns[iG]->
+	    Fill( -jetYstar, jetPt, m_mRunBin[runNumber] - 1 );
 	}
+	*/
       } // end loop over jets
     } // end loop over iG
 
@@ -740,6 +787,24 @@ TH2* DiJetAnalysisData::CombineSamples( std::vector< TH2* >& vSampleHin,
   return h_res;
 }
 
+TH3* DiJetAnalysisData::CombineSamples( std::vector< TH3* >& vSampleHin,
+					const std::string& name ){
+
+  if( !vSampleHin.size() ){ return NULL; }
+
+  TH3* h_res = static_cast< TH3D* >
+    ( vSampleHin[0]->Clone( Form("h_%s_%s", name.c_str() , m_allName.c_str() ) ) );
+  h_res->Reset();
+    
+  for( uint iG = 0; iG < vSampleHin.size(); iG++ ){
+    double scale = m_vTriggersPrescale[iG];
+    h_res->Add( vSampleHin[iG], scale );
+  }
+  vSampleHin.push_back( h_res );
+    
+  return h_res;
+}
+
 THnSparse* DiJetAnalysisData::CombineSamples( std::vector< THnSparse* >& vSampleHin,
 					      const std::string& name  ){
 
@@ -901,38 +966,252 @@ void DiJetAnalysisData::LoadHistograms( int opt ){
     
     // -------- spect --------
     m_vHtriggerYstarSpect.push_back
-      ( static_cast< TH2D *>
+      ( static_cast< TH2D* >
 	( fIn->Get
 	  ( Form("h_%s_%s", m_ystarSpectName.c_str(), trigger.c_str() ))));
     m_vHtriggerYstarSpect.back()->SetDirectory(0);
 
     m_vHtriggerYstarSpectFine.push_back
-      ( static_cast< TH2D *>
+      ( static_cast< TH2D* >
 	( fIn->Get
 	  ( Form("h_%s_%s", m_ystarSpectFineName.c_str(), trigger.c_str() ))));
     m_vHtriggerYstarSpectFine.back()->SetDirectory(0);
 
+    m_vHtriggerYstarSpectFineRuns.push_back
+      ( static_cast< TH3D* >
+	( fIn->Get
+	  ( Form("h_%s_%s", m_ystarSpectFineRunsName.c_str(), trigger.c_str() ))));
+    m_vHtriggerYstarSpectFineRuns.back()->SetDirectory(0);
+
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
-      ( static_cast< TH2D *>
+      ( static_cast< TH2D* >
 	( fIn->Get
 	  ( Form("h_%sSim_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
     m_vHtriggerEtaSpectSim.back()->SetDirectory(0);
 
     m_vHtriggerEtaSpectDenom.push_back
-      ( static_cast< TH2D *>
+      ( static_cast< TH2D* >
 	( fIn->Get
 	  ( Form("h_%sDenom_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
     m_vHtriggerEtaSpectDenom.back()->SetDirectory(0);
     // -------- dPhi- --------
     m_vHtriggerDphi.push_back
-      ( static_cast< THnSparse *>
+      ( static_cast< THnSparse* >
 	( fIn->Get( Form("h_%s_%s", m_dPhiName.c_str(), trigger.c_str() ))));
   }
   
   fIn->Close(); delete fIn;
 }
 
+void DiJetAnalysisData::MakeRunSpectra( std::vector< TH3* >& vSampleSpect,
+					const std::vector< std::string>& vLabels,
+					const std::string& name ){
+
+  /*
+  if( !vSampleSpect.size() ){ return; }
+
+  std::string axisLabel, axisLabelTex;
+  GetSpectraLabels( axisLabel, axisLabelTex, name );
+
+  bool isEta = name.find( m_sEta ) != std::string::npos ? true : false;
+
+  // use this as reference because
+  // it should be in every file
+  TH3*  hRef = vSampleSpect[0];
+  int nXbins = hRef->GetNbinsX();
+
+  uint nSamples = vSampleSpect.size();
+  
+  std::vector< std::vector< std::vector< TH1* > > > vSpect;
+  std::vector< std::vector< std::vector< TH1* > > > vSpectCounts;
+  vSpect      .resize( nSamples );
+  vSpectCounts.resize( nSamples );
+
+  for( auto& v : vSpect       ){ v.resize( m_nRuns ); }
+  for( auto& v : vSpectCounts ){ v.resize( m_nRuns ); }
+
+  std::string yAxisTitle = "dN/d#it{p}_{T} [GeV]";
+
+  double max = -1;
+  
+  for( uint iG = 0; iG < nSamples; iG++){
+
+    std::string label = vLabels[iG];
+
+    if( label.compare( m_allName ) ){ continue; }
+
+    for( uint iRun = 1; iRun <= m_nRuns; iRun++ ){
+    
+      for( int xBin = 1; xBin <= nXbins; xBin++ ){
+      
+	double xMin, xMax;
+	anaTool->GetBinRange
+	  ( hRef->GetXaxis(), xBin, xBin, xMin, xMax );
+      
+	std::string hTag = anaTool->GetName( xMin, xMax, axisLabel);
+       
+	TH1* hSpectCounts =
+	  vSampleSpect[iG]->
+	  ProjectionY( Form("h_%s_%s_%s_%s",
+			    name.c_str(), m_sCounts.c_str(), label.c_str(), hTag.c_str() ),
+		       xBin, xBin );
+      
+	TH1* hSpect = static_cast< TH1D* >
+	  ( hSpectCounts->Clone
+	    ( Form("h_%s_%s_%s",
+		   name.c_str(), label.c_str(), hTag.c_str() ) ) );
+      
+	hSpect->SetTitle( anaTool->GetLabel( xMin, xMax, axisLabelTex ).c_str() );
+	hSpect->SetYTitle( yAxisTitle.c_str() );
+      
+	vSpect      [iG].push_back( hSpect );
+	vSpectCounts[iG].push_back( hSpectCounts );
+      
+	// scale by width of bins to get dN/dpT
+	hSpect->Scale( 1./m_mRunLumi(), "width" );
+      
+	hSpect->Write();
+	hSpectCounts->Write();
+      
+	// get min max from the final histograms
+	if( label.compare( m_allName ) ){ continue; }
+	if( max < hSpect->GetMaximum() ){ max = hSpect->GetMaximum(); }
+      
+      } // end loop over xBin
+    } // end loop over runs
+  } // end loop over iG
+
+  // set maxima globally for all spectra hists.
+  // easier to compare. Set on log scale.
+
+  max = anaTool->GetLogMaximum( max );
+  
+  double lX0, lY0, lX1, lY1;
+  
+  //------------------------------------------------
+  //------- For Each xAxis Bin, draw an IGs --------
+  //------------------------------------------------
+
+  if( m_is_pPb ){ lX0 = 0.45; lY0 = 0.54; lX1 = 0.76; lY1 = 0.67; }
+  else          { lX0 = 0.25; lY0 = 0.20; lX1 = 0.45; lY1 = 0.40; }
+  
+  for( int iX = 0; iX < nXbins; iX++ ){
+    int    xBin = iX + 1;
+    double xMin, xMax;
+    anaTool->GetBinRange( hRef->GetXaxis(), xBin, xBin, xMin, xMax );
+    double xCenter = hRef->GetXaxis()->GetBinCenter ( xBin );
+
+    // for pPb, dont draw at anything above -3.2
+    if( isEta && m_is_pPb && xCenter > -constants::FETAMIN ){ continue; }
+     
+    std::string cName  = anaTool->GetName ( xMin, xMax, axisLabel    );
+    std::string cLabel = anaTool->GetLabel( xMin, xMax, axisLabelTex );
+    
+    TCanvas c( cLabel.c_str(), cLabel.c_str(), 800, 600 );
+    c.SetLogy();
+    
+    TLegend leg( lX0, lY0, lX1, lY1 );
+    styleTool->SetLegendStyle( &leg, 0.7 );
+    
+    int style = 1;
+    for( uint iG = 0; iG < nSamples; iG++ ){
+      std::string label = vLabels[iG];
+
+      // for pp, dont draw central triggers below -3.2
+      // or forward triggers above -3.2
+      // for mb, and total draw everything
+      bool isMb  = label.find("_mb_") != std::string::npos
+	? true : false;
+      bool isAll = !label.compare( m_allName )
+	? true : false;
+
+      TH1* h = vSpect[iG][iX];
+           
+      if( !h->GetEntries() && !isMb && !isAll ){ continue; }
+      else if( !h->GetEntries() && !isMb && !isAll ){ continue; }
+      
+      if( iG == nSamples ){ style = 0; }
+      styleTool->SetHStyle( h, style++ );
+      h->Draw("epsame");
+      h->SetMinimum( m_ptSpectYaxisMin );
+      h->SetMaximum( max );
+      leg.AddEntry( h, label.c_str() );
+    } // end loop over iG
+    
+    leg.Draw("same");
+
+    DrawAtlasRight();    
+    drawTool->DrawRightLatex( 0.87, 0.73, cLabel );
+
+    SaveAsAll( c, Form("%s_%s", name.c_str(), cName.c_str() ) );
+  } // end loop over iX
+  
+  //------------------------------------------------
+  //--------- For each IG, draw xAxisBins ----------
+  //------------------------------------------------
+
+  if( m_is_pPb ){ lX0 = 0.70; lY0 = 0.54; lX1 = 0.85; lY1 = 0.71; }
+  else          { lX0 = 0.20; lY0 = 0.23; lX1 = 0.47; lY1 = 0.40; }
+  
+  for( uint iG = 0; iG < nSamples; iG++ ){
+    std::string label = vLabels[iG];
+
+    if( label.compare( m_allName ) ){ continue; };
+    
+    std::string cName  = label;
+    std::string cLabel = label;
+
+    TCanvas c( "c", cLabel.c_str(), 800, 600 );
+    c.SetLogy();
+    
+    TLegend leg( lX0, lY0, lX1, lY1 );
+    styleTool->SetLegendStyle( &leg, 0.7 );
+
+    int style = 0;
+    for( int iX = 0; iX < nXbins; iX++ ){
+      int       xBin = iX + 1;
+      double xCenter = hRef->GetXaxis()->GetBinCenter ( xBin );
+
+      // for pPb, dont draw at anything above -3.2
+      if( m_is_pPb && xCenter > -constants::FETAMIN ){ continue; }
+
+      // for pp, dont draw central triggers below -3.2
+      // or forward triggers above -3.2
+      // for mb, and total draw everything
+      bool isMb  = label.find("_mb_") != std::string::npos
+	? true : false;
+      bool isAll = !label.compare( m_allName )
+	? true : false;
+
+      TH1* h = vSpect[iG][iX];
+      
+      if( h->GetEntries() && !isMb && !isAll ){ continue; }
+      else if( h->GetEntries() && !isMb && !isAll ){ continue; }
+
+      styleTool->SetHStyle( h, style++ );
+      h->Draw("epsame");
+      h->SetMinimum( m_ptSpectYaxisMin );
+      h->SetMaximum( max );
+      leg.AddEntry( h, h->GetTitle() );
+    } // end loop over iX
+    leg.Draw("same");
+
+    DrawAtlasRight();    
+
+    SaveAsAll( c, Form("%s_%s", name.c_str(), cName.c_str() ) );
+  } // end loop over iG  
+
+  // delete
+  for( uint iG = 0; iG < nSamples; iG++ ){
+    for( int iX = 0; iX < nXbins; iX++ ){
+      delete vSpect      [iG][iX];
+      delete vSpectCounts[iG][iX];
+    }
+  }
+  */
+}
+					  
 void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
 					  std::vector< TH2* >& vTrigSpectRef,
 					  const std::string& type ){

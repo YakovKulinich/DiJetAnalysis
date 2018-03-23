@@ -95,6 +95,8 @@ namespace CT{
 
     std::vector<std::string> vectorise(TString str, TString sep);
 
+    std::vector<int> vectoriseI(TString str, TString sep);
+
     std::vector<double> vectoriseD(TString str, TString sep);
 
     bool SubtractCombinatoric( TH1*, double = 0, double = 1 );

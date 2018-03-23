@@ -15,6 +15,7 @@ DeltaPhiProj::~DeltaPhiProj(){
 }
 
 std::vector<int> DeltaPhiProj::GetMappedBins( const std::vector< int >&  vAxisBins ){
+
   std::vector< int > vMappedaAxisBins( vAxisBins.size(), 0 );
 
   for( uint axis = 0; axis < vAxisBins.size(); axis++ ){

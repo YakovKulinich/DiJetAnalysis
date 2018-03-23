@@ -212,6 +212,16 @@ std::vector<std::string> CT::AnalysisTools::vectorise
   delete strings; return result;
 }   
 
+std::vector<int> CT::AnalysisTools::vectoriseI
+(TString str, TString sep) {
+
+  std::vector<int> result;
+   std::vector<std::string> vecS = vectorise(str,sep);
+   for (uint i=0;i<vecS.size();++i)
+     {result.push_back(std::stoi(vecS[i]));}
+   return result;
+}   
+
 std::vector<double> CT::AnalysisTools::vectoriseD
 (TString str, TString sep) {
 
@@ -654,64 +664,54 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
     his->SetMarkerColor(kBlack);
     his->SetMarkerStyle(20);
     his->SetMarkerSize(1.4);
-  } 
-  else if(iflag == 1 ){
+  } else if(iflag == 1 ){
     his->SetLineColor(kRed);
     his->SetMarkerColor(kRed);
     his->SetMarkerStyle(21);
     his->SetMarkerSize(1.3);
-  }
-  else if(iflag == 2 ){
+  } else if(iflag == 2 ){
     his->SetLineColor(kAzure-3);
     his->SetMarkerColor(kAzure-3);
     his->SetMarkerStyle(33);
     his->SetMarkerSize(2.0);
-  }
-  else if(iflag == 3 ){
+  } else if(iflag == 3 ){
     his->SetLineColor(kSpring-6);
     his->SetMarkerColor(kSpring-6);
     his->SetMarkerStyle(34);
     his->SetMarkerSize(1.7);
-  }
-  else if(iflag == 4 ){
+  } else if(iflag == 4 ){
     his->SetLineColor(kOrange+1);
     his->SetLineWidth(2);
     his->SetMarkerColor(kOrange+1);
     his->SetMarkerStyle(29);
     his->SetMarkerSize(1.8);
-  }
-  else if(iflag == 5 ){
+  } else if(iflag == 5 ){
     his->SetLineColor(kBlack);
     his->SetMarkerColor(kBlack);
     his->SetMarkerStyle(24);
     his->SetMarkerSize(1.5);
-  }
-  else if(iflag == 6 ){
+  } else if(iflag == 6 ){
     his->SetLineColor(kRed);
     his->SetMarkerColor(kRed);
     his->SetMarkerStyle(25);
     his->SetMarkerSize(1.4);
-  }  
-  else if(iflag == 7 ){
+  } else if(iflag == 7 ){
     his->SetLineColor(kAzure-3);
     his->SetMarkerColor(kAzure-3);
     his->SetMarkerStyle(27);
     his->SetMarkerSize(2.1);
-  }
-  else if(iflag == 8 ){
+  } else if(iflag == 8 ){
     his->SetLineColor(kSpring-6);
     his->SetMarkerColor(kSpring-6);
     his->SetMarkerStyle(28);
     his->SetMarkerSize(1.8);
-  }
-  else if(iflag == 9 ){
+  } else if(iflag == 9 ){
     his->SetLineColor(kOrange+1);
     his->SetLineWidth(2);
     his->SetMarkerColor(kOrange+1);
     his->SetMarkerStyle(30);
     his->SetMarkerSize(1.9);
   }
-
 }
 
 void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){

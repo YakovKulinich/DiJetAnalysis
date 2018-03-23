@@ -74,6 +74,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   TH2*       CombineSamples( std::vector< TH2* >&,
 			     const std::string& = "" );
+
+  TH3*       CombineSamples( std::vector< TH3* >&,
+			     const std::string& = "" );
   
   THnSparse* CombineSamples( std::vector< THnSparse* >&,
 			     const std::string& = "" );   
@@ -94,6 +97,10 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   void LoadHistograms( int = 0 );
 
+  void MakeRunSpectra( std::vector< TH3* >&,
+		       const std::vector< std::string >&, 
+		       const std::string& = "" );
+  
   void MakeEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,
 			 const std::string& );
@@ -126,9 +133,14 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   int m_mbTriggerI;
   int m_lowestCentTriggerI;  
-
+ 
   double m_centMbCorrection;
 
+  std::map< int, int    > m_mRunBin;
+  std::map< int, double > m_mRunLumi;
+
+  uint m_nRuns;
+  
   std::string m_fNamePerfUnfoldingMC;
   std::string m_fNamePhysUnfoldingMC;
   
@@ -139,12 +151,16 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   TH2* m_hAllEtaPhiMap;
   TH2* m_hAllEtaPtMap;
-  // -------- spect --------  
+  // -------- spect --------
+  std::string m_ystarSpectFineRunsName;
+  
   std::vector< TH2* > m_vHtriggerYstarSpect;
   std::vector< TH2* > m_vHtriggerYstarSpectFine;
+  std::vector< TH3* > m_vHtriggerYstarSpectFineRuns;
 
   TH2* m_hAllYstarSpect;
   TH2* m_hAllYstarSpectFine;
+  TH3* m_hAllYstarSpectFineRuns;
   // ----- efficiencies ----
   std::vector< TH2* > m_vHtriggerEtaSpectSim;
   std::vector< TH2* > m_vHtriggerEtaSpectDenom;

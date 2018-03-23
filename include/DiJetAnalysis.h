@@ -250,6 +250,7 @@ class DiJetAnalysis{
   std::string m_sPhys;
   std::string m_sPerf;
 
+  std::string m_sRuns;
   std::string m_sFine;
   std::string m_sWeights;
   std::string m_sCounts;

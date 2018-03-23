@@ -59,7 +59,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void LoadDphiWeights();
   
-  void ProcessEventsForWeights( int, int, int = 0 );
+  void ProcessEventsForWeights( int, int, int = 1 );
    
   void ProcessEvents( int, int );
 
@@ -160,9 +160,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   //---------------------------
   void LoadHistograms( int = 0 );
 
-  TH1*      MakeSpectWeights( TFile* = NULL );
+  TH2* MakeSpectWeights( TFile* = NULL );
 
-  THnSparse* MakeDphiWeights( TFile* = NULL );
+  TH3* MakeDphiWeights( TFile* = NULL );
 
   void MakeScaleRes( std::vector< TH3* >&,
 		     std::vector< TH2* >&,
@@ -185,6 +185,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void MakePtRespMat( std::vector< THnSparse* >&,
 		      const std::vector< std::string >&,
 		      const std::string& = "" );
+
+  void CompareCfactorsWUW( TFile* = NULL );
   
   //---------------------------
   //        Drawing
@@ -235,8 +237,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   std::string m_fNamePerfWeightData;
   std::string m_fNamePhysWeightData;
 
-  TH1*        m_spectWeight;
-  THnSparse*  m_dPhiWeight;
+  TH2* m_spectWeight;
+  TH3* m_dPhiWeight;
   std::vector< TF1* > m_vSpectWeightFits;
   
   //============ data =============

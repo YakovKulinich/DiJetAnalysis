@@ -73,6 +73,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sPerf     = "perf";
   m_sPhys     = "phys";
 
+  m_sRuns     = "runs";
   m_sFine     = "fine";
   m_sWeights  = "weights";
   m_sCounts   = "counts";
@@ -190,15 +191,6 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   
   m_dPhiRebinnedZoomLowBin  = nDphiBinsLarge + 1;
   m_dPhiRebinnedZoomHighBin = m_nVarDphiRebinnedBins;
-    
-  int count = 0;
-  for( auto & b : m_varDphiBinning ){ std::cout << count++ << "," << b << " -> "; }
-  std::cout << " --- " << std::endl;
-  count = 0;
-  for( auto & b : m_varDphiRebinnedBinning ){ std::cout << count++ << "," << b << " -> "; }
-  std::cout << " --- " << std::endl;
-
-  std::cout << "new amount of bins " << m_nVarDphiRebinnedBins << std::endl;
 
   // --- dPhiBins ---  
   boost::assign::push_back( m_vNdPhiBins )
@@ -901,15 +893,13 @@ void DiJetAnalysis::MakeEtaPhiPtMap( std::vector< TH2* >& vSampleMaps,
 void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
 				 const std::vector< std::string>& vLabels,
 				 const std::string& name ){
+    
+  if( !vSampleSpect.size() ){ return; }
 
   std::string axisLabel, axisLabelTex;
   GetSpectraLabels( axisLabel, axisLabelTex, name );
 
   bool isEta = name.find( m_sEta ) != std::string::npos ? true : false;
-    
-  if( !vSampleSpect.size() ){ return; }
-  
-  std::string yAxisTitle = "dN/d#it{p}_{T} [GeV]";
 
   // use this as reference because
   // it should be in every file
@@ -923,6 +913,8 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
   vSpect      .resize( nSamples );
   vSpectCounts.resize( nSamples );
 
+  std::string yAxisTitle = "dN/d#it{p}_{T} [GeV]";
+
   double max = -1;
   
   for( uint iG = 0; iG < nSamples; iG++){
@@ -930,10 +922,11 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
     std::string label = vLabels[iG];
 
     for( int xBin = 1; xBin <= nXbins; xBin++ ){
+      
       double xMin, xMax;
       anaTool->GetBinRange
 	( hRef->GetXaxis(), xBin, xBin, xMin, xMax );
-
+      
       std::string hTag = anaTool->GetName( xMin, xMax, axisLabel);
        
       TH1* hSpectCounts =
@@ -941,7 +934,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
 	ProjectionY( Form("h_%s_%s_%s_%s",
 			  name.c_str(), m_sCounts.c_str(), label.c_str(), hTag.c_str() ),
 		     xBin, xBin );
-
+      
       TH1* hSpect = static_cast< TH1D* >
 	( hSpectCounts->Clone
 	  ( Form("h_%s_%s_%s",
@@ -2066,13 +2059,14 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  TLegend leg( 0.68, 0.04, 0.92, 0.25 );
 	  styleTool->SetLegendStyle( &leg );
 	  
-	  std::string hTag =
-	    Form( "%s_%s_%s_%s",
-		  anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
-		  anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
-		  anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
-		  anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() ); 
 
+	  std::string hTag =
+	    anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ) + "_" + 
+	    anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ) + "_" + 
+	    anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ) + "_" +  
+	    anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ); 
+
+	  
 	  // Get measured and truth distributions
 	  // both normalized and not. The counts are the
 	  // un-normalized histograms.
@@ -2142,23 +2136,9 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  hMeasured->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 	  hUnfolded->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 	  hTruth   ->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
-
-	  /*
-	  // Now Draw everything.
-	  double x0 = m_dPhiZoomLow;
-	  double x1 = m_dPhiZoomHigh;
-	  double y0 = m_dPhiLogMin;
-	  double y1 = m_dPhiLogMax;
-	  */
 	  
 	  TCanvas c( "c", "c", 800, 800 );
 	  TPad pad1("pad1", "", 0.0, 0.35, 1.0, 1.0 );
-	  /*
-	  styleTool->SetCStyleGraph
-	    ( pad1, x0, y0, x1, y1,
-	      Form( ";%s;%s", hUnfolded->GetXaxis()->GetTitle(),
-		    hUnfolded->GetYaxis()->GetTitle() ) );;
-	  */	  
 	  pad1.SetBottomMargin(0.0);
 	  pad1.Draw();
 	  
@@ -2178,10 +2158,6 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  leg.AddEntry( hMeasured, typeMeasured.c_str() );
 	  leg.AddEntry( hUnfolded, "Unfolded" );
 
-	  // gMeasured->Draw("p");	
-	  // hTruth   ->Draw("histo same");
-	  // gUnfolded->Draw("p");
-	  
 	  double maximum = -1;
 	  
 	  maximum = hUnfolded->GetMaximum() > hMeasured->GetMaximum() ?
@@ -2354,10 +2330,10 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
       hCfactorsPtMat->SetTitle("");
 
       drawTool->DrawLeftLatex
-	( 0.13, 0.86, CT::AnalysisTools::GetLabel
+	( 0.13, 0.86, anaTool->GetLabel
 	  ( axis0Low, axis0Up, m_dPP->GetDefaultAxisLabel(0) ) );
       drawTool->DrawLeftLatex
-	( 0.13, 0.79, CT::AnalysisTools::GetLabel
+	( 0.13, 0.79, anaTool->GetLabel
 	  ( axis3Low, axis3Up, m_dPP->GetDefaultAxisLabel(1) ) );  
 
       DrawAtlasRight();
