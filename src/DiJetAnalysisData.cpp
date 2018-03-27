@@ -578,7 +578,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	double jetPt = jet.Pt()/1000.;
 
 	// check if jet is in trigger range
-	// if( !JetInTrigRange( &jet, iG ) ) continue;
+	if( !JetInTrigRange( &jet, iG ) ) continue;
 	
 	// ETA-PHI
 	double jetEta   = jet.Eta();
@@ -587,20 +587,6 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	
 	m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
 	m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
-
-	/*
-	m_vHtriggerYstarSpectFine[iG]->
-	  Fill( jetYstar, jetPt );
-	m_vHtriggerYstarSpectFineRuns[iG]->
-	  Fill( jetYstar, jetPt, m_mRunBin[runNumber] - 1 );
-
-	if( !m_is_pPb ){
-	  m_vHtriggerYstarSpectFine[iG]->
-	    Fill( -jetYstar, jetPt );
-	  m_vHtriggerYstarSpectFineRuns[iG]->
-	    Fill( -jetYstar, jetPt, m_mRunBin[runNumber] - 1 );
-	}
-	*/
       } // end loop over jets
     } // end loop over iG
 
@@ -818,16 +804,17 @@ THnSparse* DiJetAnalysisData::CombineSamples( std::vector< THnSparse* >& vSample
   std::vector< int > xR{ 1, 2, 1, 1, 7, 1 }; 
   std::vector< int > xL{ 1, 2, 1, 1, 5, 1 }; 
   
-  std::cout << h_res->GetName() << std::endl;
   for( uint iG = 0; iG < vSampleHin.size(); iG++ ){
+    THnSparse* hTrig = vSampleHin[iG];
     double scale = m_vTriggersPrescale[iG];
-    h_res->Add( vSampleHin[iG], scale );
-    std::cout << m_vTriggers[ iG ] << " - " << vSampleHin[iG]->GetBinContent( &x[0] ) << " "
-	      << vSampleHin[iG]->GetBinError( &x[0] ) << " " << scale << std::endl;
-    std::cout << "   L - " << vSampleHin[iG]->GetBinContent( &xL[0] ) << " "
-	      << vSampleHin[iG]->GetBinError( &xL[0] ) << std::endl;
-    std::cout << "   R - " << vSampleHin[iG]->GetBinContent( &xR[0] ) << " "
-	      << vSampleHin[iG]->GetBinError( &xR[0] ) << std::endl;
+    anaTool->SetZeroEntryError( hTrig );
+    h_res->Add( hTrig, scale );
+    std::cout << m_vTriggers[ iG ] << " - " << hTrig->GetBinContent( &x[0] ) << " "
+	      << hTrig->GetBinError( &x[0] ) << " " << scale << std::endl;
+    std::cout << "   L - " << hTrig->GetBinContent( &xL[0] ) << " "
+	      << hTrig->GetBinError( &xL[0] ) << std::endl;
+    std::cout << "   R - " << hTrig->GetBinContent( &xR[0] ) << " "
+	      << hTrig->GetBinError( &xR[0] ) << std::endl;
   }
   vSampleHin.push_back( h_res );
 

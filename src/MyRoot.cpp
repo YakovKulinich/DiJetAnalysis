@@ -33,7 +33,7 @@ double CT::AnalysisTools::DeltaPhi
 
   double phi1 = jet1.Phi(); double phi2 = jet2.Phi();
   double deltaPhi = TMath::Abs(phi1 - phi2);
-  if( deltaPhi > constants::PI ){ deltaPhi = 2*constants::PI - deltaPhi; };
+  if( deltaPhi > constants::PI ){ deltaPhi = 2 * constants::PI - deltaPhi; };
   return deltaPhi;
 }
 
@@ -53,7 +53,7 @@ bool CT::AnalysisTools::sortByDecendingPt
 }
 
 
-bool CT::AnalysisTools::TruncateHistoBins( THnSparse* hn,
+void CT::AnalysisTools::TruncateHistoBins( THnSparse* hn,
 					   THnSparse* hnNent){
   
   TAxis* aAxis = hn->GetAxis(0); TAxis* cAxis = hn->GetAxis(2);
@@ -78,8 +78,50 @@ bool CT::AnalysisTools::TruncateHistoBins( THnSparse* hn,
       }
     }
   }
+}
+
+void CT::AnalysisTools::TruncateHistoBins( TH3* h3 ){
+  for( int z = 1; z <= h3->GetZaxis()->GetNbins(); z++ ){
+    for( int y = 1; y <= h3->GetYaxis()->GetNbins(); y++ ){    
+      for( int x = 1; x <= h3->GetXaxis()->GetNbins(); x++ ){
+	if( h3->GetBinContent( x, y, z ) < 3 )
+	  { h3->SetBinContent( x, y, z, 0 ); }
+      }
+    }
+  }
+}
+
+
+void CT::AnalysisTools::SetZeroEntryError( THnSparse* h ){
+
+  if( !h ){ return; }
+  if( h->GetNdimensions() != 5 ){ return; }
   
-  return true;
+  TAxis* axis0 = h->GetAxis(0); int nAxis0Bins = axis0->GetNbins();
+  TAxis* axis1 = h->GetAxis(1); int nAxis1Bins = axis1->GetNbins();
+  TAxis* axis2 = h->GetAxis(2); int nAxis2Bins = axis2->GetNbins();
+  TAxis* axis3 = h->GetAxis(3); int nAxis3Bins = axis3->GetNbins();
+  TAxis* axis4 = h->GetAxis(4); int nAxis4Bins = axis4->GetNbins();
+
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	  for( int axis4Bin = 2; axis4Bin <= nAxis4Bins - 1; axis4Bin++ ){
+	    std::vector< int > x{ axis0Bin, axis1Bin, axis2Bin, axis3Bin, axis4Bin };
+	    std::vector< int > xL{ axis0Bin, axis1Bin, axis2Bin, axis3Bin, axis4Bin - 1 };
+	    std::vector< int > xR{ axis0Bin, axis1Bin, axis2Bin, axis3Bin, axis4Bin + 1 };
+	    // if neighboring bins have entries and this doesnt, give some error
+	    if( !h->GetBinContent( &x[0] ) &&
+		( h->GetBinContent( &xL[0] ) ||
+		  h->GetBinContent( &xR[0] ) ) ){
+	      h->SetBinError( &x[0], 1 );
+	    }
+	  }
+	}
+      }
+    }
+  }
 }
 
 std::pair< double, double > CT::AnalysisTools::GetRMS
@@ -174,18 +216,6 @@ bool CT::AnalysisTools::AverageOver( TH2* h2,
     }
   }
   
-  return true;
-}
-
-bool CT::AnalysisTools::TruncateHistoBins( TH3* h3 ){
-  for( int z = 1; z <= h3->GetZaxis()->GetNbins(); z++ ){
-    for( int y = 1; y <= h3->GetYaxis()->GetNbins(); y++ ){    
-      for( int x = 1; x <= h3->GetXaxis()->GetNbins(); x++ ){
-	if( h3->GetBinContent( x, y, z ) < 3 )
-	  { h3->SetBinContent( x, y, z, 0 ); }
-      }
-    }
-  }
   return true;
 }
 

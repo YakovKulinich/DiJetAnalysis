@@ -1723,8 +1723,8 @@ TH2* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
   std::cout << fName_d  << std::endl;
   std::cout << fName_mc << std::endl;
 
-  double xMin = m_ptSpectMin;
-  double xMax = m_ptSpectMax;
+  double xMin = m_varPtBinning.front();
+  double xMax = m_varPtBinning.back();
   
   TLine line( xMin, 1, xMax, 1 );
   line.SetLineWidth( 2 );
@@ -1814,6 +1814,8 @@ TH2* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
     TCanvas c( "c", "c", 800, 600 );
 
     hR->SetYTitle( "Data/MC" );
+
+    hR->GetXaxis()->SetRangeUser( m_varPtBinning.front(), m_varPtBinning.back() );
     
     hR  ->Draw();
     fitR->Draw("same");
@@ -2446,6 +2448,143 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
       }
     }
   }
+}
+
+void DiJetAnalysisMC::
+MakeEfficiencies( std::vector< TH2* >& mJznSpectPaired,
+		  std::vector< TH2* >& mJznSpect,
+		  std::vector< TH2* >& mJznSpectNent,
+		  const std::vector< std::string >& vLabels, 
+		  const std::string& name ){  
+
+  /*
+  // if there are none, return
+  if( !mJznSpect.size() ){ return; }  
+
+  double lX0 = 0.13;
+  double lY0 = 0.75;
+  double lX1 = 0.39;
+  double lY1 = 0.87;
+
+  double xMin = 10.; 
+  double xMax = 90.; 
+
+  std::string gTitle = ";#it{p}_{T}^{Truth} [GeV];#it{#varepsilon}_{Reco}";
+
+  std::vector< TH1* > vSpect;
+  std::vector< TGraphAsymmErrors* > vEffGrf;
+  std::vector< TGraphAsymmErrors* > vEffGrfFinal;
+  
+  for( int xBin = 1; xBin <= mJznSpect.begin()->second->GetNbinsX(); xBin++ ){
+    TCanvas c_eff("c_eff","c_eff",800,600);
+    StyleTools::SetCStyleEff( c_eff, xMin, m_effMin, xMax, m_effMax, gTitle );
+ 
+    TLegend l_eff( lX0, lY0, lX1, lY1);
+    StyleTools::SetLegendStyle( &l_eff, StyleTools::lSS );
+    l_eff.SetFillStyle(0);
+
+    // should all be the same
+    double etaMin = mJznSpect.begin()->second->
+      GetXaxis()->GetBinLowEdge( xBin );
+    double etaMax = mJznSpect.begin()->second->
+      GetXaxis()->GetBinUpEdge( xBin );
+
+    // local inside the loop. used only on a per eta-bin
+    // basis. the actual projections are saved to the vectors
+    // that are global in this function.
+    std::map< std::string, TH1* > mSpect;
+    std::map< std::string, TH1* > mSpectPaired;
+    std::map< std::string, TH1* > mNent;
+    std::map< std::string, TGraphAsymmErrors* > mEff;
+    
+    for( auto& jznSpect : mJznSpect ){
+      std::string jzn = jznSpect.first;
+
+      mSpectPaired[ jzn ] =
+	mJznSpectPaired[ jzn ]->
+	ProjectionY( Form("h_%s_%s_paired_%2.0f_Eta_%2.0f",
+			  type.c_str(),
+			  jzn.c_str(),
+			  10*std::abs(etaMin),
+			  10*std::abs(etaMax) ),
+		     xBin, xBin);
+      vSpect.push_back( mSpectPaired[ jzn ] );
+
+      mSpect[ jzn ] =
+	jznSpect.second->
+	ProjectionY( Form("h_%s_%s_%2.0f_Eta_%2.0f",
+			  type.c_str(),
+			  jzn.c_str(),
+			  10*std::abs(etaMin),
+			  10*std::abs(etaMax) ),
+		     xBin, xBin);
+      vSpect.push_back( mSpect[ jzn ] );
+      
+      mNent[ jzn ] =
+	mJznSpectNent[ jzn ]->
+	ProjectionY( Form("h_%s_%s_nEnt_%2.0f_Eta_%2.0f",
+			  type.c_str(),
+			  jzn.c_str(),
+			  10*std::abs(etaMin),
+			  10*std::abs(etaMax) ),
+		     xBin, xBin);
+      vSpect.push_back( mNent[ jzn ] ); 
+    }
+
+    int jznStyle = 1;
+    for( auto& jznSpect : mSpect ){
+      std::string   jzn = jznSpect.first;
+      TH1*       hSpect = jznSpect.second;
+      TH1* hSpectPaired = mSpectPaired[ jzn ];
+
+      TGraphAsymmErrors* g_etaEff = new TGraphAsymmErrors();
+      StyleTools::SetHStyle( g_etaEff, jznStyle++, StyleTools::hSS);
+      
+      g_etaEff->SetName ( Form("gr_%s_%s", type.c_str(), jzn.c_str() ) );
+      vEffGrf.push_back( g_etaEff );
+      mEff[ jzn ] = g_etaEff;
+      
+      l_eff.AddEntry( g_etaEff, Form("%s", jzn.c_str() ) );
+
+      g_etaEff->Divide( hSpectPaired, hSpect,
+			"cl=0.683 b(1,1) mode" );
+      
+      
+      g_etaEff->Draw("p");
+    } // end loop over JZN
+
+    TGraphAsymmErrors* g_effFinal =  CombineJZN( mEff, mNent );
+    if( !g_effFinal ){ continue; } // something wrong. fix later.
+    g_effFinal->SetName( Form("gr_%s_%2.0f_Eta_%2.0f",
+			      type.c_str(),
+			      10*std::abs(etaMin),
+			      10*std::abs(etaMax) ) );
+    g_effFinal->SetTitle( GetEtaLabel( etaMin, etaMax ).c_str() );
+    StyleTools::SetHStyle( g_effFinal, 0, StyleTools::hSS);
+    vEffGrfFinal.push_back( g_effFinal );
+
+    g_effFinal->Draw("p");
+
+    l_eff.AddEntry( g_effFinal, "Total" );
+    l_eff.Draw();
+
+    TLine line( xMin, 1, xMax, 1);
+    line.Draw();
+
+    DrawTools::DrawAtlasInternalDataRight( 0, 0,  StyleTools::lSS, m_is_pPb ); 
+    DrawTools::DrawRightLatex( 0.88, 0.17,
+			       GetEtaLabel( etaMin, etaMax).c_str(),
+			       StyleTools::lSS, 1 );
+
+    SaveAsAll( c_eff, type, "", "Eta", std::abs(etaMin)*10, std::abs(etaMax)*10 );
+  } // end loop over eta
+
+  DrawCanvas( vEffGrfFinal, type, gTitle, xMin, xMax );
+
+  for( auto& h : vSpect       ){ delete h; }
+  for( auto& g : vEffGrf      ){ delete g; }
+  for( auto& g : vEffGrfFinal ){ delete g; }
+  */
 }
 
 void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco,
@@ -3152,8 +3291,9 @@ void DiJetAnalysisMC::CompareCfactorsWUW( TFile* fOut ){
   
   TFile* fW  =
     TFile::Open( m_fNamePhysUF.c_str() );
-  TFile* fUW =
-    TFile::Open( "output_pp_mc_pythia8_nw/myOut_pp_mc_pythia8_phys_UF_0.root" );
+  TFile* fUW = m_is_pPb ?
+    TFile::Open( "output_pPb_mc_pythia8_uw/myOut_pPb_mc_pythia8_phys_UF_0.root" ) : 
+    TFile::Open( "output_pp_mc_pythia8_uw/myOut_pp_mc_pythia8_phys_UF_0.root" );
   
   fOut->cd();
   
@@ -3272,13 +3412,13 @@ void DiJetAnalysisMC::CompareCfactorsWUW( TFile* fOut ){
 
 	  TH1* hR = static_cast< TH1D* >( hCw->Clone( hNameR.c_str() ) );
 	  styleTool->SetHStyleRatio( hR );
-	  hR->SetMaximum( 1.25 );
-	  hR->SetMinimum( 0.75 );
+	  hR->SetMaximum( 1.2 );
+	  hR->SetMinimum( 0.8 );
 
 	  hR->Divide( hCuw );
 	  hR->SetYTitle( "Weighted/UnWeighted" );
 
-	  hR->Draw( "ep X0" );
+	  hR->Draw( "hist p X0" );
 
 	  line.Draw();
 	  lineP05.Draw();

@@ -82,10 +82,12 @@ namespace CT{
       ( const TLorentzVector& jet1,
 	const TLorentzVector& jet2 );
 
-    bool TruncateHistoBins( THnSparse* , THnSparse* );
+    void TruncateHistoBins( THnSparse* = NULL, THnSparse* = NULL );
     
-    bool TruncateHistoBins( TH3* h3 );
+    void TruncateHistoBins( TH3* = NULL );
 
+    void SetZeroEntryError( THnSparse* = NULL );
+    
     std::pair< double, double> GetRMS
       ( TH1*, double = 0, double = 0, double = 0 );
 

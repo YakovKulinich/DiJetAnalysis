@@ -167,6 +167,12 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void MakeScaleRes( std::vector< TH3* >&,
 		     std::vector< TH2* >&,
 		     const std::string& );
+
+  void MakeEfficiencies( std::vector< TH2* >&,
+			 std::vector< TH2* >&,
+			 std::vector< TH2* >&,
+			 const std::vector< std::string >&,
+			 const std::string& );
   
   void MakeSpectCFactorsRespMat( std::vector< TH2* >&,
 				 std::vector< TH2* >&,
