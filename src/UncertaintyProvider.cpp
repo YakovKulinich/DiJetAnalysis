@@ -24,13 +24,9 @@ UncertaintyTool::UncertaintyTool( int uc, bool is_pPb )
 
 UncertaintyTool::~UncertaintyTool(){}
 
-void UncertaintyTool::RegisterUFactors( std::vector< std::vector< float > >* p_vSysUncert )
-{ m_p_vSysUncert = p_vSysUncert; }
-
-
-double UncertaintyTool::GetUncertaintyWeight( const TLorentzVector& jet1,
-					      const TLorentzVector& jet2 )
-{ return 1; }
+void UncertaintyTool::RegisterUFactors( std::vector< std::vector< float > >* p_vSysUncert ){
+  m_p_vSysUncert = p_vSysUncert;
+}
 
 int UncertaintyTool::GetEtaUJERBin(float eta){
 
@@ -47,8 +43,9 @@ int UncertaintyTool::GetEtaUJERBin(float eta){
   return yBin;
 }
 
-double UncertaintyTool::GetYstar( const TLorentzVector& jet )
-{ return m_is_pPb ? jet.Rapidity() + constants::BETAZ : jet.Rapidity(); }
+double UncertaintyTool::GetYstar( const TLorentzVector& jet ){
+  return m_is_pPb ? jet.Rapidity() + constants::BETAZ : jet.Rapidity();
+}
 
 //--------------------------------
 //      Angular Uncertainty Tool 
@@ -312,25 +309,24 @@ UncertaintyProvider::UncertaintyProvider( int uc, bool is_pPb ) : m_uncertaintyT
     m_uncertaintyTool = new JERUncertaintyTool      ( uc, is_pPb );
   } else if( pos_uc == 21 ) {
     m_uncertaintyTool = new AngularUncertaintyTool  ( uc, is_pPb );
-  } 
+  } else if( pos_uc > 21 ){
+    m_uncertaintyTool = NULL;
+  }
 }  
 
 UncertaintyProvider::~UncertaintyProvider(){
   delete m_uncertaintyTool; m_uncertaintyTool = NULL;
 }
 
-void UncertaintyProvider::RegisterUFactors( std::vector< std::vector< float > >* p_vSysUncert )
-{ m_uncertaintyTool->RegisterUFactors( p_vSysUncert ); }
+void UncertaintyProvider::RegisterUFactors( std::vector< std::vector< float > >* p_vSysUncert ){
+
+  if( !m_uncertaintyTool ){ return; }
+  m_uncertaintyTool->RegisterUFactors( p_vSysUncert );
+}
 
 void UncertaintyProvider::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
 					      std::vector< TLorentzVector >& truthJets ){
 
+  if( !m_uncertaintyTool ){ return; }
   m_uncertaintyTool->ApplyUncertainties( recoJets, truthJets );
-}
-
-double UncertaintyProvider::GetUncertaintyWeight( const TLorentzVector& jet1,
-						  const TLorentzVector& jet2 )
-{
-
-  return m_uncertaintyTool->GetUncertaintyWeight( jet1, jet2 );
 }

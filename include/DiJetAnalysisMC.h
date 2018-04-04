@@ -131,9 +131,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   
   double GetJetWeight( const TLorentzVector& );
   
-  double GetUncertaintyWeight( const TLorentzVector&,
-			       const TLorentzVector& );
-
   void GetTypeTitle( const std::string&,
 		     std::string&, std::string& );
 

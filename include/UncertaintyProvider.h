@@ -25,9 +25,6 @@ class UncertaintyTool{
   virtual void ApplyUncertainties( std::vector< TLorentzVector >&,
 				   std::vector< TLorentzVector >& ) = 0;
 
-  virtual double GetUncertaintyWeight( const TLorentzVector&,
-				       const TLorentzVector& );
-  
   int GetEtaUJERBin( float eta );
 
   double GetYstar( const TLorentzVector& jet );
@@ -122,9 +119,6 @@ class UncertaintyProvider{
   void ApplyUncertainties( std::vector< TLorentzVector >&,
 			   std::vector< TLorentzVector >& );
 
-  double GetUncertaintyWeight( const TLorentzVector&,
-			       const TLorentzVector& );
-  
  private:
   UncertaintyTool*  m_uncertaintyTool;
 };

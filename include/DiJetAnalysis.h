@@ -125,9 +125,6 @@ class DiJetAnalysis{
  
   virtual double GetJetWeight( const TLorentzVector& );
 
-  virtual double GetUncertaintyWeight( const TLorentzVector&,
-				       const TLorentzVector& );
-  
   virtual TH1*       CombineSamples( std::vector< TH1* >&,
 				     const std::string& = "" );
 
@@ -192,7 +189,7 @@ class DiJetAnalysis{
   
   virtual void MakeDphiTogether( TFile* = NULL );
 
-  virtual void MakeFinalPlotsTogether();
+  virtual void MakeFinalPlotsTogether( TFile* fOut, const std::string& = "" );
 
   //---------------------------
   //        Drawing
@@ -284,12 +281,17 @@ class DiJetAnalysis{
 
   double m_dPhiLogMin;
   double m_dPhiLogMax;
+
+  bool m_fitDphiWC;
   
   double m_dPhiFittingMin;
   double m_dPhiFittingMax;
+
+  double m_dPhiFittingMinB;
   
   double m_dPhiUnfoldingMin;
   double m_dPhiUnfoldingMax; 
+
   //===== settings and names ======
   TEnv* GetConfig(){ return m_config; }
   

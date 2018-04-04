@@ -105,7 +105,11 @@ class DiJetAnalysisData : public DiJetAnalysis{
 			 std::vector< TH2* >&,
 			 const std::string& );
 
-  void MakeSystematicsGraphs( const std::string& = "" );
+  void MakeSystematicsGraphs( TFile* = NULL, const std::string& = "" );
+
+  void MakeFinalPlotsTogether( TFile* fOut, const std::string& = "" );
+  
+  void CompareCfactorsRBnRB( TFile* = NULL );
   
   //---------------------------
   //        Drawing

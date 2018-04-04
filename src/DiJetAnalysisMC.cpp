@@ -462,10 +462,11 @@ void DiJetAnalysisMC::UnfoldPhysics(){
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
   std::cout << "......Closed  " << std::endl;
-
+  /*
   fOut = new TFile( m_fNamePhysUF.c_str(),"UPDATE");
   CompareCfactorsWUW( fOut );
   fOut->Close(); delete fOut;
+  */
 }
 
 void DiJetAnalysisMC::MakeResultsTogether(){
@@ -892,7 +893,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       }
 
       // last parameter is mode, we use 2 to get dphi weight.
-      int mode = 2;
+     int mode = 2;
       AnalyzeDeltaPhiWithWeight( m_vHjznDphiReco [iG], vTR_paired_jets, vTT_paired_jets, mode );
       AnalyzeDeltaPhiWithWeight( m_vHjznDphiTruth[iG], vTT_paired_jets, vTT_paired_jets, mode );
       
@@ -1186,11 +1187,16 @@ double DiJetAnalysisMC::GetSpectWeight( const TLorentzVector& jet ){
 
   // use just the -4.0 < y*1 < -2.7 histogram
   // return m_vSpectWeightFits[ bin - 1 ]->Eval( jet.Pt()/1000. );
+  // if it is 23rd uncertainty, do not reweight
+  if( m_uncertComp == 23 ){ return 1; }
   return m_vSpectWeightFits[ 0 ]->Eval( jet.Pt()/1000. );
 }
 
 double DiJetAnalysisMC::GetDphiWeight( const TLorentzVector& jet1,
 				       const TLorentzVector& jet2 ){
+
+  // if it is 23rd uncertainty, do not reweight
+  if( m_uncertComp == 23 ){ return 1; }
 
   double jetYstar1 = GetYstar( jet1 );
   double jetYstar2 = GetYstar( jet2 );
@@ -1430,13 +1436,6 @@ double DiJetAnalysisMC::GetJetWeight( const TLorentzVector& jet ){
 
   return jet_weight;
 }
-
-double DiJetAnalysisMC::GetUncertaintyWeight( const TLorentzVector& jet1,
-					      const TLorentzVector& jet2 ){
-
-  return m_uncertaintyProvider->GetUncertaintyWeight( jet1, jet2 );
-}
-
 
 void DiJetAnalysisMC::GetTypeTitle( const std::string& type,
 				    std::string& yTitleMean,
@@ -3292,8 +3291,8 @@ void DiJetAnalysisMC::CompareCfactorsWUW( TFile* fOut ){
   TFile* fW  =
     TFile::Open( m_fNamePhysUF.c_str() );
   TFile* fUW = m_is_pPb ?
-    TFile::Open( "output_pPb_mc_pythia8_uw/myOut_pPb_mc_pythia8_phys_UF_0.root" ) : 
-    TFile::Open( "output_pp_mc_pythia8_uw/myOut_pp_mc_pythia8_phys_UF_0.root" );
+    TFile::Open( "data/output_pPb_mc_pythia8_uw/myOut_pPb_mc_pythia8_phys_UF_0.root" ) : 
+    TFile::Open( "data/output_pp_mc_pythia8_uw/myOut_pp_mc_pythia8_phys_UF_0.root" );
   
   fOut->cd();
   
@@ -3407,11 +3406,12 @@ void DiJetAnalysisMC::CompareCfactorsWUW( TFile* fOut ){
 	  
 	  pad2.cd();
 
-	  std::string hNameR =
-	    "h_" + m_dPhiCfactorsName + "_" + m_sRatio + "_" + m_allName + "_" + hTag;
+	  std::string hNameR = hName + "_" + m_sRatio;
 
 	  TH1* hR = static_cast< TH1D* >( hCw->Clone( hNameR.c_str() ) );
 	  styleTool->SetHStyleRatio( hR );
+	  vR.push_back( hR );
+	  
 	  hR->SetMaximum( 1.2 );
 	  hR->SetMinimum( 0.8 );
 
@@ -3429,6 +3429,9 @@ void DiJetAnalysisMC::CompareCfactorsWUW( TFile* fOut ){
       }
     }
   }
+
+  for( auto& c : vC ){ delete c; }
+  for( auto& r : vR ){ delete r; }
 }
 
 //---------------------------
