@@ -3093,22 +3093,26 @@ void DiJetAnalysis::DrawTopLeftLabels( DeltaPhiProj* dPP,
 				       double axis2Low, double axis2Up,
 				       double axis3Low, double axis3Up,
 				       double scale ){
+
+  double dy = 0.08 * scale;
+  double ystart = 0.86 + ( 1 - scale ) * 0.1;
+  
   drawTool->DrawLeftLatex
-    ( 0.18, 0.86, CT::AnalysisTools::GetLabel
+    ( 0.18, ystart, CT::AnalysisTools::GetLabel
       ( axis0Low, axis0Up, dPP->GetAxisLabel(0) ), scale );
   // for now, modify later to be more dynamic
   // to the variables present 
   if( !( axis1Low || axis1Up ) ){ return ; }
   drawTool->DrawLeftLatex
-    ( 0.18, 0.76, CT::AnalysisTools::GetLabel
+    ( 0.18, ystart - dy, CT::AnalysisTools::GetLabel
       ( axis1Low, axis1Up, dPP->GetAxisLabel(1) ), scale );  
   if( !( axis2Low || axis2Up ) ){ return ; }
   drawTool->DrawLeftLatex
-    ( 0.18, 0.67, CT::AnalysisTools::GetLabel
+    ( 0.18, ystart - 2 * dy, CT::AnalysisTools::GetLabel
       ( axis2Low, axis2Up, dPP->GetAxisLabel(2) ), scale );
   if( !( axis3Low || axis3Up ) ){ return ; }
   drawTool->DrawLeftLatex
-    ( 0.18, 0.57, CT::AnalysisTools::GetLabel
+    ( 0.18, ystart - 3 * dy, CT::AnalysisTools::GetLabel
       ( axis3Low, axis3Up, dPP->GetAxisLabel(3) ), scale );
 }
 

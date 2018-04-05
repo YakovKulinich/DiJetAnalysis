@@ -172,7 +172,7 @@ JERUncertaintyTool::JERUncertaintyTool( int uc, bool is_pPb )
   f_JER->Close();
 
   // get the hi provided jer uncertainty factors
-  TFile* f_HI_JER = new TFile(  "data/hi_jer.root" ,"read" );
+  TFile* f_HI_JER = new TFile( "data/hi_jer.root", "read" );
 
   for( int ybin = 0; ybin < 7; ybin++ ){
     m_vJERhistos.push_back( (TH1D*)f_HI_JER->Get
@@ -195,7 +195,6 @@ void JERUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& reco
   for( uint iJet = 0; iJet < recoJets.size(); iJet++ ){
     TLorentzVector& recoJet  = recoJets [ iJet ];
     TLorentzVector& truthJet = truthJets[ iJet ];
-
   
     float recoJetPt    = recoJet.Pt()/1000.;
     float recoJetEta   = recoJet.Eta();
@@ -207,24 +206,21 @@ void JERUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& reco
 
     int   etaBin       = GetEtaUJERBin( recoJetEta );
     float uncertainty  = m_vJERhistos[ etaBin ]->Interpolate( recoJetPt );
-
-    // float JER       = hJER->Interpolate( recoJetYstar, recoJetPt );
-    int   jerBin = hJER->FindBin( recoJetYstar, recoJetPt );
     
+    int   jerBin       = hJER->FindBin( recoJetYstar, recoJetPt );
     float JER          = hJER->GetBinContent( jerBin ); 
     float smearingFactorSyst =
       std::sqrt( std::pow( JER + uncertainty, 2 ) - pow( JER, 2 ) );
 
-    float correction   = rand->Gaus(0., smearingFactorSyst);
-          
+    float correction   = rand->Gaus( 0., smearingFactorSyst );
+    
     float recoJetPtNew = recoJetPt + truthJetPt * correction;
     if ( recoJetPtNew < 10){
       recoJetPtNew = 1;
       recoJetM = 0;
     }
-  
-    recoJet.SetPtEtaPhiM
-      ( recoJetPtNew * 1000., recoJetEta, recoJetPhi, recoJetM );
+        
+    recoJet.SetPtEtaPhiM( recoJetPtNew * 1000., recoJetEta, recoJetPhi, recoJetM );
   }
 }
 

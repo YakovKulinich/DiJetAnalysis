@@ -832,6 +832,9 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 
   std::vector< std::vector< float > >    v_sysUncert;
   std::vector< std::vector< float > >* p_v_sysUncert = & v_sysUncert;
+
+  TH2* hJerComp = new TH2D( "hJerComp", ";#it{p}_T;After/Before", 124, 28, 90, 50, 0, 2 );
+  styleTool->SetHStyle( hJerComp, 0 );
   
   for( uint iG = 0; iG < m_nJzn; iG++){
 
@@ -884,7 +887,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 		 anaTool->sortByDecendingPt );
       std::sort( vTT_paired_jets.begin(), vTT_paired_jets.end(),
 		 anaTool->sortByDecendingPt );
-      
+
       // If not running on default sample.
       // Apply uncertainties to all reco jets.
       if( m_uncertComp ){
@@ -893,7 +896,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       }
 
       // last parameter is mode, we use 2 to get dphi weight.
-     int mode = 2;
+      int mode = 2;
       AnalyzeDeltaPhiWithWeight( m_vHjznDphiReco [iG], vTR_paired_jets, vTT_paired_jets, mode );
       AnalyzeDeltaPhiWithWeight( m_vHjznDphiTruth[iG], vTT_paired_jets, vTT_paired_jets, mode );
       
@@ -938,6 +941,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
   } // end loop over a JZ sample
   TFile* f = new TFile("myOut.root", "RECREATE" );
   hW->Write();
+  hJerComp->Write();
   f->Close();   
 }
 

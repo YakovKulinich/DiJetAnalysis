@@ -996,214 +996,6 @@ void DiJetAnalysisData::LoadHistograms( int opt ){
   
   fIn->Close(); delete fIn;
 }
-
-void DiJetAnalysisData::MakeRunSpectra( std::vector< TH3* >& vSampleSpect,
-					const std::vector< std::string>& vLabels,
-					const std::string& name ){
-
-  /*
-  if( !vSampleSpect.size() ){ return; }
-
-  std::string axisLabel, axisLabelTex;
-  GetSpectraLabels( axisLabel, axisLabelTex, name );
-
-  bool isEta = name.find( m_sEta ) != std::string::npos ? true : false;
-
-  // use this as reference because
-  // it should be in every file
-  TH3*  hRef = vSampleSpect[0];
-  int nXbins = hRef->GetNbinsX();
-
-  uint nSamples = vSampleSpect.size();
-  
-  std::vector< std::vector< std::vector< TH1* > > > vSpect;
-  std::vector< std::vector< std::vector< TH1* > > > vSpectCounts;
-  vSpect      .resize( nSamples );
-  vSpectCounts.resize( nSamples );
-
-  for( auto& v : vSpect       ){ v.resize( m_nRuns ); }
-  for( auto& v : vSpectCounts ){ v.resize( m_nRuns ); }
-
-  std::string yAxisTitle = "dN/d#it{p}_{T} [GeV]";
-
-  double max = -1;
-  
-  for( uint iG = 0; iG < nSamples; iG++){
-
-    std::string label = vLabels[iG];
-
-    if( label.compare( m_allName ) ){ continue; }
-
-    for( uint iRun = 1; iRun <= m_nRuns; iRun++ ){
-    
-      for( int xBin = 1; xBin <= nXbins; xBin++ ){
-      
-	double xMin, xMax;
-	anaTool->GetBinRange
-	  ( hRef->GetXaxis(), xBin, xBin, xMin, xMax );
-      
-	std::string hTag = anaTool->GetName( xMin, xMax, axisLabel);
-       
-	TH1* hSpectCounts =
-	  vSampleSpect[iG]->
-	  ProjectionY( Form("h_%s_%s_%s_%s",
-			    name.c_str(), m_sCounts.c_str(), label.c_str(), hTag.c_str() ),
-		       xBin, xBin );
-      
-	TH1* hSpect = static_cast< TH1D* >
-	  ( hSpectCounts->Clone
-	    ( Form("h_%s_%s_%s",
-		   name.c_str(), label.c_str(), hTag.c_str() ) ) );
-      
-	hSpect->SetTitle( anaTool->GetLabel( xMin, xMax, axisLabelTex ).c_str() );
-	hSpect->SetYTitle( yAxisTitle.c_str() );
-      
-	vSpect      [iG].push_back( hSpect );
-	vSpectCounts[iG].push_back( hSpectCounts );
-      
-	// scale by width of bins to get dN/dpT
-	hSpect->Scale( 1./m_mRunLumi(), "width" );
-      
-	hSpect->Write();
-	hSpectCounts->Write();
-      
-	// get min max from the final histograms
-	if( label.compare( m_allName ) ){ continue; }
-	if( max < hSpect->GetMaximum() ){ max = hSpect->GetMaximum(); }
-      
-      } // end loop over xBin
-    } // end loop over runs
-  } // end loop over iG
-
-  // set maxima globally for all spectra hists.
-  // easier to compare. Set on log scale.
-
-  max = anaTool->GetLogMaximum( max );
-  
-  double lX0, lY0, lX1, lY1;
-  
-  //------------------------------------------------
-  //------- For Each xAxis Bin, draw an IGs --------
-  //------------------------------------------------
-
-  if( m_is_pPb ){ lX0 = 0.45; lY0 = 0.54; lX1 = 0.76; lY1 = 0.67; }
-  else          { lX0 = 0.25; lY0 = 0.20; lX1 = 0.45; lY1 = 0.40; }
-  
-  for( int iX = 0; iX < nXbins; iX++ ){
-    int    xBin = iX + 1;
-    double xMin, xMax;
-    anaTool->GetBinRange( hRef->GetXaxis(), xBin, xBin, xMin, xMax );
-    double xCenter = hRef->GetXaxis()->GetBinCenter ( xBin );
-
-    // for pPb, dont draw at anything above -3.2
-    if( isEta && m_is_pPb && xCenter > -constants::FETAMIN ){ continue; }
-     
-    std::string cName  = anaTool->GetName ( xMin, xMax, axisLabel    );
-    std::string cLabel = anaTool->GetLabel( xMin, xMax, axisLabelTex );
-    
-    TCanvas c( cLabel.c_str(), cLabel.c_str(), 800, 600 );
-    c.SetLogy();
-    
-    TLegend leg( lX0, lY0, lX1, lY1 );
-    styleTool->SetLegendStyle( &leg, 0.7 );
-    
-    int style = 1;
-    for( uint iG = 0; iG < nSamples; iG++ ){
-      std::string label = vLabels[iG];
-
-      // for pp, dont draw central triggers below -3.2
-      // or forward triggers above -3.2
-      // for mb, and total draw everything
-      bool isMb  = label.find("_mb_") != std::string::npos
-	? true : false;
-      bool isAll = !label.compare( m_allName )
-	? true : false;
-
-      TH1* h = vSpect[iG][iX];
-           
-      if( !h->GetEntries() && !isMb && !isAll ){ continue; }
-      else if( !h->GetEntries() && !isMb && !isAll ){ continue; }
-      
-      if( iG == nSamples ){ style = 0; }
-      styleTool->SetHStyle( h, style++ );
-      h->Draw("epsame");
-      h->SetMinimum( m_ptSpectYaxisMin );
-      h->SetMaximum( max );
-      leg.AddEntry( h, label.c_str() );
-    } // end loop over iG
-    
-    leg.Draw("same");
-
-    DrawAtlasRight();    
-    drawTool->DrawRightLatex( 0.87, 0.73, cLabel );
-
-    SaveAsAll( c, Form("%s_%s", name.c_str(), cName.c_str() ) );
-  } // end loop over iX
-  
-  //------------------------------------------------
-  //--------- For each IG, draw xAxisBins ----------
-  //------------------------------------------------
-
-  if( m_is_pPb ){ lX0 = 0.70; lY0 = 0.54; lX1 = 0.85; lY1 = 0.71; }
-  else          { lX0 = 0.20; lY0 = 0.23; lX1 = 0.47; lY1 = 0.40; }
-  
-  for( uint iG = 0; iG < nSamples; iG++ ){
-    std::string label = vLabels[iG];
-
-    if( label.compare( m_allName ) ){ continue; };
-    
-    std::string cName  = label;
-    std::string cLabel = label;
-
-    TCanvas c( "c", cLabel.c_str(), 800, 600 );
-    c.SetLogy();
-    
-    TLegend leg( lX0, lY0, lX1, lY1 );
-    styleTool->SetLegendStyle( &leg, 0.7 );
-
-    int style = 0;
-    for( int iX = 0; iX < nXbins; iX++ ){
-      int       xBin = iX + 1;
-      double xCenter = hRef->GetXaxis()->GetBinCenter ( xBin );
-
-      // for pPb, dont draw at anything above -3.2
-      if( m_is_pPb && xCenter > -constants::FETAMIN ){ continue; }
-
-      // for pp, dont draw central triggers below -3.2
-      // or forward triggers above -3.2
-      // for mb, and total draw everything
-      bool isMb  = label.find("_mb_") != std::string::npos
-	? true : false;
-      bool isAll = !label.compare( m_allName )
-	? true : false;
-
-      TH1* h = vSpect[iG][iX];
-      
-      if( h->GetEntries() && !isMb && !isAll ){ continue; }
-      else if( h->GetEntries() && !isMb && !isAll ){ continue; }
-
-      styleTool->SetHStyle( h, style++ );
-      h->Draw("epsame");
-      h->SetMinimum( m_ptSpectYaxisMin );
-      h->SetMaximum( max );
-      leg.AddEntry( h, h->GetTitle() );
-    } // end loop over iX
-    leg.Draw("same");
-
-    DrawAtlasRight();    
-
-    SaveAsAll( c, Form("%s_%s", name.c_str(), cName.c_str() ) );
-  } // end loop over iG  
-
-  // delete
-  for( uint iG = 0; iG < nSamples; iG++ ){
-    for( int iX = 0; iX < nXbins; iX++ ){
-      delete vSpect      [iG][iX];
-      delete vSpectCounts[iG][iX];
-    }
-  }
-  */
-}
 					  
 void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
 					  std::vector< TH2* >& vTrigSpectRef,
@@ -1462,10 +1254,12 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   double pDx = 0.05;
   
   std::string yTitle = isYield ?
-    "Pair Jet Per Jet_{1} Yield" : "|#Delta#phi| width";
+    "#it{N}_{Jet_{12}}/#it{N}_{Jet_{1}}" : "|#Delta#phi| width";
   std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
+  std::string yTitleUncert = yTitle + " Uncertainty %";
+  
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
     anaTool->GetBinRange
@@ -1480,12 +1274,11 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
-      TCanvas c( "c", "c", 800, 600 );
-      styleTool->SetCStyleGraph
-	( c, x0, y0, x1, y1, gTitle.c_str() );
+      TCanvas cAll( "cAll", "cAll", 800, 600 );
+      styleTool->SetCStyleGraph( cAll, x0, y0, x1, y1, gTitle.c_str() );
 
       // for yields, use log scale on yaxis
-      if( isYield ){ c.SetLogy(); }
+      if( isYield ){ cAll.SetLogy(); }
 
       double legX0, legX1, legY0, legY1;
 
@@ -1504,8 +1297,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	legY1 = 0.29 + deltaYleg;
       }
       
-      TLegend leg( legX0, legY0, legX1, legY1 );
-      styleTool->SetLegendStyle( &leg );
+      TLegend legAll( legX0, legY0, legX1, legY1 );
+      styleTool->SetLegendStyle( &legAll );
 
       // tag for widths canvas
       std::string hTagC =
@@ -1536,24 +1329,101 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	TH1D* hNominal = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
 	vHdef.push_back( hNominal );
 
-	// Make all the systematics histograms for this y1, pt1, pt2 bin.
+	// Make all the systematics histograms for each y1, pt1, pt2 bin.
 	// since we look one bin at a time and process all systematics,
-	// need to have these histograms ready
+	// need to have these histograms ready. Store them to a map
+	// with the key as the systematic component number.
 	std::map< int, TH1D* > mHsystTmp; 
-
 	for( auto uc : v_uc ){
 
 	  // skip uc = 0 (default)
 	  if( !uc ){ continue; }
 
-	  std::string    uncertSuffix = uc > 0 ? Form("P%d", uc) : Form("N%d", -1 * uc) ;
-	  std::string hSystematicName = "h_" + allUnfoldedName + "_" + hTag + "_" + m_uncertSuffix;
+	  std::string tmpUncertSuffix = uc > 0 ? Form("P%d", uc) : Form("N%d", -1 * uc) ;
+	  std::string hSystematicName = "h_" + allUnfoldedName + "_" + hTag + "_" + tmpUncertSuffix;
 
 	  TH1D* hSystematic = static_cast<TH1D*>( hNominal->Clone( hSystematicName.c_str() ) );
 	  vHsyst.push_back( hSystematic );
 	  hSystematic->Reset();
 	  mHsystTmp[ uc ] = hSystematic;
 	}
+
+	double systMax = 50;
+	double systMin = -50;
+	
+	// Make all the systematics histograms for each y1, pt1, pt2 bin.
+	// These are more specific (PJER, PJER, HIJES, TOT, etc )
+	std::string hPTOTName = "h_" + allSystematicsName + "_PTOT_" + hTag;
+	TH1D* hPTOT = static_cast< TH1D* >( hNominal->Clone( hPTOTName.c_str() ) );
+	vHsyst.push_back( hPTOT );
+	hPTOT->Reset();
+	styleTool->SetHStyle( hPTOT, 0 );
+	
+	std::string hNTOTName = "h_" + allSystematicsName + "_NTOT_" + hTag;
+	TH1D* hNTOT = static_cast< TH1D* >( hNominal->Clone( hNTOTName.c_str() ) );
+	vHsyst.push_back( hNTOT );
+	hNTOT->Reset();
+	styleTool->SetHStyle( hNTOT, 0 );
+
+	std::string hPJESName = "h_" + allSystematicsName + "_PJES_" + hTag;
+	TH1D* hPJES = static_cast< TH1D* >( hNominal->Clone( hPJESName.c_str() ) );
+	vHsyst.push_back( hPJES );
+	hPJES->Reset();
+	styleTool->SetHStyle( hPJES, 1 );
+
+	std::string hNJESName = "h_" + allSystematicsName + "_NJES_" + hTag;
+	TH1D* hNJES = static_cast< TH1D* >( hNominal->Clone( hNJESName.c_str() ) );
+	vHsyst.push_back( hNJES );
+	hNJES->Reset();
+	styleTool->SetHStyle( hNJES, 1 );
+	
+	std::string hPHIJESName = "h_" + allSystematicsName + "_PHIJES_" + hTag;
+	TH1D* hPHIJES = static_cast< TH1D* >( hNominal->Clone( hPHIJESName.c_str() ) );
+	vHsyst.push_back( hPHIJES );
+	hPHIJES->Reset();
+	styleTool->SetHStyle( hPHIJES, 2 );
+
+	std::string hNHIJESName = "h_" + allSystematicsName + "_NHIJES_" + hTag;
+	TH1D* hNHIJES = static_cast< TH1D* >( hNominal->Clone( hNHIJESName.c_str() ) );
+	vHsyst.push_back( hNHIJES );
+	hNHIJES->Reset();
+	styleTool->SetHStyle( hNHIJES, 2 );
+
+	std::string hPANGName = "h_" + allSystematicsName + "_PANG_" + hTag;
+	TH1D* hPANG = static_cast< TH1D* >( hNominal->Clone( hPANGName.c_str() ) );
+	vHsyst.push_back( hPANG );
+	hPANG->Reset();
+	styleTool->SetHStyle( hPANG, 3 );
+
+	std::string hNANGName = "h_" + allSystematicsName + "_NANG_" + hTag;
+	TH1D* hNANG = static_cast< TH1D* >( hNominal->Clone( hNANGName.c_str() ) );
+	vHsyst.push_back( hNANG );
+	hNANG->Reset();
+	styleTool->SetHStyle( hNANG, 3 );
+
+	std::string hPJERName = "h_" + allSystematicsName + "_PJER_" + hTag;
+	std::string hNJERName = "h_" + allSystematicsName + "_NJER_" + hTag;
+	TH1D* hPJER = static_cast< TH1D* >( hNominal->Clone( hPJERName.c_str() ) );
+	vHsyst.push_back( hPJER );
+	hPJER->Reset();
+	styleTool->SetHStyle( hPJER, 4 );
+
+		
+	std::string hPUNFName = "h_" + allSystematicsName + "_PUNF_" + hTag;
+	std::string hNUNFName = "h_" + allSystematicsName + "_NUNF_" + hTag;
+	TH1D* hPUNF = static_cast< TH1D* >( hNominal->Clone( hPUNFName.c_str() ) );
+	vHsyst.push_back( hPUNF );
+	hPUNF->Reset();
+	styleTool->SetHStyle( hPUNF, 0 );
+	hPUNF->SetLineStyle( 7 );
+
+	std::string hPFITName = "h_" + allSystematicsName + "_PFIT_" + hTag;
+	std::string hNFITName = "h_" + allSystematicsName + "_NFIT_" + hTag;
+	TH1D* hPFIT = static_cast< TH1D* >( hNominal->Clone( hPFITName.c_str() ) ); 
+	vHsyst.push_back( hPFIT );
+	hPFIT->Reset();
+	styleTool->SetHStyle( hPFIT, 1 );
+	hPFIT->SetLineStyle( 7 );
 	
 	std::vector< double > pX;
 	std::vector< double > eX( nAxis3Bins, 0.1 * hNominal->GetBinWidth(1) );
@@ -1565,25 +1435,21 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	std::vector< double > eYPJES;
 	std::vector< double > eYNJES;
 
-	std::vector< double > eYPJER;
-	std::vector< double > eYNJER;
-	
 	//---------------------------------------------------
 	//------------------ DO WORK HERE -------------------
 	//---------------------------------------------------
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 
 	  std::vector< TH1* > vHunc;
-	  
-	  std::vector< double > eYPtmp;
-	  std::vector< double > eYNtmp;
 
-	  std::vector< double > eYPtmpJES;
-	  std::vector< double > eYNtmpJES;
+	  // add uncertainties in quadrature;
+	  double uncertFinYP = 0;
+	  double uncertFinYN = 0;
 
-	  std::vector< double > eYPtmpJER;
-	  std::vector< double > eYNtmpJER;
-	  
+	  // add uncertainties in quadrature;
+	  double uncertFinYPJES = 0;
+	  double uncertFinYNJES = 0;
+
 	  double yNominal = hNominal->GetBinContent( axis3Bin );
 	  pX.push_back( hNominal->GetBinCenter( axis3Bin ) );
 	  
@@ -1605,32 +1471,59 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 
 	    double yShifted = hUncertainty->GetBinContent( axis3Bin );
 
-	    double uncertainty  = ( yNominal - yShifted )/yNominal;
-
-	    std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " " << axis2Bin << " " 
-		      << sign << " " << yShifted << " " << yNominal << " " << uncertainty << std::endl;
-
-	    mHsystTmp[ uc ]->SetBinContent( axis3Bin, uncertainty );
+	    double uncertaintySq = std::pow( ( yNominal - yShifted ) / yNominal, 2 );
+	    double uncertainty   = std::sqrt( uncertaintySq ); 
 	    
-	    // for JER negative is same as positive (20)
+	    std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " "
+		      << axis2Bin << " " << sign << " " << yShifted << " "
+		      << yNominal << " " << uncertainty << std::endl;
+
+	    mHsystTmp[ uc ]->SetBinContent( axis3Bin, yShifted );
+	    
+	    // for PJER negative is same as positive (20)
 	    // for Fitting negative is same as positive (22)
-	    // for ReWeight negative is same as positive (23)
+	    // for ReWeight/Unf negative is same as positive (23)
 	    // and we do not have a NN, just use PN
 	    if( uc  == 20 || uc == 22 || uc == 23 ){
-	      eYPtmp.push_back( uncertainty );
-	      eYNtmp.push_back( uncertainty );
+	      uncertFinYP += uncertaintySq;
+	      uncertFinYN += uncertaintySq;
+
+	      // set these uncertainties in % ( x100 ) directly, since they
+	      // do not depend on quadrature sum with anything.
+	      if( uc == 20 ){
+		hPJER->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc == 22 ){
+		hPFIT->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc == 23 ){
+		hPUNF->SetBinContent( axis3Bin, uncertainty * 100 );
+	      }
 	      continue;
-	    }
-	    if( sign > 0 ){
-	      eYPtmp.push_back( uncertainty );
-	    } else {
-	      eYNtmp.push_back( uncertainty );
+	    } else if( sign > 0 ){
+	      // add onto total positive uncertainty
+	      uncertFinYP += uncertaintySq ;
+	      // here go positive uncertainties
+	      // first, check if it is JES, then if HIJES, or ANG
+	      if( uc >= 1 && uc <= 18 ){
+		uncertFinYPJES += uncertaintySq;
+	      } else if( uc == 19 ){
+		hPHIJES->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc == 21 ){
+		hPANG->SetBinContent( axis3Bin, uncertainty * 100 );
+	      }
+	    } else if( sign < 0 ){
+	      // add onto total negative uncertainty
+	      uncertFinYN += uncertaintySq;
+	      // here go negative uncertainties
+	      // first, check if it is JES, then if HIJES, or ANG
+	      if( uc >= -18 && uc <= -1 ){
+		uncertFinYNJES += uncertaintySq;
+	      } else if( uc == -19 ){
+		hNHIJES->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc == -21 ){
+		hNANG->SetBinContent( axis3Bin, uncertainty * 100 );
+	      }
 	    }
 	  } // end loop over uncertainties
-
-	  // add uncertainties in quadrature;
-	  double uncertaintyFinalYP = 0;
-	  double uncertaintyFinalYN = 0;
 
 	  // clean up, or there are memory problems
 	  // because each file writes same histo into
@@ -1638,27 +1531,23 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  // deleting deleted stuff if you dont do it now
 	  for( auto& h : vHunc ){ delete h; }
 
-	  for( auto u : eYPtmp ){
-	    uncertaintyFinalYP += std::pow( u , 2 );
-	  }
+	  uncertFinYP = uncertFinYP >= 0 ? std::sqrt( uncertFinYP ) : 0.0;
+	  uncertFinYN = uncertFinYN >= 0 ? std::sqrt( uncertFinYN ) : 0.0;
 
-	  for( auto u : eYNtmp ){
-	    uncertaintyFinalYN += std::pow( u , 2 );
-	  }
+	  hPTOT->SetBinContent( axis3Bin, uncertFinYP * 100 );
+	  hNTOT->SetBinContent( axis3Bin, uncertFinYN * 100 );
+	  
+	  uncertFinYPJES = uncertFinYPJES >= 0 ? std::sqrt( uncertFinYPJES ) : 0.0;
+	  uncertFinYNJES = uncertFinYNJES >= 0 ? std::sqrt( uncertFinYNJES ) : 0.0;
 
-	  uncertaintyFinalYP =
-	    uncertaintyFinalYP >= 0 ? std::sqrt( uncertaintyFinalYP ) : 0.0;
-
-	  uncertaintyFinalYN =
-	    uncertaintyFinalYN >= 0 ? std::sqrt( uncertaintyFinalYN ) : 0.0;
-
-	  std::cout << hNominalName << " "
-		    << uncertaintyFinalYP << " "
-		    << uncertaintyFinalYN << std::endl;
+	  hPJES->SetBinContent( axis3Bin, uncertFinYPJES * 100 );
+	  hNJES->SetBinContent( axis3Bin, uncertFinYNJES * 100 );
+	  
+	  std::cout << hNominalName << " " << uncertFinYP << " " << uncertFinYN << std::endl;
 	  
 	  pY .push_back( yNominal );
-	  eYP.push_back( yNominal * uncertaintyFinalYP );
-	  eYN.push_back( yNominal * uncertaintyFinalYN );
+	  eYP.push_back( yNominal * uncertFinYP );
+	  eYN.push_back( yNominal * uncertFinYN );
 	} // end loop over axis3
 
 	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
@@ -1697,16 +1586,116 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
        	gNominal->GetXaxis()->SetRangeUser( x0, x1 );
        	gNominal->GetYaxis()->SetRangeUser( y0, y1 );
 
-	leg.AddEntry
-	  ( gNominal, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str(), "lp" );	
+	legAll.AddEntry
+	  ( gNominal, anaTool->GetLabel
+	    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str(), "lp" );	
 	
 	// draw systematics first
 	gSystematics->Draw("2");
 	gNominal->Draw("p");
+
+	//+++++++++++++++++++++++++++++++++++++++++++
+	// Draw Uncertainties
+	//+++++++++++++++++++++++++++++++++++++++++++
+	TCanvas cSyst( "cSyst", "cSyst", 800, 600 );
+	TLegend legSyst( 0.2, 0.2, 0.9, 0.3 );
+	styleTool->SetLegendStyle( &legSyst, 0.90 );
+	legSyst.SetNColumns( 4 );
+	
+	legSyst.AddEntry( hPTOT, "Total", "l" );
+	legSyst.AddEntry( hPJES, "JES", "l" );
+	legSyst.AddEntry( hPHIJES, "HIJES", "l" );
+	legSyst.AddEntry( hPJER, "PJER", "l" );
+	legSyst.AddEntry( hPANG, "Angular", "l" );
+	legSyst.AddEntry( hPUNF, "Unfolding", "l" );
+	if( !isYield ){
+	  legSyst.AddEntry( hPFIT, "Fitting", "l" );
+	}
+
+
+	TH1* hNJER = static_cast< TH1D* >
+	  ( hPJER->Clone( hNJERName.c_str() ) );
+	TH1* hNUNF = static_cast< TH1D* >
+	  ( hPUNF->Clone( hNUNFName.c_str() ) );
+	TH1* hNFIT = static_cast< TH1D* >
+	  ( hPFIT->Clone( hNFITName.c_str() ) );
+	
+	int maxBin = hPTOT->GetMaximumBin();
+
+	double newSystMax = systMax;
+	double newSystMin = systMin;
+	
+	if( hPTOT->GetBinContent( maxBin ) > 30 &&
+	    hPTOT->GetBinContent( maxBin ) < 50 ){
+	  newSystMax += 15;
+	  newSystMin -= 15;
+	} 
+	hPJES->SetYTitle( yTitleUncert.c_str() );
+	hPJES->SetNdivisions( 505 );
+	hPJES->SetMaximum( newSystMax );
+	hPJES->SetMinimum( newSystMin );
+	hPJES->Draw( "histo same" );
+	hNJES->Scale( -1. );
+	hNJES->Draw( "histo same" );
+        hPHIJES->SetMaximum( newSystMax );
+	hPHIJES->SetMinimum( newSystMin );
+	hPHIJES->Draw( "histo same" );
+	hNHIJES->Scale( -1. );
+	hNHIJES->Draw( "histo same" );
+	hPANG->SetMaximum( newSystMax );
+	hPANG->SetMinimum( newSystMin );
+	hPANG->Draw( "histo same" );
+	hNANG->Scale( -1. );
+	hNANG->Draw( "histo same" );
+	hPJER->SetMaximum( newSystMax );
+	hPJER->SetMinimum( newSystMin );
+	hPJER->Draw( "histo same" );
+	hNJER->Scale( -1. );
+	hNJER->Draw( "histo same" );
+	hPUNF->SetMaximum( newSystMax );
+	hPUNF->SetMinimum( newSystMin );
+	hPUNF->Draw( "histo same" );
+	hNUNF->Scale( -1. );
+	hNUNF->Draw( "histo same" );
+	if( !isYield ){
+	  hPFIT->SetMaximum( newSystMax );
+	  hPFIT->SetMinimum( newSystMin );
+	  hPFIT->Draw( "histo same" );
+	  hNFIT->Scale( -1. );
+	  hNFIT->Draw( "histo same" );
+	}
+	// Draw Last
+	hPTOT->SetMaximum( newSystMax );
+	hPTOT->SetMinimum( newSystMin );
+	hPTOT->Draw( "histo same" );
+	hNTOT->Scale( -1. );
+	hNTOT->Draw( "histo same" );
+		
+	// Draw the final canvas with all of the graphs.
+	legSyst.Draw();
+
+	drawTool->DrawLeftLatex
+	  ( 0.18, 0.87, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 0.9 );
+	drawTool->DrawLeftLatex
+	  ( 0.18, 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.9 );
+	drawTool->DrawLeftLatex
+	  ( 0.445, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.9 );
+	  
+	DrawAtlasRight( 0, 0, 0.9 );
+	
+	std::string hNameSystFinal =
+	"h_" + name + "_" + m_systematicsName + "_" + m_sFinal + "_" + hTag;
+ 
+	SaveAsAll( cSyst, hNameSystFinal );
+
+	// !!! Important !!!
+	// Switch back to cAll first, becase a canvas for
+	// each uncertainty was created for each axis2Bin.
+	cAll.cd();
       } // end loop over axis2
 
       // Draw the final canvas with all of the graphs.
-      leg.Draw();
+      legAll.Draw();
       
       DrawTopLeftLabels
 	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, 0, 0, 0, 0);
@@ -1716,7 +1705,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
       std::string hNameFinal =
 	"h_" + name + "_" + m_sFinal + "_" + hTagC;
 
-      SaveAsAll( c, hNameFinal );
+      SaveAsAll( cAll, hNameFinal );
     } // end loop over axis1     
   } // end loop over axis0
 
@@ -1725,301 +1714,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   for( auto& g : vG     ){ g->Write(); delete g; }
 }
 
-void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& name ){
-
-  /*
-  std::vector< int > v_uc;
-  std::map< int, TFile* > mFinUC;
-
-  // see if we are dealing with widths of yields.
-  bool isYield = name.find( m_yieldName ) != std::string::npos ? true : false;
-  
-  // get map of sys factor to TFile*
-  TFile* fInNominal = GetListOfSystUncert( v_uc, mFinUC );
-  // change back to the fOut, for writing.
-  fOut->cd();
-  
-  std::string allUnfoldedName    =
-    m_dPhiName + "_" + m_unfoldedName    + "_" + name + "_" + m_allName;
-  std::string allSystematicsName =
-    m_dPhiName + "_" + m_systematicsName + "_" + name + "_" + m_allName;
-
-  std::vector< TH1* > vHdef;
-  std::vector< TGraphAsymmErrors* > vG;
-  
-  TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
-  TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
-  TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
-  TAxis* axis3 = m_dPP->GetTAxis(3); int nAxis3Bins = axis3->GetNbins();
-
-  // for canvas, since its tgraphasymmerrors.
-  double x0 = axis3->GetXmin();
-  double x1 = axis3->GetXmax(); 
-
-  double y0 = isYield ? m_dPhiYieldMin : m_dPhiWidthMin;
-  double y1 = isYield ? m_dPhiYieldMax : m_dPhiWidthMax;
-
-  double pDx = 0.05;
-  
-  std::string yTitle = isYield ?
-    "Pair Jet Per Jet_{1} Yield" : "|#Delta#phi| width";
-  std::string xTitle = m_dPP->GetAxisLabel(3);
-  std::string gTitle = ";" + xTitle + ";" + yTitle;
-
-  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
-    double axis0Low, axis0Up;
-    anaTool->GetBinRange
-      ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
-    
-    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
-      if( !m_dPP->CorrectPhaseSpace
-	  ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
-	{ continue; }
-      
-      double axis1Low, axis1Up;
-      anaTool->GetBinRange
-	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
-
-      TCanvas c( "c", "c", 800, 600 );
-      styleTool->SetCStyleGraph
-	( c, x0, y0, x1, y1, gTitle.c_str() );
-
-      // for yields, use log scale on yaxis
-      if( isYield ){ c.SetLogy(); }
-
-      double legX0, legX1, legY0, legY1;
-
-      // this is bs. works though. vary the last factor 
-      double deltaYleg = ( axis1Bin - 1 ) * 0.075;
- 
-      if( isYield ){
-	legX0 = 0.30;
-	legY0 = 0.22;
-	legX1 = 0.71;
-	legY1 = 0.29 + deltaYleg;
-      } else {
-	legX0 = 0.54;
-	legY0 = 0.22;
-	legX1 = 0.89;
-	legY1 = 0.29 + deltaYleg;
-      }
-      
-      TLegend leg( legX0, legY0, legX1, legY1 );
-      styleTool->SetLegendStyle( &leg );
-
-      // tag for widths canvas
-      std::string hTagC =
-	Form ("%s_%s",
-	      anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
-	      anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
-
-      int style = 0;
-      // ---- loop over axis2 ----
-      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
-	if( !m_dPP->CorrectPhaseSpace
-	    ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, 0 } ) )
-	  { continue; }
-
-	double axis2Low , axis2Up;
-	anaTool->GetBinRange
-	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
-
-	std::string hTag =
-	  Form( "%s_%s_%s",
-	        anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
-		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
-		anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() ); 
-
-	std::string hNominalName = "h_" + allUnfoldedName + "_" + hTag;
-	std::string gNominalName = "g_" + allUnfoldedName + "_" + hTag;
-	
-	TH1D* hNominal = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
-	vHdef.push_back( hNominal );
-
-	std::vector< double > pX;
-	std::vector< double > eX( nAxis3Bins, 0.1 * hNominal->GetBinWidth(1) );
- 
-	std::vector< double > pY;
-	std::vector< double > eYP;
-	std::vector< double > eYN;
-
-	std::vector< double > eYPJES;
-	std::vector< double > eYNJES;
-
-	std::vector< double > eYPJER;
-	std::vector< double > eYNJER;
-		
-	//---------------------------------------------------
-	//------------------ DO WORK HERE -------------------
-	//---------------------------------------------------
-	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
-
-	  std::vector< TH1* > vHunc;
-	  
-	  std::vector< double > eYPtmp;
-	  std::vector< double > eYNtmp;
-
-	  std::vector< double > eYPtmpJES;
-	  std::vector< double > eYNtmpJES;
-
-	  std::vector< double > eYPtmpJER;
-	  std::vector< double > eYNtmpJER;
-	  
-	  double yNominal = hNominal->GetBinContent( axis3Bin );
-	  pX.push_back( hNominal->GetBinCenter( axis3Bin ) );
-	  
-	  // loop over uncertainties
-	  for( auto uc : v_uc ){
-
-	    // skip uc = 0 (default)
-	    if( !uc ){ continue; }
-
-	    // this is same as hNominalName but leave it separate
-	    // to avoid confusion / make more flexible later.
-	    std::string hUncertaintyName = "h_" + allUnfoldedName + "_" + hTag;
-
-	    TH1D* hUncertainty = static_cast<TH1D*>
-	      ( mFinUC[uc]->Get( hUncertaintyName.c_str() ) );
-	    vHunc.push_back( hUncertainty );
-
-	    int sign = uc > 0 ? 1 : -1;
-
-	    double yShifted = hUncertainty->GetBinContent( axis3Bin );
-
-	    double uncertainty  = ( yNominal - yShifted )/yNominal;
-
-	    std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " " << axis2Bin << " " 
-		      << sign << " " << yShifted << " " << yNominal << " " << uncertainty << std::endl;
-
-	    // for JER negative is same as positive
-	    // and we do not have a N20, just use P20
-	    if( uc  == 20 ){
-	      eYPtmp.push_back( uncertainty );
-	      eYNtmp.push_back( uncertainty );
-	      continue;
-	    }
-	    // for Fitting negative is same as positive
-	    // and we do not have a N20, just use P20
-	    if( uc  == 22 ){
-	      eYPtmp.push_back( uncertainty );
-	      eYNtmp.push_back( uncertainty );
-	      continue;
-	    }
-	    // for ReWeight negative is same as positive
-	    // and we do not have a N20, just use P20
-	    if( uc  == 23 ){
-	      eYPtmp.push_back( uncertainty );
-	      eYNtmp.push_back( uncertainty );
-	      continue;
-	    }
-	    
-	    if( sign > 0 ){
-	      eYPtmp.push_back( uncertainty );
-	    } else {
-	      eYNtmp.push_back( uncertainty );
-	    }
-	  } // end loop over uncertainties
-
-	  // add uncertainties in quadrature;
-	  double uncertaintyFinalYP = 0;
-	  double uncertaintyFinalYN = 0;
-
-	  // clean up, or there are memory problems
-	  // because each file writes same histo into
-	  // same memory address. so eventually you start
-	  // deleting deleted stuff if you dont do it now
-	  for( auto& h : vHunc ){ delete h; }
-
-	  for( auto u : eYPtmp ){
-	    uncertaintyFinalYP += std::pow( u , 2 );
-	  }
-
-	  for( auto u : eYNtmp ){
-	    uncertaintyFinalYN += std::pow( u , 2 );
-	  }
-
-	  uncertaintyFinalYP =
-	    uncertaintyFinalYP >= 0 ? std::sqrt( uncertaintyFinalYP ) : 0.0;
-
-	  uncertaintyFinalYN =
-	    uncertaintyFinalYN >= 0 ? std::sqrt( uncertaintyFinalYN ) : 0.0;
-
-	  std::cout << hNominalName << " "
-		    << uncertaintyFinalYP << " "
-		    << uncertaintyFinalYN << std::endl;
-	  
-	  pY .push_back( yNominal );
-	  eYP.push_back( yNominal * uncertaintyFinalYP );
-	  eYN.push_back( yNominal * uncertaintyFinalYN );
-	} // end loop over axis3
-
-	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
-
-	TGraphAsymmErrors* gNominal     = new TGraphAsymmErrors( hNominal );
-	TGraphAsymmErrors* gSystematics = new TGraphAsymmErrors
-	  ( nAxis3Bins, &(pX[0]), &(pY[0]), &(eX[0]), &(eX[0]), &(eYN[0]), &(eYP[0]) );
-	
-	gNominal    ->SetName( gNominalName.c_str() );
-	gSystematics->SetName( gSystematicsName.c_str() );
-
-	vG.push_back( gNominal );
-	vG.push_back( gSystematics );
-	
-	styleTool->SetHStyle( gNominal    , style );
-	styleTool->SetHStyle( gSystematics, style );
-	style++;
-
-	// add some displacement along x
-	double* xDef      = gNominal->GetX();
-	double* eXDefLow  = gNominal->GetEXlow();
-	double* eXDefHigh = gNominal->GetEXhigh();
-	double* xSys      = gSystematics->GetX();
-	for( int iX = 0; iX < nAxis3Bins; iX++ ){
-	  *(      xDef + iX ) += style * pDx;
-	  *(  eXDefLow + iX ) = 0;
-	  *( eXDefHigh + iX ) = 0;
-	  *(      xSys + iX ) += style * pDx;
-	}
-	
-	gSystematics->SetTitle("");
-       	gSystematics->GetXaxis()->SetRangeUser( x0, x1 );
-       	gSystematics->GetYaxis()->SetRangeUser( y0, y1 );
-	
-	gNominal->SetTitle("");
-       	gNominal->GetXaxis()->SetRangeUser( x0, x1 );
-       	gNominal->GetYaxis()->SetRangeUser( y0, y1 );
-
-	leg.AddEntry
-	  ( gNominal, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str(), "lp" );	
-	
-	// draw systematics first
-	gSystematics->Draw("2");
-	gNominal->Draw("p");
-	
-	gSystematics->Write();
-	gNominal->Write();
-      } // end loop over axis2
-
-      // Draw the final canvas with all of the graphs.
-      leg.Draw();
-      
-      DrawTopLeftLabels
-	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, 0, 0, 0, 0);
-
-      DrawAtlasRight();
-
-      std::string hNameFinal =
-	"h_" + name + "_" + m_sFinal + "_" + hTagC;
-
-      SaveAsAll( c, hNameFinal );
-      
-    } // end loop over axis1     
-  } // end loop over axis0
-
-  for( auto& h : vHdef ){ delete h; }
-  for( auto& g : vG    ){ delete g; }
-  */
-}
+void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& name ){}
 
 // CLEAN THIS UP! ITS NOT WORTH THE HEADACHE NOW
 // BUT STILL, NOT GOOD (03.30.18)
