@@ -893,7 +893,11 @@ void DiJetAnalysisData::GetInfoTogether( std::string& name_a , std::string& name
   }
   
   int combinationBoth = GetConfig()->GetValue( "combinationBoth", 0 );
-  
+
+  // for the final plots, name_a and name_b
+  // are same in both pp and pPb files
+  // so instead, they are the name of the nominal
+  // and systematic TGraphs.
   if( combinationBoth == 0 ){
     name_a    += "_" + m_unfoldedName;
     name_b    += "_" + m_systematicsName;
@@ -1439,7 +1443,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	//------------------ DO WORK HERE -------------------
 	//---------------------------------------------------
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
-
+	  
 	  std::vector< TH1* > vHunc;
 
 	  // add uncertainties in quadrature;
@@ -1678,9 +1682,13 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  ( 0.18, 0.87, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 0.85 );
 	drawTool->DrawLeftLatex
 	  ( 0.18, 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
-	drawTool->DrawLeftLatex
-	  ( 0.445, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
-	  
+	if( m_is_pPb ){
+	  drawTool->DrawLeftLatex
+	    ( 0.445, 0.790, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
+	} else {
+	  drawTool->DrawLeftLatex
+	    ( 0.445, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
+	}
 	DrawAtlasRight( 0, 0, 0.9 );
 	
 	std::string hNameSystFinal =
@@ -1712,9 +1720,153 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   for( auto& h : vHdef  ){ h->Write(); delete h; }
   for( auto& h : vHsyst ){ h->Write(); delete h; }
   for( auto& g : vG     ){ g->Write(); delete g; }
+  for( auto& p : mFinUC ){ p.second->Close();    }
 }
 
-void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& name ){}
+void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& name ){
+
+  std::vector< int > v_uc;
+  std::map< int, TFile* > mFinUC;
+
+  // dont need those files open
+  for( auto& p : mFinUC ){ p.second->Close(); }
+
+  // Get Infos, same as in DiJetAnalysis::MakeDphiTogether(..)
+  std::string name_def, name_syst;
+  std::string label_a, label_b ;
+  std::string fName_a, fName_b;
+
+  GetInfoTogether( name_def, name_syst, label_a, label_b, fName_a, fName_b, 1 );
+
+  std::string ratio = Form("%s/%s", label_a.c_str(), label_b.c_str() );
+
+  TFile* fInA = TFile::Open( fName_a.c_str() );
+  TFile* fInB = TFile::Open( fName_b.c_str() );
+  
+  // see if we are dealing with widths of yields.
+  bool isYield = name.find( m_yieldName ) != std::string::npos ? true : false;
+  
+  // get map of sys factor to TFile*
+  TFile* fInNominal = GetListOfSystUncert( v_uc, mFinUC );
+
+  // change back to the fOut, for writing.
+  fOut->cd();
+  
+  std::string allUnfoldedName    =
+    m_dPhiName + "_" + m_unfoldedName    + "_" + name + "_" + m_allName;
+  std::string allSystematicsName =
+    m_dPhiName + "_" + m_systematicsName + "_" + name + "_" + m_allName;
+
+  std::vector< TH1* > vHdef;
+  std::vector< TH1* > vHsyst;
+  std::vector< TGraphAsymmErrors* > vG;
+  
+  TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
+  TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
+  TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
+  TAxis* axis3 = m_dPP->GetTAxis(3); int nAxis3Bins = axis3->GetNbins();
+
+  // for canvas, since its tgraphasymmerrors.
+  double x0 = axis3->GetXmin();
+  double x1 = axis3->GetXmax(); 
+
+  double y0 = isYield ? m_dPhiYieldMin : m_dPhiWidthMin;
+  double y1 = isYield ? m_dPhiYieldMax : m_dPhiWidthMax;
+
+  double pDx = 0.05;
+  
+  std::string yTitle = isYield ?
+    "#it{N}_{Jet_{12}}/#it{N}_{Jet_{1}}" : "|#Delta#phi| width";
+  std::string xTitle = m_dPP->GetAxisLabel(3);
+  std::string gTitle = ";" + xTitle + ";" + yTitle;
+
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+    double axis0Low, axis0Up;
+    anaTool->GetBinRange
+      ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
+    
+    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      if( !m_dPP->CorrectPhaseSpace
+	  ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
+	{ continue; }
+      
+      double axis1Low, axis1Up;
+      anaTool->GetBinRange
+	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
+
+      TCanvas cAll( "cAll", "cAll", 800, 600 );
+      styleTool->SetCStyleGraph( cAll, x0, y0, x1, y1, gTitle.c_str() );
+
+      // for yields, use log scale on yaxis
+      if( isYield ){ cAll.SetLogy(); }
+
+      double legX0, legX1, legY0, legY1;
+
+      // this is bs. works though. vary the last factor 
+      double deltaYleg = ( axis1Bin - 1 ) * 0.075;
+ 
+      if( isYield ){
+	legX0 = 0.30;
+	legY0 = 0.22;
+	legX1 = 0.71;
+	legY1 = 0.29 + deltaYleg;
+      } else {
+	legX0 = 0.54;
+	legY0 = 0.22;
+	legX1 = 0.89;
+	legY1 = 0.29 + deltaYleg;
+      }
+      
+      TLegend legAll( legX0, legY0, legX1, legY1 );
+      styleTool->SetLegendStyle( &legAll );
+
+      // tag for widths canvas
+      std::string hTagC =
+	Form ("%s_%s",
+	      anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+	      anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
+
+      int style = 0;
+      // ---- loop over axis2 ----
+      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	if( !m_dPP->CorrectPhaseSpace
+	    ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, 0 } ) )
+	  { continue; }
+
+	double axis2Low , axis2Up;
+	anaTool->GetBinRange
+	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+
+	std::string hTag =
+	  Form( "%s_%s_%s",
+	        anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() ); 
+	
+	std::string hNominalName = "h_" + allUnfoldedName + "_" + hTag;
+	std::string gNominalName = "g_" + allUnfoldedName + "_" + hTag;
+	
+	TH1D* hNominalA = static_cast<TH1D*>( fInA->Get( hNominalName.c_str() ) );
+	TH1D* hNominalB = static_cast<TH1D*>( fInB->Get( hNominalName.c_str() ) );
+	vHdef.push_back( hNominalA );
+	vHdef.push_back( hNominalB );
+	
+	
+	// Now Draw everything.
+	TCanvas cW( "cW", "cW", 800, 800 );
+	TPad pad1W("pad1W", "", 0.0, 0.35, 1.0, 1.0 );
+	pad1W.SetBottomMargin(0);
+	pad1W.Draw();
+	TPad pad2W("pad2W", "", 0.0, 0.0, 1.0, 0.34 );
+	pad2W.SetTopMargin(0.05);
+	pad2W.SetBottomMargin(0.25);
+	pad2W.Draw();
+
+	
+      } // end loop over axis2
+    } // end loop over axis1
+  } // end loop over axis0
+}
 
 // CLEAN THIS UP! ITS NOT WORTH THE HEADACHE NOW
 // BUT STILL, NOT GOOD (03.30.18)

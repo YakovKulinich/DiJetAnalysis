@@ -1015,7 +1015,7 @@ void CT::DrawTools::DrawAtlasInternalMCRight
   }
   
   DrawRightLatex( xstart, 0.96, 
-		 "#bf{#font[72]{ATLAS}} Simulation Internal", CT::StyleTools::lSS, 1 );
+		  "#bf{#font[72]{ATLAS}} Simulation Internal", CT::StyleTools::lSS, 1 );
   DrawRightLatex( xstart + x0, ystart + y0,
 		  Form( "%s %s", system.c_str(), mcType.c_str() ), scale, 1 );
- }
+}
