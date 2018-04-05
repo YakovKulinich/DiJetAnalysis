@@ -1605,7 +1605,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	legSyst.AddEntry( hPTOT, "Total", "l" );
 	legSyst.AddEntry( hPJES, "JES", "l" );
 	legSyst.AddEntry( hPHIJES, "HIJES", "l" );
-	legSyst.AddEntry( hPJER, "PJER", "l" );
+	legSyst.AddEntry( hPJER, "JER", "l" );
 	legSyst.AddEntry( hPANG, "Angular", "l" );
 	legSyst.AddEntry( hPUNF, "Unfolding", "l" );
 	if( !isYield ){
@@ -1675,11 +1675,11 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	legSyst.Draw();
 
 	drawTool->DrawLeftLatex
-	  ( 0.18, 0.87, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 0.9 );
+	  ( 0.18, 0.87, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 0.85 );
 	drawTool->DrawLeftLatex
-	  ( 0.18, 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.9 );
+	  ( 0.18, 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
 	drawTool->DrawLeftLatex
-	  ( 0.445, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.9 );
+	  ( 0.445, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
 	  
 	DrawAtlasRight( 0, 0, 0.9 );
 	

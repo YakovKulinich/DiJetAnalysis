@@ -202,12 +202,7 @@ namespace CT{
 
     void DrawAtlasInternalDataRight( double = 0, double = 0, bool = false,
 				     double = StyleTools::lSS );
-    void DrawAtlasInternalDataLeft ( double = 0, double = 0, bool = false,
-				     double = StyleTools::lSS );
     void DrawAtlasInternalMCRight  ( double = 0, double = 0,
-				     const std::string& = "", int = 0,
-				     double = StyleTools::lSS );
-    void DrawAtlasInternalMCLeft   ( double = 0, double = 0,
 				     const std::string& = "", int = 0,
 				     double = StyleTools::lSS );
   };
