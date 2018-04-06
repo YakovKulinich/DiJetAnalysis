@@ -1258,7 +1258,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   double pDx = 0.05;
   
   std::string yTitle = isYield ?
-    "#it{N}_{Jet_{12}}/#it{N}_{Jet_{1}}" : "|#Delta#phi| width";
+    "#it{N}_{Jet_{2,1}}/#it{N}_{Jet_{1}}" : "|#Delta#phi| width";
   std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
@@ -1284,9 +1284,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
       // for yields, use log scale on yaxis
       if( isYield ){ cAll.SetLogy(); }
 
-      double legX0, legX1, legY0, legY1;
-
       // this is bs. works though. vary the last factor 
+      double legX0, legX1, legY0, legY1;
       double deltaYleg = ( axis1Bin - 1 ) * 0.075;
  
       if( isYield ){
@@ -1736,9 +1735,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   std::string label_a, label_b ;
   std::string fName_a, fName_b;
 
-  GetInfoTogether( name_def, name_syst, label_a, label_b, fName_a, fName_b, 1 );
-
-  std::string ratio = Form("%s/%s", label_a.c_str(), label_b.c_str() );
+  GetInfoTogether( name_def, name_syst, label_a, label_b, fName_a, fName_b, 2 );
 
   TFile* fInA = TFile::Open( fName_a.c_str() );
   TFile* fInB = TFile::Open( fName_b.c_str() );
@@ -1747,20 +1744,22 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   bool isYield = name.find( m_yieldName ) != std::string::npos ? true : false;
   
   // get map of sys factor to TFile*
-  TFile* fInNominal = GetListOfSystUncert( v_uc, mFinUC );
-
+  GetListOfSystUncert( v_uc, mFinUC );
+  
   // change back to the fOut, for writing.
   fOut->cd();
+
+  std::vector< TH1* > vHdef;
+  std::vector< TH1* > vHsyst;
+  std::vector< TH1* > vR;
+  std::vector< TGraphAsymmErrors* > vG;
+  std::vector< TGraphAsymmErrors* > vGfinal;
   
   std::string allUnfoldedName    =
     m_dPhiName + "_" + m_unfoldedName    + "_" + name + "_" + m_allName;
   std::string allSystematicsName =
     m_dPhiName + "_" + m_systematicsName + "_" + name + "_" + m_allName;
 
-  std::vector< TH1* > vHdef;
-  std::vector< TH1* > vHsyst;
-  std::vector< TGraphAsymmErrors* > vG;
-  
   TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
   TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
   TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
@@ -1774,12 +1773,50 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   double y1 = isYield ? m_dPhiYieldMax : m_dPhiWidthMax;
 
   double pDx = 0.05;
-  
+
+  // lines to be drawn along axis3. this is
+  // x-axis that widths are plotted as function of 
+  TLine line( x0, 1, x1, 1 );
+  line.SetLineWidth( 2 );
+
+  TLine lineP25( x0, 1.25, x1, 1.25 );
+  lineP25.SetLineStyle( 2  );
+  lineP25.SetLineColor( 12 );
+  lineP25.SetLineWidth( 2  );
+	  
+  TLine lineN25( x0, 0.75, x1, 0.75 );
+  lineN25.SetLineStyle( 2  );
+  lineN25.SetLineColor( 12 );
+  lineN25.SetLineWidth( 2  );
+
+  TLine lineP50( x0, 1.50, x1, 1.50 );
+  lineP50.SetLineStyle( 2  );
+  lineP50.SetLineColor( 12 );
+  lineP50.SetLineWidth( 1  );
+	  
+  TLine lineN50( x0, 0.50, x1, 0.50 );
+  lineN50.SetLineStyle( 2  );
+  lineN50.SetLineColor( 12 );
+  lineN50.SetLineWidth( 1  );
+
+  TLine lineP1S( x0, 1.34, x1, 1.34 );
+  lineP1S.SetLineStyle( 2  );
+  lineP1S.SetLineColor( 12 );
+  lineP1S.SetLineWidth( 1  );
+	  
+  TLine lineN1S( x0, 0.66, x1, 0.66 );
+  lineN1S.SetLineStyle( 2  );
+  lineN1S.SetLineColor( 12 );
+  lineN1S.SetLineWidth( 1  );
+
   std::string yTitle = isYield ?
-    "#it{N}_{Jet_{12}}/#it{N}_{Jet_{1}}" : "|#Delta#phi| width";
+    "#it{N}_{Jet_{2,1}}/#it{N}_{Jet_{1}}" : "|#Delta#phi| width";
   std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
+  std::string sRatio      = Form("%s/%s", label_a.c_str(), label_b.c_str() );
+  std::string gTitleRatio = gTitle + " " + sRatio;
+  
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
     anaTool->GetBinRange
@@ -1794,39 +1831,12 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
-      TCanvas cAll( "cAll", "cAll", 800, 600 );
-      styleTool->SetCStyleGraph( cAll, x0, y0, x1, y1, gTitle.c_str() );
-
-      // for yields, use log scale on yaxis
-      if( isYield ){ cAll.SetLogy(); }
-
-      double legX0, legX1, legY0, legY1;
-
-      // this is bs. works though. vary the last factor 
-      double deltaYleg = ( axis1Bin - 1 ) * 0.075;
- 
-      if( isYield ){
-	legX0 = 0.30;
-	legY0 = 0.22;
-	legX1 = 0.71;
-	legY1 = 0.29 + deltaYleg;
-      } else {
-	legX0 = 0.54;
-	legY0 = 0.22;
-	legX1 = 0.89;
-	legY1 = 0.29 + deltaYleg;
-      }
-      
-      TLegend legAll( legX0, legY0, legX1, legY1 );
-      styleTool->SetLegendStyle( &legAll );
-
       // tag for widths canvas
       std::string hTagC =
 	Form ("%s_%s",
 	      anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 	      anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
 
-      int style = 0;
       // ---- loop over axis2 ----
       for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
 	if( !m_dPP->CorrectPhaseSpace
@@ -1842,30 +1852,281 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	        anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
 		anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
 		anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() ); 
-	
+
+	TCanvas cAll( "cAll", "cAll", 800, 600 );
+	styleTool->SetCStyleGraph( cAll, x0, y0, x1, y1, gTitle.c_str() );
+
+	TLegend legAll( 0.55, 0.25, 0.65, 0.38 );
+	styleTool->SetLegendStyle( &legAll, 1.0 );
+
+	// ---------------------------------------
+	//      Nominal Graphs and Histograms
+	// ---------------------------------------
 	std::string hNominalName = "h_" + allUnfoldedName + "_" + hTag;
 	std::string gNominalName = "g_" + allUnfoldedName + "_" + hTag;
-	
+
 	TH1D* hNominalA = static_cast<TH1D*>( fInA->Get( hNominalName.c_str() ) );
 	TH1D* hNominalB = static_cast<TH1D*>( fInB->Get( hNominalName.c_str() ) );
+	hNominalA->SetName( Form( "%s_A", hNominalName.c_str() ) );
+	hNominalB->SetName( Form( "%s_B", hNominalName.c_str() ) );
 	vHdef.push_back( hNominalA );
 	vHdef.push_back( hNominalB );
-	
-	
-	// Now Draw everything.
-	TCanvas cW( "cW", "cW", 800, 800 );
-	TPad pad1W("pad1W", "", 0.0, 0.35, 1.0, 1.0 );
-	pad1W.SetBottomMargin(0);
-	pad1W.Draw();
-	TPad pad2W("pad2W", "", 0.0, 0.0, 1.0, 0.34 );
-	pad2W.SetTopMargin(0.05);
-	pad2W.SetBottomMargin(0.25);
-	pad2W.Draw();
 
+	std::cout << hNominalA << " " << hNominalB << " " << gNominalName << std::endl;
+	std::cout << fInA->GetName() << " " << fInB->GetName() << std::endl;
 	
+	TGraphAsymmErrors* gNominalA =
+	  static_cast< TGraphAsymmErrors* >( fInA->Get( gNominalName.c_str() ) );
+	TGraphAsymmErrors* gNominalB =
+	  static_cast< TGraphAsymmErrors* >( fInB->Get( gNominalName.c_str() ) );
+	gNominalA->SetName( Form( "%s_A", gNominalName.c_str() ) );
+	gNominalB->SetName( Form( "%s_B", gNominalName.c_str() ) );
+	styleTool->SetHStyle( gNominalA, 0 );
+	styleTool->SetHStyle( gNominalB, 1 );
+	vG.push_back( gNominalA );
+	vG.push_back( gNominalB );
+
+	legAll.AddEntry( gNominalA, label_a.c_str(), "lp" );
+	legAll.AddEntry( gNominalB, label_b.c_str(), "lp" );
+	
+	// ---------------------------------------
+	//    Systematics Graphs and Histograms
+	// ---------------------------------------
+	std::string hSystematicsName = "h_" + allSystematicsName + "_" + hTag;
+	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
+
+	TGraphAsymmErrors* gSystematicsA =
+	  static_cast< TGraphAsymmErrors* >( fInA->Get( gSystematicsName.c_str() ) );
+	TGraphAsymmErrors* gSystematicsB =
+	  static_cast< TGraphAsymmErrors* >( fInB->Get( gSystematicsName.c_str() ) );
+	gSystematicsA->SetName( Form( "%s_A", gSystematicsName.c_str() ) );
+	gSystematicsB->SetName( Form( "%s_B", gSystematicsName.c_str() ) );
+	styleTool->SetHStyle( gSystematicsA, 0 );
+	styleTool->SetHStyle( gSystematicsB, 1 );
+	vG.push_back( gSystematicsA );
+	vG.push_back( gSystematicsB );
+
+	// offset the graph points
+	for( int i = 0; i < gSystematicsB->GetN(); i++ ){
+	  double x0, y0;
+	  x0 = hNominalB->GetBinCenter ( i  + 1 );
+	  y0 = hNominalB->GetBinContent( i  + 1 );
+	  gNominalB    ->SetPoint( i, x0 + pDx, y0 );
+	  gSystematicsB->SetPoint( i, x0 + pDx, y0 );
+	  x0 = hNominalA->GetBinCenter ( i  + 1 );
+	  y0 = hNominalA->GetBinContent( i  + 1 );
+	  gNominalA    ->SetPoint( i, x0 - pDx, y0 );
+	  gSystematicsA->SetPoint( i, x0 - pDx, y0 );
+	}
+	
+	// now draw everything
+	// pad1All.cd();
+	// for yields, use log scale on yaxis
+	if( isYield ){ cAll.SetLogy(); }
+      	
+	gSystematicsA->Draw("2");
+	gNominalA->Draw("p");
+	gSystematicsB->Draw("2");
+	gNominalB->Draw("p");
+	
+	legAll.Draw();
+
+	drawTool->DrawLeftLatex
+	  ( 0.18, 0.86, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 1.0 );
+	drawTool->DrawLeftLatex
+	  ( 0.18, 0.78, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 1.0 );
+	drawTool->DrawLeftLatex
+	  ( 0.18, 0.275, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 1.0 );
+
+	DrawAtlasRightBoth( 0, 0, 1.0, true );
+	
+	std::string hNameFinal =
+	  "h_" + name + "_" + m_sFinal + "_" + hTag;
+
+	SaveAsPdfPng( cAll, hNameFinal, true );
+	SaveAsROOT  ( cAll, hNameFinal );
+
+	//-------------------------------------------------------
+	//  Make Ration Plots With Statistical Uncertainties
+	//-------------------------------------------------------
+
+	std::string hNominalRName = "h_" + allUnfoldedName + "_" + m_sRatio + "_" + hTag;
+	std::string gNominalRName = "g_" + allUnfoldedName + "_" + m_sRatio + "_" + hTag;
+
+	TH1* hNominalR = static_cast< TH1D* >( hNominalA->Clone( hNominalRName.c_str() ) );
+	hNominalR->Divide( hNominalB );
+	vR.push_back( hNominalR );
+	
+	std::map< int, TH1D* > mHsystTmpA;
+	std::map< int, TH1D* > mHsystTmpB; 
+	for( auto uc : v_uc ){
+
+	  // skip uc = 0 (default)
+	  if( !uc ){ continue; }
+
+	  std::string tmpUncertSuffix = uc > 0 ? Form("P%d", uc) : Form("N%d", -1 * uc) ;
+	  std::string hSystematicName = "h_" + allUnfoldedName + "_" + hTag + "_" + tmpUncertSuffix;
+
+	  TH1D* hSystematicA = static_cast<TH1D*>( fInA->Get( hSystematicName.c_str() ) );
+	  TH1D* hSystematicB = static_cast<TH1D*>( fInB->Get( hSystematicName.c_str() ) );
+	  mHsystTmpA[ uc ] = hSystematicA;
+	  mHsystTmpB[ uc ] = hSystematicB;
+	}
+
+	std::vector< double > pX;
+	std::vector< double > eX( nAxis3Bins, 0.1 * hNominalA->GetBinWidth(1) );
+ 
+	std::vector< double > pY;
+	std::vector< double > eYP;
+	std::vector< double > eYN;
+
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	  // add uncertainties in quadrature;
+	  double uncertFinYP = 0;
+	  double uncertFinYN = 0;
+
+	  // for FIT(22) and UNC(23)
+	  double uncertUnCorrYP = 0;
+	  double uncertUnCorrYN = 0;
+
+	  // nominal ratio
+	  double ratioABnominal = hNominalR->GetBinContent( axis3Bin );
+	  pX.push_back( hNominalR->GetBinCenter( axis3Bin ) );
+	  
+	  for( auto uc : v_uc ){
+	    
+	    // skip uc = 0 (default)
+	    if( !uc ){ continue; }
+	     
+	    // for FIT, UNC, errors uncorrelated, add in quadrature
+	    // for pp and pPb, and combine to a total error which
+	    // is then added to the other correlated systematics.
+	    if( uc == 22 || uc == 23 ){
+	      double eYA = mHsystTmpA[ uc ]->GetBinContent( axis3Bin );
+	      double yA  = hNominalA->GetBinContent( axis3Bin );
+	      double deltaEyA =  eYA - yA;
+	      
+	      double eYB = mHsystTmpB[ uc ]->GetBinContent( axis3Bin );
+	      double yB  = hNominalB->GetBinContent( axis3Bin );
+	      double deltaEyB =  eYB - yB;
+
+	      double quadSumAB = std::sqrt( std::pow( deltaEyA, 2 ) +
+					    std::pow( deltaEyB, 2 ) );
+	      
+	      uncertUnCorrYP += std::pow( quadSumAB, 2 );
+	      uncertUnCorrYN += std::pow( quadSumAB, 2 );
+	    } else {
+	      double shiftA  =  mHsystTmpA[ uc ]->GetBinContent( axis3Bin );
+	      double shiftB  =  mHsystTmpB[ uc ]->GetBinContent( axis3Bin );
+	      
+	      double ratioABshifted = shiftA / shiftB;
+	      
+	      double uncertaintySq =
+		std::pow( ( ratioABnominal - ratioABshifted ) / ratioABnominal, 2 );
+
+	      int sign = uc > 0 ? 1 : -1;
+
+	      std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " "
+			<< axis2Bin << " " << sign << " " << ratioABshifted << " "
+			<< ratioABnominal << " " << std::sqrt( uncertaintySq ) << std::endl;
+
+	      if( sign > 0 ){
+		uncertFinYP += uncertaintySq;
+		continue;
+	      } else{
+		uncertFinYN += uncertaintySq;
+		continue;
+	      }
+	    }
+	  }
+
+	  uncertFinYP = uncertUnCorrYP >= 0 ? uncertFinYP + uncertUnCorrYP : 0;
+	  uncertFinYN = uncertUnCorrYN >= 0 ? uncertFinYN + uncertUnCorrYN : 0;
+	  
+	  // now get the final uncertainties.
+	  uncertFinYP = uncertFinYP >= 0 ? std::sqrt( uncertFinYP ) : 0.0;
+	  uncertFinYN = uncertFinYN >= 0 ? std::sqrt( uncertFinYN ) : 0.0;
+
+	  std::cout << hNominalRName << " " << uncertFinYP << " " << uncertFinYN << std::endl;
+	  
+	  pY .push_back( ratioABnominal );
+	  eYP.push_back( ratioABnominal * uncertFinYP );
+	  eYN.push_back( ratioABnominal * uncertFinYN );
+	} // end loop over axis3
+
+	// now draw for each axis0Bin, axis1Bin, axis2Bin the ratios
+	double y0R = 0.5;
+	double y1R = 1.5;
+
+	std::string gSystematicsRName = "g_" + allSystematicsName + "_" + m_sRatio + "_" + hTag;
+
+	TGraphAsymmErrors* gNominalR     = new TGraphAsymmErrors( hNominalR );
+	TGraphAsymmErrors* gSystematicsR = new TGraphAsymmErrors
+	  ( nAxis3Bins, &(pX[0]), &(pY[0]), &(eX[0]), &(eX[0]), &(eYN[0]), &(eYP[0]) );
+
+	gNominalR    ->SetName( gNominalRName.c_str() );
+	gSystematicsR->SetName( gSystematicsRName.c_str() );
+
+	// get rid of errors on nominal graph
+	double* eXNominalLow  = gNominalR->GetEXlow();
+	double* eXNominalHigh = gNominalR->GetEXhigh();
+	for( int iX = 0; iX < nAxis3Bins; iX++ ){
+	  *(  eXNominalLow + iX ) = 0;
+	  *( eXNominalHigh + iX ) = 0;
+	}
+	
+	vGfinal.push_back( gNominalR );
+	vGfinal.push_back( gSystematicsR );
+	
+	styleTool->SetHStyle( gNominalR    , 0 );
+	styleTool->SetHStyle( gSystematicsR, 0 );
+
+	gSystematicsR->SetTitle("");
+	gSystematicsR->GetXaxis()->SetRangeUser( x0, x1 );
+	gSystematicsR->GetYaxis()->SetRangeUser( y0R, y1R );
+	
+	gNominalR->SetTitle("");
+	gNominalR->GetXaxis()->SetRangeUser( x0, x1 );
+	gNominalR->GetYaxis()->SetRangeUser( y0R, y1R );
+
+	TCanvas cRatio( "cRatio", "cRatio", 800, 600 );
+	styleTool->SetCStyleGraph( cRatio, x0, y0R, x1, y1R, gTitleRatio.c_str() );
+
+	// draw systematics first
+	gSystematicsR->Draw("2");
+	gNominalR->Draw("p");
+
+	line.Draw();
+	lineP25.Draw();
+	lineN25.Draw();
+	lineP50.Draw();
+	lineN50.Draw();
+
+	drawTool->DrawLeftLatex
+	  ( 0.18, 0.86, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 1.0 );
+	drawTool->DrawLeftLatex
+	  ( 0.18, 0.78, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 1.0 );
+	drawTool->DrawLeftLatex
+	  ( 0.18, 0.275, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 1.0 );
+
+	DrawAtlasRightBoth( 0, 0, 1.0, true );
+	  
+	std::string hNameFinalR =
+	  "h_" + name + "_" + m_sRatio + "_" +m_sFinal + "_" + hTag;
+
+	SaveAsPdfPng( cRatio, hNameFinalR, true );
+	SaveAsROOT  ( cRatio, hNameFinalR );
+
       } // end loop over axis2
     } // end loop over axis1
   } // end loop over axis0
+
+  for( auto& g : vGfinal ){ g->Write(); delete g; }
+
+  for( auto& h : vHdef  ){ delete h; }
+  for( auto& h : vHsyst ){ delete h; }
+  for( auto& r : vR     ){ delete r; }
+  for( auto& g : vG     ){ delete g; }
 }
 
 // CLEAN THIS UP! ITS NOT WORTH THE HEADACHE NOW
@@ -2296,7 +2557,14 @@ void DiJetAnalysisData::CompareCfactorsRBnRB( TFile* fOut ){
 void DiJetAnalysisData::DrawAtlasRight( double x0, double y0, double scale )
 { drawTool->DrawAtlasInternalDataRight( x0, y0, m_is_pPb, scale ); } 
 
-void DiJetAnalysisData::DrawAtlasRightBoth( double x0, double y0, double scale ){
+void DiJetAnalysisData::DrawAtlasRightBoth( double x0, double y0, double scale, bool fin ){
   drawTool->DrawAtlasInternal( scale );
-  drawTool->DrawRightLatex( 0.87, 0.87, "Data" );	  	  
+  if( fin ){
+    drawTool->DrawRightLatex
+      ( 0.875, 0.87, drawTool->GetLumipPb(), scale, 1 );
+    drawTool->DrawRightLatex
+      ( 0.875, 0.795, drawTool->GetLumipp(), scale, 1 );
+  } else { 
+    drawTool->DrawRightLatex( 0.87, 0.87, "Data" );	  	  
+  }
 } 

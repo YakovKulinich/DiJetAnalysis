@@ -391,8 +391,11 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   MakeSpectTogether( fOut );
-  MakeDphiTogether ( fOut );
+  MakeFinalPlotsTogether( fOut, m_widthName );
+  MakeFinalPlotsTogether( fOut, m_yieldName );
 
+  // MakeDphiTogether ( fOut );
+  
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
   std::cout << "......Closed  " << fOut->GetName() << std::endl;
@@ -1336,8 +1339,8 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     styleTool->HideAxis( hMeasured, "x" );
     styleTool->HideAxis( hTruth   , "x" );
 
-    double xMin = hR->GetXaxis()->GetXmin();
-    double xMax = hR->GetXaxis()->GetXmax();
+    double xMin = m_varPtBinning.front();
+    double xMax = m_varPtBinning.back();
 	  
     TLine line( xMin, 1, xMax, 1 );
     line.SetLineWidth( 2 );
@@ -2471,8 +2474,8 @@ void DiJetAnalysis::MakeSpectTogether( TFile* fOut ){
 
   std::string ratio = Form("%s/%s", label_a.c_str(), label_b.c_str() );
 
-  double xMin = m_varPtBinningUfOf.front();
-  double xMax = m_varPtBinningUfOf.back();
+  double xMin = m_varPtBinning.front();
+  double xMax = m_varPtBinning.back();
   
   TLine line( xMin, 1, xMax, 1 );
   line.SetLineWidth( 2 );
@@ -3043,15 +3046,15 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   c.cd(1);
   h_chi2_a->SetMaximum( h_chi2_a->GetMaximum() > h_chi2_b->GetMaximum() ?
 			h_chi2_a->GetMaximum() * 1.1 : h_chi2_b->GetMaximum() * 1.1 );
-  h_chi2_a->Draw("hist C same");
-  h_chi2_b->Draw("hist C same");
+  h_chi2_a->Draw("hist p same");
+  h_chi2_b->Draw("hist p same");
   DrawAtlasRightBoth();
 
   c.cd(2);
   h_prob_a->SetMaximum( h_prob_a->GetMaximum() > h_prob_b->GetMaximum() ?
 			h_prob_a->GetMaximum() * 1.1 : h_prob_b->GetMaximum() * 1.1 );
-  h_prob_a->Draw("hist C same");
-  h_prob_b->Draw("hist C same");
+  h_prob_a->Draw("hist p same");
+  h_prob_b->Draw("hist p same");
 
   leg.AddEntry( h_prob_a, label_a.c_str() );
   leg.AddEntry( h_prob_b, label_b.c_str() );

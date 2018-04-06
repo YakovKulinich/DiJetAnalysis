@@ -9,9 +9,6 @@
 #include <iostream>
 #include <sstream>
 
-const int pPbLumi2016 = 437; // ub
-const int ppLumi2015  = 26;  // pb
-
 //===================================
 //         COMMON FUNCTIONS
 //===================================
@@ -968,12 +965,16 @@ void CT::DrawTools::DrawCenterLatex
 // ============ DATA ================
 
 void CT::DrawTools::DrawAtlasInternal( double scale ){
-
-  double ystart = 0.86 + ( 1 - scale ) * 0.1;
-  double xstart = 0.875;
   
-  DrawRightLatex
-    ( xstart , ystart, "#bf{#font[72]{ATLAS}} Internal", scale, 1 );
+  DrawRightLatex( 0.90, 0.96, "#bf{#font[72]{ATLAS}} Internal", scale, 1 );
+}
+
+std::string CT::DrawTools::GetLumipPb(){
+  return Form( "#it{p}+Pb 2016, %3.1f nb^{-1}", constants::pPbLumi2016 );
+}
+
+std::string CT::DrawTools::GetLumipp(){
+  return Form( "#it{pp} 2015, %2.0f pb^{-1}", constants::ppLumi2015 );
 }
 
 void CT::DrawTools::DrawAtlasInternalDataRight
@@ -987,12 +988,10 @@ void CT::DrawTools::DrawAtlasInternalDataRight
     ( 0.90 , 0.96,"#bf{#font[72]{ATLAS}} Internal", CT::StyleTools::lSS, 1 );
   if( is_pPb ){
     DrawRightLatex
-      ( xstart + x0, ystart + y0, Form("#it{p}+Pb 2016, %i #mub^{-1}",
-			     pPbLumi2016), scale, 1 );
+      ( xstart + x0, ystart + y0, GetLumipPb(), scale, 1 );
   } else {
     DrawRightLatex
-      ( xstart + x0, ystart + y0,Form("#it{pp} 2015, %i pb^{-1}",
-			ppLumi2015), scale, 1 );
+      ( xstart + x0, ystart + y0, GetLumipp(), scale, 1 );
   }
   DrawRightLatex(0.87 + x0, ystart - dy + y0, "#sqrt{s_{NN}}=5.02 TeV", scale, 1 );
 }

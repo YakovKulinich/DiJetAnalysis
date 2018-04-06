@@ -34,7 +34,11 @@
 //         CONSTANTS
 //===================================
 
+
 namespace constants{
+  const double pPbLumi2016 = 4.4; // ub
+  const double ppLumi2015  = 25;  // pb
+
   // FCal eta ranges
   const double FETAMIN = 3.2;
   const double FETAMAX = 4.9;
@@ -200,6 +204,10 @@ namespace CT{
 			  int color = 1 );
     void DrawAtlasInternal( double scale = StyleTools::lSS );
 
+    std::string GetLumipPb();
+
+    std::string GetLumipp();
+    
     void DrawAtlasInternalDataRight( double = 0, double = 0, bool = false,
 				     double = StyleTools::lSS );
     void DrawAtlasInternalMCRight  ( double = 0, double = 0,

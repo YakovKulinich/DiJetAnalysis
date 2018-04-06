@@ -4,6 +4,7 @@
 #include "DiJetAnalysis.h"
 
 class DiJetAnalysisData : public DiJetAnalysis{
+
  public:
   DiJetAnalysisData();
 
@@ -116,7 +117,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
   
-  void DrawAtlasRightBoth( double = 0, double = 0, double = CT::StyleTools::lSS ); 
+  void DrawAtlasRightBoth( double = 0, double = 0,
+			   double = CT::StyleTools::lSS, bool = false); 
 
  private:
   //============ settings =============
