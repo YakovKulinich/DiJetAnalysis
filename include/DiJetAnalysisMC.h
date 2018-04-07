@@ -127,6 +127,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		       std::vector< TH2* >&,
 		       const std::string& = "" );
 
+  TGraphAsymmErrors* CombineSamples( std::vector< TGraphAsymmErrors* >&,
+				     std::vector< TH1* >&  );
+  
   void SetCfactorsErrors( TH1*, TH1*, TH2*, TH1* );
   
   double GetJetWeight( const TLorentzVector& );
@@ -167,8 +170,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void MakeEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,
-			 std::vector< TH2* >&,
-			 const std::vector< std::string >&,
 			 const std::string& );
   
   void MakeSpectCFactorsRespMat( std::vector< TH2* >&,
@@ -252,10 +253,13 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   TH2* m_hAllEtaPtMap;
   
   // -------- spect --------
+  std::string m_ystarSpectFineTruthUPName;
+ 
   std::vector< TH2* > m_vHjznYstarSpectReco;
   std::vector< TH2* > m_vHjznYstarSpectTruth;
   std::vector< TH2* > m_vHjznYstarSpectFineReco;
   std::vector< TH2* > m_vHjznYstarSpectFineTruth;
+  std::vector< TH2* > m_vHjznYstarSpectFineTruthUP;
   
   TH2* m_hAllYstarSpectReco;
   TH2* m_hAllYstarSpectTruth;
@@ -287,7 +291,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   THnSparse* m_hAllDphiTruth;
   
   // ----- dPhi response matrix ------
-
   std::string m_dPhiRespMatName;
   std::string m_dPhiRespMatRebName;
 

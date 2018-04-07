@@ -340,11 +340,16 @@ class DiJetAnalysis{
   std::string m_recoName;
   std::string m_truthName;
   std::string m_pairedName;
+  std::string m_unpairedName;
 
   std::string m_cFactorName;
   std::string m_respMatName;
   std::string m_unfoldedName;
 
+  // -------- effic --------
+  std::string m_etaEffName;
+  std::string m_ystarEffName;
+  
   // -------- spect --------
   std::string m_etaSpectName;
   
@@ -355,7 +360,7 @@ class DiJetAnalysis{
   std::string m_ystarSpectFineName;
   std::string m_ystarSpectFineRecoName;
   std::string m_ystarSpectFineTruthName;
-
+  
   // --- spectra response matrix ----
   std::string m_ystarSpectRespMatName;
 

@@ -605,7 +605,7 @@ std::string CT::AnalysisTools::GetLabel
 
   // for now, want [GeV] by all pT labels
   std::string unit = unitIn;
-  if( var.find("{p}_{T}") != std::string::npos )
+  if( var.find("{p}_{T") != std::string::npos )
     { unit = "[GeV]"; }
   
   std::stringstream ss;

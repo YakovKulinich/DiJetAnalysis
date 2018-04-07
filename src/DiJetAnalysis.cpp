@@ -142,7 +142,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_ptMapMax    = 100;
   
   // -------- spect --------
-  m_ptSpectMin   = 20;
+  m_ptSpectMin   = 0;
   m_ptSpectMax   = 100;
   m_nPtSpectBins = ( m_ptSpectMax - m_ptSpectMin ) / 2 ; 
 
@@ -150,7 +150,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   
   // -------- eff ---------
   m_effMin = 0.;
-  m_effMax = 1.4;
+  m_effMax = 1.5;
   
   // ---- forward eta binning ---
   boost::assign::push_back( m_varFwdEtaBinning )
@@ -271,11 +271,15 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_recoName       = "reco";
   m_truthName      = "truth";
   m_pairedName     = "paired";
+  m_unpairedName   = "unpaired";
     
   m_cFactorName    = "cFactor";
   m_respMatName    = "respMat";
   m_unfoldedName   = "unfolded";
 
+  m_etaEffName     = m_sEta   + "_" + m_effName;
+  m_ystarEffName   = m_sYstar + "_" + m_effName;
+  
   m_etaSpectName        = m_sEta + "_" + m_spectName;
   
   m_ystarSpectName      = m_sYstar + "_" + m_spectName;
@@ -285,7 +289,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_ystarSpectFineName      = m_ystarSpectName + "_" + m_sFine;
   m_ystarSpectFineRecoName  = m_ystarSpectFineName + "_" + m_recoName;
   m_ystarSpectFineTruthName = m_ystarSpectFineName + "_" + m_truthName;
-
+ 
   m_ystarSpectRespMatName      = m_ystarSpectName + "_" + m_respMatName;  
   m_ystarSpectCfactorsName     = m_ystarSpectName + "_" + m_cFactorName;
   m_ystarSpectUnfoldedName     = m_ystarSpectName + "_" + m_unfoldedName; 
@@ -391,10 +395,10 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   MakeSpectTogether( fOut );
-  MakeFinalPlotsTogether( fOut, m_widthName );
-  MakeFinalPlotsTogether( fOut, m_yieldName );
+  //MakeFinalPlotsTogether( fOut, m_widthName );
+  //MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  // MakeDphiTogether ( fOut );
+  MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -1315,6 +1319,9 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
 		     m_allName.c_str(), hTag.c_str())));
     styleTool->SetHStyleRatio( hR, 1 );
     hR->Divide( hMeasured );
+
+    hR->GetXaxis()->SetRangeUser( m_varPtBinning.front(), m_varPtBinning.back() );
+      
     hR->Draw( "ep same" );
 	  
     legR.AddEntry( hCfactors, "CF" );
@@ -1691,19 +1698,10 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 				    fit->GetParameter(3), fit2->GetParameter(3) ) );
 	    } else {
 	      drawTool->DrawLeftLatex
-		( 0.60, 0.33, Form( "Prob=(%4.2f, #color[2]{%4.2f})",
-				    prob, prob2 ) );
+		( 0.70, 0.33, Form( "Prob = %4.2f", prob ) );
 	      drawTool->DrawLeftLatex
-		( 0.55, 0.25, Form( "#Chi^{2}/NDF=(%4.2f, #color[2]{%4.2f})",
-				    chi2NDF, chi2NDF2 ) );
+		( 0.65, 0.25, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ) );
 	    }
-
-	    /*
-	      drawTool->DrawLeftLatex
-	      ( 0.70, 0.33, Form( "Prob = %4.2f", prob ) );
-	      drawTool->DrawLeftLatex
-	      ( 0.65, 0.25, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ) );
-	    */
 
 	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
@@ -3141,7 +3139,7 @@ void DiJetAnalysis::SaveAsPdfPng( const TCanvas& c,
   std::string sPdf = outName + ".pdf";
   std::string sPng = outName + ".png";
 
-  // c.SaveAs( sPdf.c_str() );
+  c.SaveAs( sPdf.c_str() );
   c.SaveAs( sPng.c_str() );
 }
 

@@ -158,15 +158,11 @@ class DiJetAnalysisData : public DiJetAnalysis{
   TH2* m_hAllEtaPhiMap;
   TH2* m_hAllEtaPtMap;
   // -------- spect --------
-  std::string m_ystarSpectFineRunsName;
-  
   std::vector< TH2* > m_vHtriggerYstarSpect;
   std::vector< TH2* > m_vHtriggerYstarSpectFine;
-  std::vector< TH3* > m_vHtriggerYstarSpectFineRuns;
 
   TH2* m_hAllYstarSpect;
   TH2* m_hAllYstarSpectFine;
-  TH3* m_hAllYstarSpectFineRuns;
   // ----- efficiencies ----
   std::vector< TH2* > m_vHtriggerEtaSpectSim;
   std::vector< TH2* > m_vHtriggerEtaSpectDenom;

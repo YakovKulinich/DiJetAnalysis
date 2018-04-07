@@ -35,7 +35,7 @@ class DeltaPhiProj{
   std::vector< std::string > m_vAxisName
     { "Ystar1" , "Ystar2", "Pt1", "Pt2", };
   std::vector< std::string > m_vAxisLabel
-    { "#it{y}_{1}*", "#it{y}_{2}*", "#it{p}_{T}^{1}", "#it{p}_{T}^{2}" };
+    { "#it{y}_{1}*", "#it{y}_{2}*", "#it{p}_{T,1}", "#it{p}_{T,2}" };
   std::vector< TAxis* > m_vTAxis;
 };
 

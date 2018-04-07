@@ -49,8 +49,6 @@ DiJetAnalysisData::DiJetAnalysisData( bool is_pPb, int mcType, int uncertComp )
   
   m_centMbCorrection   = 0;
 
-  //=============== Histo Names ==================    
-  m_ystarSpectFineRunsName = m_ystarSpectFineName + "_" + m_sRuns;
 }
 
 DiJetAnalysisData::~DiJetAnalysisData(){}
@@ -119,7 +117,7 @@ void DiJetAnalysisData::ProcessPerformance(){
   m_hAllYstarSpectFine = CombineSamples( m_vHtriggerYstarSpectFine, m_ystarSpectFineName );
   MakeSpectra( m_vHtriggerYstarSpectFine, m_vTriggers, m_ystarSpectFineName );
 
-  MakeEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, m_effName );
+  MakeEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, m_etaEffName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
@@ -406,22 +404,11 @@ void DiJetAnalysisData::SetupHistograms(){
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     AddHistogram( m_vHtriggerYstarSpectFine.back() );
 
-    m_vHtriggerYstarSpectFineRuns.push_back
-      ( new TH3D( Form("h_%s_%s", m_ystarSpectFineRunsName.c_str(), trigger.c_str() ), 
-		  ";#eta;#it{p}_{T} [GeV];",
-		  m_nVarYstarBins, 0, 1,
-		  m_nPtSpectBins,m_ptSpectMin, m_ptSpectMax,
-		  m_nRuns, 0, m_nRuns ) ) ;
-    m_vHtriggerYstarSpectFineRuns.back()->GetXaxis()->
-      Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
-    AddHistogram( m_vHtriggerYstarSpectFineRuns.back() );
-
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( new TH2D ( Form("h_%sSim_%s", m_etaSpectName.c_str(), trigger.c_str() ), 
 		   ";#eta;#it{p}_{T} [GeV]",
-		   m_nVarFwdEtaBins, 0, 1,
-		   m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) ) ;
+		   m_nVarFwdEtaBins, 0, 1, 50, 0, 100 ) ) ;
     m_vHtriggerEtaSpectSim.back()->GetXaxis()->
       Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_vHtriggerEtaSpectSim.back() );
@@ -429,8 +416,7 @@ void DiJetAnalysisData::SetupHistograms(){
     m_vHtriggerEtaSpectDenom.push_back
       ( new TH2D( Form("h_%sDenom_%s", m_etaSpectName.c_str(), trigger.c_str() ), 
 		  ";#eta;#it{p}_{T} [GeV];",
-		  m_nVarFwdEtaBins, 0, 1,
-		  m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) ) ;
+		  m_nVarFwdEtaBins, 0, 1, 50, 0, 100 ) ) ;
     m_vHtriggerEtaSpectDenom.back()->GetXaxis()->
       Set( m_nVarFwdEtaBins, &( m_varFwdEtaBinning[0] ) );
     AddHistogram( m_vHtriggerEtaSpectDenom.back() );
@@ -573,15 +559,11 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	  Fill( jetYstar1, jetPt1 );
 	m_vHtriggerYstarSpectFine[iG]->
 	  Fill( jetYstar1, jetPt1 );
-	m_vHtriggerYstarSpectFineRuns[iG]->
-	  Fill( jetYstar1, jetPt1, m_mRunBin[runNumber] - 1 );	
 	if( !m_is_pPb ){
 	  m_vHtriggerYstarSpect[iG]->
 	    Fill( -jetYstar1, jetPt1 );
 	  m_vHtriggerYstarSpectFine[iG]->
 	    Fill( -jetYstar1, jetPt1 );
-	  m_vHtriggerYstarSpectFineRuns[iG]->
-	    Fill( -jetYstar1, jetPt1, m_mRunBin[runNumber] - 1 );
 	}
       }
 
@@ -974,12 +956,6 @@ void DiJetAnalysisData::LoadHistograms( int opt ){
 	  ( Form("h_%s_%s", m_ystarSpectFineName.c_str(), trigger.c_str() ))));
     m_vHtriggerYstarSpectFine.back()->SetDirectory(0);
 
-    m_vHtriggerYstarSpectFineRuns.push_back
-      ( static_cast< TH3D* >
-	( fIn->Get
-	  ( Form("h_%s_%s", m_ystarSpectFineRunsName.c_str(), trigger.c_str() ))));
-    m_vHtriggerYstarSpectFineRuns.back()->SetDirectory(0);
-
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( static_cast< TH2D* >
@@ -1004,14 +980,6 @@ void DiJetAnalysisData::LoadHistograms( int opt ){
 void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
 					  std::vector< TH2* >& vTrigSpectRef,
 					  const std::string& type ){
-  double lX0, lY0, lX1, lY1;
-
-  if( m_is_pPb ){ lX0 = 0.13; lY0 = 0.75; lX1 = 0.39; lY1 = 0.87; }
-  else          { lX0 = 0.13; lY0 = 0.68; lX1 = 0.39; lY1 = 0.89; }
-  
-  // us m_hAllEtaSpect because its always there
-  double xMin = 0;
-  double xMax = 100;
 
   // to use for reference on axis etc.
   TH2* hExample = NULL;
@@ -1020,7 +988,25 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
   } else{
     return;
   }
+
+  double lX0 = 0.18;
+  double lY0 = 0.70;
+  double lX1 = 0.40;
+  double lY1 = 0.90;
+
+  double legScale = 0.75;
   
+  if( m_is_pPb ){
+    legScale = 0.7;
+    lY0 = 0.720;
+    lX1 = 0.300;
+    lY1 = 0.850;
+  }
+  
+  // us m_hAllEtaSpect because its always there
+  double xMin = 0;
+  double xMax = 100;
+
   // use this as reference because
   // it should be in every file
   int nXbins = hExample->GetNbinsX();
@@ -1093,6 +1079,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
   //------------------------------------------------
   std::string gLabel = ";#it{p}_{T} [GeV];#it{#varepsilon}_{Trigger}";
 
+  /*
   //------------------------------------------------
   //-------- Draw Eta Bins for each Trigger --------
   //------------------------------------------------
@@ -1110,7 +1097,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     styleTool->SetCStyleGraph( c, xMin, m_effMin, xMax, m_effMax, gLabel );
     
     TLegend leg( lX0, lY0, lX1, lY1 );
-    styleTool->SetLegendStyle( &leg  );
+    styleTool->SetLegendStyle( &leg, legScale );
 
     int style = 0;
     for( int iX = 0; iX < nXbins; iX++ ){
@@ -1132,7 +1119,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
       TGraphAsymmErrors* g = vEffGrf[iG][iX];
       styleTool->SetHStyle( g, style++ );
       g->Draw("p");
-      leg.AddEntry( g, g->GetTitle() );
+      leg.AddEntry( g, g->GetTitle(), "lp" );
       g->SetTitle("");
     } // end loop over iX
     
@@ -1141,12 +1128,13 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     TLine line( xMin, 1, xMax, 1);
     line.Draw();
     
-    DrawAtlasRight();
-    drawTool->DrawRightLatex( 0.88, 0.76, cLabel );
+    DrawAtlasRight( 0, 0, 0.85 );
+    drawTool->DrawRightLatex( 0.865, 0.745, cLabel, 0.85 );
     
     SaveAsAll( c, Form("%s_%s", type.c_str(), cName.c_str() ) );
   } // end loop over iG
-
+  */
+  
   //------------------------------------------------
   //---------- Draw Triggers in Eta Bins -----------
   //------------------------------------------------
@@ -1174,7 +1162,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     styleTool->SetCStyleGraph( c, xMin, m_effMin, xMax, m_effMax, gLabel );
     
     TLegend leg( lX0, lY0, lX1, lY1 );
-    styleTool->SetLegendStyle( &leg  );
+    styleTool->SetLegendStyle( &leg, legScale );
     
     int style = 0;
     for( uint iG = 0; iG < m_nTriggers; iG++ ){
@@ -1196,7 +1184,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
       TGraphAsymmErrors* g = vEffGrf[iG][iX];
       styleTool->SetHStyle( g, style++ );      
       g->Draw("p");
-      leg.AddEntry( g, trigger.c_str() );
+      leg.AddEntry( g, trigger.c_str(), "lp" );
     } // end loop over iG
     
     leg.Draw("same");
@@ -1204,8 +1192,8 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     TLine line( xMin, 1, xMax, 1);
     line.Draw();    
     
-    DrawAtlasRight();
-    drawTool->DrawRightLatex( 0.88, 0.76, cLabel );
+    DrawAtlasRight( 0, 0, 0.85 );
+    drawTool->DrawRightLatex( 0.865, 0.745, cLabel, 0.85 );
 
     SaveAsAll( c, Form("%s_%s", type.c_str(), cName.c_str() ) );
   } // end loop over iX
@@ -1678,7 +1666,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	legSyst.Draw();
 
 	drawTool->DrawLeftLatex
-	  ( 0.18, 0.87, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 0.85 );
+	  ( 0.18, 0.87, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
 	drawTool->DrawLeftLatex
 	  ( 0.18, 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
 	if( m_is_pPb ){
@@ -1815,7 +1803,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
   std::string sRatio      = Form("%s/%s", label_a.c_str(), label_b.c_str() );
-  std::string gTitleRatio = gTitle + " " + sRatio;
+  std::string gTitleRatio = ";" + xTitle + ";Ratio " + sRatio + " ( " + yTitle + " )";
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -1932,7 +1920,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	legAll.Draw();
 
 	drawTool->DrawLeftLatex
-	  ( 0.18, 0.86, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 1.0 );
+	  ( 0.18, 0.86, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 1.0 );
 	drawTool->DrawLeftLatex
 	  ( 0.18, 0.78, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 1.0 );
 	drawTool->DrawLeftLatex
@@ -2103,7 +2091,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	lineN50.Draw();
 
 	drawTool->DrawLeftLatex
-	  ( 0.18, 0.86, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(2) ), 1.0 );
+	  ( 0.18, 0.86, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 1.0 );
 	drawTool->DrawLeftLatex
 	  ( 0.18, 0.78, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 1.0 );
 	drawTool->DrawLeftLatex

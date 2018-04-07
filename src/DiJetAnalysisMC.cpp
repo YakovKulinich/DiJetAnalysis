@@ -77,7 +77,11 @@ DiJetAnalysisMC::DiJetAnalysisMC( bool is_pPb, int mcType, int uncertComp )
   //==================== Cuts ====================    
   m_dRmax = 0.2;
 
-  //=============== Histo Names ==================    
+  //=============== Histo Names ==================
+  m_ystarSpectFineTruthUPName =
+    m_ystarSpectFineName + "_" + m_unpairedName + "_" + m_truthName;
+
+  
   m_dPhiRespMatName        = m_dPhiName + "_" + m_respMatName;
   m_dPhiRespMatRebName     = m_dPhiName + "_" + m_respMatName + "_" + m_sReb;
   m_ptRespMatName          = m_s_pt     + "_" + m_respMatName;
@@ -101,7 +105,7 @@ void DiJetAnalysisMC::Initialize()
   std::string mcMenu = GetMCMenu();
 
   // Get Info On jzn slices
-  std::vector< double > vJznUsedD = anaTool->vectoriseD
+  std::vector< int > vJznUsedD = anaTool->vectoriseI
     ( GetConfig()->GetValue( Form("jznUsed.%s", mcMenu.c_str()),"" )," ");
   // double -> int 
   for( auto d : vJznUsedD ){ m_vJznUsed.push_back(d); }
@@ -220,10 +224,12 @@ void DiJetAnalysisMC::ProcessSpectWeights(){
   // put into a data file (data/pp_mc_weights.root)
 
   TFile* fOutMCPerf = new TFile( m_fNamePerf.c_str(),"RECREATE");
+
   m_hAllYstarSpectFineReco =
     CombineSamples( m_vHjznYstarSpectFineReco , m_ystarSpectFineRecoName  );
   MakeSpectra( m_vHjznYstarSpectFineReco, m_vJznLabels, m_ystarSpectFineRecoName );
   fOutMCPerf->Close();
+
   
   // Open a TFile ( data/pp_mc_weights.root ) for writing )
   // Have function that makes weights for spect, for dPhi.
@@ -314,12 +320,16 @@ void DiJetAnalysisMC::ProcessPerformance(){
     fOut->cd();
     MakeScaleRes( m_vHjznRecoTruthDphi, m_vHjznRecoTruthDphiNent, "recoTruthDphi" );
     fOut->cd();
+    MakeEfficiencies
+    ( m_vHjznYstarSpectFineTruth, m_vHjznYstarSpectFineTruthUP, m_ystarEffName );
   }
-  
+
+
   m_hAllYstarSpectReco  = CombineSamples( m_vHjznYstarSpectReco , m_ystarSpectRecoName  );
   m_hAllYstarSpectTruth = CombineSamples( m_vHjznYstarSpectTruth, m_ystarSpectTruthName );
   m_hAllYstarSpectFineReco  = CombineSamples( m_vHjznYstarSpectFineReco , m_ystarSpectFineRecoName  );
   m_hAllYstarSpectFineTruth = CombineSamples( m_vHjznYstarSpectFineTruth, m_ystarSpectFineTruthName );
+
   MakeSpectra( m_vHjznYstarSpectReco , m_vJznLabels, m_ystarSpectRecoName  );
   MakeSpectra( m_vHjznYstarSpectTruth, m_vJznLabels, m_ystarSpectTruthName );
   MakeSpectra( m_vHjznYstarSpectFineReco  , m_vJznLabels, m_ystarSpectFineRecoName  );
@@ -546,6 +556,15 @@ void DiJetAnalysisMC::SetupHistograms(){
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     AddHistogram( m_vHjznYstarSpectFineTruth.back() );
 
+    m_vHjznYstarSpectFineTruthUP.push_back
+      ( new TH2D( Form("h_%s_%s", m_ystarSpectFineTruthUPName.c_str(), jzn.c_str() ), 
+		  ";#eta_{Truth};#it{p}_{T}^{Truth} [GeV]",
+		  m_nVarYstarBins, 0, 1,
+		  m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) );
+    m_vHjznYstarSpectFineTruthUP.back()->GetXaxis()->
+      Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    AddHistogram( m_vHjznYstarSpectFineTruthUP.back() );
+    
     // --- spectra response matrix ----
     m_vHjznYstarSpectRespMat.push_back
       ( new TH3D( Form("h_%s_%s", m_ystarSpectRespMatName.c_str(), jzn.c_str() ), 
@@ -704,7 +723,7 @@ void DiJetAnalysisMC::LoadSpectWeights(){
   std::string hName = "h_" + m_spectName + "_" + m_sWeights + "_" + m_allName;
 
   /*
-  TH2* m_spectWeight = static_cast< TH2D* >
+    TH2* m_spectWeight = static_cast< TH2D* >
     ( fWeights->Get( hName.c_str() ) );
   */  
 
@@ -905,6 +924,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       	          
       // fill single jet spectra 
       if( vTT_paired_jets.size() ){
+	
 	TLorentzVector& rJetFront = vTR_paired_jets.front();
 	TLorentzVector& tJetFront = vTT_paired_jets.front();
 	
@@ -926,10 +946,12 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       // fill single speectra response matrix
       AnalyzeSpectRespMat( m_vHjznYstarSpectRespMat[iG], vTR_paired_jets, vTT_paired_jets );
 
-      // make spectra for truth jets
+      // make spectra
       AnalyzeSpectra( m_vHjznYstarSpectFineTruth[iG], vTT_paired_jets );
-      // make spectra for the reco jets paired to truth
       AnalyzeSpectra( m_vHjznYstarSpectFineReco [iG], vTR_paired_jets );
+      
+      // for efficiencies. These have different binning
+      AnalyzeSpectra( m_vHjznYstarSpectFineTruthUP [iG], vT_jets );
       
       // do JER/JES, angular scales and resolution.
       AnalyzeScaleResolution( vTR_paired_jets, vTT_paired_jets, iG );
@@ -1396,6 +1418,131 @@ void DiJetAnalysisMC::CombineSamples( TH1* h_res,
   } // end loop over xBins
 }
 
+TGraphAsymmErrors* DiJetAnalysisMC::CombineSamples( std::vector< TGraphAsymmErrors* >& vSampleVIN,
+						    std::vector< TH1* >& vSampleNentIN ){
+
+  // old code that used maps. in the efficiency part, construct map from vector.
+  // no time to rewrite right now. (04.06.18)
+  
+  // check if we have one
+  if( !vSampleNentIN.size() ){ return NULL; }
+
+  // temp histos for this scope
+  // fill values from TGraph into these histos
+  std::vector< TH1* > vSampleVal;
+  std::vector< TH1* > vSampleValErrorLow;
+  std::vector< TH1* > vSampleValErrorHigh;
+
+  TH1* hRef = vSampleNentIN[0];
+  
+  int  nXbins = hRef->GetNbinsX();
+  double xMin = hRef->GetXaxis()->GetXmin();
+  double xMax = hRef->GetXaxis()->GetXmax();
+
+  uint nSamples = vSampleVIN.size();
+  
+  for( uint iG = 0; iG < nSamples; iG++ ){
+    std::string label = m_vJznLabels[ iG ];
+        
+    vSampleVal.push_back
+      ( new TH1D( Form("h_jznVal_%s", label.c_str() ),
+		  Form("h_jznVal_%s", label.c_str() ),
+		  nXbins, xMin, xMax ) );
+			 
+    vSampleValErrorLow.push_back
+      (new TH1D( Form("h_jznValErrorLow_%s", label.c_str() ),
+		 Form("h_jznValErrorLow_%s", label.c_str() ),
+		 nXbins, xMin, xMax ) );
+
+    vSampleValErrorHigh.push_back
+      (new TH1D( Form("h_jznValErrorHigh_%s", label.c_str() ),
+		 Form("h_jznValErrorHigh_%s", label.c_str() ),
+		 nXbins, xMin, xMax ) );
+    
+    TGraphAsymmErrors* gPts = vSampleVIN[ iG ];
+    double x, y;
+    
+    for( int i = 0; i < gPts->GetN(); i++ ){
+      gPts->GetPoint(i, x, y);
+      int bin = vSampleVal[ iG ]->FindBin( x );
+
+      double eYlow  = gPts->GetErrorYlow ( i );
+      double eYhigh = gPts->GetErrorYhigh( i );
+      
+      vSampleVal         [ iG ]->SetBinContent( bin, y      );
+      vSampleValErrorLow [ iG ]->SetBinContent( bin, eYlow  );
+      vSampleValErrorHigh[ iG ]->SetBinContent( bin, eYhigh );
+    }    
+  }
+
+  std::vector< double > vX;
+  std::vector< double > vY;
+  std::vector< double > vEx;
+  std::vector< double > vEyLow;
+  std::vector< double > vEyHigh;
+  
+  for( int xBin = 1; xBin <= nXbins; xBin++ ){
+
+    double valTot   = 0;
+    double denomTot = 0;
+    double valErrorLowTot  = 0;
+    double valErrorHighTot = 0;
+
+    double xCent  = hRef->GetBinCenter( xBin );
+    double xWidth = hRef->GetBinWidth ( xBin );
+    
+    for( uint iG = 0; iG < nSamples; iG++ ){
+      double nEntriesBin = vSampleNentIN   [ iG ]->GetBinContent( xBin );
+      double weight      = m_vJznWeights[ iG ] / m_vJznSumOverlayWeights[ iG ];
+
+      double valueBin    = vSampleVal[ iG ]->GetBinContent( xBin );
+     
+      double valueBinErrLow  = vSampleValErrorLow [ iG ]->GetBinContent( xBin );
+      double valueBinErrHigh = vSampleValErrorHigh[ iG ]->GetBinContent( xBin );
+
+      if( valueBin == 0 && valueBinErrLow == 0 &&  valueBinErrHigh == 0 )
+	{ continue; }
+      
+      if( nEntriesBin <  5 )
+	{ continue; }
+      
+      double val         = weight * nEntriesBin * valueBin;
+      double valErrLow   = weight * nEntriesBin * valueBinErrLow;
+      double valErrHigh  = weight * nEntriesBin * valueBinErrHigh;
+      valTot            += val;
+      valErrorLowTot    += valErrLow  * valErrLow;
+      valErrorHighTot   += valErrHigh * valErrHigh;
+
+      double denom  = weight * nEntriesBin;
+      denomTot     += denom;
+    }
+
+    double valFinal      = valTot / denomTot;
+    
+    double valErrorLowFinal  = valErrorLowTot  / ( denomTot * denomTot );
+    double valErrorHighFinal = valErrorHighTot / ( denomTot * denomTot );
+
+    valErrorLowFinal  = std::sqrt( valErrorLowFinal );
+    valErrorHighFinal = std::sqrt( valErrorHighFinal );
+    
+    // check if we have NaN from
+    // dividing valTot by zero (denomTot)
+    if( std::isnan( valFinal ) ){ continue; }
+
+    vX.push_back ( xCent  ); vY.push_back( valFinal );
+    vEx.push_back( xWidth * 0.5 );
+    vEyLow.push_back ( valErrorLowFinal  );
+    vEyHigh.push_back( valErrorHighFinal );
+  }
+
+  for( auto& h : vSampleVal          ){ delete h; }
+  for( auto& h : vSampleValErrorLow  ){ delete h; }
+  for( auto& h : vSampleValErrorHigh ){ delete h; }
+    
+  return new TGraphAsymmErrors( vX.size(), &vX[0] , &vY[0],&vEx[0], &vEx[0],
+				&vEyLow[0], &vEyHigh[0] );
+}
+
 void DiJetAnalysisMC::SetCfactorsErrors( TH1* hR, TH1* hT, TH2* hM, TH1* hC ){
 
   std::cout << hT->GetName() << std::endl;
@@ -1634,27 +1781,28 @@ void DiJetAnalysisMC::LoadHistograms( int opt ){
 
     m_vHjznYstarSpectTruth.push_back 
       ( static_cast< TH2D* >
-	( fIn->
-	  Get( Form("h_%s_%s", m_ystarSpectTruthName.c_str(), jzn.c_str() ))));
+	( fIn->Get( Form("h_%s_%s", m_ystarSpectTruthName.c_str(), jzn.c_str() ))));
     m_vHjznYstarSpectTruth.back()->SetDirectory(0);
 
     m_vHjznYstarSpectFineReco.push_back
       ( static_cast< TH2D* >
-	( fIn->Get
-	  ( Form("h_%s_%s", m_ystarSpectFineRecoName.c_str(), jzn.c_str() ))));
+	( fIn->Get( Form("h_%s_%s", m_ystarSpectFineRecoName.c_str(), jzn.c_str() ))));
     m_vHjznYstarSpectFineReco.back()->SetDirectory(0);
 
     m_vHjznYstarSpectFineTruth.push_back 
       ( static_cast< TH2D* >
-	( fIn->
-	  Get( Form("h_%s_%s", m_ystarSpectFineTruthName.c_str(), jzn.c_str() ))));
+	( fIn->Get( Form("h_%s_%s", m_ystarSpectFineTruthName.c_str(), jzn.c_str() ))));
     m_vHjznYstarSpectFineTruth.back()->SetDirectory(0);
+
+    m_vHjznYstarSpectFineTruthUP.push_back 
+      ( static_cast< TH2D* >
+	( fIn->Get( Form("h_%s_%s", m_ystarSpectFineTruthUPName.c_str(), jzn.c_str() ))));
+    m_vHjznYstarSpectFineTruthUP.back()->SetDirectory(0);
 
     // --- spectra response matrix ----
     m_vHjznYstarSpectRespMat.push_back 
       ( static_cast< TH3D* >
-	( fIn->
-	  Get( Form("h_%s_%s", m_ystarSpectRespMatName.c_str(), jzn.c_str() ))));
+	( fIn->Get( Form("h_%s_%s", m_ystarSpectRespMatName.c_str(), jzn.c_str() ))));
     m_vHjznYstarSpectRespMat.back()->SetDirectory(0);
     
     // --------- recoTruthRpt ---------
@@ -1792,8 +1940,8 @@ TH2* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
     h_mc->Write();
     
     TH1* hR = static_cast< TH1D* >
-    ( h_d->Clone( Form( "h_%s_%s_%s_%s", m_spectName.c_str(), m_sWeights.c_str(),
-			       m_allName.c_str(), hTag.c_str() ) ) );
+      ( h_d->Clone( Form( "h_%s_%s_%s_%s", m_spectName.c_str(), m_sWeights.c_str(),
+			  m_allName.c_str(), hTag.c_str() ) ) );
     styleTool->SetHStyleRatio( hR, 0 );
     vR.push_back( hR );
 
@@ -2453,141 +2601,113 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
   }
 }
 
-void DiJetAnalysisMC::
-MakeEfficiencies( std::vector< TH2* >& mJznSpectPaired,
-		  std::vector< TH2* >& mJznSpect,
-		  std::vector< TH2* >& mJznSpectNent,
-		  const std::vector< std::string >& vLabels, 
-		  const std::string& name ){  
+void DiJetAnalysisMC::MakeEfficiencies( std::vector< TH2* >& vSampleSpect,
+					std::vector< TH2* >& vSampleSpectUP,
+					const std::string& name ){  
 
-  /*
   // if there are none, return
-  if( !mJznSpect.size() ){ return; }  
+  if( !vSampleSpect.size() ){ return; }  
 
-  double lX0 = 0.13;
-  double lY0 = 0.75;
-  double lX1 = 0.39;
-  double lY1 = 0.87;
-
-  double xMin = 10.; 
-  double xMax = 90.; 
+  std::string axisLabel, axisLabelTex;
+  GetSpectraLabels( axisLabel, axisLabelTex, name );
 
   std::string gTitle = ";#it{p}_{T}^{Truth} [GeV];#it{#varepsilon}_{Reco}";
 
+  // use this as reference because
+  // it should be in every file
+  TH2*  hRef = vSampleSpect[0];
+  int nXbins = hRef->GetNbinsX();
+
+  uint nSamples = vSampleSpect.size();
+  
   std::vector< TH1* > vSpect;
   std::vector< TGraphAsymmErrors* > vEffGrf;
+ 
   std::vector< TGraphAsymmErrors* > vEffGrfFinal;
   
-  for( int xBin = 1; xBin <= mJznSpect.begin()->second->GetNbinsX(); xBin++ ){
-    TCanvas c_eff("c_eff","c_eff",800,600);
-    StyleTools::SetCStyleEff( c_eff, xMin, m_effMin, xMax, m_effMax, gTitle );
- 
-    TLegend l_eff( lX0, lY0, lX1, lY1);
-    StyleTools::SetLegendStyle( &l_eff, StyleTools::lSS );
-    l_eff.SetFillStyle(0);
+  double xMin = 10.; 
+  double xMax = 70.; 
 
-    // should all be the same
-    double etaMin = mJznSpect.begin()->second->
-      GetXaxis()->GetBinLowEdge( xBin );
-    double etaMax = mJznSpect.begin()->second->
-      GetXaxis()->GetBinUpEdge( xBin );
+  TLine line( xMin, 1, xMax, 1 );
+  line.SetLineWidth( 2 );
 
-    // local inside the loop. used only on a per eta-bin
-    // basis. the actual projections are saved to the vectors
-    // that are global in this function.
-    std::map< std::string, TH1* > mSpect;
-    std::map< std::string, TH1* > mSpectPaired;
-    std::map< std::string, TH1* > mNent;
-    std::map< std::string, TGraphAsymmErrors* > mEff;
+  TCanvas cEff("cEff","cEff",800,600);
+  styleTool->SetCStyleGraph( cEff, xMin, m_effMin, xMax, 1.4, gTitle );
+
+  double lX0 = 0.60;
+  double lY0 = 0.25;
+  double lX1 = 0.90;
+  double lY1 = 0.55;
+
+  TLegend leg( lX0, lY0, lX1, lY1 );
+  styleTool->SetLegendStyle( &leg );
+  
+  // make individual jzn histograms
+  for( int xBin = 1; xBin <= nXbins; xBin++ ){
+
+    double xMin, xMax;
+    anaTool->GetBinRange
+      ( hRef->GetXaxis(), xBin, xBin, xMin, xMax );
+      
+    std::string hTag = anaTool->GetName( xMin, xMax, axisLabel );
+
+    std::vector< TH1* > vSpectUPTmp;
+    std::vector< TGraphAsymmErrors* > vEffGrfTmp;
     
-    for( auto& jznSpect : mJznSpect ){
-      std::string jzn = jznSpect.first;
+    // loop over JZN samples
+    for( uint iG = 0; iG < nSamples; iG++){
 
-      mSpectPaired[ jzn ] =
-	mJznSpectPaired[ jzn ]->
-	ProjectionY( Form("h_%s_%s_paired_%2.0f_Eta_%2.0f",
-			  type.c_str(),
-			  jzn.c_str(),
-			  10*std::abs(etaMin),
-			  10*std::abs(etaMax) ),
-		     xBin, xBin);
-      vSpect.push_back( mSpectPaired[ jzn ] );
-
-      mSpect[ jzn ] =
-	jznSpect.second->
-	ProjectionY( Form("h_%s_%s_%2.0f_Eta_%2.0f",
-			  type.c_str(),
-			  jzn.c_str(),
-			  10*std::abs(etaMin),
-			  10*std::abs(etaMax) ),
-		     xBin, xBin);
-      vSpect.push_back( mSpect[ jzn ] );
+      std::string label = m_vJznLabels[ iG ];
       
-      mNent[ jzn ] =
-	mJznSpectNent[ jzn ]->
-	ProjectionY( Form("h_%s_%s_nEnt_%2.0f_Eta_%2.0f",
-			  type.c_str(),
-			  jzn.c_str(),
-			  10*std::abs(etaMin),
-			  10*std::abs(etaMax) ),
-		     xBin, xBin);
-      vSpect.push_back( mNent[ jzn ] ); 
-    }
-
-    int jznStyle = 1;
-    for( auto& jznSpect : mSpect ){
-      std::string   jzn = jznSpect.first;
-      TH1*       hSpect = jznSpect.second;
-      TH1* hSpectPaired = mSpectPaired[ jzn ];
-
+      std::string hNameSpect
+	= "h_" + name + "_" + label + "_" + hTag;
+      std::string hNameSpectUP
+	= "h_" + name + "_" + label + "_" + m_unpairedName + "_" + hTag;
+      
+      TH1* hSpect = static_cast< TH1D* >
+	( vSampleSpect[ iG ]->ProjectionY( hNameSpect.c_str(), xBin, xBin ) );
+      TH1* hSpectUP = static_cast< TH1D* >
+	( vSampleSpectUP[ iG ]->ProjectionY( hNameSpectUP.c_str(), xBin, xBin ) );
+      vSpectUPTmp.push_back( hSpectUP );
+      vSpect.push_back( hSpect );
+      vSpect.push_back( hSpectUP );
+      
+      std::string gEffName = "g_" + name + "_" + label + "_" + m_effName + "_" + hTag;
+      
       TGraphAsymmErrors* g_etaEff = new TGraphAsymmErrors();
-      StyleTools::SetHStyle( g_etaEff, jznStyle++, StyleTools::hSS);
-      
-      g_etaEff->SetName ( Form("gr_%s_%s", type.c_str(), jzn.c_str() ) );
+      g_etaEff->SetName( gEffName.c_str() ); 
+      styleTool->SetHStyle( g_etaEff, xBin - 1 );
+      vEffGrfTmp.push_back( g_etaEff );
       vEffGrf.push_back( g_etaEff );
-      mEff[ jzn ] = g_etaEff;
       
-      l_eff.AddEntry( g_etaEff, Form("%s", jzn.c_str() ) );
+      g_etaEff->Divide( hSpect, hSpectUP, "cl=0.683 b(1,1) mode" );
+    } // end loop over JZN samples
 
-      g_etaEff->Divide( hSpectPaired, hSpect,
-			"cl=0.683 b(1,1) mode" );
-      
-      
-      g_etaEff->Draw("p");
-    } // end loop over JZN
+    std::string gEffName = "g_" + name + "_" + m_allName + "_" + m_effName + "_" + hTag;
 
-    TGraphAsymmErrors* g_effFinal =  CombineJZN( mEff, mNent );
-    if( !g_effFinal ){ continue; } // something wrong. fix later.
-    g_effFinal->SetName( Form("gr_%s_%2.0f_Eta_%2.0f",
-			      type.c_str(),
-			      10*std::abs(etaMin),
-			      10*std::abs(etaMax) ) );
-    g_effFinal->SetTitle( GetEtaLabel( etaMin, etaMax ).c_str() );
-    StyleTools::SetHStyle( g_effFinal, 0, StyleTools::hSS);
-    vEffGrfFinal.push_back( g_effFinal );
+    TGraphAsymmErrors* gEffAll = CombineSamples( vEffGrfTmp, vSpectUPTmp );
+    gEffAll->SetName( gEffName.c_str() );
+    vEffGrfFinal.push_back( gEffAll );
+    styleTool->SetHStyle( gEffAll, xBin - 1 );
+    
+    leg.AddEntry( gEffAll, anaTool->GetLabel( xMin, xMax, axisLabelTex ).c_str(), "lp" );
+    
+    gEffAll->Draw( "p" );
+  }
 
-    g_effFinal->Draw("p");
+  leg.Draw();
 
-    l_eff.AddEntry( g_effFinal, "Total" );
-    l_eff.Draw();
-
-    TLine line( xMin, 1, xMax, 1);
-    line.Draw();
-
-    DrawTools::DrawAtlasInternalDataRight( 0, 0,  StyleTools::lSS, m_is_pPb ); 
-    DrawTools::DrawRightLatex( 0.88, 0.17,
-			       GetEtaLabel( etaMin, etaMax).c_str(),
-			       StyleTools::lSS, 1 );
-
-    SaveAsAll( c_eff, type, "", "Eta", std::abs(etaMin)*10, std::abs(etaMax)*10 );
-  } // end loop over eta
-
-  DrawCanvas( vEffGrfFinal, type, gTitle, xMin, xMax );
-
+  line.Draw();
+  
+  DrawAtlasRight();
+  
+  std::string effName = "h_" + m_effName + "_" + m_allName;
+  
+  SaveAsAll( cEff, effName.c_str() ); 
+  
   for( auto& h : vSpect       ){ delete h; }
   for( auto& g : vEffGrf      ){ delete g; }
   for( auto& g : vEffGrfFinal ){ delete g; }
-  */
 }
 
 void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco,
@@ -3498,7 +3618,7 @@ SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
       h1->SetMaximum(0.075);      
       h1->SetMinimum(-0.075);
     } else if( !type2.compare("sigma") ){ // sigma
-      h1->SetMaximum(0.056);
+      h1->SetMaximum(0.065);
       h1->SetMinimum(0.);
     } 
   } 
