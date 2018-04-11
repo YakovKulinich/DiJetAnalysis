@@ -21,10 +21,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/assign.hpp>
 
-#include "RooUnfoldResponse.h"
-#include "RooUnfoldBayes.h"
-#include "RooUnfoldBinByBin.h"
-
 #include "DiJetAnalysis.h"
 #include "DeltaPhiProj.h"
 
@@ -277,6 +273,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_respMatName    = "respMat";
   m_unfoldedName   = "unfolded";
 
+  m_effName        = "eff";
+  m_purityName     = "purity";
+
   m_etaEffName     = m_sEta   + "_" + m_effName;
   m_ystarEffName   = m_sYstar + "_" + m_effName;
   
@@ -303,8 +302,6 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   
   m_systematicsName     = "systematics";
 
-  m_effName        = "eff";
-  m_purityName     = "purity";
 }
 
 DiJetAnalysis::~DiJetAnalysis(){
@@ -394,11 +391,11 @@ void DiJetAnalysis::MakeResultsTogether(){
 
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
-  MakeSpectTogether( fOut );
-  //MakeFinalPlotsTogether( fOut, m_widthName );
-  //MakeFinalPlotsTogether( fOut, m_yieldName );
+  // MakeSpectTogether( fOut );
+  MakeFinalPlotsTogether( fOut, m_widthName );
+  MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  MakeDphiTogether ( fOut );
+  // MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -922,6 +919,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
   std::string yAxisTitle = "dN/d#it{p}_{T} [GeV]";
 
   double max = -1;
+  double min = -1;
   
   for( uint iG = 0; iG < nSamples; iG++){
 
@@ -963,6 +961,9 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
       // get min max from the final histograms
       if( label.compare( m_allName ) ){ continue; }
       if( max < hSpect->GetMaximum() ){ max = hSpect->GetMaximum(); }
+      if( min > hSpect->GetMinimum() || min < 0 ){
+	min = hSpect->GetMinimum();
+      }
       
     } // end loop over xBin
   } // end loop over iG
@@ -971,6 +972,11 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
   // easier to compare. Set on log scale.
 
   max = anaTool->GetLogMaximum( max );
+  min = anaTool->GetLogMinimum( min ) / 10;
+
+  if( m_is_pPb ){
+    min = 1e2;
+  }
   
   double lX0, lY0, lX1, lY1;
   
@@ -997,7 +1003,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
     c.SetLogy();
     
     TLegend leg( lX0, lY0, lX1, lY1 );
-    styleTool->SetLegendStyle( &leg, 0.7 );
+    styleTool->SetLegendStyle( &leg, 0.75 );
     
     int style = 1;
     for( uint iG = 0; iG < nSamples; iG++ ){
@@ -1023,6 +1029,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
       h->Draw("epsame");
       h->SetMinimum( m_ptSpectYaxisMin );
       h->SetMaximum( max );
+      h->SetMinimum( min );
       leg.AddEntry( h, label.c_str() );
     } // end loop over iG
     
@@ -1038,8 +1045,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
   //--------- For each IG, draw xAxisBins ----------
   //------------------------------------------------
 
-  if( m_is_pPb ){ lX0 = 0.70; lY0 = 0.54; lX1 = 0.85; lY1 = 0.71; }
-  else          { lX0 = 0.20; lY0 = 0.23; lX1 = 0.47; lY1 = 0.40; }
+  lX0 = 0.20; lY0 = 0.22; lX1 = 0.8; lY1 = 0.35; 
   
   for( uint iG = 0; iG < nSamples; iG++ ){
     std::string label = vLabels[iG];
@@ -1053,8 +1059,9 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
     c.SetLogy();
     
     TLegend leg( lX0, lY0, lX1, lY1 );
-    styleTool->SetLegendStyle( &leg, 0.7 );
-
+    styleTool->SetLegendStyle( &leg, 0.85 );
+    leg.SetNColumns( 2 );
+    
     int style = 0;
     for( int iX = 0; iX < nXbins; iX++ ){
       int       xBin = iX + 1;
@@ -1082,6 +1089,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
       h->Draw("epsame");
       h->SetMinimum( m_ptSpectYaxisMin );
       h->SetMaximum( max );
+      h->SetMinimum( min );
       leg.AddEntry( h, h->GetTitle() );
     } // end loop over iX
     leg.Draw("same");
@@ -1174,20 +1182,6 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     vCfactors.push_back( hCfactors );
     vRespMat .push_back( hRespMat  );
 
-    /*
-    // setup unfold
-    RooUnfoldResponse response( hMeasured, hTruth, hRespMat );
-    RooUnfoldBayes      unfold( &response, hMeasured, 2, false );
-    response.UseOverflow( kFALSE );
-    // RooUnfoldBinByBin   unfold( &response, hMeasured );
-    
-    unfold.SetVerbose(0);
-
-    // unfold measured
-    TH1* hUnfolded = (TH1D*)unfold.Hreco();
-	  
-    */
-
     TH1* hUnfoldedCounts = BinByBinUnfolding( hMeasuredCounts, hCfactors );
     hUnfoldedCounts->SetName
       ( Form( "h_%s_%s_%s_%s", hUnfoldedName.c_str(), m_sCounts.c_str(),
@@ -1230,25 +1224,6 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     hMeasured->SetTitle( "" );
     hTruth   ->SetTitle( "" );
     hUnfolded->SetTitle( "" );    
-
-    double maximum =
-      hMeasured->GetMaximum() > hUnfolded->GetMaximum() ? 
-      hMeasured->GetMaximum() : hUnfolded->GetMaximum(); 
-    
-    double minimum =
-      hMeasured->GetMinimum() < hUnfolded->GetMinimum() ? 
-      hMeasured->GetMinimum() : hUnfolded->GetMinimum(); 
-
-    maximum = anaTool->GetLogMaximum( maximum );
-    minimum = anaTool->GetLogMinimum( minimum );
-    
-    hMeasured->SetMaximum( maximum );
-    hTruth   ->SetMaximum( maximum );
-    hUnfolded->SetMaximum( maximum );
-
-    hMeasured->SetMinimum( minimum );
-    hTruth   ->SetMinimum( minimum );
-    hUnfolded->SetMinimum( minimum );
     
     TLegend leg( 0.71, 0.50, 0.90, 0.70 );
     styleTool->SetLegendStyle( &leg );
@@ -1277,6 +1252,38 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
       hReco->Draw ( "hist" );
     }
 
+    double measuredMax = hMeasured->GetBinContent( hMeasured->GetMaximumBin() );
+    double unfoldedMax = hUnfolded->GetBinContent( hUnfolded->GetMaximumBin() );
+
+    
+    double measuredMin = hMeasured->GetBinContent( hMeasured->GetMinimumBin() );
+    double unfoldedMin = hUnfolded->GetBinContent( hUnfolded->GetMinimumBin() );
+
+    
+    double maximum =
+      measuredMax > unfoldedMax ? 
+      measuredMax : unfoldedMax;
+    
+    double minimum =
+      measuredMin < unfoldedMin ? 
+      measuredMin : unfoldedMin;
+
+    maximum = anaTool->GetLogMaximum( maximum );
+    minimum = anaTool->GetLogMinimum( minimum );
+
+    if( !m_isData ){
+      maximum = 10e4;
+      minimum = 10e1;
+    }
+    
+    hMeasured->SetMaximum( maximum );
+    hTruth   ->SetMaximum( maximum );
+    hUnfolded->SetMaximum( maximum );
+
+    hMeasured->SetMinimum( minimum );
+    hTruth   ->SetMinimum( minimum );
+    hUnfolded->SetMinimum( minimum );
+
     hMeasured->Draw( "ep same" );
     hUnfolded->Draw( "ep same" );
     
@@ -1284,13 +1291,13 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     
     DrawAtlasRight();    
     drawTool->DrawRightLatex
-      ( 0.45, 0.15, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
+      ( 0.60, 0.86, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
 
     // make ratios and draw cfactors
     pad2.cd();
 
-    double legXmin = m_isData ? 0.35 : 0.55;
-    double legXmax = m_isData ? 0.85 : 0.90;
+    double legXmin = m_isData ? 0.25 : 0.35;
+    double legXmax = m_isData ? 0.90 : 0.90;
     
     TLegend legR( legXmin, 0.82, legXmax, 0.92 );
     styleTool->SetLegendStyle( &legR, 0.9 );
@@ -1310,8 +1317,6 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
       hCfactors->SetMaximum( 1.15 );
       hCfactors->SetMinimum( 0.55 );
     }
-    hCfactors->Draw("ep");
-
     TH1* hR = static_cast< TH1D* >
       ( hUnfolded->
 	Clone( Form( "h_%s_%s_%s_%s_%s", m_sRatio.c_str(),
@@ -1320,10 +1325,14 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     styleTool->SetHStyleRatio( hR, 1 );
     hR->Divide( hMeasured );
 
-    hR->GetXaxis()->SetRangeUser( m_varPtBinning.front(), m_varPtBinning.back() );
-      
+    hR->GetXaxis()->SetRangeUser
+      ( m_varPtBinning.front(), m_varPtBinning.back() );
     hR->Draw( "ep same" );
-	  
+
+    hCfactors->GetXaxis()->SetRangeUser
+      ( m_varPtBinning.front(), m_varPtBinning.back() );
+    hCfactors->Draw("ep same");
+    
     legR.AddEntry( hCfactors, "CF" );
     legR.AddEntry( hR , Form( "%s_{UF}/%s_{Reco}",
 			      typeMeasured.c_str(), typeMeasured.c_str() ) );
@@ -1439,6 +1448,13 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   std::vector< TH1* > vSpect;
   std::vector< TF1* > vFits;
   std::vector< TH1* > vWR;
+
+  std::string mcLevel = "";
+  if( dPhiName.find( m_recoName ) != std::string::npos ){
+    mcLevel = "Reco Level";
+  } else if ( dPhiName.find( m_truthName ) != std::string::npos ){
+    mcLevel = "Truth Level";
+  }
   
   // ---- loop over group  ----
   // ---- (jzn or trigger) ----
@@ -1666,7 +1682,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 
 	    // draw longer fit first;
-	    fit2->Draw("same");
+	    // fit2->Draw("same");
 	    fit ->Draw("same");
 	    
 	    double chi2NDF  = fit->GetChisquare() / fit->GetNDF();
@@ -1708,6 +1724,9 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 		axis2Low, axis2Up, axis3Low, axis3Up );
 
 	    DrawAtlasRight();
+	    if( !m_isData ){
+	      drawTool->DrawRightLatex( 0.875, 0.81, mcLevel.c_str() );
+	    }
 	    
 	    SaveAsAll( c, hDphi->GetName() );
 	    fit->Write();
@@ -2090,7 +2109,12 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
   lineP25.SetLineStyle( 2  );
   lineP25.SetLineColor( 12 );
   lineP25.SetLineWidth( 2  );
-	  
+
+  TLine lineP25Shift( 2.6, 1.25, xMax, 1.25 );
+  lineP25Shift.SetLineStyle( 2  );
+  lineP25Shift.SetLineColor( 12 );
+  lineP25Shift.SetLineWidth( 2  );
+
   TLine lineN25( xMin, 0.75, xMax, 0.75 );
   lineN25.SetLineStyle( 2  );
   lineN25.SetLineColor( 12 );
@@ -2183,10 +2207,27 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	    ( fInMC->Get( Form( "h_%s_%s_%s", m_dPhiCfactorsName.c_str(),
 				m_allName.c_str(), hTag.c_str())));
 	  vCfactors.push_back( hCfactors );
-
+	  styleTool->SetHStyleRatio( hCfactors, 0 );
+	  
 	  // for compararison later.
 	  // so its all in one file.
-	  hCfactors->Write();
+	  TCanvas cCFactors( hCfactors->GetName(), hCfactors->GetName(), 800, 600 );
+	  cCFactors.SetLogz();
+	    
+	  hCfactors->Draw("ep X0");
+	  hCfactors->SetTitleOffset( 1.1, "x" );
+	  
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  line.Draw();
+	  lineP25Shift.Draw();
+	  lineN25.Draw();
+	  
+	  DrawAtlasRight();
+
+	  SaveAsAll( cCFactors, hCfactors->GetName() );
 	  
 	  // ----------- Unfold -----------
 	  // Unfold using bin-by-bin and the resposne factors.
@@ -2327,7 +2368,6 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  hCfactors->SetYTitle( "Ratio" );
 	  hCfactors->GetXaxis()->SetRange
 	    ( m_dPhiRebinnedZoomLowBin, m_dPhiRebinnedZoomHighBin );
-	  hCfactors->SetTitleOffset( 2.3, "x" );
 	  hCfactors->SetMaximum( 1.5 );
 	  hCfactors->SetMinimum( 0.5 );
 	  hCfactors->Draw("ep");
@@ -2369,7 +2409,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 
 	  // hRfit->Draw( "ep same" );
 	  
-	  legR.AddEntry( hCfactors, "CF" );
+	  legR.AddEntry( hCfactors, "Correction Factors" );
 	  // legR.AddEntry( hR    , "UF/Truth" );
 	  // legR.AddEntry( hRfit    , "Fit/UF" );
 	  
@@ -2514,7 +2554,7 @@ void DiJetAnalysis::MakeSpectTogether( TFile* fOut ){
 
     vH.push_back( hSpect_a );
     vH.push_back( hSpect_b );
-    
+
     TLegend leg( 0.65, 0.6, 0.85, 0.8 );
     styleTool->SetLegendStyle( &leg );
 
@@ -3044,15 +3084,15 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   c.cd(1);
   h_chi2_a->SetMaximum( h_chi2_a->GetMaximum() > h_chi2_b->GetMaximum() ?
 			h_chi2_a->GetMaximum() * 1.1 : h_chi2_b->GetMaximum() * 1.1 );
-  h_chi2_a->Draw("hist p same");
-  h_chi2_b->Draw("hist p same");
+  h_chi2_a->Draw("hist C same");
+  h_chi2_b->Draw("hist C same");
   DrawAtlasRightBoth();
 
   c.cd(2);
   h_prob_a->SetMaximum( h_prob_a->GetMaximum() > h_prob_b->GetMaximum() ?
 			h_prob_a->GetMaximum() * 1.1 : h_prob_b->GetMaximum() * 1.1 );
-  h_prob_a->Draw("hist p same");
-  h_prob_b->Draw("hist p same");
+  h_prob_a->Draw("hist C same");
+  h_prob_b->Draw("hist C same");
 
   leg.AddEntry( h_prob_a, label_a.c_str() );
   leg.AddEntry( h_prob_b, label_b.c_str() );

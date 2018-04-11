@@ -122,10 +122,12 @@ void AngularUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& 
     float truthJetEta   = truthJet.Eta();
     float truthJetPhi   = truthJet.Phi();
  
-    float uncertaintyEta  = hAngularUncertEta->
-      GetBinContent( hAngularUncertEta->FindBin( recoJetYstar, recoJetPt ) );
-    float uncertaintyPhi  = hAngularUncertPhi->
-      GetBinContent( hAngularUncertPhi->FindBin( recoJetYstar, recoJetPt ) );
+    float uncertaintyEta  =
+      std::abs( hAngularUncertEta->
+		GetBinContent( hAngularUncertEta->FindBin( recoJetYstar, recoJetPt ) ) );
+    float uncertaintyPhi  =
+      std::abs( hAngularUncertPhi->
+		GetBinContent( hAngularUncertPhi->FindBin( recoJetYstar, recoJetPt ) ) );
 
     float etaRes = hAngularResEta->
       GetBinContent( hAngularResEta->FindBin( recoJetYstar, recoJetPt ) );
@@ -137,22 +139,24 @@ void AngularUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& 
     float smearingFactorSystPhi =
       sqrt( pow( phiRes + uncertaintyPhi, 2 ) - pow( phiRes, 2 ) );
 
-    float correctionEta = rand->Gaus(0., smearingFactorSystEta);
-    float correctionPhi = rand->Gaus(0., smearingFactorSystPhi);
+    float correctionEta = rand->Gaus( 0., smearingFactorSystEta);
+    float correctionPhi = rand->Gaus( 0., smearingFactorSystPhi);
           
     float recoJetEtaNew = recoJetEta + truthJetEta * correctionEta;
     float recoJetPhiNew = recoJetPhi + truthJetPhi * correctionPhi;
-
-    /*
-    std::cout << "----" << std::endl;
-    std::cout << uncertaintyEta << " ... " << etaRes << " ... "
-	      << correctionEta << " : " << recoJetEta << " -> " << recoJetEtaNew << std::endl;
-    std::cout << uncertaintyPhi << " ... " << phiRes << " ... "
-	      << correctionPhi << " : " << recoJetPhi << " -> " << recoJetPhiNew << std::endl;
-    */
     
     recoJet.SetPtEtaPhiM
       ( recoJetPt * 1000, recoJetEtaNew, recoJetPhiNew, recoJetM );
+
+    /*
+    if( recoJetPt < 28 ){ continue; }
+
+    std::cout << "----" << recoJetPt << std::endl;
+    std::cout << "Eta:   " <<  uncertaintyEta << " ... " << etaRes << " ... " << smearingFactorSystEta
+	      << "..." << correctionEta << " : " << recoJetEta << " -> " << recoJetEtaNew << std::endl;
+    std::cout << "Phi:   " <<  uncertaintyPhi << " ... " << phiRes << " ... " << smearingFactorSystEta
+	      << "..." << correctionPhi << " : " << recoJetPhi << " -> " << recoJetPhiNew << std::endl;
+    */
   }
 }
 

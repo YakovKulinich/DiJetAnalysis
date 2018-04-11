@@ -1380,18 +1380,6 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	hNHIJES->Reset();
 	styleTool->SetHStyle( hNHIJES, 2 );
 
-	std::string hPANGName = "h_" + allSystematicsName + "_PANG_" + hTag;
-	TH1D* hPANG = static_cast< TH1D* >( hNominal->Clone( hPANGName.c_str() ) );
-	vHsyst.push_back( hPANG );
-	hPANG->Reset();
-	styleTool->SetHStyle( hPANG, 3 );
-
-	std::string hNANGName = "h_" + allSystematicsName + "_NANG_" + hTag;
-	TH1D* hNANG = static_cast< TH1D* >( hNominal->Clone( hNANGName.c_str() ) );
-	vHsyst.push_back( hNANG );
-	hNANG->Reset();
-	styleTool->SetHStyle( hNANG, 3 );
-
 	std::string hPJERName = "h_" + allSystematicsName + "_PJER_" + hTag;
 	std::string hNJERName = "h_" + allSystematicsName + "_NJER_" + hTag;
 	TH1D* hPJER = static_cast< TH1D* >( hNominal->Clone( hPJERName.c_str() ) );
@@ -1399,6 +1387,12 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	hPJER->Reset();
 	styleTool->SetHStyle( hPJER, 4 );
 
+	std::string hPANGName = "h_" + allSystematicsName + "_PANG_" + hTag;
+	std::string hNANGName = "h_" + allSystematicsName + "_NANG_" + hTag;
+	TH1D* hPANG = static_cast< TH1D* >( hNominal->Clone( hPANGName.c_str() ) );
+	vHsyst.push_back( hPANG );
+	hPANG->Reset();
+	styleTool->SetHStyle( hPANG, 3 );
 		
 	std::string hPUNFName = "h_" + allSystematicsName + "_PUNF_" + hTag;
 	std::string hNUNFName = "h_" + allSystematicsName + "_NUNF_" + hTag;
@@ -1471,11 +1465,12 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 
 	    mHsystTmp[ uc ]->SetBinContent( axis3Bin, yShifted );
 	    
-	    // for PJER negative is same as positive (20)
+	    // for JER negative is same as positive (20)
+	    // for Angular Res negative is same as positive (21)
 	    // for Fitting negative is same as positive (22)
 	    // for ReWeight/Unf negative is same as positive (23)
 	    // and we do not have a NN, just use PN
-	    if( uc  == 20 || uc == 22 || uc == 23 ){
+	    if( uc  >= 20 && uc <= 23 ){
 	      uncertFinYP += uncertaintySq;
 	      uncertFinYN += uncertaintySq;
 
@@ -1483,36 +1478,34 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	      // do not depend on quadrature sum with anything.
 	      if( uc == 20 ){
 		hPJER->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc == 21 ){
+		hPANG->SetBinContent( axis3Bin, uncertainty * 100 );
 	      } else if( uc == 22 ){
 		hPFIT->SetBinContent( axis3Bin, uncertainty * 100 );
 	      } else if( uc == 23 ){
 		hPUNF->SetBinContent( axis3Bin, uncertainty * 100 );
-	      }
+	      } 
 	      continue;
 	    } else if( sign > 0 ){
 	      // add onto total positive uncertainty
 	      uncertFinYP += uncertaintySq ;
 	      // here go positive uncertainties
-	      // first, check if it is JES, then if HIJES, or ANG
+	      // first, check if it is JES, then if HIJES
 	      if( uc >= 1 && uc <= 18 ){
 		uncertFinYPJES += uncertaintySq;
 	      } else if( uc == 19 ){
 		hPHIJES->SetBinContent( axis3Bin, uncertainty * 100 );
-	      } else if( uc == 21 ){
-		hPANG->SetBinContent( axis3Bin, uncertainty * 100 );
-	      }
+	      } 
 	    } else if( sign < 0 ){
 	      // add onto total negative uncertainty
 	      uncertFinYN += uncertaintySq;
 	      // here go negative uncertainties
-	      // first, check if it is JES, then if HIJES, or ANG
+	      // first, check if it is JES, then if HIJES
 	      if( uc >= -18 && uc <= -1 ){
 		uncertFinYNJES += uncertaintySq;
 	      } else if( uc == -19 ){
 		hNHIJES->SetBinContent( axis3Bin, uncertainty * 100 );
-	      } else if( uc == -21 ){
-		hNANG->SetBinContent( axis3Bin, uncertainty * 100 );
-	      }
+	      } 
 	    }
 	  } // end loop over uncertainties
 
@@ -1606,6 +1599,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 
 	TH1* hNJER = static_cast< TH1D* >
 	  ( hPJER->Clone( hNJERName.c_str() ) );
+	TH1* hNANG = static_cast< TH1D* >
+	  ( hPANG->Clone( hNANGName.c_str() ) );
 	TH1* hNUNF = static_cast< TH1D* >
 	  ( hPUNF->Clone( hNUNFName.c_str() ) );
 	TH1* hNFIT = static_cast< TH1D* >
@@ -1969,6 +1964,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	std::vector< double > eYN;
 
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+
 	  // add uncertainties in quadrature;
 	  double uncertFinYP = 0;
 	  double uncertFinYN = 0;
@@ -2020,6 +2016,10 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	      if( sign > 0 ){
 		uncertFinYP += uncertaintySq;
+		// for ANG, JER, FIT, UNF, need to symmetereize.
+		if( uc >= 20 && uc <= 23 ){
+		  uncertFinYN += uncertaintySq;
+		}
 		continue;
 	      } else{
 		uncertFinYN += uncertaintySq;
