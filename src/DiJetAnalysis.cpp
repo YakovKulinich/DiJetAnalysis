@@ -99,14 +99,12 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_dPhiLogMin       = 5E-4;
   m_dPhiLogMax       = 1;
 
-  // flag to fit with or without constant
-  m_fitDphiWC = false;
-
   // where to fit from 
   m_dPhiFittingMin  = 2.48;
   m_dPhiFittingMax  = constants::PI;
 
   m_dPhiFittingMinB = 2 * constants::PI / 3;
+  // m_dPhiFittingMinB = 2.3;
 
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   // for this uncertainty, we change the fitting range.
@@ -150,7 +148,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   
   // ---- forward eta binning ---
   boost::assign::push_back( m_varFwdEtaBinning )
-    ( -4.0 )( -3.3)( -3.1 )( -2.7 );
+    ( -4.4 )( -3.2)( 0 );
   m_nVarFwdEtaBins = m_varFwdEtaBinning.size() - 1; 
 
   // --- variable eta/ystar binning ---
@@ -211,7 +209,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_dPhiDphiMax  = constants::PI;
   
   m_dPhiWidthMin = 0.0;
-  m_dPhiWidthMax = 0.6;
+  m_dPhiWidthMax = 1.0;
 
   m_dPhiYieldMin = 1.0e-3;
   m_dPhiYieldMax = 1.0;
@@ -392,10 +390,10 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  MakeFinalPlotsTogether( fOut, m_widthName );
-  MakeFinalPlotsTogether( fOut, m_yieldName );
+  // MakeFinalPlotsTogether( fOut, m_widthName );
+  // MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  // MakeDphiTogether ( fOut );
+  MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -887,7 +885,15 @@ void DiJetAnalysis::MakeEtaPhiPtMap( std::vector< TH2* >& vSampleMaps,
     
     h->Draw("col");
     styleTool->SetHStyle( h, 0 );
-    DrawAtlasRight();  
+
+    /*
+    DrawAtlasRight();
+
+    if( name.find("etaPhi") != std::string::npos ){
+      drawTool->DrawRightLatex( 0.87, 0.77, "28<#it{p}_{T}<35 [GeV]" );
+    }
+    */
+    
     SaveAsAll( c_map, h->GetName() );
     h->Write();
   }
@@ -1291,7 +1297,7 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     
     DrawAtlasRight();    
     drawTool->DrawRightLatex
-      ( 0.60, 0.86, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
+      ( 0.615, 0.78, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
 
     // make ratios and draw cfactors
     pad2.cd();
@@ -1661,13 +1667,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    TF1* fit2 = NULL; 
 	    
 	    // now fit
-	    if( m_fitDphiWC ){
-	      fit  = anaTool->FitDphiWC( hDphi, m_dPhiFittingMin , m_dPhiFittingMax );
-	      fit2 = anaTool->FitDphiWC( hDphi, m_dPhiFittingMinB, m_dPhiFittingMax );
-	    } else {
-	      fit  = anaTool->FitDphi  ( hDphi, m_dPhiFittingMin , m_dPhiFittingMax );
-	      fit2 = anaTool->FitDphi  ( hDphi, m_dPhiFittingMinB, m_dPhiFittingMax );
-	    }
+	    fit  = anaTool->FitDphi  ( hDphi, m_dPhiFittingMin , m_dPhiFittingMax );
+	    fit2 = anaTool->FitDphi  ( hDphi, m_dPhiFittingMinB, m_dPhiFittingMax );
 	    
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
@@ -1702,23 +1703,11 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	      v_listBadFits.push_back( fit  ->GetName() );
 	    }
 	    
-	    if( m_fitDphiWC ){
-	      drawTool->DrawLeftLatex
-		( 0.60, 0.41, Form( "Prob=(%4.2f, #color[2]{%4.2f})",
-				    prob, prob2 ) );
-	      drawTool->DrawLeftLatex
-		( 0.55, 0.33, Form( "#Chi^{2}/NDF=(%4.2f, #color[2]{%4.2f})",
-				    chi2NDF, chi2NDF2 ) );
-	      drawTool->DrawLeftLatex
-		( 0.43, 0.25, Form( "Const =(%4.2e, #color[2]{%4.2e})",
-				    fit->GetParameter(3), fit2->GetParameter(3) ) );
-	    } else {
-	      drawTool->DrawLeftLatex
-		( 0.70, 0.33, Form( "Prob = %4.2f", prob ) );
-	      drawTool->DrawLeftLatex
-		( 0.65, 0.25, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ) );
-	    }
-
+	    drawTool->DrawLeftLatex
+	      ( 0.70, 0.33, Form( "Prob = %4.2f", prob ) );
+	    drawTool->DrawLeftLatex
+	      ( 0.65, 0.25, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ) );
+	  
 	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 		axis2Low, axis2Up, axis3Low, axis3Up );
@@ -1737,17 +1726,17 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    // draw onto common canvas
 	    cAll.cd( cAllPadI + 1 );
 	    gPad->SetLogy();
-	    hDphi->Draw();
+	    hDphi->Draw( "ep X0 same" );
 	    fit->Draw("same");
-	    fit2->Draw("same");
-	    
-	    DrawTopLeftLabels
-	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-		axis2Low, axis2Up, axis3Low, axis3Up );
 
 	    double dx = 0, dy = 0;
 	    
-	    if( cAllPadI == nCol - 1 ){ DrawAtlasRight(); }
+	    if( cAllPadI == nCol - 1 ){
+	      DrawAtlasRight();
+	      if( !m_isData ){
+		drawTool->DrawRightLatex( 0.875, 0.73, mcLevel.c_str() );
+	      }
+	   }
 	    if( cAllPadI % nCol > 0 ){
 	      hDphi->SetYTitle("");
 	      dx = 0.1;
@@ -1763,18 +1752,16 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	      hDphi->GetXaxis()->SetTitleOffset(4);
 	    }
 
+	    DrawTopLeftLabels
+	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+		axis2Low, axis2Up, axis3Low, axis3Up );
+
 	    drawTool->DrawLeftLatex
-	      ( 0.60 + dx, 0.33 + dy, Form( "Prob=(%4.2f, #color[2]{%4.2f})"
-					    , prob, prob2 ) );
+	      ( 0.65 + dx, 0.33 + dy, Form( "Prob = %4.2f"
+					    , prob ) );
 	    drawTool->DrawLeftLatex
-	      ( 0.55 + dx, 0.25 + dy, Form( "#Chi^{2}/NDF=(%4.2f, #color[2]{%4.2f})"
-				  , chi2NDF, chi2NDF2 ) );
-	    /*
-	    drawTool->DrawLeftLatex
-	      ( 0.70 + dx, 0.33 + dy, Form( "Prob = %4.2f", prob ) );
-	    drawTool->DrawLeftLatex
-	      ( 0.65 + dx, 0.25 + dy, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ) );
-	    */
+	      ( 0.60 + dx, 0.25 + dy, Form( "#Chi^{2}/NDF = %4.2f"
+				  , chi2NDF ) );
 
 	    cAllPadI++;
 	    
@@ -1790,8 +1777,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double yieldError = 0;
 	    double yield      = hYields->IntegralAndError( 1, hDphi->GetNbinsX(), yieldError );
 	 
-	    double width      = std::sqrt( tau * tau + sigma * sigma ); 
-	    double widthError = std::sqrt( std::pow( 2 * tau   * tauError  , 2 ) +
+	    double width      = std::sqrt( 2 * tau * tau + sigma * sigma ); 
+	    double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
 					   std::pow( 2 * sigma * sigmaError, 2 ) );
 
 	    double   tau2 = fit2->GetParameter(1);
@@ -1800,8 +1787,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double   tauError2 = fit2->GetParError(1);
 	    double sigmaError2 = fit2->GetParError(2);
 	    
-	    double width2      = std::sqrt( tau2 * tau2 + sigma2 * sigma2 ); 
-	    double widthError2 = std::sqrt( std::pow( 2 * tau2   * tauError2  , 2 ) +
+	    double width2      = std::sqrt( 2 * tau2 * tau2 + sigma2 * sigma2 ); 
+	    double widthError2 = std::sqrt( std::pow( 4 * tau2   * tauError2  , 2 ) +
 					    std::pow( 2 * sigma2 * sigmaError2, 2 ) );
 	    
 	    // Now, put results on histogram
@@ -1817,6 +1804,12 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    std::cout << "Width = " << width << " WidthError = " << widthError << std::endl;
 	    std::cout << "Yield = " << yield << " YieldError = " << yieldError << std::endl;
 
+	    std::cout << hDphi->GetName() << std::endl;
+	    std::cout << "Tau2   = " << tau2   << " TauError2   = " << tauError2   << std::endl;
+	    std::cout << "Sigma2 = " << sigma2 << " SigmaError2 = " << sigmaError2 << std::endl;
+	    std::cout << "Width2 = " << width2 << " WidthError2 = " << widthError2 << std::endl;
+
+	    
 	    hDphiYields->SetBinContent( axis3Bin, yield      );
 	    hDphiYields->SetBinError  ( axis3Bin, yieldError );
 
@@ -2130,6 +2123,13 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
   lineN50.SetLineColor( 12 );
   lineN50.SetLineWidth( 1  );
 
+  int nCol = 5, nRow = 6;
+    
+  TCanvas cAll( "cAll", "cAll", 4800, 3600 );
+  cAll.Divide( nCol, nRow, 0, 0 );
+
+  int cAllPadI = 0;
+  
   // ---- loop over ystars ----
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     // check we are in correct ystar and pt bins
@@ -2228,6 +2228,37 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  DrawAtlasRight();
 
 	  SaveAsAll( cCFactors, hCfactors->GetName() );
+
+	  // draw onto common canvas
+	  cAll.cd( cAllPadI + 1 );
+	  
+	  hCfactors->SetMaximum( 1.7 );
+	  hCfactors->Draw("ep X0");
+
+	  line.Draw();
+	  lineP25Shift.Draw();
+	  lineN25.Draw();
+
+	  
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  if( cAllPadI == nCol - 1 ){ DrawAtlasRight(); }
+	  if( cAllPadI % nCol > 0 ){
+	    hCfactors->SetYTitle("");
+	  } else {
+	    hCfactors->GetYaxis()->SetTitleOffset(3.4);
+	  }
+
+	  if( cAllPadI / nCol <  nRow - 1 ){
+	    hCfactors->SetXTitle("");
+	  } else {
+	    hCfactors->GetXaxis()->SetTitleOffset(4);
+	  }
+
+	  cAllPadI++;
+
 	  
 	  // ----------- Unfold -----------
 	  // Unfold using bin-by-bin and the resposne factors.
@@ -2263,11 +2294,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  NormalizeDeltaPhi( hUnfolded, hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true );
 
 	  TF1* fitUnfolded = NULL;
-	  if( m_fitDphiWC ){
-	    fitUnfolded = anaTool->FitDphiWC( hUnfolded, m_dPhiFittingMin, m_dPhiFittingMax ); 
-	  } else {
-	    fitUnfolded = anaTool->FitDphi  ( hUnfolded, m_dPhiFittingMin, m_dPhiFittingMax );
-	  }
+	  fitUnfolded = anaTool->FitDphi  ( hUnfolded, m_dPhiFittingMin, m_dPhiFittingMax );
 	  
 	  // -------- Unfold Done ---------
 	  	  	  
@@ -2444,6 +2471,8 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
     } // end loop over axis1     
   } // end loop over axis0
 
+  // SaveAsAll( cAll, Form("h_%s_All", m_dPhiCfactorsName.c_str()) );
+  
   // now draw the pt2 pt1 matrixes with c factors
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){ 
     // check we are in correct ystar and pt bins
@@ -2702,6 +2731,26 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   dPhiLineN50.SetLineColor( 12 );
   dPhiLineN50.SetLineWidth( 1  );
 
+  std::cout << "!!!!!!!!!!!!!!!! " << m_is_pPb << std::endl;
+  
+  TFile* fMC = m_is_pPb ?
+    TFile::Open( "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_phys_0.root" ) :
+    TFile::Open( "output/output_pPb_mc_pythia8/myOut_pPb_mc_pythia8_phys_0.root" );
+
+  TFile* fMCUW = m_is_pPb ?
+    TFile::Open( "data/output_pp_mc_pythia8_uw/myOut_pp_mc_pythia8_phys_0.root" ) :
+    TFile::Open( "data/output_pPb_mc_pythia8_uw/myOut_pPb_mc_pythia8_phys_0.root" );
+
+  TFile* fData = m_is_pPb ?
+    TFile::Open( "output/output_pp_data/myOut_pp_data_phys_0.root" ) :
+    TFile::Open( "output/output_pPb_data/myOut_pPb_data_phys_0.root" );
+
+  std::string hMCname   = "h_dPhi_reco_All";
+  std::string hDataName = "h_dPhi_All";
+
+  TH1* hProbWeight = new TH1D( "hProbWeight", ";Probability;Count", 20, 0, 1 );
+  styleTool->SetHStyle( hProbWeight, 0 );
+  
   fOut->cd();
 
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
@@ -2820,8 +2869,8 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	styleTool->HideAxis( hW_b, "x" );
 
 	if( hW_a->GetMean() ){
-	  legW.AddEntry ( hW_a,Form("%s %s", label_a.c_str(), anaTool->GetLabel
-				    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));
+	  legW.AddEntry ( hW_a, Form("%s %s", label_a.c_str(), anaTool->GetLabel
+				     ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));
 	}
 	if( hW_b->GetMean() ){
 	  legW.AddEntry( hW_b, Form("%s %s", label_b.c_str(), anaTool->GetLabel
@@ -2879,6 +2928,18 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  anaTool->GetBinRange
 	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
 
+	  TCanvas cc( "cc", "cc", 800, 600 );
+
+	  // Now Draw everything.
+	  TCanvas ccMC( "ccMC", "ccMC", 800, 700 );
+	  TPad padMC1("padMC1", "", 0.0, 0.35, 1.0, 1.0 );
+	  padMC1.SetBottomMargin(0);
+	  padMC1.Draw();
+	  TPad padMC2("padMC2", "", 0.0, 0.0, 1.0, 0.34 );
+	  padMC2.SetTopMargin(0.05);
+	  padMC2.SetBottomMargin(0.25);
+	  padMC2.Draw();
+	  
 	  // Now Draw everything.
 	  TCanvas c( "c", "c", 800, 800 );
 	  TPad pad1("pad1", "", 0.0, 0.35, 1.0, 1.0 );
@@ -2919,9 +2980,6 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
 	  pad1.cd();
 	  pad1.SetLogy();
-	  
-	  styleTool->HideAxis( h_a, "x" );
-	  styleTool->HideAxis( h_b, "x" );
 
 	  h_a->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 	  
@@ -2939,6 +2997,12 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  TLegend leg( 0.7, 0.03, 0.9, 0.18 );
 	  styleTool->SetLegendStyle( &leg , 0.9 );
 
+	  TLegend legF( 0.75, 0.22, 0.85, 0.32 );
+	  styleTool->SetLegendStyle( &legF , 0.95 );
+
+	  TLegend legMC( 0.2, 0.4, 0.4, 0.55 );
+	  styleTool->SetLegendStyle( &legMC , 0.95 );
+
 	  h_a->SetMinimum( m_dPhiLogMin );
 	  h_b->SetMinimum( m_dPhiLogMin );
 
@@ -2947,6 +3011,8 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  
 	  leg.AddEntry( h_a, label_a.c_str() );
 	  leg.AddEntry( h_b, label_b.c_str() );
+	  legF.AddEntry( h_a, label_a.c_str() );
+	  legF.AddEntry( h_b, label_b.c_str() );
 	 
 	  f_a->Draw("same");
 	  f_b->Draw("same");
@@ -2966,7 +3032,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	      axis2Low, axis2Up, axis3Low, axis3Up );
 
 	  drawTool->DrawAtlasInternal();
-	  drawTool->DrawLeftLatex( 0.75, 0.2, m_isData ? "Data" : "MC" );
+	  drawTool->DrawLeftLatex( 0.76, 0.2, m_isData ? "Data" : "MC" );
 
 	  double width_a      = hW_a->GetBinContent( axis3Bin );
 	  double widthError_a = hW_a->GetBinError  ( axis3Bin );
@@ -2975,10 +3041,10 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  double widthError_b = hW_b->GetBinError  ( axis3Bin );
 
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.48, Form( "Width_{%s}=%4.2f#pm%4.2f",
+	    ( 0.19, 0.54, Form( "Width_{%s}=%4.2f#pm%4.2f",
 				label_a.c_str(), width_a, widthError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.38, Form( "Width_{%s}=%4.2f#pm%4.2f",
+	    ( 0.19, 0.46, Form( "Width_{%s}=%4.2f#pm%4.2f",
 				label_b.c_str(), width_b, widthError_b ) );
 
 	  double yield_a      = hY_a->GetBinContent( axis3Bin );
@@ -2986,14 +3052,129 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
 	  double yield_b      = hY_b->GetBinContent( axis3Bin );
 	  double yieldError_b = hY_b->GetBinError  ( axis3Bin );
-	  
+	 
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.85, Form( "Yield_{%s}=%0.3f#pm%0.3f",
+	    ( 0.53, 0.79, Form( "Yield_{%s}=%0.3f#pm%0.3f",
 				label_a.c_str(),yield_a, yieldError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.77, Form( "Yield_{%s}=%0.3f#pm%0.3f",
+	    ( 0.53, 0.70, Form( "Yield_{%s}=%0.3f#pm%0.3f",
 				label_b.c_str(), yield_b, yieldError_b ) );
+
+	  cc.cd();
+
+	  double maxBinA = h_a->GetMaximumBin();
+	  double maxBinB = h_b->GetMaximumBin(); 
+
+	  double maxA = h_a->GetBinContent( maxBinA ) * 1.5;
+	  double maxB = h_b->GetBinContent( maxBinB ) * 1.5;
+
+	  double maximum = maxA > maxB ? maxA : maxB;
 	  
+	  h_a->SetMaximum( maximum );
+	  
+	  h_a->Draw("ep x0 same");
+	  h_b->Draw("ep x0 same");
+	  
+	  f_a->Draw("same");
+	  f_b->Draw("same");
+	  
+	  legF.Draw("same");
+	  	  
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  double labelX0 = m_isData ? 0.78 : 0.76;
+	  
+	  drawTool->DrawAtlasInternal();
+	  drawTool->DrawLeftLatex( labelX0, 0.345, m_isData ? "Data" : "MC" );
+
+	  drawTool->DrawLeftLatex
+	    ( 0.19, 0.56, Form( "Width_{%s}=%4.2f #pm %4.2f",
+				label_a.c_str(), width_a, widthError_a ) );
+	  drawTool->DrawLeftLatex
+	    ( 0.19, 0.48, Form( "Width_{%s}=%4.2f #pm %4.2f",
+				label_b.c_str(), width_b, widthError_b ) );
+
+	  drawTool->DrawLeftLatex
+	    ( 0.53, 0.77, Form( "Yield_{%s}=%0.3f #pm %0.3f",
+				label_a.c_str(),yield_a, yieldError_a ) );
+	  drawTool->DrawLeftLatex
+	    ( 0.53, 0.69, Form( "Yield_{%s}=%0.3f #pm %0.3f",
+				label_b.c_str(), yield_b, yieldError_b ) );
+
+	  SaveAsAll( cc, Form("hf_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
+
+	  ccMC.cd();
+	  padMC1.cd();
+	  
+	  TH1* h_MC = static_cast< TH1D* >( fMC->Get( Form("%s_%s", hMCname.c_str(), hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_MC, 1 );
+	  TH1* h_MC_UW = static_cast< TH1D* >( fMCUW->Get( Form("%s_%s", hMCname.c_str(), hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_MC_UW, 2 );
+	  TH1* h_Data = static_cast< TH1D* >( fData->Get( Form("%s_%s", hDataName.c_str(), hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_Data, 0 );
+
+	  h_Data->Draw("ep X0 same");
+	  h_MC->Draw("ep X0 same");
+	  h_MC_UW->Draw("ep X0 same");
+
+	  legMC.AddEntry( h_Data, "Data" );
+	  legMC.AddEntry( h_MC, "MC - Weighted" );
+	  legMC.AddEntry( h_MC_UW, "MC - Default" );
+
+	  h_Data->SetMaximum( maximum );
+	  
+	  drawTool->DrawAtlasInternal();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  if( m_is_pPb ){
+	    drawTool->DrawRightLatex( 0.87, 0.77, "#it{p}+Pb Pythia8");
+	  } else {
+	    drawTool->DrawRightLatex( 0.87, 0.77, "#it{pp} Pythia8");
+	  }
+	  
+	  legMC.Draw();
+	  
+	  padMC2.cd();
+	  TH1* hR_MC = static_cast< TH1D* >
+	    ( h_Data->Clone( Form("%s_%s_%s", hDataName.c_str(), hTagDphi.c_str(), m_sRatio.c_str() ) ) );
+	  styleTool->SetHStyleRatio( hR_MC, 1 );
+	  hR_MC->Divide( h_MC );
+	  hR_MC->Draw( "ep X0 same" );
+	  hR_MC->SetYTitle( "Data/MC" );
+	  hR_MC->SetMinimum( 0.25 );
+	  
+	  TH1* hR_MC_UW = static_cast< TH1D* >
+	    ( h_Data->Clone( Form("%s_%s_%s", hDataName.c_str(), hTagDphi.c_str(), m_sRatio.c_str() ) ) );
+	  styleTool->SetHStyleRatio( hR_MC_UW, 2 );
+	  hR_MC_UW->Divide( h_MC_UW );
+	  hR_MC_UW->Draw( "ep X0 same" );
+	  hR_MC_UW->SetYTitle( "Data/MC" );
+
+	  TLegend legR( 0.6, 0.75, 0.8, 0.9 );
+	  styleTool->SetLegendStyle( &legR, 0.85 );
+	  legR.AddEntry( hR_MC, "Data/MC Weighted" );
+	  legR.AddEntry( hR_MC_UW, "Data/MC Default" );
+
+	  TF1* fR = anaTool->FitPol0( hR_MC, m_dPhiFittingMin , m_dPhiFittingMax );
+	  styleTool->SetHStyle( fR , 0 );
+
+	  std::cout << " ------------- " << fR->GetProb() << std::endl; 
+	  hProbWeight->Fill( fR->GetProb() );
+	  
+	  legR.Draw();
+
+	  fR->Draw("same");
+		       
+	  SaveAsAll( ccMC, Form("hMC_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
+	  
+	  styleTool->HideAxis( h_a, "x" );
+	  styleTool->HideAxis( h_b, "x" );
+
 	  pad2.cd();
 	  h_R->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 	  h_R->Draw("ep x0 same");
@@ -3003,7 +3184,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  // dPhiLineP50.Draw(); dPhiLineN50.Draw();
 
 	  h_R->Write();
-	  SaveAsAll( c, Form("h_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
+	  SaveAsAll( c , Form("hr_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
 	} // end loop over axis3
       } // end loop over axis2
 
@@ -3110,7 +3291,25 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   delete h_prob_a;
   delete h_prob_b;
   */
-   
+
+  TCanvas cProb( "cProb", "cProb", 800, 600 );
+  hProbWeight->Draw("hist C");
+
+  DrawAtlasRightBoth();
+  if( m_is_pPb ){
+    drawTool->DrawRightLatex( 0.8, 0.8, "#it{p}+Pb" );
+  } else {
+    drawTool->DrawRightLatex( 0.8, 0.8, "#it{pp}" );
+  }
+
+  std::cout << m_is_pPb << std::endl;
+  std::string probName = "h_probWeights_";
+  probName +=  m_is_pPb ? "pPb" : "pp" ; 
+  
+  SaveAsPdfPng( cProb, probName, true );
+  SaveAsROOT  ( cProb, probName );
+  hProbWeight->Write();
+  
   for( auto & f  : vF  ){ delete f ; }
   for( auto & r  : vR  ){ delete r ; }
   for( auto & h  : vH  ){ delete h ; }

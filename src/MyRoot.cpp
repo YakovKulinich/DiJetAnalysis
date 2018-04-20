@@ -302,7 +302,7 @@ void CT::AnalysisTools::UndoWidthScaling( TH1* h ){
 TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
 
   auto EMG = [&]( double* x, double* par){
-    return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
+    return par[0]*(2/par[1])*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
     ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
       TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
       TMath::Exp((constants::PI-x[0])/par[1]) *
@@ -310,6 +310,7 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   };
   
   // set range to be in range of fit
+  // histo->GetXaxis()->SetRangeUser( xLow, xHigh );
   histo->GetXaxis()->SetRange( 1, -1 );
   
   TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 3 );
@@ -318,47 +319,25 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
     { return dPhiFit; }
 
   double amp = histo->GetBinContent( histo->GetMaximumBin () );
+
+  TVirtualFitter::SetMaxIterations(1000);
   
   dPhiFit->SetParameters( amp, 0.20, 0.20 );
-  dPhiFit->SetParLimits ( 1, 1E-3, 1 );
-  dPhiFit->SetParLimits ( 2, 1E-2, 1 );
-  
-  int status = histo->Fit( dPhiFit->GetName(), "NQI", "", xLow, xHigh );
+  dPhiFit->SetParLimits ( 1, 1E-3, 0.7 );
+  dPhiFit->SetParLimits ( 2, 1E-3, 0.7 );
 
-  if( status ){ std::cout << " +++++++++++++ " << status
-			  << " " << dPhiFit->GetName() << std::endl; }
+  int status = 0;
   
-  return dPhiFit;
-}
-
-TF1* CT::AnalysisTools::FitDphiWC( TH1* histo, double xLow, double xHigh ){
-
-  auto EMG = [&]( double* x, double* par){
-    return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
-    ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
-      TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
-      TMath::Exp((constants::PI-x[0])/par[1]) *
-      ( 1 - 0.5 * TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] - par[2]/par[1])))
-    + par[3];
-  };
+  std::string hName = histo->GetName();
   
-  // set range to be in range of fit
-  histo->GetXaxis()->SetRange( 1, -1 );
-  
-  TF1* dPhiFit = new TF1( Form("f_%s", histo->GetName()), EMG, xLow, xHigh, 4 );
-
-  if( !histo->GetEntries() )
-    { return dPhiFit; }
-
-  double amp = histo->GetBinContent( histo->GetMaximumBin () );
-  
-  dPhiFit->SetParameters( amp, 0.20, 0.1, 0);
-  dPhiFit->SetParLimits ( 1, 1E-3, 1 );
-  dPhiFit->SetParLimits ( 2, 1E-2, 1 );
-  dPhiFit->SetParLimits ( 3, 0,    1 );
-  
-  int status = histo->Fit( dPhiFit->GetName(), "NQI", "", xLow, xHigh );
-
+  if( !hName.compare("h_dPhi_unfolded_All_40_Ystar1_27_45_Pt1_90_35_Pt2_45_40_Ystar2_27") ||
+      !hName.compare("h_dPhi_unfolded_All_40_Ystar1_27_45_Pt1_90_28_Pt2_35_40_Ystar2_27")){
+    histo->Fit( dPhiFit->GetName(), "NI", "", xLow, xHigh );
+  }
+  else{
+    status = histo->Fit( dPhiFit->GetName(), "NQI", "", xLow, xHigh );
+  }
+    
   if( status ){ std::cout << " +++++++++++++ " << status
 			  << " " << dPhiFit->GetName() << std::endl; }
   
@@ -368,7 +347,7 @@ TF1* CT::AnalysisTools::FitDphiWC( TH1* histo, double xLow, double xHigh ){
 TF1* CT::AnalysisTools::FitDphi( TGraph* graph, double xLow, double xHigh ){
 
   auto EMG = [&]( double* x, double* par){
-    return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
+    return par[0]*(2/par[1])*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
     ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
       TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
       TMath::Exp((constants::PI-x[0])/par[1]) *
@@ -428,6 +407,15 @@ TF1* CT::AnalysisTools::FitGaussian( TH1* histo, double xLow, double xHigh){
 
   return fit;
 }
+
+TF1* CT::AnalysisTools::FitPol0( TH1* histo, double xLow, double xHigh){
+  TF1* fit  = new TF1( Form("f_%s", histo->GetName()), "pol0(0)", xLow, xHigh );
+
+  histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
+  
+  return fit;
+}
+
 
 TF1* CT::AnalysisTools::FitPol1( TH1* histo, double xLow, double xHigh){
   TF1* fit  = new TF1( Form("f_%s", histo->GetName()), "pol1(0)", xLow, xHigh );
@@ -748,7 +736,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetLineColor(kBlack);
     graph->SetMarkerColor(kBlack);
     graph->SetMarkerStyle(20);
-    graph->SetMarkerSize(1.5);
+    graph->SetMarkerSize(1.4);
     graph->SetFillColor( kGray + 1 );
     graph->SetFillStyle( 3001 );
   } 
@@ -756,7 +744,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetLineColor(kRed);
     graph->SetMarkerColor(kRed);
     graph->SetMarkerStyle(21);
-    graph->SetMarkerSize(1.4);
+    graph->SetMarkerSize(1.3);
     graph->SetFillColor( kRed - 4  );
     graph->SetFillStyle( 3001 );
   }
@@ -764,7 +752,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetLineColor( kAzure - 3 );
     graph->SetMarkerColor( kAzure - 3 );
     graph->SetMarkerStyle(33);
-    graph->SetMarkerSize(2.1);
+    graph->SetMarkerSize(2.0);
     graph->SetFillColor( kAzure - 4 );
     graph->SetFillStyle( 3001 );
   }
@@ -780,7 +768,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetLineColor(kBlack);
     graph->SetMarkerColor(kBlack);
     graph->SetMarkerStyle(24);
-    graph->SetMarkerSize(1.4);
+    graph->SetMarkerSize(1.5);
     graph->SetFillColor( kGray + 1 );
     graph->SetFillStyle( 3002 );
   }
@@ -788,7 +776,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetLineColor(kRed);
     graph->SetMarkerColor(kRed);
     graph->SetMarkerStyle(25);
-    graph->SetMarkerSize(1.7);
+    graph->SetMarkerSize(1.4);
     graph->SetFillColor( kRed - 4 );
     graph->SetFillStyle( 3002 );
    }  
@@ -967,7 +955,7 @@ void CT::DrawTools::DrawCenterLatex
 
 void CT::DrawTools::DrawAtlasInternal( double scale ){
   
-  DrawRightLatex( 0.90, 0.96, "#bf{#font[72]{ATLAS}} Internal", scale, 1 );
+  DrawRightLatex( 0.87, 0.875, "#bf{#font[72]{ATLAS}} Internal", scale, 1 );
 }
 
 std::string CT::DrawTools::GetLumipPb(){
@@ -982,11 +970,11 @@ void CT::DrawTools::DrawAtlasInternalDataRight
 ( double x0, double y0, bool is_pPb, double scale ){
   
   double dy = 0.09 * scale;
-  double ystart = 0.87 + ( 1 - scale ) * 0.1;
+  double ystart = 0.785 + ( 1 - scale ) * 0.1;
   double xstart = 0.875;
  
   DrawRightLatex
-    ( 0.90 , 0.96,"#bf{#font[72]{ATLAS}} Internal", CT::StyleTools::lSS, 1 );
+    ( 0.87 , 0.875,"#bf{#font[72]{ATLAS}} Internal", CT::StyleTools::lSS, 1 );
   if( is_pPb ){
     DrawRightLatex
       ( xstart + x0, ystart + y0, GetLumipPb(), scale, 1 );
@@ -994,7 +982,7 @@ void CT::DrawTools::DrawAtlasInternalDataRight
     DrawRightLatex
       ( xstart + x0, ystart + y0, GetLumipp(), scale, 1 );
   }
-  DrawRightLatex(0.87 + x0, ystart - dy + y0, "#sqrt{s_{NN}}=5.02 TeV", scale, 1 );
+  DrawRightLatex( xstart + x0, ystart - dy + y0, "#sqrt{s_{NN}}=5.02 TeV", scale, 1 );
 }
 
 // ============ MC ================
@@ -1002,7 +990,7 @@ void CT::DrawTools::DrawAtlasInternalDataRight
 void CT::DrawTools::DrawAtlasInternalMCRight
 ( double x0, double y0, const std::string& mcType, int mode, double scale ){ 
 
-  double ystart = 0.87 + ( 1 - scale ) * 0.1;
+  double ystart = 0.785 + ( 1 - scale ) * 0.1;
   double xstart = 0.875;
   
   std::string system = "";
@@ -1014,7 +1002,7 @@ void CT::DrawTools::DrawAtlasInternalMCRight
     system = "#it{p}+Pb";
   }
   
-  DrawRightLatex( xstart, 0.96, 
+  DrawRightLatex( xstart, 0.87, 
 		  "#bf{#font[72]{ATLAS}} Simulation Internal", CT::StyleTools::lSS, 1 );
   if( mode != 3 ){
     DrawRightLatex( xstart + x0, ystart + y0,

@@ -85,7 +85,6 @@ class DiJetAnalysisData : public DiJetAnalysis{
   void GetSpectUnfoldingInfo( std::string&, std::string&, std::string&,
 			      std::string&, std::string&, std::string& );
 
-
   void GetDphiUnfoldingInfo( std::string&, std::string&,
 			     std::string&, std::string& );
   

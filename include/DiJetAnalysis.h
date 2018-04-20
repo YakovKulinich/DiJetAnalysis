@@ -35,8 +35,6 @@ class DiJetAnalysis{
 
   virtual ~DiJetAnalysis();
 
-  int a = 2;
-
   //---------------------------
   // Initialization Methods
   //---------------------------
@@ -282,8 +280,6 @@ class DiJetAnalysis{
   double m_dPhiLogMin;
   double m_dPhiLogMax;
 
-  bool m_fitDphiWC;
-  
   double m_dPhiFittingMin;
   double m_dPhiFittingMax;
 

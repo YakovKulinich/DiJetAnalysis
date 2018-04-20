@@ -311,6 +311,8 @@ void DiJetAnalysisMC::ProcessPerformance(){
 
   m_hAllEtaPtMap = CombineSamples( m_vHjznEtaPtMap, "etaPtMap" );
   MakeEtaPhiPtMap( m_vHjznEtaPtMap , m_vJznLabels, "etaPtMap" );
+  m_hAllEtaPhiMap = CombineSamples( m_vHjznEtaPhiMap, "etaPhiMap" );
+  MakeEtaPhiPtMap( m_vHjznEtaPhiMap , m_vJznLabels, "etaPhiMap" );
   
   // only do this for the default sample
   if( !m_uncertComp ){
@@ -1030,8 +1032,10 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     	
     double jetWeightReco  = GetJetWeight( rJet );
     double jetWeightTruth = GetJetWeight( tJet );
-	
-    m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
+
+    if( jetPtReco > 28 && jetPtReco < 35 ){
+      m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
+    }
     m_vHjznEtaPtMap [iG]->Fill( jetEtaReco, jetPtReco , jetWeightReco );
 
     m_vHjznRecoTruthRpt       [iG]->
@@ -1052,7 +1056,9 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     // for pp, fill both
     if( m_is_pPb ){ continue; }
 
-    m_vHjznEtaPhiMap[iG]->Fill( -jetEtaReco, jetPhiReco, jetWeightReco );
+    if( jetEtaReco > 28 && jetEtaReco < 35 ){
+      m_vHjznEtaPhiMap[iG]->Fill( -jetEtaReco, jetPhiReco, jetWeightReco );
+    }
     m_vHjznEtaPtMap [iG]->Fill( -jetEtaReco, jetPtReco , jetWeightReco );
 
     m_vHjznRecoTruthRpt       [iG]->
@@ -1582,14 +1588,14 @@ void DiJetAnalysisMC::GetTypeTitle( const std::string& type,
 				    std::string& yTitleMean,
 				    std::string& yTitleSigma ){ 
   if( type.find("Rpt") != std::string::npos ){
-    yTitleMean  = "#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth}";
-    yTitleSigma = "#sigma(" + yTitleMean + ")";
+    yTitleMean  = "<#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth}>";
+    yTitleSigma = "#sigma(#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth})"; 
   } else if( type.find("Deta") != std::string::npos ){
-    yTitleMean  = "#Delta#eta";
-    yTitleSigma = "#sigma(" + yTitleMean + ")";
+    yTitleMean  = "<#Delta#eta>";
+    yTitleSigma = "#sigma(#Delta#eta)"; 
   } else if( type.find("Dphi") != std::string::npos ){
-    yTitleMean  = "#Delta#phi";
-    yTitleSigma = "#sigma(" + yTitleMean + ")";
+    yTitleMean  = "<#Delta#phi>";
+    yTitleSigma = "#sigma(#Delta#phi)"; 
   } 
 }
 
@@ -2338,6 +2344,8 @@ TH3* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
 
     SaveAsAll( *c, c->GetName() );
 
+    hR->SetYTitle( "Weight" );
+    
     cAll.cd();
     styleTool->SetHStyle( hR, y2Bin - 1 );
     hR->Draw( "ep X0 same" );
@@ -2960,6 +2968,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
     TAxis* axisR2 = hnR->GetAxis( m_dPP->GetAxisI(2) ); 
     TAxis* axisR3 = hnR->GetAxis( m_dPP->GetAxisI(3) );
 
+    
     for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){ 
       // check we are in correct ystar and pt bins
       if( !m_dPP->CorrectPhaseSpace
@@ -3480,7 +3489,7 @@ void DiJetAnalysisMC::CompareAngularRes( TFile* fOut ){
   std::string yTitleSigma;
   GetTypeTitle( "Deta", yTitleMean, yTitleSigma );
   
-  TLegend leg( 0.5, 0.45, 0.85, 0.8 );
+  TLegend leg( 0.5, 0.45, 0.85, 0.75 );
   styleTool->SetLegendStyle( &leg );
 
   // ------------ Eta ------------
@@ -3890,8 +3899,26 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
 				  const std::string& type1,
 				  const std::string& type2 ){
   TCanvas c("c","c",800,600);
+
+  double lx0 = 0.20;
+  double ly0 = 0.65;
+  double lx1 = 0.40;
+  double ly1 = 0.88;
   
-  TLegend leg(0.60, 0.61, 0.99, 0.82);
+  if( type2.find("mean") == std::string::npos ){
+    lx0 = 0.36;
+    ly0 = 0.61;
+    lx1 = 0.85;
+    ly1 = 0.82;
+
+    if( m_is_pPb ){
+      lx0 = 0.34;
+      lx1 = 0.83;
+    }
+  
+  }
+
+  TLegend leg( lx0, ly0, lx1, ly1 );
   styleTool->SetLegendStyle( &leg );
 
   int style = 0;
@@ -3940,8 +3967,8 @@ SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
   else if( type1.find("Deta") != std::string::npos ||
 	   type1.find("Dphi") != std::string::npos ) { 
     if( !type2.compare("mean") ){ // mean
-      h1->SetMaximum(0.075);      
-      h1->SetMinimum(-0.075);
+      h1->SetMaximum(0.030);      
+      h1->SetMinimum(-0.020);
     } else if( !type2.compare("sigma") ){ // sigma
       h1->SetMaximum(0.07);
       h1->SetMinimum(0.);
