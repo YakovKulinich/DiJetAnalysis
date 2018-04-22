@@ -1251,14 +1251,16 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   double y0 = isYield ? m_dPhiYieldMin : m_dPhiWidthMin;
   double y1 = isYield ? m_dPhiYieldMax : m_dPhiWidthMax;
 
-  double pDx = 0.05;
-  
-  std::string yTitle = isYield ?
-    "#it{N}_{Jet_{2,1}}/#it{N}_{Jet_{1}}" : "|#Delta#phi| width";
+  double pDx1 = 0.2;
+
   std::string xTitle = m_dPP->GetAxisLabel(3);
+  std::string yTitle = isYield ? m_sYieldTitle : m_sWidthTitle;
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
   std::string yTitleUncert = yTitle + " Uncertainty %";
+
+  if( !isYield ){ yTitleUncert = "RMS (" + yTitle + ") Uncertainty %"; }
+  
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -1325,7 +1327,10 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	std::string hNominalName = "h_" + allUnfoldedName + "_" + hTag;
 	std::string gNominalName = "g_" + allUnfoldedName + "_" + hTag;
 	
-	TH1D* hNominal = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
+	TH1D* hNominalTmp = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
+
+	TH1D* hNominal = static_cast< TH1D* >( hNominalTmp->Clone( ) );
+
 	vHdef.push_back( hNominal );
 
 	// Make all the systematics histograms for each y1, pt1, pt2 bin.
@@ -1419,7 +1424,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	hPFIT->SetLineStyle( 7 );
 	
 	std::vector< double > pX;
-	std::vector< double > eX( nAxis3Bins, 0.1 * hNominal->GetBinWidth(1) );
+	std::vector< double > eX( nAxis3Bins, pDx1 * 0.5 );
  
 	std::vector< double > pY;
 	std::vector< double > eYP;
@@ -1569,10 +1574,10 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	double* eXDefHigh = gNominal->GetEXhigh();
 	double* xSys      = gSystematics->GetX();
 	for( int iX = 0; iX < nAxis3Bins; iX++ ){
-	  *(      xDef + iX ) += style * pDx;
+	  *(      xDef + iX ) += style * pDx1;
 	  *(  eXDefLow + iX ) = 0;
 	  *( eXDefHigh + iX ) = 0;
-	  *(      xSys + iX ) += style * pDx;
+	  *(      xSys + iX ) += style * pDx1;
 	}
 	
 	gSystematics->SetTitle("");
@@ -1601,9 +1606,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	
 	legSyst.AddEntry( hPTOT, "Total", "l" );
 	legSyst.AddEntry( hPJES, "JES", "l" );
-	legSyst.AddEntry( hPHIJES, "HIJES", "l" );
+	legSyst.AddEntry( hPHIJES, "HI JES", "l" );
 	legSyst.AddEntry( hPJER, "JER", "l" );
-	legSyst.AddEntry( hPANG, "Angular", "l" );
+	legSyst.AddEntry( hPANG, "JAR", "l" );
 	legSyst.AddEntry( hPUNF, "Unfolding", "l" );
 	if( !isYield ){
 	  legSyst.AddEntry( hPFIT, "Fitting", "l" );
@@ -1689,11 +1694,11 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	legSyst.Draw();
 
 	drawTool->DrawLeftLatex
-	  ( 0.18, 0.87, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
-	drawTool->DrawLeftLatex
-	  ( 0.18, 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
-	drawTool->DrawLeftLatex
 	  ( 0.445, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
+	drawTool->DrawLeftLatex
+	  ( 0.18 , 0.87 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
+	drawTool->DrawLeftLatex
+	  ( 0.18 , 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
 	DrawAtlasRight( 0, 0, 0.9 );
 	
 	std::string hNameSystFinal =
@@ -1778,7 +1783,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   double y0 = isYield ? m_dPhiYieldMin : m_dPhiWidthMin;
   double y1 = isYield ? m_dPhiYieldMax : 1.0;
 
-  double pDx = 0.1;
+  double pDx1 = 0.20;
+  double pDx2 = 0.23;
 
   // lines to be drawn along axis3. this is
   // x-axis that widths are plotted as function of 
@@ -1816,7 +1822,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   lineN1S.SetLineWidth( 1  );
 
   std::string yTitle = isYield ?
-    "#it{N}_{Jet_{2,1}}/#it{N}_{Jet_{1}}" : "|#Delta#phi| Width";
+    m_sYieldTitle : "RMS (" + m_sWidthTitle + ")";
   std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
@@ -1969,12 +1975,10 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  }
 	  x0 = hNominalB->GetBinCenter ( i  + 1 );
 	  y0 = hNominalB->GetBinContent( i  + 1 );
-	  gNominalB    ->SetPoint( i, x0 + pDx, y0 );
-	  gSystematicsB->SetPoint( i, x0 + pDx, y0 );
+	  gNominalB    ->SetPoint( i, x0 + pDx2, y0 );
+	  gSystematicsB->SetPoint( i, x0 + pDx2, y0 );
 	  x0 = hNominalA->GetBinCenter ( i  + 1 );
 	  y0 = hNominalA->GetBinContent( i  + 1 );
-	  //gNominalA    ->SetPoint( i, x0 - pDx, y0 );
-	  //gSystematicsA->SetPoint( i, x0 - pDx, y0 );
 	}
 	
 	// now draw everything
@@ -2029,7 +2033,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	}
 
 	std::vector< double > pX;
-	std::vector< double > eX( nAxis3Bins, 0.1 * hNominalA->GetBinWidth(1) );
+        std::vector< double > eX( nAxis3Bins, pDx1 * 0.5 );
  
 	std::vector< double > pY;
 	std::vector< double > eYP;
@@ -2200,16 +2204,16 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  double x0, y0;
 	  x0 = hNominalB->GetBinCenter ( i  + 1 );
 	  y0 = hNominalB->GetBinContent( i  + 1 );
-	  gNominalB    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx, y0 );
-	  gSystematicsB->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx, y0 );
+	  gNominalB    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
+	  gSystematicsB->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
 	  x0 = hNominalA->GetBinCenter ( i  + 1 );
 	  y0 = hNominalA->GetBinContent( i  + 1 );
-	  gNominalA    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx, y0 );
-	  gSystematicsA->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx, y0 );
+	  gNominalA    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
+	  gSystematicsA->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
 	  x0 = hNominalR->GetBinCenter ( i  + 1 );
 	  y0 = hNominalR->GetBinContent( i  + 1 );
-	  gNominalR    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx, y0 );
-	  gSystematicsR->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx, y0 );
+	  gNominalR    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
+	  gSystematicsR->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
 	}
 
 	pad1F.cd();

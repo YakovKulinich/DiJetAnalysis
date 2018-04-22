@@ -574,6 +574,9 @@ std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
 					      bool is_pPb,
 					      std::string label){
   std::stringstream ss;
+
+  ystarMin *= -1; ystarMax *= -1;
+  
   if( is_pPb )
     { ss << boost::format("%3.2g<%s<%3.2g") % ystarMin % label % ystarMax;}
   else {
@@ -595,6 +598,12 @@ std::string CT::AnalysisTools::GetLabel
   std::string unit = unitIn;
   if( var.find("{p}_{T") != std::string::npos )
     { unit = "[GeV]"; }
+
+  if( var.find("{y}_{1}") != std::string::npos ){
+      vMin *= -1;
+      vMax *= -1;
+  }
+  
   
   std::stringstream ss;
 
@@ -738,15 +747,15 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetMarkerStyle(20);
     graph->SetMarkerSize(1.4);
     graph->SetFillColor( kGray + 1 );
-    graph->SetFillStyle( 3001 );
+    graph->SetFillStyle( 1001 );
   } 
   else if(iflag == 1 ){
     graph->SetLineColor(kRed);
     graph->SetMarkerColor(kRed);
     graph->SetMarkerStyle(21);
     graph->SetMarkerSize(1.3);
-    graph->SetFillColor( kRed - 4  );
-    graph->SetFillStyle( 3001 );
+    graph->SetFillColor( kRed - 9  );
+    graph->SetFillStyle( 1001 );
   }
   else if(iflag == 2 ){
     graph->SetLineColor( kAzure - 3 );
@@ -754,7 +763,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetMarkerStyle(33);
     graph->SetMarkerSize(2.0);
     graph->SetFillColor( kAzure - 4 );
-    graph->SetFillStyle( 3001 );
+    graph->SetFillStyle( 1001 );
   }
   else if(iflag == 3 ){
     graph->SetLineColor( kSpring - 6 );
@@ -762,7 +771,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetMarkerStyle(34);
     graph->SetMarkerSize(1.8);
     graph->SetFillColor( kSpring - 5 );
-    graph->SetFillStyle( 3001 );
+    graph->SetFillStyle( 1001 );
   }
   else if(iflag == 4 ){
     graph->SetLineColor(kBlack);
@@ -770,23 +779,23 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetMarkerStyle(24);
     graph->SetMarkerSize(1.5);
     graph->SetFillColor( kGray + 1 );
-    graph->SetFillStyle( 3002 );
+    graph->SetFillStyle( 1001 );
   }
   else if(iflag == 5 ){
     graph->SetLineColor(kRed);
     graph->SetMarkerColor(kRed);
     graph->SetMarkerStyle(25);
     graph->SetMarkerSize(1.4);
-    graph->SetFillColor( kRed - 4 );
-    graph->SetFillStyle( 3002 );
+    graph->SetFillColor( kRed - 9 );
+    graph->SetFillStyle( 1001 );
    }  
   else if(iflag == 6 ){
     graph->SetLineColor( kAzure - 3 );
     graph->SetMarkerColor( kAzure - 3 );
     graph->SetMarkerStyle(27);
     graph->SetMarkerSize(2.1);
-    graph->SetFillColor( kAzure -4 );
-    graph->SetFillStyle( 3002 );
+    graph->SetFillColor( kAzure - 9 );
+    graph->SetFillStyle( 1001 );
   }
   else if(iflag == 7 ){
     graph->SetLineColor( kSpring - 6 );
@@ -794,7 +803,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetMarkerStyle(28);
     graph->SetMarkerSize(1.8);
     graph->SetFillColor( kSpring - 5 );
-    graph->SetFillStyle( 3002 );
+    graph->SetFillStyle( 1001 );
   }
 }
 

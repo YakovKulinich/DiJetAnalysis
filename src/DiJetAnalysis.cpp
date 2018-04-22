@@ -77,6 +77,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sRatio    = "ratio";
   m_sSum      = "sum";
 
+  m_sWidthTitle = "#it{C}_{1,2}(#Delta#phi)";
+  m_sYieldTitle = "#it{I}_{#it{p}+Pb}";
+
   m_unweightedFileSuffix  = "UW";
   m_unfoldingFileSuffix   = "UF";
   m_systematicsFileSuffix = "SYS";
@@ -156,7 +159,10 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   boost::assign::push_back( m_varYstarBinning )
     ( -4.0 )( -2.7 )( -1.8 )( 0 )( 1.8 )( 4.0 );
   m_nVarYstarBins = m_varYstarBinning.size() - 1;
-  
+
+  boost::assign::push_back( m_varYstarBinningFlipped )
+    ( -4.0 )( -1.8 )( 0 )( 1.8 )( 2.7 )( 4.0 );
+
   // --- variable pt binning ---
   boost::assign::push_back( m_varPtBinning )
     ( 28 )( 35 )( 45 )( 90 );
@@ -390,10 +396,10 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  // MakeFinalPlotsTogether( fOut, m_widthName );
-  // MakeFinalPlotsTogether( fOut, m_yieldName );
+  MakeFinalPlotsTogether( fOut, m_widthName );
+  MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  MakeDphiTogether ( fOut );
+  // MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -1634,7 +1640,9 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    // save the per-jet normalized counts histogram.
 	    TH1* hDphi = static_cast< TH1D* >( hDphiCounts->Clone( hDphiName.c_str() ) );
 	    styleTool->SetHStyle( hDphi, 0 );
-	    hDphi->SetYTitle("1/N_{jet_{1}} dN_{12}/d|#Delta#phi|");
+	    hDphi->SetYTitle( m_sWidthTitle.c_str() );
+	    hDphi->SetXTitle("|#Delta#phi|");
+	    hDphi->SetTitle( "" );
 	    vHdPhi.push_back( hDphi );
 	    	    
 	    // Combinatoric subtraction after scaling by width
@@ -1646,9 +1654,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    // yields after comb subtaction
 	    TH1* hYields = static_cast< TH1D* >( hDphi->Clone( hYieldsName.c_str() ) );
 	    styleTool->SetHStyle( hDphi, 0 );
-	    hDphi->SetXTitle("|#Delta#phi|");
-	    hDphi->SetYTitle("1/N_{jet_{1}} dN_{12}/d|#Delta#phi|");
-	    hDphi->SetTitle( "" );
 	    vHdPhi.push_back( hYields );
 
 	    // undo the hDphi->Scale( 1., "width" ) part
@@ -1729,39 +1734,59 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->Draw( "ep X0 same" );
 	    fit->Draw("same");
 
-	    double dx = 0, dy = 0;
+	    double scale  = 1.5;
+	    double dyL    = 0.08 * scale;
+	    double xstart = 0.02 + ( 1 - scale ) * 0.1;
+	    double ystart = 1.1  + ( 1 - scale ) * 0.1;
+
+	    double dx = 0.0, dy = 0.;
 	    
 	    if( cAllPadI == nCol - 1 ){
 	      DrawAtlasRight();
 	      if( !m_isData ){
-		drawTool->DrawRightLatex( 0.875, 0.73, mcLevel.c_str() );
+		drawTool->DrawRightLatex( 0.875, 0.73, mcLevel.c_str(), scale );
 	      }
-	   }
+	    }
 	    if( cAllPadI % nCol > 0 ){
 	      hDphi->SetYTitle("");
 	      dx = 0.1;
+	      dy = -0.1;
 	    } else {
-	      hDphi->GetYaxis()->SetTitleOffset(3.4);
-	      dx = 0.15;
+	      dx = 0.25;
 	    }
 
+	    double dyLabel = 0;
 	    if( cAllPadI / nCol <  nRow - 1 ){
 	      hDphi->SetXTitle("");
-	      dy = - 0.1;
+	      dy = -0.15;
 	    } else {
-	      hDphi->GetXaxis()->SetTitleOffset(4);
+	      dy = 0.07;
+	      dyLabel = -0.2;
 	    }
 
-	    DrawTopLeftLabels
-	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-		axis2Low, axis2Up, axis3Low, axis3Up );
+	    hDphi->GetXaxis()->SetTitleOffset(4);
+	    hDphi->GetYaxis()->SetTitleOffset(4);
+	    
+	    drawTool->DrawLeftLatex
+	      ( xstart + dx, ystart + dy + dyLabel, CT::AnalysisTools::GetLabel
+		( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale );
+	    drawTool->DrawLeftLatex
+	      ( xstart + dx, ystart - dyL + dy + dyLabel, CT::AnalysisTools::GetLabel
+		( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), scale );  
+	    drawTool->DrawLeftLatex
+	      ( xstart + dx, ystart - 2 * dyL + dy + dyLabel, CT::AnalysisTools::GetLabel
+		( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), scale );
+	    drawTool->DrawLeftLatex
+	      ( xstart + dx, ystart - 3 * dyL + dy + dyLabel, CT::AnalysisTools::GetLabel
+		( axis3Low, axis3Up, m_dPP->GetAxisLabel(3) ), scale );
 
+	    hDphi->SetTitleSize( (int)(32 * scale), "xyz");
+	    hDphi->SetLabelSize( (int)(32 * scale), "xyz");
+	    
 	    drawTool->DrawLeftLatex
-	      ( 0.65 + dx, 0.33 + dy, Form( "Prob = %4.2f"
-					    , prob ) );
+	      ( 0.47 + dx, 0.36 + dy, Form( "Prob = %4.2f", prob ), scale);
 	    drawTool->DrawLeftLatex
-	      ( 0.60 + dx, 0.25 + dy, Form( "#Chi^{2}/NDF = %4.2f"
-				  , chi2NDF ) );
+	      ( 0.42 + dx, 0.28 + dy, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ), scale );
 
 	    cAllPadI++;
 	    
@@ -2228,38 +2253,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  DrawAtlasRight();
 
 	  SaveAsAll( cCFactors, hCfactors->GetName() );
-
-	  // draw onto common canvas
-	  cAll.cd( cAllPadI + 1 );
-	  
-	  hCfactors->SetMaximum( 1.7 );
-	  hCfactors->Draw("ep X0");
-
-	  line.Draw();
-	  lineP25Shift.Draw();
-	  lineN25.Draw();
-
-	  
-	  DrawTopLeftLabels
-	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	      axis2Low, axis2Up, axis3Low, axis3Up );
-
-	  if( cAllPadI == nCol - 1 ){ DrawAtlasRight(); }
-	  if( cAllPadI % nCol > 0 ){
-	    hCfactors->SetYTitle("");
-	  } else {
-	    hCfactors->GetYaxis()->SetTitleOffset(3.4);
-	  }
-
-	  if( cAllPadI / nCol <  nRow - 1 ){
-	    hCfactors->SetXTitle("");
-	  } else {
-	    hCfactors->GetXaxis()->SetTitleOffset(4);
-	  }
-
-	  cAllPadI++;
-
-	  
+  
 	  // ----------- Unfold -----------
 	  // Unfold using bin-by-bin and the resposne factors.
 	  // Do this on counts, then normalize and subtract comb.
@@ -2466,6 +2460,70 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  double binCfactor       = hCfactors->GetBinContent( dPhiPtCfactorBin );
 
 	  hCfactorsPtMat->SetBinContent( axis1Bin, axis2Bin, binCfactor );
+
+	  // save to common canvas
+	  
+	  // draw onto common canvas
+	  cAll.cd( cAllPadI + 1 );
+	  hCfactors->SetMaximum( 1.8 );
+	  hCfactors->Draw("ep X0");
+
+	  double scale  = 1.5;
+	  double dyL    = 0.08 * scale;
+	  double xstart = 0.02 + ( 1 - scale ) * 0.1;
+	  double ystart = 1.1  + ( 1 - scale ) * 0.1;
+
+	  double dx = 0.0, dy = 0.;
+
+	  hCfactors->GetXaxis()->SetTitleOffset(4);
+	  hCfactors->GetYaxis()->SetTitleOffset(4);
+
+	  hCfactors->SetTitleSize( (int)(32 * scale), "xyz");
+	  hCfactors->SetLabelSize( (int)(32 * scale), "xyz");
+	  
+	  if( cAllPadI == nCol - 1 ){
+	    if( m_is_pPb ){
+	      drawTool->DrawRightLatex( 0.87, 0.73, "#it{p}+Pb Pythia8", scale);
+	    } else {
+	      drawTool->DrawRightLatex( 0.87, 0.73, "#it{pp} Pythia8", scale );
+	    }
+	  }
+	  if( cAllPadI % nCol > 0 ){
+	    hCfactors->SetYTitle("");
+	    dx = 0.1;
+	    dy = -0.1;
+	  } else {
+	    dx = 0.25;
+	  }
+
+	  double dyLabel = 0;
+	  if( cAllPadI / nCol <  nRow - 1 ){
+	    hCfactors->SetXTitle("");
+	    dy = -0.15;
+	  } else {
+	    dy = 0.07;
+	    dyLabel = -0.2;
+	  }
+	    
+	  drawTool->DrawLeftLatex
+	    ( xstart + dx, ystart + dy + dyLabel, CT::AnalysisTools::GetLabel
+	      ( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale );
+	  drawTool->DrawLeftLatex
+	    ( xstart + dx, ystart - dyL + dy + dyLabel, CT::AnalysisTools::GetLabel
+	      ( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), scale );  
+	  drawTool->DrawLeftLatex
+	    ( xstart + dx, ystart - 2 * dyL + dy + dyLabel, CT::AnalysisTools::GetLabel
+	      ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), scale );
+	  drawTool->DrawLeftLatex
+	    ( xstart + dx, ystart - 3 * dyL + dy + dyLabel, CT::AnalysisTools::GetLabel
+	      ( axis3Low, axis3Up, m_dPP->GetAxisLabel(3) ), scale );
+	    
+	  line.Draw();
+	  lineP25Shift.Draw();
+	  lineN25.Draw();
+
+	  cAllPadI++;
+
 	} // end loop over axis3
       } // end loop over axis2
     } // end loop over axis1     
@@ -2982,7 +3040,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  pad1.SetLogy();
 
 	  h_a->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
-	  
+
 	  h_a->Draw("ep x0 same");
 	  h_b->Draw("ep x0 same");
 	  

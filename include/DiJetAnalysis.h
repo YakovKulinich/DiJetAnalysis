@@ -252,6 +252,9 @@ class DiJetAnalysis{
   std::string m_sReb;
   std::string m_sRatio;
   std::string m_sSum;
+
+  std::string m_sWidthTitle;
+  std::string m_sYieldTitle;
   
   std::string m_rawFileSuffix;
   std::string m_performanceFileSuffix;
@@ -435,6 +438,7 @@ class DiJetAnalysis{
 
   // --- whole range variable ----
   std::vector<double> m_varYstarBinning;
+  std::vector<double> m_varYstarBinningFlipped;
   uint m_nVarYstarBins;
   
   // ---- variable pt binning ----

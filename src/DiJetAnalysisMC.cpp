@@ -505,14 +505,14 @@ void DiJetAnalysisMC::SetupHistograms(){
     // -------- maps ---------
     m_vHjznEtaPhiMap.
       push_back( new TH2D( Form("h_etaPhiMap_%s", jzn.c_str() ),
-			  ";#eta_{Reco};#phi_{Reco}",
+			  ";#eta_{reco};#phi_{reco}",
 			  m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
 			  m_nPhiMapBins, m_phiMapMin, m_phiMapMax ) );
     AddHistogram( m_vHjznEtaPhiMap.back() );
       
     m_vHjznEtaPtMap.
       push_back( new TH2D( Form("h_etaPtMap_%s", jzn.c_str() ),
-			   ";#eta_{Reco};#it{p}_{T}^{Reco}",
+			   ";#eta_{reco};#it{p}_{T}^{reco}",
 			   m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
 			   m_nPtMapBins , m_ptMapMin , m_ptMapMax ) );
     AddHistogram( m_vHjznEtaPtMap.back() );
@@ -520,7 +520,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     // -------- spect --------
     m_vHjznYstarSpectReco.push_back
       ( new TH2D( Form("h_%s_%s", m_ystarSpectRecoName.c_str(), jzn.c_str() ), 
-		  ";#it{y}_{1}*;#it{p}_{T1}^{Reco} [GeV]",
+		  ";#it{y}_{1}*;#it{p}_{T1}^{reco} [GeV]",
 		  m_nVarYstarBins, 0, 1,
 		  m_nVarPtBinsUfOf, 0, 1 ) );
     m_vHjznYstarSpectReco.back()->GetXaxis()->
@@ -531,7 +531,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     
     m_vHjznYstarSpectTruth.push_back
       ( new TH2D( Form("h_%s_%s", m_ystarSpectTruthName.c_str(), jzn.c_str() ), 
-		  ";#it{y}_{1}*;#it{p}_{T1}^{Truth} [GeV]",
+		  ";#it{y}_{1}*;#it{p}_{T1}^{truth} [GeV]",
 		  m_nVarYstarBins, 0, 1,
 		  m_nVarPtBinsUfOf, 0, 1 ) );
     m_vHjznYstarSpectTruth.back()->GetXaxis()->
@@ -542,7 +542,7 @@ void DiJetAnalysisMC::SetupHistograms(){
 
     m_vHjznYstarSpectFineReco.push_back
       ( new TH2D( Form("h_%s_%s", m_ystarSpectFineRecoName.c_str(), jzn.c_str() ), 
-		  ";#eta_{Reco};#it{p}_{T}^{Reco} [GeV]",
+		  ";#eta_{reco};#it{p}_{T}^{reco} [GeV]",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) );
     m_vHjznYstarSpectFineReco.back()->GetXaxis()->
@@ -551,7 +551,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     
     m_vHjznYstarSpectFineTruth.push_back
       ( new TH2D( Form("h_%s_%s", m_ystarSpectFineTruthName.c_str(), jzn.c_str() ), 
-		  ";#eta_{Truth};#it{p}_{T}^{Truth} [GeV]",
+		  ";#eta_{truth};#it{p}_{T}^{truth} [GeV]",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) );
     m_vHjznYstarSpectFineTruth.back()->GetXaxis()->
@@ -560,7 +560,7 @@ void DiJetAnalysisMC::SetupHistograms(){
 
     m_vHjznYstarSpectFineTruthUP.push_back
       ( new TH2D( Form("h_%s_%s", m_ystarSpectFineTruthUPName.c_str(), jzn.c_str() ), 
-		  ";#eta_{Truth};#it{p}_{T}^{Truth} [GeV]",
+		  ";#eta_{truth};#it{p}_{T}^{truth} [GeV]",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtSpectBins, m_ptSpectMin, m_ptSpectMax ) );
     m_vHjznYstarSpectFineTruthUP.back()->GetXaxis()->
@@ -570,7 +570,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     // --- spectra response matrix ----
     m_vHjznYstarSpectRespMat.push_back
       ( new TH3D( Form("h_%s_%s", m_ystarSpectRespMatName.c_str(), jzn.c_str() ), 
-		  ";#it{y}_{1}*;#it{p}_{T1}^{Reco} [GeV];#it{p}_{T1}^{Truth} [GeV]",
+		  ";#it{y}_{1}*;#it{p}_{T1}^{reco} [GeV];#it{p}_{T1}^{truth} [GeV]",
 		  m_nVarYstarBins, 0, 1,
 		  m_nVarPtBinsUfOf, 0, 1,
 		  m_nVarPtBinsUfOf, 0, 1 ) );
@@ -585,7 +585,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     // --------- recoTruthRpt ---------
     m_vHjznRecoTruthRpt.push_back
       ( new TH3D( Form("h_recoTruthRpt_%s", jzn.c_str() ),
-		  ";#it{y}_{Truth}*;#it{p}_{T}^{Truth};#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth}",
+		  ";#it{y}_{truth}*;#it{p}_{T}^{truth} [GeV];#it{p}_{T}^{reco}/#it{p}_{T}^{truth}",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtTruthBins,m_ptTruthMin, m_ptTruthMax,
 		  m_nRPtRecoTruthBins, m_rPtRecoTruthMin, m_rPtRecoTruthMax) );
@@ -595,7 +595,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     
     m_vHjznRecoTruthRptNent.push_back
       ( new TH2D( Form("h_recoTruthRptNent_%s", jzn.c_str() ),
-		  ";#it{y}_{Truth}*;#it{p}_{T}^{Truth}",
+		  ";#it{y}_{truth}*;#it{p}_{T}^{truth} [GeV]",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtTruthBins, m_ptTruthMin, m_ptTruthMax ) );
     m_vHjznRecoTruthRptNent.back()->GetXaxis()->
@@ -605,7 +605,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     // --------- recoTruthDeta ---------
     m_vHjznRecoTruthDeta.push_back
       ( new TH3D( Form("h_recoTruthDeta_%s", jzn.c_str() ),
-		  ";#it{y}_{Truth}*;#it{p}_{T}^{Truth};#eta^{Reco}-#eta^{Truth}",
+		  ";#it{y}_{truth}*;#it{p}_{T}^{truth};#eta^{reco}-#eta^{truth}",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtTruthBins,m_ptTruthMin, m_ptTruthMax,
 		  m_nDAngleRecoTruthBins, m_dAngleRecoTruthMin, m_dAngleRecoTruthMax ) );
@@ -615,7 +615,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     
     m_vHjznRecoTruthDetaNent.push_back
       ( new TH2D( Form("h_recoTruthDetaNent_%s", jzn.c_str() ),
-		  ";#it{y}_{Truth};#it{p}_{T}^{Truth}",
+		  ";#it{y}_{truth};#it{p}_{T}^{truth}",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtTruthBins, m_ptTruthMin, m_ptTruthMax ) );
     m_vHjznRecoTruthDetaNent.back()->GetXaxis()->
@@ -625,7 +625,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     // --------- recoTruthDphi ---------
     m_vHjznRecoTruthDphi.push_back
       ( new TH3D( Form("h_recoTruthDphi_%s", jzn.c_str() ),
-		  ";#it{y}_{Truth}*;#it{p}_{T}^{Truth};#phi^{Reco}-#phi^{Truth}",
+		  ";#it{y}_{truth}*;#it{p}_{T}^{truth};#phi^{reco}-#phi^{truth}",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtTruthBins, m_ptTruthMin, m_ptTruthMax,
 		  m_nDAngleRecoTruthBins, m_dAngleRecoTruthMin, m_dAngleRecoTruthMax ) );
@@ -635,7 +635,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     
     m_vHjznRecoTruthDphiNent.push_back
       ( new TH2D( Form("h_recoTruthDphiNent_%s", jzn.c_str() ),
-		  ";#it{y}_{Truth}*;#it{p}_{T}^{Truth}",
+		  ";#it{y}_{truth}*;#it{p}_{T}^{truth}",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtTruthBins, m_ptTruthMin, m_ptTruthMax ) );
     m_vHjznRecoTruthDphiNent.back()->GetXaxis()->
@@ -687,8 +687,8 @@ void DiJetAnalysisMC::SetupHistograms(){
     hnDphiRespMat->GetAxis(3)->SetTitle( "Truth #it{p}_{T,1}" );
     hnDphiRespMat->GetAxis(4)->SetTitle( "Reco #it{p}_{T,2}"  );
     hnDphiRespMat->GetAxis(5)->SetTitle( "Truth #it{p}_{T,2}" );
-    hnDphiRespMat->GetAxis(6)->SetTitle( "|#Delta#phi_{Reco}|"  );
-    hnDphiRespMat->GetAxis(7)->SetTitle( "|#Delta#phi_{Truth}|" );
+    hnDphiRespMat->GetAxis(6)->SetTitle( "|#Delta#phi_{reco}|"  );
+    hnDphiRespMat->GetAxis(7)->SetTitle( "|#Delta#phi_{truth}|" );
     
     // --- Rebinned Dphi Response Matrix -----    
     THnSparse* hnDphiRespMatReb =
@@ -712,8 +712,8 @@ void DiJetAnalysisMC::SetupHistograms(){
     hnDphiRespMatReb->GetAxis(3)->SetTitle( "Truth #it{p}_{T,1}" );
     hnDphiRespMatReb->GetAxis(4)->SetTitle( "Reco #it{p}_{T,2}"  );
     hnDphiRespMatReb->GetAxis(5)->SetTitle( "Truth #it{p}_{T,2}" );
-    hnDphiRespMatReb->GetAxis(6)->SetTitle( "|#Delta#phi_{Reco}|"  );
-    hnDphiRespMatReb->GetAxis(7)->SetTitle( "|#Delta#phi_{Truth}|" );    
+    hnDphiRespMatReb->GetAxis(6)->SetTitle( "|#Delta#phi_{reco}|"  );
+    hnDphiRespMatReb->GetAxis(7)->SetTitle( "|#Delta#phi_{truth}|" );    
   } 
 }
 
@@ -1588,8 +1588,8 @@ void DiJetAnalysisMC::GetTypeTitle( const std::string& type,
 				    std::string& yTitleMean,
 				    std::string& yTitleSigma ){ 
   if( type.find("Rpt") != std::string::npos ){
-    yTitleMean  = "<#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth}>";
-    yTitleSigma = "#sigma(#it{p}_{T}^{Reco}/#it{p}_{T}^{Truth})"; 
+    yTitleMean  = "<#it{p}_{T}^{reco}/#it{p}_{T}^{truth}>";
+    yTitleSigma = "#sigma(#it{p}_{T}^{reco}/#it{p}_{T}^{truth})"; 
   } else if( type.find("Deta") != std::string::npos ){
     yTitleMean  = "<#Delta#eta>";
     yTitleSigma = "#sigma(#Delta#eta)"; 
@@ -2179,7 +2179,7 @@ TH3* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
 	    TLegend leg( 0.7, 0.3, 0.85, 0.4 );
 	    styleTool->SetLegendStyle( &leg );
 	    leg.AddEntry( h_d , "Data" );
-	    leg.AddEntry( h_mc, "MC_{Reco}" );
+	    leg.AddEntry( h_mc, "MC_{reco}" );
 
 	    leg.Draw();
 	    
@@ -2418,7 +2418,8 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
       anaTool->GetBinRange
 	( hJznHin->GetXaxis(), xBin, xBin, xLow, xUp );
       
-      std::string xAxisTitle = hJznHin->GetYaxis()->GetTitle();
+      //std::string xAxisTitle = hJznHin->GetYaxis()->GetTitle();
+      std::string xAxisTitle = "#it{p}_{T}^{truth} [GeV]";
       
       // build mean, sigma, project nev
       TH1* hMean = new TH1D
@@ -2485,7 +2486,7 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
 	drawTool->DrawLeftLatex
 	  ( 0.18, 0.88, anaTool->GetYstarLabel( xLow, xUp, 1 ) );
 	drawTool->DrawLeftLatex
-	  ( 0.18, 0.81, anaTool->GetLabel( yMin, yMax, "#it{p}_{T}^{Truth} [GeV]") );
+	  ( 0.18, 0.81, anaTool->GetLabel( yMin, yMax, "#it{p}_{T}^{truth} [GeV]") );
 
 	SaveAsROOT( c, hProj->GetName() );
 
@@ -2512,7 +2513,8 @@ void DiJetAnalysisMC::MakeScaleRes( std::vector< TH3* >& vJznHin,
   std::vector< TH1* > vSigmasFinal;
 
   std::string xAxisTitle = vJznHin[0]->GetXaxis()->GetTitle();
-  std::string yAxisTitle = vJznHin[0]->GetYaxis()->GetTitle();
+  std::string yAxisTitle = "#it{p}_{T}^{truth} [GeV]";
+  // std::string yAxisTitle = vJznHin[0]->GetYaxis()->GetTitle();
   
   // make 2D histos with scale and resolution (mean, sigma)
   TH2D* hMeanAll = new TH2D
@@ -2624,7 +2626,7 @@ void DiJetAnalysisMC::MakeEfficiencies( std::vector< TH2* >& vSampleSpect,
   std::string axisLabel, axisLabelTex;
   GetSpectraLabels( axisLabel, axisLabelTex, name );
 
-  std::string gTitle = ";#it{p}_{T}^{Truth} [GeV];#it{#varepsilon}_{Reco}";
+  std::string gTitle = ";#it{p}_{T}^{truth} [GeV];#it{#varepsilon}_{reco}";
 
   // use this as reference because
   // it should be in every file
@@ -3407,9 +3409,9 @@ void DiJetAnalysisMC::MakePtRespMat( std::vector< THnSparse* >& vhnPt,
 		  ( 0.13, 0.79, CT::AnalysisTools::GetLabel
 		    ( axis1Low, axis1Up, m_dPP->GetDefaultAxisLabel(1) ) );  
 		drawTool->DrawLeftLatex
-		  ( 0.4, 0.86, Form( "#delta#phi_{Reco} Bin %d" , dPhiRbin ) );
+		  ( 0.4, 0.86, Form( "#delta#phi_{reco} Bin %d" , dPhiRbin ) );
 		drawTool->DrawLeftLatex
-		  ( 0.4, 0.79, Form( "#delta#phi_{Truth} Bin %d", dPhiTbin ) );  
+		  ( 0.4, 0.79, Form( "#delta#phi_{truth} Bin %d", dPhiTbin ) );  
 		DrawAtlasRight();
 	
 		SaveAsAll( c1, hPtRespMatDphi->GetName() );
@@ -3956,8 +3958,8 @@ SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
   // JES JER
   if( type1.find("Rpt") != std::string::npos ){ 
     if( type2.find("mean") != std::string::npos ){ // sigma
-      h1->SetMaximum(1.25);
-      h1->SetMinimum(0.75);
+      h1->SetMaximum(1.2);
+      h1->SetMinimum(0.91);
     } else if( !type2.compare("sigma") ){ // sigma
       h1->SetMaximum(0.34);
       h1->SetMinimum(0.);
