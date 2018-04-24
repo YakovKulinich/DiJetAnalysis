@@ -155,6 +155,8 @@ class DiJetAnalysis{
   void MakeLinearBinning( std::vector< double >&, std::vector< double >&, int );
 
   void MakeLogBinning( std::vector< double >&, std::vector< double >&, int );
+
+  TH1* FlipOverXaxis( TH1*, std::vector< double >& );
   
   //---------------------------
   //   Get Quantities / Plot 
@@ -255,6 +257,8 @@ class DiJetAnalysis{
 
   std::string m_sWidthTitle;
   std::string m_sYieldTitle;
+  std::string m_sWidthRatioTitle;
+  std::string m_sYieldRatioTitle;
   
   std::string m_rawFileSuffix;
   std::string m_performanceFileSuffix;

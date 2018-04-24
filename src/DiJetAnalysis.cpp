@@ -77,8 +77,10 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sRatio    = "ratio";
   m_sSum      = "sum";
 
-  m_sWidthTitle = "#it{C}_{1,2}(#Delta#phi)";
-  m_sYieldTitle = "#it{I}_{#it{p}+Pb}";
+  m_sWidthTitle = "RMS (#it{C}_{1,2}(#Delta#phi))";
+  m_sYieldTitle = "#it{I}_{1,2}";
+  m_sWidthRatioTitle = "#it{C}_{#it{p}+Pb}";
+  m_sYieldRatioTitle = "#it{I}_{#it{p}+Pb}";
 
   m_unweightedFileSuffix  = "UW";
   m_unfoldingFileSuffix   = "UF";
@@ -217,8 +219,8 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_dPhiWidthMin = 0.0;
   m_dPhiWidthMax = 1.0;
 
-  m_dPhiYieldMin = 1.0e-3;
-  m_dPhiYieldMax = 1.0;
+  m_dPhiYieldMin = 5.0e-6;
+  m_dPhiYieldMax = 1.0e-2;
 
   // default values 0->2 are in
   // SetHStyleRatio.
@@ -869,6 +871,29 @@ void DiJetAnalysis::MakeLogBinning( std::vector< double >& varBinning,
   
   varRebinnedBinning  = varBinning;
 }
+
+
+TH1* DiJetAnalysis::FlipOverXaxis( TH1* h, std::vector< double >& binning ){
+
+  std::string title =
+    Form( "%s;%s;%s", h->GetTitle(), h->GetXaxis()->GetTitle(), h->GetYaxis()->GetTitle() );
+  int nBins = binning.size() - 1;
+
+  std::string name = h->GetName();
+  
+  h->SetName( Form( "%s_tmp", name.c_str() ) );
+  
+  TH1* hFlip = new TH1D( name.c_str(), title.c_str(), nBins, &binning[0] );
+
+  for( int i = 1; i <= nBins; i++ ){
+    hFlip->SetBinContent( i, h->GetBinContent( nBins - i + 1 ) );
+    hFlip->SetBinError  ( i, h->GetBinError  ( nBins - i + 1 ) );
+  }
+
+  delete h;
+  return hFlip;
+}
+
 
 //---------------------------
 //   Get Quantities / Plot 
@@ -3099,10 +3124,10 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  double widthError_b = hW_b->GetBinError  ( axis3Bin );
 
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.54, Form( "Width_{%s}=%4.2f#pm%4.2f",
+	    ( 0.19, 0.54, Form( "RMS(%s)_{%s}=%4.2f#pm%4.2f", m_sWidthTitle.c_str(),
 				label_a.c_str(), width_a, widthError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.46, Form( "Width_{%s}=%4.2f#pm%4.2f",
+	    ( 0.19, 0.46, Form( "RMS(%s)_{%s}=%4.2f#pm%4.2f", m_sWidthTitle.c_str(),
 				label_b.c_str(), width_b, widthError_b ) );
 
 	  double yield_a      = hY_a->GetBinContent( axis3Bin );
@@ -3112,10 +3137,10 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  double yieldError_b = hY_b->GetBinError  ( axis3Bin );
 	 
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.79, Form( "Yield_{%s}=%0.3f#pm%0.3f",
+	    ( 0.53, 0.79, Form( "%s_{%s}=%0.3f#pm%0.3f", m_sYieldTitle.c_str(),
 				label_a.c_str(),yield_a, yieldError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.70, Form( "Yield_{%s}=%0.3f#pm%0.3f",
+	    ( 0.53, 0.70, Form( "%s_{%s}=%0.3f#pm%0.3f", m_sYieldTitle.c_str(),
 				label_b.c_str(), yield_b, yieldError_b ) );
 
 	  cc.cd();
@@ -3148,17 +3173,17 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  drawTool->DrawLeftLatex( labelX0, 0.345, m_isData ? "Data" : "MC" );
 
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.56, Form( "Width_{%s}=%4.2f #pm %4.2f",
+	    ( 0.19, 0.56, Form( "RMS(%s)_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
 				label_a.c_str(), width_a, widthError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.48, Form( "Width_{%s}=%4.2f #pm %4.2f",
+	    ( 0.19, 0.48, Form( "RMS(%s)_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
 				label_b.c_str(), width_b, widthError_b ) );
 
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.77, Form( "Yield_{%s}=%0.3f #pm %0.3f",
+	    ( 0.53, 0.77, Form( "%s_{%s}=%0.3f #pm %0.3f", m_sYieldTitle.c_str(),
 				label_a.c_str(),yield_a, yieldError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.69, Form( "Yield_{%s}=%0.3f #pm %0.3f",
+	    ( 0.53, 0.69, Form( "%s_{%s}=%0.3f #pm %0.3f", m_sYieldTitle.c_str(),
 				label_b.c_str(), yield_b, yieldError_b ) );
 
 	  SaveAsAll( cc, Form("hf_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );

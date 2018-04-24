@@ -11,7 +11,7 @@
 #include <THnSparse.h>
 #include <TF1.h>
 #include <TVirtualFitter.h>
-
+#include <TGaxis.h>
 
 #include <TLine.h>
 
@@ -1327,17 +1327,18 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	std::string hNominalName = "h_" + allUnfoldedName + "_" + hTag;
 	std::string gNominalName = "g_" + allUnfoldedName + "_" + hTag;
 	
-	TH1D* hNominalTmp = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
-
-	TH1D* hNominal = static_cast< TH1D* >( hNominalTmp->Clone( ) );
-
+	TH1* hNominalTmp = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
+       	TH1* hNominal    = FlipOverXaxis( hNominalTmp, m_varYstarBinningFlipped );	  
 	vHdef.push_back( hNominal );
+
+	double scalingFactor = ( axis1Up - axis1Low ) * ( axis2Up - axis2Low );
+	if( isYield ){ hNominal->Scale( 1./scalingFactor, "width" ); }
 
 	// Make all the systematics histograms for each y1, pt1, pt2 bin.
 	// since we look one bin at a time and process all systematics,
 	// need to have these histograms ready. Store them to a map
 	// with the key as the systematic component number.
-	std::map< int, TH1D* > mHsystTmp; 
+	std::map< int, TH1* > mHsystTmp; 
 	for( auto uc : v_uc ){
 
 	  // skip uc = 0 (default)
@@ -1346,7 +1347,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  std::string tmpUncertSuffix = uc > 0 ? Form("P%d", uc) : Form("N%d", -1 * uc) ;
 	  std::string hSystematicName = "h_" + allUnfoldedName + "_" + hTag + "_" + tmpUncertSuffix;
 
-	  TH1D* hSystematic = static_cast<TH1D*>( hNominal->Clone( hSystematicName.c_str() ) );
+	  TH1* hSystematic = static_cast<TH1D*>( hNominal->Clone( hSystematicName.c_str() ) );
 	  vHsyst.push_back( hSystematic );
 	  hSystematic->Reset();
 	  mHsystTmp[ uc ] = hSystematic;
@@ -1358,58 +1359,58 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	// Make all the systematics histograms for each y1, pt1, pt2 bin.
 	// These are more specific (PJER, PJER, HIJES, TOT, etc )
 	std::string hPTOTName = "h_" + allSystematicsName + "_PTOT_" + hTag;
-	TH1D* hPTOT = static_cast< TH1D* >( hNominal->Clone( hPTOTName.c_str() ) );
+	TH1* hPTOT = static_cast< TH1D* >( hNominal->Clone( hPTOTName.c_str() ) );
 	vHsyst.push_back( hPTOT );
 	hPTOT->Reset();
 	styleTool->SetHStyle( hPTOT, 0 );
 	
 	std::string hNTOTName = "h_" + allSystematicsName + "_NTOT_" + hTag;
-	TH1D* hNTOT = static_cast< TH1D* >( hNominal->Clone( hNTOTName.c_str() ) );
+	TH1* hNTOT = static_cast< TH1D* >( hNominal->Clone( hNTOTName.c_str() ) );
 	vHsyst.push_back( hNTOT );
 	hNTOT->Reset();
 	styleTool->SetHStyle( hNTOT, 0 );
 
 	std::string hPJESName = "h_" + allSystematicsName + "_PJES_" + hTag;
-	TH1D* hPJES = static_cast< TH1D* >( hNominal->Clone( hPJESName.c_str() ) );
+	TH1* hPJES = static_cast< TH1D* >( hNominal->Clone( hPJESName.c_str() ) );
 	vHsyst.push_back( hPJES );
 	hPJES->Reset();
 	styleTool->SetHStyle( hPJES, 1 );
 
 	std::string hNJESName = "h_" + allSystematicsName + "_NJES_" + hTag;
-	TH1D* hNJES = static_cast< TH1D* >( hNominal->Clone( hNJESName.c_str() ) );
+	TH1* hNJES = static_cast< TH1D* >( hNominal->Clone( hNJESName.c_str() ) );
 	vHsyst.push_back( hNJES );
 	hNJES->Reset();
 	styleTool->SetHStyle( hNJES, 1 );
 	
 	std::string hPHIJESName = "h_" + allSystematicsName + "_PHIJES_" + hTag;
-	TH1D* hPHIJES = static_cast< TH1D* >( hNominal->Clone( hPHIJESName.c_str() ) );
+	TH1* hPHIJES = static_cast< TH1D* >( hNominal->Clone( hPHIJESName.c_str() ) );
 	vHsyst.push_back( hPHIJES );
 	hPHIJES->Reset();
 	styleTool->SetHStyle( hPHIJES, 2 );
 
 	std::string hNHIJESName = "h_" + allSystematicsName + "_NHIJES_" + hTag;
-	TH1D* hNHIJES = static_cast< TH1D* >( hNominal->Clone( hNHIJESName.c_str() ) );
+	TH1* hNHIJES = static_cast< TH1D* >( hNominal->Clone( hNHIJESName.c_str() ) );
 	vHsyst.push_back( hNHIJES );
 	hNHIJES->Reset();
 	styleTool->SetHStyle( hNHIJES, 2 );
 
 	std::string hPJERName = "h_" + allSystematicsName + "_PJER_" + hTag;
 	std::string hNJERName = "h_" + allSystematicsName + "_NJER_" + hTag;
-	TH1D* hPJER = static_cast< TH1D* >( hNominal->Clone( hPJERName.c_str() ) );
+	TH1* hPJER = static_cast< TH1D* >( hNominal->Clone( hPJERName.c_str() ) );
 	vHsyst.push_back( hPJER );
 	hPJER->Reset();
 	styleTool->SetHStyle( hPJER, 4 );
 
 	std::string hPANGName = "h_" + allSystematicsName + "_PANG_" + hTag;
 	std::string hNANGName = "h_" + allSystematicsName + "_NANG_" + hTag;
-	TH1D* hPANG = static_cast< TH1D* >( hNominal->Clone( hPANGName.c_str() ) );
+	TH1* hPANG = static_cast< TH1D* >( hNominal->Clone( hPANGName.c_str() ) );
 	vHsyst.push_back( hPANG );
 	hPANG->Reset();
 	styleTool->SetHStyle( hPANG, 3 );
 		
 	std::string hPUNFName = "h_" + allSystematicsName + "_PUNF_" + hTag;
 	std::string hNUNFName = "h_" + allSystematicsName + "_NUNF_" + hTag;
-	TH1D* hPUNF = static_cast< TH1D* >( hNominal->Clone( hPUNFName.c_str() ) );
+	TH1* hPUNF = static_cast< TH1D* >( hNominal->Clone( hPUNFName.c_str() ) );
 	vHsyst.push_back( hPUNF );
 	hPUNF->Reset();
 	styleTool->SetHStyle( hPUNF, 0 );
@@ -1417,7 +1418,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 
 	std::string hPFITName = "h_" + allSystematicsName + "_PFIT_" + hTag;
 	std::string hNFITName = "h_" + allSystematicsName + "_NFIT_" + hTag;
-	TH1D* hPFIT = static_cast< TH1D* >( hNominal->Clone( hPFITName.c_str() ) ); 
+	TH1* hPFIT = static_cast< TH1D* >( hNominal->Clone( hPFITName.c_str() ) ); 
 	vHsyst.push_back( hPFIT );
 	hPFIT->Reset();
 	styleTool->SetHStyle( hPFIT, 1 );
@@ -1436,7 +1437,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	//---------------------------------------------------
 	//------------------ DO WORK HERE -------------------
 	//---------------------------------------------------
-	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	for( int axis3Bin = nAxis3Bins; axis3Bin >= 1; axis3Bin-- ){
+	// for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 	  
 	  std::vector< TH1* > vHunc;
 
@@ -1461,9 +1463,11 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	    // to avoid confusion / make more flexible later.
 	    std::string hUncertaintyName = "h_" + allUnfoldedName + "_" + hTag;
 
-	    TH1D* hUncertainty = static_cast<TH1D*>
-	      ( mFinUC[ uc ]->Get( hUncertaintyName.c_str() ) );
+	    TH1* hUncertaintyTmp = static_cast<TH1D*>( mFinUC[ uc ]->Get( hUncertaintyName.c_str() ) );
+	    TH1* hUncertainty    = FlipOverXaxis( hUncertaintyTmp, m_varYstarBinningFlipped );
 	    vHunc.push_back( hUncertainty );
+
+	    if( isYield ){ hUncertainty->Scale( 1./scalingFactor, "width" ); }
 
 	    int sign = uc > 0 ? 1 : -1;
 
@@ -1478,7 +1482,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 
 	    mHsystTmp[ uc ]->SetBinContent( axis3Bin, yShifted );
 	    
-	    if( !m_is_pPb && !isYield && axis1Bin == 3 && axis3Bin == 5 &&
+	    if( !m_is_pPb && !isYield && axis1Bin == 3 && axis3Bin == 1 &&
 		( axis2Bin == 1 || axis2Bin == 2 ) ){
 	      continue;
 	    }
@@ -1552,6 +1556,11 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  eYN.push_back( yNominal * uncertFinYN );
 	} // end loop over axis3
 
+	std::reverse( pX.begin() ,pX.end()  );
+	std::reverse( pY.begin() ,pY.end()  );
+	std::reverse( eYP.begin(),eYP.end() ); 
+	std::reverse( eYN.begin(),eYN.end() ); 
+	
 	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
 
 	TGraphAsymmErrors* gNominal     = new TGraphAsymmErrors( hNominal );
@@ -1591,6 +1600,20 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	legAll.AddEntry
 	  ( gNominal, anaTool->GetLabel
 	    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str(), "lp" );	
+
+	// clean bad graph points
+	for( int i = 0; i < nAxis3Bins; i++ ){
+	  double x, y;
+	  gNominal->GetPoint( i, x, y );
+	  std::cout << " lllllllllll " << i << " " << x << std::endl;
+
+	  if( !m_is_pPb && !isYield && axis1Bin == 3 && i == 0 &&
+	      ( axis2Bin == 1 || axis2Bin == 2 ) ){
+	    //gSystematics->RemovePoint( i );
+	    //gNominal    ->RemovePoint( i );
+	    continue;
+	  }
+	}
 	
 	// draw systematics first
 	gSystematics->Draw("2");
@@ -1780,8 +1803,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   double x0 = axis3->GetXmin();
   double x1 = axis3->GetXmax(); 
 
-  double y0 = isYield ? m_dPhiYieldMin : m_dPhiWidthMin;
-  double y1 = isYield ? m_dPhiYieldMax : 1.0;
+  double y0 = isYield ? m_dPhiYieldMin : 0.0;
+  double y1 = isYield ? m_dPhiYieldMax : 0.9;
 
   double pDx1 = 0.20;
   double pDx2 = 0.23;
@@ -1821,26 +1844,27 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   lineN1S.SetLineColor( 12 );
   lineN1S.SetLineWidth( 1  );
 
-  std::string yTitle = isYield ?
-    m_sYieldTitle : "RMS (" + m_sWidthTitle + ")";
+  std::string yTitle = isYield ? m_sYieldTitle : m_sWidthTitle;
   std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
-  std::string sRatio       = Form("%s/%s", label_a.c_str(), label_b.c_str() );
-  std::string gTitleRatio  = ";" + xTitle + ";Ratio " + sRatio + " ( " + yTitle + " )";
-  std::string gTitleRatioC = ";" + xTitle + ";Ratio " + sRatio;
+  std::string sRatio       = isYield ? m_sYieldRatioTitle : m_sWidthRatioTitle;
+  std::string gTitleRatio  = ";" + xTitle + "; " + sRatio;
 
   double y0R = 0.5;
   double y1R = 1.6;
-
+  
   TH1* hDef  = new TH1D( "hDef", gTitle.c_str(), nAxis3Bins, x0, x1 );
   styleTool->SetHStyle( hDef, 0 );
   hDef->SetMaximum( y1 );
   hDef->SetMinimum( y0 );
-  TH1* hDefR = new TH1D( "hDefR", gTitleRatioC.c_str(), nAxis3Bins, x0, x1 );
+  hDef->GetXaxis()->SetTitle("");
+  hDef->GetYaxis()->SetNdivisions( 502 );
+
+  TH1* hDefR = new TH1D( "hDefR", gTitleRatio.c_str(), nAxis3Bins, x0, x1 );
   styleTool->SetHStyleRatio( hDefR, 0 );
-  hDefR->SetMaximum( 1.5 );
-  hDefR->SetMinimum( 0.5 );
+  hDefR->SetMaximum( 1.55 );
+  hDefR->SetMinimum( 0.45 );
   
     for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -1851,6 +1875,11 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
       if( !m_dPP->CorrectPhaseSpace
 	  ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
 	{ continue; }
+
+      if( axis1Bin == 3 && isYield ){
+	hDef->SetMaximum( 2E-3 );
+	hDef->SetMinimum( 5E-7 );
+      }
       
       double axis1Low, axis1Up;
       anaTool->GetBinRange
@@ -1865,24 +1894,29 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
       // Now Draw everything.
       TCanvas cF( "cF", "cF", 800, 700 );
       TPad pad1F( "pad1", "", 0.0, 0.35, 1.0, 1.0 );
-      pad1F.SetBottomMargin(0);
+      pad1F.SetBottomMargin(0.023);
       pad1F.Draw();
       TPad pad2F( "pad2F", "", 0.0, 0.0, 1.0, 0.34 );
       pad2F.SetTopMargin(0.05);
       pad2F.SetBottomMargin(0.27);
       pad2F.Draw();
-      pad1F.cd();
-      hDef->Draw();
+     
       pad2F.cd();
       hDefR->Draw();
-      
+      pad1F.cd();
+      if( isYield ){
+	hDef ->GetYaxis()->SetTitleOffset( 1.3 );
+      }
+      hDef->Draw();
+      pad2F.cd();
+
       // this is bs. works though. vary the last factor 
       double deltaYleg = ( axis1Bin - 1 ) * 0.04;
 
-      double legSX0pPb = isYield ? 0.27 : 0.46;
-      double legSX0pp  = isYield ? 0.38 : 0.57;
-      double legSX1pPb = isYield ? 0.43 : 0.62;
-      double legSX1pp  = isYield ? 0.66 : 0.74;
+      double legSX0pPb = isYield ? 0.34 : 0.19;
+      double legSX0pp  = isYield ? 0.45 : 0.30;
+      double legSX1pPb = isYield ? 0.50 : 0.35;
+      double legSX1pp  = isYield ? 0.73 : 0.47;
 
       double legSY0 = isYield ? 0.025 : 0.025;
       double legSY1 = isYield ? 0.13 + deltaYleg : 0.13 + deltaYleg;
@@ -1922,8 +1956,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	std::string hNominalName = "h_" + allUnfoldedName + "_" + hTag;
 	std::string gNominalName = "g_" + allUnfoldedName + "_" + hTag;
 
-	TH1D* hNominalA = static_cast<TH1D*>( fInA->Get( hNominalName.c_str() ) );
-	TH1D* hNominalB = static_cast<TH1D*>( fInB->Get( hNominalName.c_str() ) );
+	TH1* hNominalA = static_cast<TH1D*>( fInA->Get( hNominalName.c_str() ) );
+	TH1* hNominalB = static_cast<TH1D*>( fInB->Get( hNominalName.c_str() ) );
 	hNominalA->SetName( Form( "%s_A", hNominalName.c_str() ) );
 	hNominalB->SetName( Form( "%s_B", hNominalName.c_str() ) );
 	vHdef.push_back( hNominalA );
@@ -1964,28 +1998,40 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	// and clean some "bad" points
 	for( int i = 0; i < nAxis3Bins; i++ ){
 	  double x0, y0;
+
+	  /*
 	  // clean some bad points
-	  if( !isYield && axis1Bin == 3 && i == 4 &&
+	  if( !isYield && axis1Bin == 3 && i == 0 &&
 	      ( axis2Bin == 1 || axis2Bin == 2 ) ){
 	    gNominalA    ->RemovePoint( i );
 	    gSystematicsA->RemovePoint( i );
 	    gNominalB    ->RemovePoint( i );
 	    gSystematicsB->RemovePoint( i );
-	    continue;
+	    // continue;
 	  }
+	  */
+	  
 	  x0 = hNominalB->GetBinCenter ( i  + 1 );
 	  y0 = hNominalB->GetBinContent( i  + 1 );
+
+	  double x, y;
+	  gNominalB->GetPoint( i, x, y );
+	  
+	  std::cout << " dddddddddddd " << i << " " << x0 << " " << x << std::endl; 
 	  gNominalB    ->SetPoint( i, x0 + pDx2, y0 );
 	  gSystematicsB->SetPoint( i, x0 + pDx2, y0 );
 	  x0 = hNominalA->GetBinCenter ( i  + 1 );
 	  y0 = hNominalA->GetBinContent( i  + 1 );
+	  gNominalA    ->SetPoint( i, x0 + pDx2, y0 );
+	  gSystematicsA->SetPoint( i, x0 + pDx2, y0 );
+	  
 	}
 	
 	// now draw everything
 	// pad1All.cd();
 	// for yields, use log scale on yaxis
 	if( isYield ){ cAll.SetLogy(); }
-      	
+	
 	gSystematicsA->Draw("2");
 	gNominalA->Draw("p");
 	gSystematicsB->Draw("2");
@@ -2016,8 +2062,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	hNominalR->Divide( hNominalB );
 	vR.push_back( hNominalR );
 	
-	std::map< int, TH1D* > mHsystTmpA;
-	std::map< int, TH1D* > mHsystTmpB; 
+	std::map< int, TH1* > mHsystTmpA;
+	std::map< int, TH1* > mHsystTmpB; 
 	for( auto uc : v_uc ){
 
 	  // skip uc = 0 (default)
@@ -2026,8 +2072,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  std::string tmpUncertSuffix = uc > 0 ? Form("P%d", uc) : Form("N%d", -1 * uc) ;
 	  std::string hSystematicName = "h_" + allUnfoldedName + "_" + hTag + "_" + tmpUncertSuffix;
 
-	  TH1D* hSystematicA = static_cast<TH1D*>( fInA->Get( hSystematicName.c_str() ) );
-	  TH1D* hSystematicB = static_cast<TH1D*>( fInB->Get( hSystematicName.c_str() ) );
+	  TH1* hSystematicA = static_cast<TH1D*>( fInA->Get( hSystematicName.c_str() ) );
+	  TH1* hSystematicB = static_cast<TH1D*>( fInB->Get( hSystematicName.c_str() ) );
 	  mHsystTmpA[ uc ] = hSystematicA;
 	  mHsystTmpB[ uc ] = hSystematicB;
 	}
@@ -2132,14 +2178,16 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	double* eXNominalHigh = gNominalR->GetEXhigh();
 	for( int iX = 0; iX < nAxis3Bins; iX++ ){
 
+	  /*
 	  // clean some bad points
-	  if( !isYield && axis1Bin == 3 && iX == 4 &&
+	  if( !isYield && axis1Bin == 3 && iX == 0 &&
 	      ( axis2Bin == 1 || axis2Bin == 2 ) ){
 	    gNominalR    ->RemovePoint( iX );
 	    gSystematicsR->RemovePoint( iX );
 	    continue;
 	  }
-
+	  */
+	  
 	  *(  eXNominalLow + iX ) = 0;
 	  *( eXNominalHigh + iX ) = 0;
 	}
@@ -2204,16 +2252,35 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  double x0, y0;
 	  x0 = hNominalB->GetBinCenter ( i  + 1 );
 	  y0 = hNominalB->GetBinContent( i  + 1 );
-	  gNominalB    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
-	  gSystematicsB->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
+	  gNominalB    ->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
+	  gSystematicsB->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
 	  x0 = hNominalA->GetBinCenter ( i  + 1 );
 	  y0 = hNominalA->GetBinContent( i  + 1 );
-	  gNominalA    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
-	  gSystematicsA->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
+	  gNominalA    ->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
+	  gSystematicsA->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
 	  x0 = hNominalR->GetBinCenter ( i  + 1 );
 	  y0 = hNominalR->GetBinContent( i  + 1 );
-	  gNominalR    ->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
-	  gSystematicsR->SetPoint( i, x0 + ( axis2Bin - 1 ) * pDx2, y0 );
+	  gNominalR    ->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
+	  gSystematicsR->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
+
+
+	  // clean some bad points
+	  if( !isYield && axis1Bin == 3 && i == 0 &&
+	      ( axis2Bin == 1 || axis2Bin == 2 ) ){
+
+	    double x, y;
+	    gNominalA->GetPoint( i, x, y );
+	    std::cout << " lllllllllll " << gNominalA->GetName()
+		      << " " << i << " " << x << std::endl;
+
+	    gNominalA    ->SetPoint( i, -10, y0 );
+	    gSystematicsA->SetPoint( i, -10, y0 );
+	    gNominalB    ->SetPoint( i, -10, y0 );
+	    gSystematicsB->SetPoint( i, -10, y0 );
+	    gNominalR    ->SetPoint( i, -10, y0 );
+	    gSystematicsR->SetPoint( i, -10, y0 );
+	    continue;
+	  }
 	}
 
 	pad1F.cd();
