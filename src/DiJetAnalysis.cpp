@@ -398,10 +398,10 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  MakeFinalPlotsTogether( fOut, m_widthName );
-  MakeFinalPlotsTogether( fOut, m_yieldName );
+  // MakeFinalPlotsTogether( fOut, m_widthName );
+  // MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  // MakeDphiTogether ( fOut );
+  MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -3421,7 +3421,7 @@ void DiJetAnalysis::DrawTopLeftLabels( DeltaPhiProj* dPP,
   double ystart = 0.86 + ( 1 - scale ) * 0.1;
   
   drawTool->DrawLeftLatex
-    ( 0.18, ystart, CT::AnalysisTools::GetLabel
+    ( 0.19, ystart, CT::AnalysisTools::GetLabel
       ( axis0Low, axis0Up, dPP->GetAxisLabel(0) ), scale );
   // for now, modify later to be more dynamic
   // to the variables present 

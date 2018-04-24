@@ -575,18 +575,45 @@ std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
 					      std::string label){
   std::stringstream ss;
 
-  ystarMin *= -1; ystarMax *= -1;
-  
-  if( is_pPb )
-    { ss << boost::format("%3.2g<%s<%3.2g") % ystarMin % label % ystarMax;}
-  else {
-    if( std::abs(ystarMin) > std::abs(ystarMax) )
-      { ss << boost::format("%3.2g<|%s|<%3.2g")
-	  % std::abs(ystarMax) % label % std::abs(ystarMin); }
-    else
-      { ss << boost::format("%3.2g<|%s|<%3.2g")
-	  % std::abs(ystarMin) % label % std::abs(ystarMax); }
+  if( ystarMin ){
+    ystarMin *= -1;
+  } if( ystarMax ){
+    ystarMax *= -1;
   }
+  double tmp = ystarMax;
+  ystarMax = ystarMin;
+  ystarMin = tmp;
+  
+  if( is_pPb ){
+    if( ( ystarMax >= 3.9  && ystarMax <= 4.1 ) ||
+	( ystarMax >= -0.1 && ystarMax <= 0.1 ) ){
+      ss << boost::format("%3.2g<%s<%2.1g")
+	% ystarMin % label % ystarMax;
+    } else {
+      ss << boost::format("%3.2g<%s<%3.2g")
+	% ystarMin % label % ystarMax;
+    }
+  } else {
+    if( std::abs(ystarMin) > std::abs(ystarMax) ){
+      if( ( ystarMax >= 3.9  && ystarMax <= 4.1 ) ||
+	  ( ystarMax >= -0.1 && ystarMax <= 0.1 ) ){
+	ss << boost::format("%3.2g<|%s|<%2.1g")
+	  % std::abs(ystarMax) % label % std::abs(ystarMin);
+      } else {
+	ss << boost::format("%3.2g<|%s|<%3.2g")
+	  % std::abs(ystarMax) % label % std::abs(ystarMin);
+      }
+    } else {
+      if( ( ystarMax >= 3.9  && ystarMax <= 4.1 ) ||
+	  ( ystarMax >= -0.1 && ystarMax <= 0.1 ) ){
+      ss << boost::format("%3.2g<|%s|<%2.1g")
+	  % std::abs(ystarMin) % label % std::abs(ystarMax);
+      }  else {
+      ss << boost::format("%3.2g<|%s|<%3.2g")
+	% std::abs(ystarMin) % label % std::abs(ystarMax); }
+    }
+  }
+
   return ss.str();
 }
 
@@ -600,16 +627,25 @@ std::string CT::AnalysisTools::GetLabel
     { unit = "[GeV]"; }
 
   if( var.find("{y}_{1}") != std::string::npos ){
-      vMin *= -1;
+      vMin *= -1; 
       vMax *= -1;
+      double tmp = vMax;
+      vMax = vMin;
+      vMin = tmp;
   }
   
   
   std::stringstream ss;
 
   if( vMin != vMax ){
-    ss << boost::format("%3.2g<%s<%3.2g")
-      % vMin % var % vMax;
+    if( ( vMax >= 3.9  && vMax <= 4.1 ) ||
+	( vMax >= -0.1 && vMax <= 0.1 ) ){
+      ss << boost::format("%3.2g<%s<%2.1g")
+	% vMin % var % vMax;
+    } else {
+      ss << boost::format("%3.2g<%s<%3.2g")
+	% vMin % var % vMax;
+    }
   } else {
     ss << boost::format("%s>%3.2g")
       % var % vMin ;  

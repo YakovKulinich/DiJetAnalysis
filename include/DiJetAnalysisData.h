@@ -97,14 +97,12 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   void LoadHistograms( int = 0 );
 
-  void MakeRunSpectra( std::vector< TH3* >&,
-		       const std::vector< std::string >&, 
-		       const std::string& = "" );
-  
   void MakeEfficiencies( std::vector< TH2* >&,
 			 std::vector< TH2* >&,
 			 const std::string& );
 
+  void MakeNjetsRun( TH3*, const std::string& = "" );
+    
   void MakeSystematicsGraphs( TFile* = NULL, const std::string& = "" );
 
   void MakeFinalPlotsTogether( TFile* fOut, const std::string& = "" );
@@ -141,6 +139,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
  
   double m_centMbCorrection;
 
+  std::string m_nJetsRunName;
+  
   std::map< int, int    > m_mRunBin;
   std::map< int, double > m_mRunLumi;
 
@@ -162,6 +162,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 
   TH2* m_hAllYstarSpect;
   TH2* m_hAllYstarSpectFine;
+
+  std::vector< TH3* > m_vHtriggerNjetsRun;
+  TH3* m_hAllNjetsRun;
   // ----- efficiencies ----
   std::vector< TH2* > m_vHtriggerEtaSpectSim;
   std::vector< TH2* > m_vHtriggerEtaSpectDenom;

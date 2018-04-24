@@ -49,6 +49,7 @@ DiJetAnalysisData::DiJetAnalysisData( bool is_pPb, int mcType, int uncertComp )
   
   m_centMbCorrection   = 0;
 
+  m_nJetsRunName = "nJetsRun";
 }
 
 DiJetAnalysisData::~DiJetAnalysisData(){}
@@ -120,7 +121,12 @@ void DiJetAnalysisData::ProcessPerformance(){
   MakeSpectra( m_vHtriggerYstarSpectFine, m_vTriggers, m_ystarSpectFineName );
 
   MakeEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, m_etaEffName );
-  
+
+  /*
+  m_hAllNjetsRun = CombineSamples( m_vHtriggerNjetsRun, m_nJetsRunName );
+  MakeNjetsRun( m_hAllNjetsRun, m_nJetsRunName );
+  */
+
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
   std::cout << "......Closed  " << std::endl;
@@ -399,13 +405,25 @@ void DiJetAnalysisData::SetupHistograms(){
 
     m_vHtriggerYstarSpectFine.push_back
       ( new TH2D( Form("h_%s_%s", m_ystarSpectFineName.c_str(), trigger.c_str() ), 
-		  ";#eta;#it{p}_{T} [GeV];",
+		  ";#it{y}*;#it{p}_{T} [GeV];",
 		  m_nVarYstarBins, 0, 1,
 		  m_nPtSpectBins,m_ptSpectMin, m_ptSpectMax ) ) ;
     m_vHtriggerYstarSpectFine.back()->GetXaxis()->
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     AddHistogram( m_vHtriggerYstarSpectFine.back() );
 
+    m_vHtriggerNjetsRun.push_back
+      ( new TH3D( Form("h_%s_%s", m_nJetsRunName.c_str(), trigger.c_str() ), 
+		  ";#it{y}*;#it{p}_{T} [GeV];Run Number",
+		  m_nVarYstarBins, 0, 1,
+		  m_nVarPtBins, 0, 1,
+		  m_nRuns, 0, m_nRuns ) ) ;
+    m_vHtriggerNjetsRun.back()->GetXaxis()->
+      Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    m_vHtriggerNjetsRun.back()->GetYaxis()->
+      Set( m_nVarPtBins, &( m_varPtBinning[0] ) );
+    AddHistogram( m_vHtriggerNjetsRun.back() );
+    
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( new TH2D ( Form("h_%sSim_%s", m_etaSpectName.c_str(), trigger.c_str() ), 
@@ -580,12 +598,15 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	// ETA-PHI
 	double jetEta   = jet.Eta();
 	double jetPhi   = jet.Phi();
-	// double jetYstar = GetYstar( jet );
+	double jetYstar = GetYstar( jet );
 
 	if( jetPt > 28 && jetPt < 35 ){
 	  m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
 	  m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
 	}
+
+	double rn = m_mRunBin[ runNumber ] + 0.5; 
+	m_vHtriggerNjetsRun[iG]->Fill( jetYstar, jetPt, rn );
       } // end loop over jets
     } // end loop over iG
 
@@ -938,39 +959,39 @@ void DiJetAnalysisData::LoadHistograms( int opt ){
     // -------- maps ---------
     m_vHtriggerEtaPhiMap.push_back
       ( static_cast< TH2D* >
-	( fIn-> Get( Form("h_etaPhiMap_%s",
-			    trigger.c_str() ))));
+	( fIn-> Get( Form("h_etaPhiMap_%s",trigger.c_str() ))));
     m_vHtriggerEtaPhiMap.back()->SetDirectory(0);
     
     m_vHtriggerEtaPtMap.push_back
-      ( static_cast< TH2D* >
-	( fIn->Get( Form("h_etaPtMap_%s", trigger.c_str() ))));
+      ( static_cast< TH2D* >( fIn->Get( Form("h_etaPtMap_%s", trigger.c_str() ))));
     m_vHtriggerEtaPtMap.back()->SetDirectory(0);
     
     // -------- spect --------
     m_vHtriggerYstarSpect.push_back
       ( static_cast< TH2D* >
-	( fIn->Get
-	  ( Form("h_%s_%s", m_ystarSpectName.c_str(), trigger.c_str() ))));
+	( fIn->Get( Form("h_%s_%s", m_ystarSpectName.c_str(), trigger.c_str() ))));
     m_vHtriggerYstarSpect.back()->SetDirectory(0);
 
     m_vHtriggerYstarSpectFine.push_back
       ( static_cast< TH2D* >
-	( fIn->Get
-	  ( Form("h_%s_%s", m_ystarSpectFineName.c_str(), trigger.c_str() ))));
+	( fIn->Get( Form("h_%s_%s", m_ystarSpectFineName.c_str(), trigger.c_str() ))));
     m_vHtriggerYstarSpectFine.back()->SetDirectory(0);
 
+    /*
+    m_vHtriggerNjetsRun.push_back
+      ( static_cast< TH3D* >
+	( fIn->Get( Form("h_%s_%s", m_nJetsRunName.c_str(), trigger.c_str() ))));
+    m_vHtriggerNjetsRun.back()->SetDirectory(0);
+    */
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( static_cast< TH2D* >
-	( fIn->Get
-	  ( Form("h_%sSim_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
+	( fIn->Get( Form("h_%sSim_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
     m_vHtriggerEtaSpectSim.back()->SetDirectory(0);
 
     m_vHtriggerEtaSpectDenom.push_back
       ( static_cast< TH2D* >
-	( fIn->Get
-	  ( Form("h_%sDenom_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
+	( fIn->Get( Form("h_%sDenom_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
     m_vHtriggerEtaSpectDenom.back()->SetDirectory(0);
     // -------- dPhi- --------
     m_vHtriggerDphi.push_back
@@ -1082,62 +1103,6 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
   // ----------------- Now Plot --------------------
   //------------------------------------------------
   std::string gLabel = ";#it{p}_{T} [GeV];#it{#varepsilon}_{Trigger}";
-
-  /*
-  //------------------------------------------------
-  //-------- Draw Eta Bins for each Trigger --------
-  //------------------------------------------------
-  for( uint iG = 0; iG < m_nTriggers; iG++ ){
-    std::string trigger = m_vTriggers[iG];
-    
-    // dont draw MB trigger
-    if( !trigger.compare( m_mbTriggerName ) ){ continue; }
-    if( !trigger.compare( m_allName       ) ){ continue; }
-
-    std::string cName  = trigger;
-    std::string cLabel = trigger;
-
-    TCanvas c( cLabel.c_str(), cLabel.c_str(), 800, 600 );
-    styleTool->SetCStyleGraph( c, xMin, m_effMin, xMax, m_effMax, gLabel );
-    
-    TLegend leg( lX0, lY0, lX1, lY1 );
-    styleTool->SetLegendStyle( &leg, legScale );
-
-    int style = 0;
-    for( int iX = 0; iX < nXbins; iX++ ){
-      int         xBin = iX + 1;
-      double etaCenter = hExample->GetXaxis()->GetBinCenter ( xBin );
-
-      // temporary, dont draw the 3.1->3.2 bin
-      if( std::abs(etaCenter) < 3.2 && std::abs(etaCenter) > 3.1 ){ continue; }
-      // for pPb, dont draw at anything above -3.2
-      if( m_is_pPb && etaCenter > -constants::FETAMIN ){ continue; }
-
-      // for pp, dont draw central triggers below -3.2
-      // or forward triggers above -3.2
-      if( !m_is_pPb && etaCenter < -constants::FETAMIN &&
-	  trigger.find("320eta490") == std::string::npos ){ continue; }
-      else if( !m_is_pPb && etaCenter > -constants::FETAMIN &&
-	       trigger.find("320eta490") != std::string::npos){ continue; }
-      
-      TGraphAsymmErrors* g = vEffGrf[iG][iX];
-      styleTool->SetHStyle( g, style++ );
-      g->Draw("p");
-      leg.AddEntry( g, g->GetTitle(), "lp" );
-      g->SetTitle("");
-    } // end loop over iX
-    
-    leg.Draw("same");
-
-    TLine line( xMin, 1, xMax, 1);
-    line.Draw();
-    
-    DrawAtlasRight( 0, 0, 0.85 );
-    drawTool->DrawRightLatex( 0.865, 0.745, cLabel, 0.85 );
-    
-    SaveAsAll( c, Form("%s_%s", type.c_str(), cName.c_str() ) );
-  } // end loop over iG
-  */
   
   //------------------------------------------------
   //---------- Draw Triggers in Eta Bins -----------
@@ -1217,6 +1182,48 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
   } 
 }
 
+void DiJetAnalysisData::MakeNjetsRun( TH3* hSample,
+				      const std::string& name ){
+
+  double max = -1;
+  double min = -1;
+  
+  std::string label = m_allName;
+     
+  int xBin = 1, yBin = 1; 
+  double xMin, xMax;
+  anaTool->GetBinRange
+    ( hSample->GetXaxis(), xBin, xBin, xMin, xMax );
+  double yMin, yMax;
+  anaTool->GetBinRange
+    ( hSample->GetYaxis(), yBin, yBin, yMin, yMax );
+      
+  std::string hTag = Form( "%s_%s", anaTool->GetName( xMin, xMax, "Ystar1").c_str(),
+			   anaTool->GetName( yMin, yMax, "Pt1").c_str() );
+
+  std::string hName = "h_" + name + "_" + m_allName + "_" + hTag;
+  hSample->GetXaxis()->SetRange( xBin, xBin );
+  hSample->GetYaxis()->SetRange( yBin, yBin );
+
+  TH1* hNjetsRun = static_cast< TH1D* >( hSample->ProjectionZ( hName.c_str() ));
+
+  for( auto& rB : m_mRunBin ){
+    int run = rB.first;
+    int bin = rB.second;
+    double lumi = m_mRunLumi[ run ];
+
+    double nJets      = hNjetsRun->GetBinContent( bin );
+    double nJetsError = hNjetsRun->GetBinError  ( bin );
+
+    nJets      /= lumi;
+    nJetsError /= lumi;
+
+    hNjetsRun->SetBinContent( bin, nJets      );
+    hNjetsRun->SetBinError  ( bin, nJetsError );
+  }
+  hNjetsRun->Write();
+}
+
 void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& name ){
 
   std::vector< int > v_uc;
@@ -1257,10 +1264,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   std::string yTitle = isYield ? m_sYieldTitle : m_sWidthTitle;
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
-  std::string yTitleUncert = yTitle + " Uncertainty %";
-
-  if( !isYield ){ yTitleUncert = "RMS (" + yTitle + ") Uncertainty %"; }
-  
+  std::string yTitleUncert = "#delta " + yTitle + " %";
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -1717,7 +1721,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	legSyst.Draw();
 
 	drawTool->DrawLeftLatex
-	  ( 0.445, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
+	  ( 0.46, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
 	drawTool->DrawLeftLatex
 	  ( 0.18 , 0.87 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
 	drawTool->DrawLeftLatex
