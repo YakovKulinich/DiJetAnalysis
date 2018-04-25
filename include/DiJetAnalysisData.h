@@ -77,7 +77,8 @@ class DiJetAnalysisData : public DiJetAnalysis{
 			     const std::string& = "" );
 
   TH3*       CombineSamples( std::vector< TH3* >&,
-			     const std::string& = "" );
+			     const std::string& = "",
+			     bool = true );
   
   THnSparse* CombineSamples( std::vector< THnSparse* >&,
 			     const std::string& = "" );   
@@ -101,7 +102,9 @@ class DiJetAnalysisData : public DiJetAnalysis{
 			 std::vector< TH2* >&,
 			 const std::string& );
 
-  void MakeNjetsRun( TH3*, const std::string& = "" );
+  void MakeNjetsRun( std::vector< TH3* >&,
+		     const std::vector< std::string >&,
+		     const std::string& );
     
   void MakeSystematicsGraphs( TFile* = NULL, const std::string& = "" );
 

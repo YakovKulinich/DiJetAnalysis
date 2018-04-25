@@ -323,8 +323,8 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   TVirtualFitter::SetMaxIterations(1000);
   
   dPhiFit->SetParameters( amp, 0.20, 0.20 );
-  dPhiFit->SetParLimits ( 1, 1E-3, 0.7 );
-  dPhiFit->SetParLimits ( 2, 1E-3, 0.7 );
+  dPhiFit->SetParLimits ( 1, 1E-2, 0.7 );
+  dPhiFit->SetParLimits ( 2, 1E-3, 0.5 );
 
   int status = 0;
   
@@ -771,10 +771,26 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
     his->SetMarkerColor(kOrange+1);
     his->SetMarkerStyle(30);
     his->SetMarkerSize(1.9);
-  }
+  } else if(iflag == 10 ){
+    his->SetLineColor(kRed);
+    his->SetMarkerColor(kRed);
+    his->SetMarkerStyle(24);
+    his->SetMarkerSize(1.5);
+  } else if(iflag == 11 ){
+    his->SetLineColor(kAzure-3);
+    his->SetMarkerColor(kAzure-3);
+    his->SetMarkerStyle(25);
+    his->SetMarkerSize(1.4);
+  } else if(iflag == 12 ){
+    his->SetLineColor(kSpring-6);
+    his->SetMarkerColor(kSpring-6);
+    his->SetMarkerStyle(27);
+    his->SetMarkerSize(2.1);
+  } 
 }
 
 void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
+
   //Set Color
   graph->SetLineWidth(2);
   if( iflag == 0 ){
@@ -843,8 +859,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
   }
 }
 
-void CT::StyleTools::SetHStyle( TH1* his, int iflag, double scale)
-{
+void CT::StyleTools::SetHStyle( TH1* his, int iflag, double scale){
   
   his->GetXaxis()->SetNdivisions( 504 );
   his->GetYaxis()->SetNdivisions( 504 );
@@ -865,8 +880,8 @@ void CT::StyleTools::SetHStyle( TH1* his, int iflag, double scale)
   SetCustomMarkerStyle( his, iflag );  
 }
 
-void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, double scale)
-{
+void CT::StyleTools::SetHStyle( TGraph* graph, int iflag, double scale){
+
   graph->SetLineWidth(2);
 
   graph->GetXaxis()->SetNdivisions( 504 );

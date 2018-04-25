@@ -122,10 +122,9 @@ void DiJetAnalysisData::ProcessPerformance(){
 
   MakeEfficiencies( m_vHtriggerEtaSpectSim, m_vHtriggerEtaSpectDenom, m_etaEffName );
 
-  /*
-  m_hAllNjetsRun = CombineSamples( m_vHtriggerNjetsRun, m_nJetsRunName );
-  MakeNjetsRun( m_hAllNjetsRun, m_nJetsRunName );
-  */
+  // false at end => dont apply PS
+  m_hAllNjetsRun = CombineSamples( m_vHtriggerNjetsRun, m_nJetsRunName, false );
+  MakeNjetsRun( m_vHtriggerNjetsRun, m_vTriggers, m_nJetsRunName );
 
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
@@ -526,6 +525,12 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
   for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
     tree->GetEntry( m_ev );
 
+    // THESE ARE LB THAT WERENT EXCLUDED INITIALLY. OLD GRL FOR 2015 pp
+    if( !m_is_pPb && runNumber == 286411 && LBN > 1129 && LBN < 1131 ){ continue; }
+    if( !m_is_pPb && runNumber == 286367 && LBN > 75   && LBN < 78   ){ continue; }
+    if( !m_is_pPb && runNumber == 286367 && LBN > 121                ){ continue; }
+    if( !m_is_pPb && runNumber == 286364 && LBN > 618                ){ continue; }
+        
     if( anaTool->DoPrint(m_ev) ) {
       std::cout << "\nEvent : " << m_ev << "    runN : " << runNumber
 		<< "    has : " << vR_jets.size() << " jets" 
@@ -549,7 +554,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     // in pp
     // skip these LB in the following run
     if( runNumber == 286282 && LBN <= 726 ){ goodRunLBN = false; }
-    
+
     // SPECTRA AND ETA PHI PT MAPS
     // loop over passed triggers
     for( uint iG = 0; iG < m_nTriggers; iG++ ){
@@ -605,7 +610,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	  m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
 	}
 
-	double rn = m_mRunBin[ runNumber ] + 0.5; 
+	double rn = m_mRunBin[ runNumber ] - 0.5; 
 	m_vHtriggerNjetsRun[iG]->Fill( jetYstar, jetPt, rn );
       } // end loop over jets
     } // end loop over iG
@@ -794,7 +799,8 @@ TH2* DiJetAnalysisData::CombineSamples( std::vector< TH2* >& vSampleHin,
 }
 
 TH3* DiJetAnalysisData::CombineSamples( std::vector< TH3* >& vSampleHin,
-					const std::string& name ){
+					const std::string& name,
+					bool applyPS ){
 
   if( !vSampleHin.size() ){ return NULL; }
 
@@ -803,7 +809,7 @@ TH3* DiJetAnalysisData::CombineSamples( std::vector< TH3* >& vSampleHin,
   h_res->Reset();
     
   for( uint iG = 0; iG < vSampleHin.size(); iG++ ){
-    double scale = m_vTriggersPrescale[iG];
+    double scale = applyPS ? m_vTriggersPrescale[iG] : 1;
     h_res->Add( vSampleHin[iG], scale );
   }
   vSampleHin.push_back( h_res );
@@ -977,12 +983,10 @@ void DiJetAnalysisData::LoadHistograms( int opt ){
 	( fIn->Get( Form("h_%s_%s", m_ystarSpectFineName.c_str(), trigger.c_str() ))));
     m_vHtriggerYstarSpectFine.back()->SetDirectory(0);
 
-    /*
     m_vHtriggerNjetsRun.push_back
       ( static_cast< TH3D* >
 	( fIn->Get( Form("h_%s_%s", m_nJetsRunName.c_str(), trigger.c_str() ))));
     m_vHtriggerNjetsRun.back()->SetDirectory(0);
-    */
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( static_cast< TH2D* >
@@ -1182,46 +1186,59 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
   } 
 }
 
-void DiJetAnalysisData::MakeNjetsRun( TH3* hSample,
+void DiJetAnalysisData::MakeNjetsRun( std::vector< TH3* >& vhSample,
+				      const std::vector< std::string >& vLabels,
 				      const std::string& name ){
-
-  double max = -1;
-  double min = -1;
   
-  std::string label = m_allName;
-     
-  int xBin = 1, yBin = 1; 
-  double xMin, xMax;
-  anaTool->GetBinRange
-    ( hSample->GetXaxis(), xBin, xBin, xMin, xMax );
-  double yMin, yMax;
-  anaTool->GetBinRange
-    ( hSample->GetYaxis(), yBin, yBin, yMin, yMax );
+  for( uint iG = 0; iG < m_nTriggers; iG++ ){
+    
+    std::string label = vLabels[ iG ];
+
+    if( !label.compare( m_allName ) ){ continue; }
+    if( label.find("_mb_") != std::string::npos ){ continue; }
+    if( !m_is_pPb && label.compare("HLT_j25_320eta490_L1TE5") ){ continue; }
+    
+    TH3* hSample = vhSample[ iG ];
+    
+    int xBin = 1, yBin = 1; 
+    double xMin, xMax;
+    anaTool->GetBinRange
+      ( hSample->GetXaxis(), xBin, xBin, xMin, xMax );
+    double yMin, yMax;
+    anaTool->GetBinRange
+      ( hSample->GetYaxis(), yBin, yBin, yMin, yMax );
       
-  std::string hTag = Form( "%s_%s", anaTool->GetName( xMin, xMax, "Ystar1").c_str(),
-			   anaTool->GetName( yMin, yMax, "Pt1").c_str() );
+    std::string hTag = Form( "%s_%s", anaTool->GetName( xMin, xMax, "Ystar1").c_str(),
+			     anaTool->GetName( yMin, yMax, "Pt1").c_str() );
 
-  std::string hName = "h_" + name + "_" + m_allName + "_" + hTag;
-  hSample->GetXaxis()->SetRange( xBin, xBin );
-  hSample->GetYaxis()->SetRange( yBin, yBin );
+    std::string hName = "h_" + name + "_" + m_allName + "_" + hTag;
+    hSample->GetXaxis()->SetRange( xBin, xBin );
+    hSample->GetYaxis()->SetRange( yBin, yBin );
 
-  TH1* hNjetsRun = static_cast< TH1D* >( hSample->ProjectionZ( hName.c_str() ));
+    TH1* hNjetsRun = static_cast< TH1D* >( hSample->ProjectionZ( hName.c_str() ));
 
-  for( auto& rB : m_mRunBin ){
-    int run = rB.first;
-    int bin = rB.second;
-    double lumi = m_mRunLumi[ run ];
+    std::cout << "+++++++++++ " << label << std::endl;
+    
+    for( auto& rB : m_mRunBin ){
+      int run = rB.first;
+      int bin = rB.second;
+      double lumi = m_mRunLumi[ run ];
 
-    double nJets      = hNjetsRun->GetBinContent( bin );
-    double nJetsError = hNjetsRun->GetBinError  ( bin );
+      double nJets      = hNjetsRun->GetBinContent( bin );
+      double nJetsError = hNjetsRun->GetBinError  ( bin );
 
-    nJets      /= lumi;
-    nJetsError /= lumi;
+      if( !nJets ){ continue; }
 
-    hNjetsRun->SetBinContent( bin, nJets      );
-    hNjetsRun->SetBinError  ( bin, nJetsError );
+      double nJetsScaled      = nJets     / lumi;
+      double nJetsErrorScaled = nJetsError /lumi;
+      
+      std::cout << run << " " << lumi << " " << nJets << " " << nJetsScaled << std::endl;
+    
+      hNjetsRun->SetBinContent( bin, nJetsScaled      );
+      hNjetsRun->SetBinError  ( bin, nJetsErrorScaled );
+    }
+    hNjetsRun->Write();
   }
-  hNjetsRun->Write();
 }
 
 void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& name ){
@@ -1331,12 +1348,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	std::string hNominalName = "h_" + allUnfoldedName + "_" + hTag;
 	std::string gNominalName = "g_" + allUnfoldedName + "_" + hTag;
 	
-	TH1* hNominalTmp = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
-       	TH1* hNominal    = FlipOverXaxis( hNominalTmp, m_varYstarBinningFlipped );	  
-	vHdef.push_back( hNominal );
-
-	double scalingFactor = ( axis1Up - axis1Low ) * ( axis2Up - axis2Low );
-	if( isYield ){ hNominal->Scale( 1./scalingFactor, "width" ); }
+	TH1* hNominal = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
+       	vHdef.push_back( hNominal );
 
 	// Make all the systematics histograms for each y1, pt1, pt2 bin.
 	// since we look one bin at a time and process all systematics,
@@ -1441,8 +1454,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	//---------------------------------------------------
 	//------------------ DO WORK HERE -------------------
 	//---------------------------------------------------
-	for( int axis3Bin = nAxis3Bins; axis3Bin >= 1; axis3Bin-- ){
-	// for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	// for( int axis3Bin = nAxis3Bins; axis3Bin >= 1; axis3Bin-- ){
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 	  
 	  std::vector< TH1* > vHunc;
 
@@ -1467,11 +1480,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	    // to avoid confusion / make more flexible later.
 	    std::string hUncertaintyName = "h_" + allUnfoldedName + "_" + hTag;
 
-	    TH1* hUncertaintyTmp = static_cast<TH1D*>( mFinUC[ uc ]->Get( hUncertaintyName.c_str() ) );
-	    TH1* hUncertainty    = FlipOverXaxis( hUncertaintyTmp, m_varYstarBinningFlipped );
+	    TH1* hUncertainty = static_cast<TH1D*>( mFinUC[ uc ]->Get( hUncertaintyName.c_str() ) );
 	    vHunc.push_back( hUncertainty );
-
-	    if( isYield ){ hUncertainty->Scale( 1./scalingFactor, "width" ); }
 
 	    int sign = uc > 0 ? 1 : -1;
 
@@ -1559,11 +1569,6 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  eYP.push_back( yNominal * uncertFinYP );
 	  eYN.push_back( yNominal * uncertFinYN );
 	} // end loop over axis3
-
-	std::reverse( pX.begin() ,pX.end()  );
-	std::reverse( pY.begin() ,pY.end()  );
-	std::reverse( eYP.begin(),eYP.end() ); 
-	std::reverse( eYN.begin(),eYN.end() ); 
 	
 	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
 
@@ -1605,20 +1610,6 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  ( gNominal, anaTool->GetLabel
 	    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str(), "lp" );	
 
-	// clean bad graph points
-	for( int i = 0; i < nAxis3Bins; i++ ){
-	  double x, y;
-	  gNominal->GetPoint( i, x, y );
-	  std::cout << " lllllllllll " << i << " " << x << std::endl;
-
-	  if( !m_is_pPb && !isYield && axis1Bin == 3 && i == 0 &&
-	      ( axis2Bin == 1 || axis2Bin == 2 ) ){
-	    //gSystematics->RemovePoint( i );
-	    //gNominal    ->RemovePoint( i );
-	    continue;
-	  }
-	}
-	
 	// draw systematics first
 	gSystematics->Draw("2");
 	gNominal->Draw("p");
@@ -2002,18 +1993,6 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	// and clean some "bad" points
 	for( int i = 0; i < nAxis3Bins; i++ ){
 	  double x0, y0;
-
-	  /*
-	  // clean some bad points
-	  if( !isYield && axis1Bin == 3 && i == 0 &&
-	      ( axis2Bin == 1 || axis2Bin == 2 ) ){
-	    gNominalA    ->RemovePoint( i );
-	    gSystematicsA->RemovePoint( i );
-	    gNominalB    ->RemovePoint( i );
-	    gSystematicsB->RemovePoint( i );
-	    // continue;
-	  }
-	  */
 	  
 	  x0 = hNominalB->GetBinCenter ( i  + 1 );
 	  y0 = hNominalB->GetBinContent( i  + 1 );
@@ -2180,18 +2159,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	// get rid of errors on nominal graph
 	double* eXNominalLow  = gNominalR->GetEXlow();
 	double* eXNominalHigh = gNominalR->GetEXhigh();
-	for( int iX = 0; iX < nAxis3Bins; iX++ ){
-
-	  /*
-	  // clean some bad points
-	  if( !isYield && axis1Bin == 3 && iX == 0 &&
-	      ( axis2Bin == 1 || axis2Bin == 2 ) ){
-	    gNominalR    ->RemovePoint( iX );
-	    gSystematicsR->RemovePoint( iX );
-	    continue;
-	  }
-	  */
-	  
+	for( int iX = 0; iX < nAxis3Bins; iX++ ){	  
 	  *(  eXNominalLow + iX ) = 0;
 	  *( eXNominalHigh + iX ) = 0;
 	}
@@ -2222,14 +2190,6 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	
 	lineP25.Draw();
 	lineN25.Draw();
-	// lineP50.Draw();
-	// lineN50.Draw();
-
-	/*
-	DrawTopLeftLabels
-	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	    axis2Low, axis2Up );
-	*/
 
 	drawTool->DrawLeftLatex
 	  ( 0.18, 0.86, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 1.0 );

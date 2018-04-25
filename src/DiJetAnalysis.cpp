@@ -398,10 +398,10 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  // MakeFinalPlotsTogether( fOut, m_widthName );
-  // MakeFinalPlotsTogether( fOut, m_yieldName );
+  MakeFinalPlotsTogether( fOut, m_widthName );
+  MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  MakeDphiTogether ( fOut );
+  // MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -1022,7 +1022,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
   //------------------------------------------------
 
   if( m_is_pPb ){ lX0 = 0.45; lY0 = 0.54; lX1 = 0.76; lY1 = 0.67; }
-  else          { lX0 = 0.25; lY0 = 0.20; lX1 = 0.45; lY1 = 0.40; }
+  else          { lX0 = 0.20; lY0 = 0.47; lX1 = 0.40; lY1 = 0.87; }
   
   for( int iX = 0; iX < nXbins; iX++ ){
     int    xBin = iX + 1;
@@ -1032,7 +1032,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
 
     // for pPb, dont draw at anything above -3.2
     if( isEta && m_is_pPb && xCenter > -constants::FETAMIN ){ continue; }
-     
+    
     std::string cName  = anaTool->GetName ( xMin, xMax, axisLabel    );
     std::string cLabel = anaTool->GetLabel( xMin, xMax, axisLabelTex );
     
@@ -1046,6 +1046,10 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
     for( uint iG = 0; iG < nSamples; iG++ ){
       std::string label = vLabels[iG];
 
+      // dont draw MB triggers. They arent used in spectra anywhere.
+      // We only have them to calculate trigger efficiencies.
+      if( label.find("_mb_") != std::string::npos ){ continue; }
+      
       // for pp, dont draw central triggers below -3.2
       // or forward triggers above -3.2
       // for mb, and total draw everything
@@ -1073,7 +1077,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
     leg.Draw("same");
 
     DrawAtlasRight();    
-    drawTool->DrawRightLatex( 0.87, 0.73, cLabel );
+    drawTool->DrawRightLatex( 0.87, 0.62, cLabel );
 
     SaveAsAll( c, Form("%s_%s", name.c_str(), cName.c_str() ) );
   } // end loop over iX
@@ -1583,7 +1587,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  std::string hNameW = "h_" + dPhiName + "_" + m_widthName + "_" + label + "_" + hTagW;
 	  std::string hNameY = "h_" + dPhiName + "_" + m_yieldName + "_" + label + "_" + hTagW;
 	  
-	  TH1* hDphiWidths = hn->Projection( fAxisI );
+	  TH1* hDphiWidthsTmp = hn->Projection( fAxisI );
+	  TH1* hDphiWidths = FlipOverXaxis( hDphiWidthsTmp, m_varYstarBinningFlipped );
 	  hDphiWidths->Reset();
 	  hDphiWidths->SetName( hNameW.c_str() );
 	  hDphiWidths->SetYTitle( "RMS (#pi - #Delta#phi)" );
@@ -1592,7 +1597,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  vDphiWidthsTemp.push_back( hDphiWidths );
 	  vDphiWidths    .push_back( hDphiWidths );
 
-	  TH1* hDphiWidths2 = hn->Projection( fAxisI );
+	  TH1* hDphiWidths2Tmp = hn->Projection( fAxisI );
+	  TH1* hDphiWidths2 = FlipOverXaxis( hDphiWidths2Tmp, m_varYstarBinningFlipped );
 	  hDphiWidths2->Reset();
 	  hDphiWidths2->SetName( Form( "%s_2", hNameW.c_str() ) );
 	  hDphiWidths2->SetYTitle( "RMS (#pi - #Delta#phi)" );
@@ -1602,7 +1608,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  hDphiWidths2->SetLineColor  ( kBlue );
 	  vDphiWidths.push_back( hDphiWidths2 );
 	  
-	  TH1* hDphiWidthsStat = hn->Projection( fAxisI );
+	  TH1* hDphiWidthsStatTmp = hn->Projection( fAxisI );
+	  TH1* hDphiWidthsStat = FlipOverXaxis( hDphiWidthsStatTmp, m_varYstarBinningFlipped );
 	  hDphiWidthsStat->Reset();
 	  hDphiWidthsStat->SetName( Form( "%s_stat", hNameW.c_str() ) );
 	  hDphiWidthsStat->SetYTitle( "RMS (#pi - #Delta#phi)" );
@@ -1610,7 +1617,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  styleTool->SetHStyle( hDphiWidthsStat, 5 + style );
 	  vDphiWidths.push_back( hDphiWidthsStat );
 
-	  TH1* hDphiYields = hn->Projection( fAxisI );
+	  TH1* hDphiYieldsTmp = hn->Projection( fAxisI );
+	  TH1* hDphiYields = FlipOverXaxis( hDphiYieldsTmp, m_varYstarBinningFlipped );
 	  hDphiYields->Reset();
 	  hDphiYields->SetName( hNameY.c_str() );
 	  hDphiYields->SetYTitle( "Pair Jet Yield Per Jet_{1}" );
@@ -1860,21 +1868,24 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    std::cout << "Width2 = " << width2 << " WidthError2 = " << widthError2 << std::endl;
 
 	    
-	    hDphiYields->SetBinContent( axis3Bin, yield      );
-	    hDphiYields->SetBinError  ( axis3Bin, yieldError );
+	    hDphiYields->SetBinContent( nAxis3Bins + 1 - axis3Bin, yield      );
+	    hDphiYields->SetBinError  ( nAxis3Bins + 1 - axis3Bin, yieldError );
 
 	    // !!!!!!!!!!!!!!!!!!!!!!!!!!!
-	    hDphiWidths->SetBinContent( axis3Bin, width      );
-	    hDphiWidths->SetBinError  ( axis3Bin, widthError );	    
+	    hDphiWidths->SetBinContent( nAxis3Bins + 1 - axis3Bin, width      );
+	    hDphiWidths->SetBinError  ( nAxis3Bins + 1 - axis3Bin, widthError );	    
 
-	    hDphiWidths2->SetBinContent( axis3Bin, width2      );
-	    hDphiWidths2->SetBinError  ( axis3Bin, widthError2 );
+	    hDphiWidths2->SetBinContent( nAxis3Bins + 1 - axis3Bin, width2      );
+	    hDphiWidths2->SetBinError  ( nAxis3Bins + 1 - axis3Bin, widthError2 );
 
-	    hDphiWidthsStat->SetBinContent( axis3Bin, widthStat      );
-	    hDphiWidthsStat->SetBinError  ( axis3Bin, widthStatError );
-
+	    hDphiWidthsStat->SetBinContent( nAxis3Bins + 1 - axis3Bin, widthStat      );
+	    hDphiWidthsStat->SetBinError  ( nAxis3Bins + 1 - axis3Bin, widthStatError );
 	  } // end loop over axis3
 
+	  double scalingFactor = ( axis1Up - axis1Low ) * ( axis2Up - axis2Low );
+	  hDphiYields->Scale( 1./scalingFactor, "width" );
+
+	  
 	  // check we are in correct ystar and pt bins
 	  if( !m_dPP->CorrectPhaseSpace
 	      ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, 0 } ) )
@@ -1892,7 +1903,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  pad2.SetBottomMargin(0.25);
 	  pad2.Draw();
 
-	  TLegend legWAll( 0.50, 0.1, 0.89, 0.28 );
+	  TLegend legWAll( 0.30, 0.1, 0.69, 0.28 );
 	  styleTool->SetLegendStyle( &legWAll );
 
 	  pad1.cd();
@@ -3124,10 +3135,10 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  double widthError_b = hW_b->GetBinError  ( axis3Bin );
 
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.54, Form( "RMS(%s)_{%s}=%4.2f#pm%4.2f", m_sWidthTitle.c_str(),
+	    ( 0.19, 0.54, Form( "%s_{%s}=%4.2f#pm%4.2f", m_sWidthTitle.c_str(),
 				label_a.c_str(), width_a, widthError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.46, Form( "RMS(%s)_{%s}=%4.2f#pm%4.2f", m_sWidthTitle.c_str(),
+	    ( 0.19, 0.46, Form( "%s_{%s}=%4.2f#pm%4.2f", m_sWidthTitle.c_str(),
 				label_b.c_str(), width_b, widthError_b ) );
 
 	  double yield_a      = hY_a->GetBinContent( axis3Bin );
@@ -3173,10 +3184,10 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  drawTool->DrawLeftLatex( labelX0, 0.345, m_isData ? "Data" : "MC" );
 
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.56, Form( "RMS(%s)_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+	    ( 0.19, 0.56, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
 				label_a.c_str(), width_a, widthError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.48, Form( "RMS(%s)_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+	    ( 0.19, 0.48, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
 				label_b.c_str(), width_b, widthError_b ) );
 
 	  drawTool->DrawLeftLatex
