@@ -1251,8 +1251,6 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   
   // get map of sys factor to TFile*
   TFile* fInNominal = GetListOfSystUncert( v_uc, mFinUC );
-  // change back to the fOut, for writing.
-  fOut->cd();
   
   std::string allUnfoldedName    =
     m_dPhiName + "_" + m_unfoldedName    + "_" + name + "_" + m_allName;
@@ -1276,12 +1274,55 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   double y1 = isYield ? m_dPhiYieldMax : m_dPhiWidthMax;
 
   double pDx1 = 0.2;
-
+  
   std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string yTitle = isYield ? m_sYieldTitle : m_sWidthTitle;
   std::string gTitle = ";" + xTitle + ";" + yTitle;
-
+  
   std::string yTitleUncert = "#delta " + yTitle + " %";
+
+  std::string sRatio       = isYield ? m_sYieldRatioTitle : m_sWidthRatioTitle;
+  std::string gTitleRatio  = ";" + xTitle + ";Data/MC";
+
+  TH1* hDef  = new TH1D( "hDef", gTitle.c_str(), nAxis3Bins, x0, x1 );
+  styleTool->SetHStyle( hDef, 0 );
+  hDef->SetMaximum( y1 );
+  hDef->SetMinimum( y0 );
+  hDef->GetXaxis()->SetTitle("");
+  hDef->GetYaxis()->SetNdivisions( 502 );
+
+  TH1* hDefR = new TH1D( "hDefR", gTitleRatio.c_str(), nAxis3Bins, x0, x1 );
+  styleTool->SetHStyleRatio( hDefR, 0 );
+  hDefR->SetMaximum( 1.55 );
+  hDefR->SetMinimum( 0.45 );
+  
+  // lines to be drawn along axis3. this is
+  // x-axis that widths are plotted as function of 
+  TLine line( x0, 1, x1, 1 );
+  line.SetLineWidth( 2 );
+
+  TLine lineP25( x0, 1.25, x1, 1.25 );
+  lineP25.SetLineStyle( 2  );
+  lineP25.SetLineColor( 12 );
+  lineP25.SetLineWidth( 2  );
+	  
+  TLine lineN25( x0, 0.75, x1, 0.75 );
+  lineN25.SetLineStyle( 2  );
+  lineN25.SetLineColor( 12 );
+  lineN25.SetLineWidth( 2  );
+
+  
+  // ------------------------------------------------
+  //    MC STUFF - TO COMPARE DATA RESULTS TO MC
+  // ------------------------------------------------
+  TFile* fMCp8 = m_is_pPb ?
+    TFile::Open( "output/output_pPb_mc_pythia8/myOut_pPb_mc_pythia8_phys_0.root" ) :
+    TFile::Open( "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_phys_0.root" );
+
+  std::string hMCname = isYield ? "dPhi_truth_yield_All" : "dPhi_truth_width_All";
+  
+  // change back to the fOut, for writing.
+  fOut->cd();
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -1297,30 +1338,46 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
       anaTool->GetBinRange
 	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
 
-      TCanvas cAll( "cAll", "cAll", 800, 600 );
+      TCanvas cAll( "cAll", "cAll", 800, 700 );
       styleTool->SetCStyleGraph( cAll, x0, y0, x1, y1, gTitle.c_str() );
+      TPad pad1All( "pad1All", "", 0.0, 0.35, 1.0, 1.0 );
+      pad1All.SetBottomMargin(0.023);
+      pad1All.Draw();
+      TPad pad2All( "pad2All", "", 0.0, 0.0, 1.0, 0.34 );
+      pad2All.SetTopMargin(0.05);
+      pad2All.SetBottomMargin(0.27);
+      pad2All.Draw();
 
-      // for yields, use log scale on yaxis
-      if( isYield ){ cAll.SetLogy(); }
+      pad1All.cd();
+      hDef->Draw();
+      styleTool->HideAxis( hDef, "x" );
+      pad2All.cd();
+      hDefR->Draw();
 
-      // this is bs. works though. vary the last factor 
-      double legX0, legX1, legY0, legY1;
-      double deltaYleg = ( axis1Bin - 1 ) * 0.075;
- 
-      if( isYield ){
-	legX0 = 0.30;
-	legY0 = 0.22;
-	legX1 = 0.71;
-	legY1 = 0.29 + deltaYleg;
-      } else {
-	legX0 = 0.54;
-	legY0 = 0.22;
-	legX1 = 0.89;
-	legY1 = 0.29 + deltaYleg;
+      if( axis1Bin == 3 && isYield ){
+	hDef->SetMaximum( 2E-3 );
+	hDef->SetMinimum( 5E-7 );
       }
       
-      TLegend legAll( legX0, legY0, legX1, legY1 );
-      styleTool->SetLegendStyle( &legAll );
+      // for yields, use log scale on yaxis
+      if( isYield ){ pad1All.SetLogy(); }
+
+      // this is bs. works though. vary the last factor 
+      double deltaYleg = ( axis1Bin - 1 ) * 0.04;
+
+      double legSX0MC = isYield ? 0.34 : 0.19;
+      double legSX0Data  = isYield ? 0.45 : 0.30;
+      double legSX1MC = isYield ? 0.50 : 0.35;
+      double legSX1Data  = isYield ? 0.73 : 0.47;
+
+      double legSY0 = isYield ? 0.025 : 0.025;
+      double legSY1 = isYield ? 0.13 + deltaYleg : 0.13 + deltaYleg;
+      
+      TLegend legMC( legSX0MC, legSY0, legSX1MC, legSY1 );
+      styleTool->SetLegendStyle( &legMC, 0.85 );
+      TLegend legData( legSX0Data,  legSY0,  legSX1Data, legSY1 );
+      styleTool->SetLegendStyle( &legData, 0.85 );
+      
 
       // tag for widths canvas
       std::string hTagC =
@@ -1584,18 +1641,29 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	
 	styleTool->SetHStyle( gNominal    , style );
 	styleTool->SetHStyle( gSystematics, style );
-	style++;
 
+	// Get MC
+	TH1* hMCp8 =
+	  static_cast< TH1D* >( fMCp8->Get( Form("h_%s_%s", hMCname.c_str(), hTag.c_str() ) ) );
+	TGraphAsymmErrors* gMCp8 = new TGraphAsymmErrors( hMCp8 );
+	styleTool->SetHStyle( gMCp8, style + 4 );
+	
 	// add some displacement along x
 	double* xDef      = gNominal->GetX();
 	double* eXDefLow  = gNominal->GetEXlow();
 	double* eXDefHigh = gNominal->GetEXhigh();
 	double* xSys      = gSystematics->GetX();
+	double* xDefMC      = gMCp8->GetX();
+	double* eXDefLowMC  = gMCp8->GetEXlow();
+	double* eXDefHighMC = gMCp8->GetEXhigh();
 	for( int iX = 0; iX < nAxis3Bins; iX++ ){
-	  *(      xDef + iX ) += style * pDx1;
+	  *(      xDef + iX ) -= style * pDx1;
 	  *(  eXDefLow + iX ) = 0;
 	  *( eXDefHigh + iX ) = 0;
-	  *(      xSys + iX ) += style * pDx1;
+	  *(      xDefMC + iX ) -= style * pDx1;
+	  *(  eXDefLowMC + iX ) = 0;
+	  *( eXDefHighMC + iX ) = 0;
+	  *(      xSys + iX ) -= style * pDx1;
 	}
 	
 	gSystematics->SetTitle("");
@@ -1606,14 +1674,28 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
        	gNominal->GetXaxis()->SetRangeUser( x0, x1 );
        	gNominal->GetYaxis()->SetRangeUser( y0, y1 );
 
-	legAll.AddEntry
-	  ( gNominal, anaTool->GetLabel
-	    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str(), "lp" );	
-
+	legData.AddEntry
+	  ( gNominal, Form( "Data, %s", anaTool->GetLabel
+			    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str() ), "lp" );	
+	legMC.AddEntry( gMCp8, "MC", "lp" );
+	
+	// switch back to pad1
+	pad1All.cd();
 	// draw systematics first
 	gSystematics->Draw("2");
+	gMCp8->Draw("p");
 	gNominal->Draw("p");
 
+	// get ratio and draw
+	pad2All.cd();
+	TGraphAsymmErrors* gR = anaTool->GetRatioWithSys( gNominal, gSystematics, gMCp8 );
+	gR->SetName( Form( "h_data_MC_ratio_%s", hTag.c_str()));
+	styleTool->SetHStyle( gR, style + 4 );
+	gR->Draw("p");
+	line.Draw();
+	lineN25.Draw();
+	lineP25.Draw();
+	
 	//+++++++++++++++++++++++++++++++++++++++++++
 	// Draw Uncertainties
 	//+++++++++++++++++++++++++++++++++++++++++++
@@ -1724,14 +1806,18 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
  
 	SaveAsAll( cSyst, hNameSystFinal );
 
+	// INCREMENT STYLE
+	style++;
 	// !!! Important !!!
 	// Switch back to cAll first, becase a canvas for
 	// each uncertainty was created for each axis2Bin.
 	cAll.cd();
       } // end loop over axis2
 
+      pad1All.cd();
       // Draw the final canvas with all of the graphs.
-      legAll.Draw();
+      legData.Draw();
+      legMC.Draw();
       
       DrawTopLeftLabels
 	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, 0, 0, 0, 0);
@@ -1861,7 +1947,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   hDefR->SetMaximum( 1.55 );
   hDefR->SetMinimum( 0.45 );
   
-    for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
     anaTool->GetBinRange
       ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
@@ -1908,9 +1994,9 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
       // this is bs. works though. vary the last factor 
       double deltaYleg = ( axis1Bin - 1 ) * 0.04;
 
-      double legSX0pPb = isYield ? 0.34 : 0.19;
+      double legSX0pPb = isYield ? 0.36 : 0.21;
       double legSX0pp  = isYield ? 0.45 : 0.30;
-      double legSX1pPb = isYield ? 0.50 : 0.35;
+      double legSX1pPb = isYield ? 0.52 : 0.37;
       double legSX1pp  = isYield ? 0.73 : 0.47;
 
       double legSY0 = isYield ? 0.025 : 0.025;

@@ -1591,7 +1591,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  TH1* hDphiWidths = FlipOverXaxis( hDphiWidthsTmp, m_varYstarBinningFlipped );
 	  hDphiWidths->Reset();
 	  hDphiWidths->SetName( hNameW.c_str() );
-	  hDphiWidths->SetYTitle( "RMS (#pi - #Delta#phi)" );
+	  hDphiWidths->SetYTitle( m_sWidthTitle.c_str() );
 	  hDphiWidths->SetMarkerSize( hDphiWidths->GetMarkerSize() * 1.5 );
 	  styleTool->SetHStyle( hDphiWidths, style );
 	  vDphiWidthsTemp.push_back( hDphiWidths );
@@ -1601,7 +1601,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  TH1* hDphiWidths2 = FlipOverXaxis( hDphiWidths2Tmp, m_varYstarBinningFlipped );
 	  hDphiWidths2->Reset();
 	  hDphiWidths2->SetName( Form( "%s_2", hNameW.c_str() ) );
-	  hDphiWidths2->SetYTitle( "RMS (#pi - #Delta#phi)" );
+	  hDphiWidths2->SetYTitle( m_sWidthTitle.c_str() );
 	  hDphiWidths2->SetMarkerSize( hDphiWidths2->GetMarkerSize() * 2 );
 	  styleTool->SetHStyle( hDphiWidths2, 5 + style );
 	  hDphiWidths2->SetMarkerColor( kBlue );
@@ -1621,7 +1621,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  TH1* hDphiYields = FlipOverXaxis( hDphiYieldsTmp, m_varYstarBinningFlipped );
 	  hDphiYields->Reset();
 	  hDphiYields->SetName( hNameY.c_str() );
-	  hDphiYields->SetYTitle( "Pair Jet Yield Per Jet_{1}" );
+	  hDphiYields->SetYTitle( m_sYieldTitle.c_str() );
 	  hDphiYields->SetMarkerSize( hDphiYields->GetMarkerSize() * 1.5 );
 	  styleTool->SetHStyle( hDphiYields, style );
 	  vDphiYieldsTemp.push_back( hDphiYields );
@@ -1913,7 +1913,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	  TH1* hDphiWidthsCmp = static_cast< TH1D* >
 	    ( hDphiWidths->Clone( Form( "h_%s_cmp", hNameW.c_str() ) ) );
-	  hDphiWidthsCmp->SetYTitle( "RMS (#pi - #Delta#phi)" );
+	  hDphiWidthsCmp->SetYTitle( m_sWidthTitle.c_str() );
 	  hDphiWidthsCmp->SetMarkerSize( hDphiWidthsCmp->GetMarkerSize() * 1.5 );
 	  vDphiWidths.push_back( hDphiWidthsCmp );
 	  
@@ -1924,10 +1924,10 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  hDphiWidthsCmp->Draw("epsame X0");
 	  hDphiWidths2  ->Draw("epsame X0");
 	
-	  legWAll.AddEntry( hDphiWidthsCmp,
-			    Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMin  ) );
-	  legWAll.AddEntry( hDphiWidths2  ,
-			    Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinB ) );
+	  legWAll.AddEntry
+	    ( hDphiWidthsCmp,Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMin  ) );
+	  legWAll.AddEntry
+	    ( hDphiWidths2, Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinB ) );
 	  
 	  legWAll.Draw();
 
@@ -3378,13 +3378,6 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
   SaveAsPdfPng( c, "h_chi2_prob", true );
   SaveAsROOT  ( c, "h_chi2_prob");
-
-  /*
-  delete h_chi2_a;
-  delete h_chi2_b;
-  delete h_prob_a;
-  delete h_prob_b;
-  */
 
   TCanvas cProb( "cProb", "cProb", 800, 600 );
   hProbWeight->Draw("hist C");

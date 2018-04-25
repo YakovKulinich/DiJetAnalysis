@@ -127,6 +127,11 @@ namespace CT{
     
     TGraph* Barycenters( TH1*, TH1* );
 
+    TGraphAsymmErrors* GetRatioWithSys( TGraphAsymmErrors* = NULL,
+					TGraphAsymmErrors* = NULL,
+					TGraphAsymmErrors* = NULL,
+					TGraphAsymmErrors* = NULL );
+    
     void MatchGraphGraphX( TGraph*, TGraph* );
     
     void MatchGraphHistoY( TGraph*, TH1* );

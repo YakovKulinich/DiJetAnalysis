@@ -494,6 +494,66 @@ TGraph* CT::AnalysisTools::Barycenters( TH1* hEnt, TH1* hSum ){
   return g;
 }
 
+TGraphAsymmErrors* CT::AnalysisTools::GetRatioWithSys
+( TGraphAsymmErrors* g1, TGraphAsymmErrors* s1,
+  TGraphAsymmErrors* g2, TGraphAsymmErrors* s2 ){
+  
+  int nPts = g1->GetN() > g2->GetN() ? g1->GetN() : g2->GetN();
+
+  double*  pX = g1->GetN() > g2->GetN() ? g1->GetX() : g2->GetX();
+  std::vector< double > pY ( nPts, 0 );
+  std::vector< double > eYP( nPts, 0 );
+  std::vector< double > eYN( nPts, 0 );
+  std::vector< double > eX ( nPts, 0 ); 
+
+  bool hadS2 = true;
+  if( !s2 ){
+    s2 = new TGraphAsymmErrors( nPts,
+				&(pX[0]), &(pY[0]),
+				&(eX[0]), &(eX[0]),
+				&(eYN[0]), &(eYP[0]) );
+    hadS2 = false;
+  }
+  
+  for( int i = 0; i < nPts; i++ ){
+    double x1, y1, x2, y2;
+    g1->GetPoint( i, x1, y1 );
+    double eY1P =
+      std::sqrt( std::pow( g1->GetErrorYhigh(i), 2 ) +
+		 std::pow( s1->GetErrorYhigh(i), 2 ) );
+    double eY1N =
+      std::sqrt( std::pow( g1->GetErrorYlow (i), 2 ) +
+		 std::pow( s1->GetErrorYlow (i), 2 ) );
+    g2->GetPoint( i, x2, y2 );
+    double eY2P =
+      std::sqrt( std::pow( g2->GetErrorYhigh(i), 2 ) +
+		 std::pow( s2->GetErrorYhigh(i), 2 ) );
+    double eY2N =
+      std::sqrt( std::pow( g2->GetErrorYlow (i), 2 ) +
+		 std::pow( s2->GetErrorYlow (i), 2 ) );
+  
+    double yNew = y1 / y2;
+    
+    double eYPnew = yNew *
+      std::sqrt( std::pow( eY1P / y1, 2) +
+		 std::pow( eY2P / y2, 2) );
+    double eYNnew = yNew *
+      std::sqrt( std::pow( eY1N / y1, 2) +
+		 std::pow( eY2N / y2, 2) );
+
+    pY [i] = yNew;
+    eYP[i] = eYPnew;
+    eYN[i] = eYNnew;
+  }
+
+  if( !hadS2 ){ delete s2; s2 = NULL; }
+  
+  return new TGraphAsymmErrors( nPts,
+				&(pX[0]), &(pY[0]),
+				&(eX[0]), &(eX[0]),
+				&(eYN[0]), &(eYP[0]) );
+}
+
 void CT::AnalysisTools::MatchGraphGraphX( TGraph* g1, TGraph * g2 ){
 
   TGraphAsymmErrors* gg1 = dynamic_cast< TGraphAsymmErrors* >( g1 );
