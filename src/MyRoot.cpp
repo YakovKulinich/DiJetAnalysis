@@ -323,7 +323,7 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   TVirtualFitter::SetMaxIterations(1000);
   
   dPhiFit->SetParameters( amp, 0.20, 0.20 );
-  dPhiFit->SetParLimits ( 1, 1E-2, 0.7 );
+  dPhiFit->SetParLimits ( 1, 1E-3, 0.60 );
   dPhiFit->SetParLimits ( 2, 1E-3, 0.5 );
 
   int status = 0;
@@ -635,11 +635,12 @@ std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
 					      std::string label){
   std::stringstream ss;
 
-  if( ystarMin ){
+  if( ystarMin > 0.1 || ystarMin < -0.1 ){
     ystarMin *= -1;
-  } if( ystarMax ){
+  } if( ystarMax > 0.1 || ystarMax < -0.1  ){
     ystarMax *= -1;
   }
+  
   double tmp = ystarMax;
   ystarMax = ystarMin;
   ystarMin = tmp;
@@ -686,12 +687,15 @@ std::string CT::AnalysisTools::GetLabel
   if( var.find("{p}_{T") != std::string::npos )
     { unit = "[GeV]"; }
 
-  if( var.find("{y}_{1}") != std::string::npos ){
+  if( var.find("{y}") != std::string::npos ){
+    if( vMin > 0.1 || vMin < -0.1 ){
       vMin *= -1; 
+    } if( vMax > 0.1 || vMax < -0.1 ){
       vMax *= -1;
-      double tmp = vMax;
-      vMax = vMin;
-      vMin = tmp;
+    } 
+    double tmp = vMax;
+    vMax = vMin;
+    vMin = tmp;
   }
   
   
@@ -1079,7 +1083,7 @@ void CT::DrawTools::DrawAtlasInternal( double scale ){
 }
 
 std::string CT::DrawTools::GetLumipPb(){
-  return Form( "#it{p}+Pb 2016, %3.1f nb^{-1}", constants::pPbLumi2016 );
+  return Form( "#it{p}+Pb 2016, %3.1f #mub^{-1}", constants::pPbLumi2016 );
 }
 
 std::string CT::DrawTools::GetLumipp(){

@@ -12,7 +12,7 @@ LIBS        = -lMyLib
 OBJ         = analysis
 SOURCES     = DiJetAnalysis.cpp DiJetAnalysisData.cpp DiJetAnalysisMC.cpp \
 	      DiJetAnalysisBoth.cpp DeltaPhiProj.cpp UncertaintyProvider.cpp \
-	      AtlasStyle.C  MyRoot.cpp main.cpp
+	      HIJESUncertaintyProvider.cpp AtlasStyle.C  MyRoot.cpp main.cpp
 INCLUDES    = DiJetAnalysis.h
 
 DSOURCES    = src/

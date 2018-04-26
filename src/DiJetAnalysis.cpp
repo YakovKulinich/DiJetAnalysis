@@ -590,7 +590,7 @@ bool DiJetAnalysis::ApplyCleaning( std::vector<TLorentzVector>& v_jets,
   
   for( unsigned int jn = 0; jn < v_jets.size() ; jn++ ){
     if( !v_isCleanJet.at(jn) ){
-      v_jets.at(jn).SetPxPyPzE(0,0,0,-1 );
+      v_jets.at(jn).SetPxPyPzE( 0, 0, 0, -1);
       haveCleaned = true; 
     }
   }
@@ -906,7 +906,8 @@ void DiJetAnalysis::MakeEtaPhiPtMap( std::vector< TH2* >& vSampleMaps,
   uint nSamples = vSampleMaps.size();
   
   TCanvas c_map( "c_map", "c_map", 800, 600 );
-
+  c_map.SetLogz();
+  
   for( uint iG = 0; iG < nSamples; iG++ ){
     std::string label = vLabels[iG];
 
@@ -1045,7 +1046,7 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
     int style = 1;
     for( uint iG = 0; iG < nSamples; iG++ ){
       std::string label = vLabels[iG];
-
+     
       // dont draw MB triggers. They arent used in spectra anywhere.
       // We only have them to calculate trigger efficiencies.
       if( label.find("_mb_") != std::string::npos ){ continue; }

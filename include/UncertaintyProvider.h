@@ -10,6 +10,7 @@ class TH3;
 class THnSparse;
 class TRandom3;
 class TLorentzVector;
+class HIJESUncertaintyProvider;
 
 //--------------------------------
 //        Uncertainty Tool
@@ -101,7 +102,9 @@ class JESUncertaintyTool : public UncertaintyTool{
   
   void ApplyUncertainties( std::vector< TLorentzVector >&,
 			   std::vector< TLorentzVector >& );
-  
+
+ private:
+   HIJESUncertaintyProvider*  m_hiJetUncertaintyTool;
 };
 
 //--------------------------------

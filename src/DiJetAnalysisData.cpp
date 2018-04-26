@@ -364,7 +364,7 @@ void DiJetAnalysisData::LoadTriggers(){
   for( const auto& m : m_mRunBin ){
     std::cout << m.first << " : " << m.second << std::endl;
   }
-  
+  std::cout << "---" << std::endl;
   for( const auto& m : m_mRunLumi ){
     std::cout << m.first << " : " << m.second << std::endl;
   }
@@ -390,6 +390,14 @@ void DiJetAnalysisData::SetupHistograms(){
 		   m_nPtMapBins , m_ptMapMin , m_ptMapMax) ) ;
     AddHistogram( m_vHtriggerEtaPtMap.back() );
 
+    m_vHtriggerEtaPhiPtMap.push_back
+      ( new TH3D( Form("h_etaPhiPtMap_%s", trigger.c_str() ), 
+		  ";#eta;#it{p}_{T} [GeV]",
+		  m_nEtaMapBins, m_etaMapMin, m_etaMapMax,
+		  m_nPhiMapBins, m_phiMapMin, m_phiMapMax,
+		  22, 28, 50 ) ) ;
+    AddHistogram( m_vHtriggerEtaPhiPtMap.back() );
+    
     // -------- spect --------
     m_vHtriggerYstarSpect.push_back
       ( new TH2D( Form("h_%s_%s", m_ystarSpectName.c_str(), trigger.c_str() ), 
@@ -422,7 +430,17 @@ void DiJetAnalysisData::SetupHistograms(){
     m_vHtriggerNjetsRun.back()->GetYaxis()->
       Set( m_nVarPtBins, &( m_varPtBinning[0] ) );
     AddHistogram( m_vHtriggerNjetsRun.back() );
-    
+
+    m_vHtriggerNjetsRunFine.push_back
+      ( new TH3D( Form("h_%s_fine_%s", m_nJetsRunName.c_str(), trigger.c_str() ), 
+		  ";#it{y}*;#it{p}_{T} [GeV];Run Number",
+		  m_nVarYstarBins, 0, 1,
+		  m_nPtSpectBins,m_ptSpectMin, m_ptSpectMax,
+		  m_nRuns, 0, m_nRuns ) ) ;
+    m_vHtriggerNjetsRunFine.back()->GetXaxis()->
+      Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    AddHistogram( m_vHtriggerNjetsRunFine.back() );
+
     // ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( new TH2D ( Form("h_%sSim_%s", m_etaSpectName.c_str(), trigger.c_str() ), 
@@ -555,7 +573,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     // skip these LB in the following run
     if( runNumber == 286282 && LBN <= 726 ){ goodRunLBN = false; }
 
-    // SPECTRA AND ETA PHI PT MAPS
+    bool triggerPassed = false;
     // loop over passed triggers
     for( uint iG = 0; iG < m_nTriggers; iG++ ){
 
@@ -580,6 +598,8 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	double jetPt1    = jet1->Pt()/1000.;
 	double jetYstar1 = GetYstar( *jet1 ); 
 
+	triggerPassed = true;
+	
 	m_vHtriggerYstarSpect[iG]->
 	  Fill( jetYstar1, jetPt1 );
 	m_vHtriggerYstarSpectFine[iG]->
@@ -595,23 +615,25 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
       // loop over jets 
       for( auto& jet : vR_jets ){
 
-	double jetPt = jet.Pt()/1000.;
-
-	// check if jet is in trigger range
-	if( !JetInTrigRange( &jet, iG ) ) continue;
-	
-	// ETA-PHI
+	double jetPt    = jet.Pt()/1000.;
 	double jetEta   = jet.Eta();
 	double jetPhi   = jet.Phi();
 	double jetYstar = GetYstar( jet );
 
-	if( jetPt > 28 && jetPt < 35 ){
-	  m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
-	  m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
+	if( triggerPassed ){
+	  if( jetPt > 28 && jetPt < 35 ){
+	    m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
+	    m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
+	  }
+	  m_vHtriggerEtaPhiPtMap[iG]->Fill( jetEta, jetPhi, jetPt );
 	}
 
+	// check if jet is in trigger range
+	if( !JetInTrigRange( &jet, iG ) ) continue;
+	
 	double rn = m_mRunBin[ runNumber ] - 0.5; 
-	m_vHtriggerNjetsRun[iG]->Fill( jetYstar, jetPt, rn );
+	m_vHtriggerNjetsRun    [iG]->Fill( jetYstar, jetPt, rn );
+	m_vHtriggerNjetsRunFine[iG]->Fill( jetYstar, jetPt, rn );
       } // end loop over jets
     } // end loop over iG
 
@@ -987,7 +1009,12 @@ void DiJetAnalysisData::LoadHistograms( int opt ){
       ( static_cast< TH3D* >
 	( fIn->Get( Form("h_%s_%s", m_nJetsRunName.c_str(), trigger.c_str() ))));
     m_vHtriggerNjetsRun.back()->SetDirectory(0);
-    // ----- efficiencies ----
+
+    m_vHtriggerNjetsRunFine.push_back
+      ( static_cast< TH3D* >
+	( fIn->Get( Form("h_%s_fine_%s", m_nJetsRunName.c_str(), trigger.c_str() ))));
+    m_vHtriggerNjetsRunFine.back()->SetDirectory(0);
+// ----- efficiencies ----
     m_vHtriggerEtaSpectSim.push_back
       ( static_cast< TH2D* >
 	( fIn->Get( Form("h_%sSim_%s", m_etaSpectName.c_str(), trigger.c_str() ))));
@@ -1177,12 +1204,11 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
 
   // delete
   for( uint iG = 0; iG < m_nTriggers; iG++ ){
-    for( int iX = 0; iX < nXbins; iX++ )
-      {
-	delete vSpect[iG][iX];
-	delete vSpectRef[iG][iX];
-	delete vEffGrf[iG][iX];
-      }
+    for( int iX = 0; iX < nXbins; iX++ ) {
+      delete vSpect[iG][iX];
+      delete vSpectRef[iG][iX];
+      delete vEffGrf[iG][iX];
+    }
   } 
 }
 
@@ -1196,11 +1222,15 @@ void DiJetAnalysisData::MakeNjetsRun( std::vector< TH3* >& vhSample,
 
     if( !label.compare( m_allName ) ){ continue; }
     if( label.find("_mb_") != std::string::npos ){ continue; }
-    if( !m_is_pPb && label.compare("HLT_j25_320eta490_L1TE5") ){ continue; }
+    // if( !m_is_pPb && label.compare("HLT_j25_320eta490_L1TE5") ){ continue; }
+    // if( !m_is_pPb && label.compare("HLT_j35_320eta490_L1TE10") ){ continue; }
+    // if( !m_is_pPb && label.compare("HLT_j45_320eta490") ){ continue; }
+    // if( !m_is_pPb && label.compare("HLT_j30_L1TE5") ){ continue; }
+    // if( !m_is_pPb && label.compare("HLT_j30_L1TE5") ){ continue; }
     
     TH3* hSample = vhSample[ iG ];
     
-    int xBin = 1, yBin = 1; 
+    int xBin = 2, yBin = 1; 
     double xMin, xMax;
     anaTool->GetBinRange
       ( hSample->GetXaxis(), xBin, xBin, xMin, xMax );
@@ -1211,13 +1241,16 @@ void DiJetAnalysisData::MakeNjetsRun( std::vector< TH3* >& vhSample,
     std::string hTag = Form( "%s_%s", anaTool->GetName( xMin, xMax, "Ystar1").c_str(),
 			     anaTool->GetName( yMin, yMax, "Pt1").c_str() );
 
-    std::string hName = "h_" + name + "_" + m_allName + "_" + hTag;
+    std::string hName = "h_" + name + "_" + label + "_" + hTag;
     hSample->GetXaxis()->SetRange( xBin, xBin );
     hSample->GetYaxis()->SetRange( yBin, yBin );
 
-    TH1* hNjetsRun = static_cast< TH1D* >( hSample->ProjectionZ( hName.c_str() ));
+    TH1* hNjetsRun = static_cast< TH1D* >
+      ( hSample->ProjectionZ( hName.c_str(), xBin, xBin, yBin, yBin ) );
 
-    std::cout << "+++++++++++ " << label << std::endl;
+    double nJetsTot = 0;
+    
+    std::cout << "+++++++++++ " << label << " - " << hName << std::endl;
     
     for( auto& rB : m_mRunBin ){
       int run = rB.first;
@@ -1227,16 +1260,41 @@ void DiJetAnalysisData::MakeNjetsRun( std::vector< TH3* >& vhSample,
       double nJets      = hNjetsRun->GetBinContent( bin );
       double nJetsError = hNjetsRun->GetBinError  ( bin );
 
+      nJetsTot += nJets;
+      
+      double nJetsScaled      = nJets     /lumi;
+      double nJetsErrorScaled = nJetsError/lumi;
+      
+      std::cout << bin << " " << run << " " << lumi << " " << nJets << " " << nJetsScaled << std::endl;
+
       if( !nJets ){ continue; }
 
-      double nJetsScaled      = nJets     / lumi;
-      double nJetsErrorScaled = nJetsError /lumi;
-      
-      std::cout << run << " " << lumi << " " << nJets << " " << nJetsScaled << std::endl;
-    
+      hNjetsRun->GetXaxis()->SetBinLabel( bin, Form("%d", run ) );
       hNjetsRun->SetBinContent( bin, nJetsScaled      );
       hNjetsRun->SetBinError  ( bin, nJetsErrorScaled );
     }
+    std::cout << "Had: " << nJetsTot << " jets total." << std::endl;
+
+    TCanvas c( "c", "c", 800, 600 );
+    styleTool->SetHStyle( hNjetsRun, 0 );
+    hNjetsRun->SetMinimum( 0 );
+    hNjetsRun->SetMaximum( hNjetsRun->GetMaximum() * 1.6 );
+
+    hNjetsRun->SetYTitle( "N_{jets}/L_{run}");
+    hNjetsRun->Draw();
+
+    drawTool->DrawLeftLatex( 0.2, 0.3, label );
+
+
+    drawTool->DrawLeftLatex
+      ( 0.18, 0.86, anaTool->GetLabel( xMin, xMax, "#it{y}_{1}*" ), 1.0 );
+    drawTool->DrawLeftLatex
+      ( 0.18, 0.78, anaTool->GetLabel( yMin, yMax, "#it{p}_{T}^{1}"), 1.0 );
+    
+    DrawAtlasRight();
+
+    SaveAsAll( c, hName );
+    
     hNjetsRun->Write();
   }
 }
@@ -1994,7 +2052,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
       // this is bs. works though. vary the last factor 
       double deltaYleg = ( axis1Bin - 1 ) * 0.04;
 
-      double legSX0pPb = isYield ? 0.36 : 0.21;
+      double legSX0pPb = isYield ? 0.33 : 0.18;
       double legSX0pp  = isYield ? 0.45 : 0.30;
       double legSX1pPb = isYield ? 0.52 : 0.37;
       double legSX1pp  = isYield ? 0.73 : 0.47;
@@ -2365,10 +2423,11 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	style++;
       } // end loop over axis2
       pad1F.cd();
-      
+
       DrawTopLeftLabels
 	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up );
-
+	
+      
       DrawAtlasRightBoth( 0, 0, 1.0, true );
 
       legSpPb.Draw();

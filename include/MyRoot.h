@@ -36,7 +36,7 @@
 
 
 namespace constants{
-  const double pPbLumi2016 = 4.4; // ub
+  const double pPbLumi2016 = 360; // ub
   const double ppLumi2015  = 25;  // pb
 
   // FCal eta ranges

@@ -1541,7 +1541,7 @@ TGraphAsymmErrors* DiJetAnalysisMC::CombineSamples( std::vector< TGraphAsymmErro
 
 void DiJetAnalysisMC::SetCfactorsErrors( TH1* hR, TH1* hT, TH2* hM, TH1* hC ){
 
-  std::cout << hT->GetName() << std::endl;
+  std::cout << hT->GetName() << " +++ " << hT->GetNbinsX() << std::endl;
   // set factors
   for( int xBin = 1; xBin <= hT->GetNbinsX(); xBin++ ){
     int cBin = hC->FindBin( hT->GetBinCenter(xBin) );
@@ -1906,7 +1906,7 @@ TH2* DiJetAnalysisMC::MakeSpectWeights( TFile* fOut ){
   double y0 = 0.6, y1 = 0.8;
   if( m_is_pPb ){ y0 = 0.3; y1 = 0.4; }
   
-  TLegend leg( 0.5, y0, 0.9, y1 );
+  TLegend leg( 0.35, y0, 0.7, y1 );
 
   styleTool->SetLegendStyle( &leg );
   
@@ -2248,7 +2248,7 @@ TH3* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
   std::string hName = "h_" + m_dPhiName + "_" + m_sWeights + "_" + m_allName;
   
   TCanvas cAll( "cAll", "cAll", 800, 600 );
-  TLegend legAll( 0.6, 0.5, 0.8, 0.8 );
+  TLegend legAll( 0.6, 0.5, 0.8, 0.75 );
   styleTool->SetLegendStyle( &legAll );
   
   for( int y2Bin = 1; y2Bin <= y2Axis->GetNbins(); y2Bin++ ){
@@ -2793,7 +2793,7 @@ void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco
       drawTool->DrawLeftLatex
 	( 0.2, 0.85, anaTool->GetLabel( xMin, xMax, axisLabelTex ).c_str() );
 
-      drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel, 3, CT::StyleTools::lSS);
+      drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel, 3, CT::StyleTools::lSS );
 
       drawTool->DrawRightLatex( 0.87, 0.25, Form( "%s %s", system.c_str(), m_mcTypeLabel.c_str() ) );
       
@@ -2823,6 +2823,11 @@ void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco
       hC->SetYTitle( "Correction Factor" );
 
       SetCfactorsErrors( hR, hT, hRespMat, hC );
+
+      std::cout << hT->GetName()  << " ---- " << hT->GetNbinsX() << std::endl; 
+      for( int i = 1; i <= hT->GetNbinsX(); i++ ){
+	std::cout << hT->GetBinContent(i) << " " << hR->GetBinContent(i) << " " << hC->GetBinContent(i) << std::endl;
+      }
       
       // Do the fitting and drawing only for
       // the jzn individual samples. Do this later

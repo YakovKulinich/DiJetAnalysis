@@ -1,4 +1,5 @@
 #include "UncertaintyProvider.h"
+#include "HIJESUncertaintyProvider.h"
 #include "MyRoot.h"
 
 #include <TH1.h>
@@ -275,7 +276,13 @@ void HIJESUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& re
 //--------------------------------
 
 JESUncertaintyTool::JESUncertaintyTool( int uc, bool is_pPb )
-  : UncertaintyTool( uc, is_pPb ){}
+  : UncertaintyTool( uc, is_pPb ){
+  // ----- JES (HI)
+  // Call Constructor
+  m_hiJetUncertaintyTool = new HIJESUncertaintyProvider("HIJESUncert_data15_5TeV.root");
+  m_hiJetUncertaintyTool->UseJESTool(true);
+  m_hiJetUncertaintyTool->UseGeV(false);
+}
 
 JESUncertaintyTool::~JESUncertaintyTool(){}
 
@@ -285,9 +292,21 @@ void JESUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& reco
   for( uint iJet = 0; iJet < recoJets.size(); iJet++ ){
     TLorentzVector& recoJet = recoJets[ iJet ];
     double factor = (*m_p_vSysUncert)[ iJet ][ std::abs( m_uc ) - 1 ];
-      
-    recoJet.SetPtEtaPhiM( recoJet.Pt() * ( 1 + factor * m_sign ),
-			  recoJet.Eta(), recoJet.Phi(), recoJet.M() );
+
+    double jetPt  = recoJet.Pt();
+    double jetEta = recoJet.Eta();
+    
+    // this is flavour get factor different way for pPb
+    if( std::abs( m_uc ) == 18 && m_is_pPb ){
+      factor = 
+	sqrt(pow( m_hiJetUncertaintyTool->GetUncertaintyComponent
+		  ("flav_composition", jetPt, jetEta),2) + 
+	     pow( m_hiJetUncertaintyTool->GetUncertaintyComponent
+		  ("flav_response", jetPt, jetEta),2));
+    }
+    
+    recoJet.SetPtEtaPhiM( jetPt * ( 1 + factor * m_sign ),
+			  jetEta, recoJet.Phi(), recoJet.M() );
   }
 }
 
