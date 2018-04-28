@@ -302,7 +302,7 @@ void CT::AnalysisTools::UndoWidthScaling( TH1* h ){
 TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
 
   auto EMG = [&]( double* x, double* par){
-    return par[0]*(2/par[1])*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
+    return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
     ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
       TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
       TMath::Exp((constants::PI-x[0])/par[1]) *
@@ -321,11 +321,16 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   double amp = histo->GetBinContent( histo->GetMaximumBin () );
 
   TVirtualFitter::SetMaxIterations(1000);
+
+  std::string name = histo->GetName();
   
   dPhiFit->SetParameters( amp, 0.20, 0.20 );
-  dPhiFit->SetParLimits ( 1, 1E-3, 0.60 );
-  dPhiFit->SetParLimits ( 2, 1E-3, 0.5 );
+  dPhiFit->SetParLimits ( 1, 1E-2, 0.60 );
+  dPhiFit->SetParLimits ( 2, 1E-3, 0.40 );
 
+  if( !name.compare("h_dPhi_unfolded_All_40_Ystar1_27_45_Pt1_90_28_Pt2_35_40_Ystar2_27"))
+    dPhiFit->SetParLimits ( 2, 1.6E-1, 0.50 );
+  
   int status = 0;
   
   std::string hName = histo->GetName();
@@ -455,6 +460,65 @@ TF1* CT::AnalysisTools::FitLogPol2( TH1* histo, double xLow, double xHigh){
   histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
   
   return fit;
+}
+
+void CT::AnalysisTools::FitPol0Syst
+( TGraphAsymmErrors* gIn, TGraphAsymmErrors* gsIn,
+  double& c0, double& dc0, double& dc1, double& dc2,
+  double xMin, double xMax ){
+
+  TGraphAsymmErrors* g = static_cast< TGraphAsymmErrors* >( gIn->Clone() );
+  TGraphAsymmErrors* gUp   = static_cast< TGraphAsymmErrors* >( gIn->Clone() );
+  TGraphAsymmErrors* gDown = static_cast< TGraphAsymmErrors* >( gIn->Clone() );
+
+  TF1* fit  = new TF1( Form("f_%s", gIn->GetName()), "pol0(0)", xMin, xMax );
+  g->Fit( fit->GetName(), "NQ", "", xMin, xMax );
+
+  c0  = fit->GetParameter(0);
+  dc0 = fit->GetParError (0);
+
+  // shift points up to systematic
+  for( int i = 0; i < g->GetN(); i++ ){
+    double sx0, sy0;
+    gsIn->GetPoint( i, sx0, sy0 );
+    double sEhigh = gsIn->GetErrorYhigh(i) + sy0;
+    
+    double x0, y0;
+    gUp->GetPoint( i, x0, y0 );
+
+    // shift the y up 
+    gUp->SetPoint( i, x0, sEhigh );
+  }
+
+  // Now fit the points that are shifted up to
+  // positive systematic uncertainty.
+  double c0Up;
+  gUp->Fit( fit->GetName(), "NQ", "", xMin, xMax );
+  c0Up = fit->GetParameter(0);
+  dc1  = std::abs( ( c0 - c0Up )/c0 );
+  
+  // shift points up down systematic
+  for( int i = 0; i < g->GetN(); i++ ){
+    double sx0, sy0;
+    gsIn->GetPoint( i, sx0, sy0 );
+    double sElow  = sy0 - gsIn->GetErrorYlow (i);
+
+    double x0, y0;
+    gDown->GetPoint( i, x0, y0 );
+
+    // shift the y down 
+    gDown->SetPoint( i, x0, sElow );
+  }
+
+  // Now fit the points that are shifted down to
+  // negative systematic uncertainty.
+  double c0Down;
+  gDown->Fit( fit->GetName(), "NQ", "", xMin, xMax );
+  c0Down = fit->GetParameter(0);
+  dc2    = std::abs( ( c0 - c0Down )/c0 );
+
+  delete g;
+  delete fit;
 }
 
 double CT::AnalysisTools::GetGraphMax( TGraph* g, double xMin, double xMax ){

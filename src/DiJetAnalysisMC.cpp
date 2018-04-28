@@ -184,6 +184,9 @@ void DiJetAnalysisMC::Initialize()
 	    weightDir.c_str(), m_myOutName.c_str(), system.c_str(),
 	    m_sData.c_str(), m_sPhys.c_str(), m_uncertSuffix.c_str() );
 
+  // Get FCal Weights histogram
+  TFile* fInFCalWeight = TFile::Open("data/pPbFCalWeight.root");
+  h_pPbFCalWeights = static_cast< TH1D* >( fInFCalWeight->Get("hR") );
 }
 
 void DiJetAnalysisMC::AdditionalSuffix( std::string& label ){
@@ -687,8 +690,8 @@ void DiJetAnalysisMC::SetupHistograms(){
     hnDphiRespMat->GetAxis(3)->SetTitle( "Truth #it{p}_{T,1}" );
     hnDphiRespMat->GetAxis(4)->SetTitle( "Reco #it{p}_{T,2}"  );
     hnDphiRespMat->GetAxis(5)->SetTitle( "Truth #it{p}_{T,2}" );
-    hnDphiRespMat->GetAxis(6)->SetTitle( "|#Delta#phi_{reco}|"  );
-    hnDphiRespMat->GetAxis(7)->SetTitle( "|#Delta#phi_{truth}|" );
+    hnDphiRespMat->GetAxis(6)->SetTitle( "#Delta#phi_{reco}"  );
+    hnDphiRespMat->GetAxis(7)->SetTitle( "#Delta#phi_{truth}" );
     
     // --- Rebinned Dphi Response Matrix -----    
     THnSparse* hnDphiRespMatReb =
@@ -712,8 +715,8 @@ void DiJetAnalysisMC::SetupHistograms(){
     hnDphiRespMatReb->GetAxis(3)->SetTitle( "Truth #it{p}_{T,1}" );
     hnDphiRespMatReb->GetAxis(4)->SetTitle( "Reco #it{p}_{T,2}"  );
     hnDphiRespMatReb->GetAxis(5)->SetTitle( "Truth #it{p}_{T,2}" );
-    hnDphiRespMatReb->GetAxis(6)->SetTitle( "|#Delta#phi_{reco}|"  );
-    hnDphiRespMatReb->GetAxis(7)->SetTitle( "|#Delta#phi_{truth}|" );    
+    hnDphiRespMatReb->GetAxis(6)->SetTitle( "#Delta#phi_{reco}"  );
+    hnDphiRespMatReb->GetAxis(7)->SetTitle( "#Delta#phi_{truth}" );    
   } 
 }
 
@@ -786,7 +789,13 @@ void DiJetAnalysisMC::ProcessEventsForWeights( int nEventsIn, int startEventIn, 
     tree->SetBranchAddress( "vT_jets"      , &p_vT_jets      );
     tree->SetBranchAddress( "vR_C_jets"    , &p_vR_jets      );
     tree->SetBranchAddress( "v_isCleanJet" , &p_v_isCleanJet );
-  
+
+    if( m_is_pPb ){
+      m_FCalEt = tree->SetBranchAddress( "FCalEtA"  , &m_FCalEt );
+    } else {
+      m_FCalEt = 0;
+    }
+
     // n events
     int nEvents, startEvent, nEventsTotal, endEvent;
     
@@ -803,7 +812,7 @@ void DiJetAnalysisMC::ProcessEventsForWeights( int nEventsIn, int startEventIn, 
     // -------- EVENT LOOP ---------
     for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
       tree->GetEntry( m_ev );
-            
+      
       if( anaTool->DoPrint( m_ev ) ) {
 	std::cout << "\nEvent : " << m_ev 
 		  << "    has : " << vR_jets.size() << " reco jets"
@@ -854,6 +863,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
   std::vector< std::vector< float > >    v_sysUncert;
   std::vector< std::vector< float > >* p_v_sysUncert = & v_sysUncert;
 
+  
   TH2* hJerComp = new TH2D( "hJerComp", ";#it{p}_T;After/Before", 124, 28, 90, 50, 0, 2 );
   styleTool->SetHStyle( hJerComp, 0 );
   
@@ -869,6 +879,12 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
     tree->SetBranchAddress( "vR_C_jets"    , &p_vR_jets      );
     tree->SetBranchAddress( "v_isCleanJet" , &p_v_isCleanJet );
     tree->SetBranchAddress( "v_sysUncert"  , &p_v_sysUncert  );
+
+    if( m_is_pPb ){
+      m_FCalEt = tree->SetBranchAddress( "FCalEtA"  , &m_FCalEt );
+    } else {
+      m_FCalEt = 0;
+    }
 
     // n events
     int nEvents, startEvent, nEventsTotal, endEvent;
@@ -930,18 +946,20 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 	TLorentzVector& rJetFront = vTR_paired_jets.front();
 	TLorentzVector& tJetFront = vTT_paired_jets.front();
 	
-	double spectWeight = GetSpectWeight( tJetFront );
+	double recoJetWeight  = GetJetWeight( tJetFront ) * GetSpectWeight( tJetFront );
+	double truthJetWeight = GetJetWeight( rJetFront ) * GetSpectWeight( tJetFront );
+	
 	m_vHjznYstarSpectReco[iG] ->Fill
-	  ( GetYstar( rJetFront ), rJetFront.Pt()/1000., spectWeight);
+	  ( GetYstar( rJetFront ), rJetFront.Pt()/1000., recoJetWeight  );
 	m_vHjznYstarSpectTruth[iG]->Fill
-	  ( GetYstar( tJetFront ), tJetFront.Pt()/1000., spectWeight );
+	  ( GetYstar( tJetFront ), tJetFront.Pt()/1000., truthJetWeight );
 
 	// fill both sides for pp
 	if( !m_is_pPb ){
 	  m_vHjznYstarSpectReco[iG] ->Fill
-	    ( -GetYstar( rJetFront ), rJetFront.Pt()/1000., spectWeight );
+	    ( -GetYstar( rJetFront ), rJetFront.Pt()/1000., recoJetWeight  );
 	  m_vHjznYstarSpectTruth[iG]->Fill
-	    ( -GetYstar( tJetFront ), tJetFront.Pt()/1000., spectWeight );
+	    ( -GetYstar( tJetFront ), tJetFront.Pt()/1000., truthJetWeight );
 	}
       }
 
@@ -1036,6 +1054,7 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     if( jetPtReco > 28 && jetPtReco < 35 ){
       m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
     }
+    
     m_vHjznEtaPtMap [iG]->Fill( jetEtaReco, jetPtReco , jetWeightReco );
 
     m_vHjznRecoTruthRpt       [iG]->
@@ -1093,13 +1112,15 @@ void DiJetAnalysisMC::AnalyzeSpectRespMat( TH3* hRespMat,
   
     double tJet_pt    = tJet->Pt()/1000.;
     double tJet_ystar = GetYstar( *tJet );
+
+    double jetWeight = GetJetWeight( *tJet );
     
-    hRespMat->Fill(  tJet_ystar, rJet_pt, tJet_pt );
+    hRespMat->Fill(  tJet_ystar, rJet_pt, tJet_pt, jetWeight );
 
     // for pp fill plus minus ystar
     if( m_is_pPb ){ return; }
 
-    hRespMat->Fill( -tJet_ystar, rJet_pt, tJet_pt );
+    hRespMat->Fill( -tJet_ystar, rJet_pt, tJet_pt, jetWeight );
   }
 }
 
@@ -1574,14 +1595,30 @@ void DiJetAnalysisMC::SetCfactorsErrors( TH1* hR, TH1* hT, TH2* hM, TH1* hC ){
 
 double DiJetAnalysisMC::GetJetWeight( const TLorentzVector& jet ){
 
+
+  /*
   if( !m_hPowhegWeights ) { return 1; } 
-  
+
   int xb = m_hPowhegWeights->GetXaxis()->FindBin( jet.Pt()/1000. );
   int yb = m_hPowhegWeights->GetYaxis()->FindBin( jet.Eta()      );
   int zb = m_hPowhegWeights->GetZaxis()->FindBin( jet.Phi()      );
   float jet_weight = m_hPowhegWeights->GetBinContent( xb, yb, zb );
-
+  
   return jet_weight;
+  */
+
+  // !!ONLY FOR pPb!!
+ 
+  if( m_is_pPb ){
+    if( m_FCalEt > 0.09 ){
+      return h_pPbFCalWeights->GetBinContent
+	( h_pPbFCalWeights->FindBin( 0.09 ) );
+    }
+    return h_pPbFCalWeights->GetBinContent
+      ( h_pPbFCalWeights->FindBin( m_FCalEt ) );
+  }
+  
+  return 1;
 }
 
 void DiJetAnalysisMC::GetTypeTitle( const std::string& type,
@@ -1642,7 +1679,7 @@ void DiJetAnalysisMC::GetDphiUnfoldingInfo( std::string& measuredName,
 
   measuredName  = m_dPhiRecoName;
   truthName     = m_dPhiTruthName;
-  unfoldedLabel = "|#Delta#phi|";
+  unfoldedLabel = "#Delta#phi";
   typeLabel     = "MC";
 }
 
@@ -3083,25 +3120,32 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	    //---------------------------------------------------
 	    //   Counts, Rebinned, Normalized dPhi Histograms
 	    //---------------------------------------------------
-	    // Take projection onto the dPhi axis
 	    TH1* hT = hnT->Projection( 4 );
 	    TH1* hR = hnR->Projection( 4 );
 
+	    for( int i = 0; i <= hT->GetNbinsX(); i++ ){
+	      if( hT->GetBinContent(i) < 6 ){
+		hT->SetBinContent( i, 0 );
+	      }
+	      if( hR->GetBinContent(i) < 6 ){
+		hR->SetBinContent( i, 0 );
+	      }
+	    }
+	    
+	    
 	    hT->SetName( Form( "h_T_%s_%s_%s_%s",
 			       m_dPhiName.c_str(), m_sCounts.c_str(),
 			       label.c_str(), hTag.c_str() ) );
 	    hR->SetName( Form( "h_R_%s_%s_%s_%s",
 			       m_dPhiName.c_str(), m_sCounts.c_str(),
 			       label.c_str(), hTag.c_str() ) );
-
-	    // write the unnormalized histograms.
+	    
 	    vProj.push_back( hT );
 	    vProj.push_back( hR );
 
 	    hT->Write();
 	    hR->Write();
 
-	    // rebin before dividing and normalizing.
 	    TH1* hTreb = static_cast< TH1D* >
 	      ( hT->Rebin
 		( m_nVarDphiRebinnedBins,
@@ -3149,21 +3193,6 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	    // the jzn individual samples. Do this later
 	    // for the combined sample.
 	    if( label.compare( m_allName ) ){
-	      
-	      TF1* cFit = anaTool->FitPol2( hC, 2.2, m_dPhiZoomHigh );
-	      vCfits.push_back( cFit );
-	    
-	      cFit->SetLineStyle( 2 );
-	      cFit->SetLineColor( kBlue );
-
-	      if( cFit->GetProb() ){
-		hCfactorsChi2->Fill( cFit->GetChisquare()/cFit->GetNDF() );
-		hCfactorsProb->Fill( cFit->GetProb() );
-	      }
-	     
-	      hC->Write();
-	      cFit->Write();
-
 	      // keep track of only JZ slice counts and response matrixes.
 	      // these vectors are the ones that will be used to make the
 	      // the final correction factors.

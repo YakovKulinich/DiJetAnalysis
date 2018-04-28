@@ -123,6 +123,10 @@ namespace CT{
 
     TF1* FitLogPol2 ( TH1*, double = 0, double = 0 );
 
+    void FitPol0Syst( TGraphAsymmErrors*, TGraphAsymmErrors*,
+		      double&, double&, double& , double&,
+		      double = 0, double = 0 );
+    
     double GetGraphMax( TGraph*, double = 0, double = 0 );
     
     TGraph* Barycenters( TH1*, TH1* );

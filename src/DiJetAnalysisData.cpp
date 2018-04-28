@@ -898,7 +898,7 @@ void DiJetAnalysisData::GetDphiUnfoldingInfo( std::string& measuredName,
 
   measuredName  = m_dPhiName;
   truthName     = m_dPhiTruthName;
-  unfoldedLabel = "|#Delta#phi|";
+  unfoldedLabel = "#Delta#phi";
   typeLabel     = "Data";
 }
 
@@ -2144,14 +2144,12 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  double x, y;
 	  gNominalB->GetPoint( i, x, y );
 	  
-	  std::cout << " dddddddddddd " << i << " " << x0 << " " << x << std::endl; 
 	  gNominalB    ->SetPoint( i, x0 + pDx2, y0 );
 	  gSystematicsB->SetPoint( i, x0 + pDx2, y0 );
 	  x0 = hNominalA->GetBinCenter ( i  + 1 );
 	  y0 = hNominalA->GetBinContent( i  + 1 );
 	  gNominalA    ->SetPoint( i, x0 + pDx2, y0 );
 	  gSystematicsA->SetPoint( i, x0 + pDx2, y0 );
-	  
 	}
 	
 	// now draw everything
@@ -2259,9 +2257,11 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	      int sign = uc > 0 ? 1 : -1;
 
+	      /*
 	      std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " "
 			<< axis2Bin << " " << sign << " " << ratioABshifted << " "
 			<< ratioABnominal << " " << std::sqrt( uncertaintySq ) << std::endl;
+	      */
 	      
 	      if( sign > 0 ){
 		uncertFinYP += uncertaintySq;
@@ -2345,7 +2345,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	DrawAtlasRightBoth( 0, 0, 1.0, true );
 	  
 	std::string hNameFinalR =
-	  "h_" + name + "_" + m_sRatio + "_" +m_sFinal + "_" + hTag;
+	  "h_" + name + "_" + m_sRatio + "_" + m_sFinal + "_" + hTag;
 
 	SaveAsPdfPng( cRatio, hNameFinalR, true );
 	SaveAsROOT  ( cRatio, hNameFinalR );
@@ -2378,9 +2378,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	    double x, y;
 	    gNominalA->GetPoint( i, x, y );
-	    std::cout << " lllllllllll " << gNominalA->GetName()
-		      << " " << i << " " << x << std::endl;
-
+	   
 	    gNominalA    ->SetPoint( i, -10, y0 );
 	    gSystematicsA->SetPoint( i, -10, y0 );
 	    gNominalB    ->SetPoint( i, -10, y0 );
@@ -2421,6 +2419,43 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	gNominalR->Draw("p");
 
 	style++;
+
+	//--------------------------------------------
+	// Fit some bins to see the results on ratios
+	//--------------------------------------------
+	double posYstarFitMin = 1.5;
+	double posYstarFitMax = 4.0;
+	double c0Pos = 0, dc0Pos = 0, dc1Pos = 0, dc2Pos = 0;
+	anaTool->FitPol0Syst
+	  ( gNominalR, gSystematicsR, c0Pos, dc0Pos, dc1Pos, dc2Pos,
+	    posYstarFitMin, posYstarFitMax );
+
+	std::string posFitResult = Form( "%5.4f +- %5.4f + %5.4f - %5.4f",
+					 c0Pos, dc0Pos, dc1Pos, dc2Pos );
+	
+	double negYstarFitMin = -4.0;
+	double negYstarFitMax =  0.0;
+	double c0Neg = 0, dc0Neg = 0, dc1Neg = 0, dc2Neg = 0;
+	anaTool->FitPol0Syst
+	  ( gNominalR, gSystematicsR, c0Neg, dc0Neg, dc1Neg, dc2Neg,
+	    negYstarFitMin, negYstarFitMax );
+
+	std::string negFitResult = Form( "%5.4f +- %5.4f + %5.4f - %5.4f",
+					 c0Neg, dc0Neg, dc1Neg, dc2Neg );
+
+	double significancePos =
+	  ( 1 - c0Pos ) / std::sqrt( std::pow( dc0Pos, 2 ) + std::pow( dc1Pos, 2 ) );
+	double significanceNeg =
+	  ( 1 - c0Neg ) / std::sqrt( std::pow( dc0Neg, 2 ) + std::pow( dc1Neg, 2 ) );
+	
+	std::cout << "   " << hTag << std::endl;
+	std::cout << "-----------------Positive------------------------" << std::endl;
+	std::cout << "   " << posFitResult  << std::endl;
+	std::cout << "   sigma : " << significancePos << std::endl;
+	std::cout << "-----------------Negative------------------------" << std::endl;
+	std::cout << "   " << negFitResult  << std::endl;
+	std::cout << "   sigma : " << significanceNeg << std::endl;
+	std::cout << "-----------------Negative------------------------" << std::endl;
       } // end loop over axis2
       pad1F.cd();
 

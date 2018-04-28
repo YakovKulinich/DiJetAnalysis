@@ -219,7 +219,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   //============== tool ===============
   UncertaintyProvider* m_uncertaintyProvider;
-  
+
+  TH1* h_pPbFCalWeights;
+  double m_FCalEt;
   //============ settings ============= 
   std::vector< int > m_vJznUsed;
   

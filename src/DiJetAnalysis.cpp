@@ -398,10 +398,10 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  MakeFinalPlotsTogether( fOut, m_widthName );
-  MakeFinalPlotsTogether( fOut, m_yieldName );
+  // MakeFinalPlotsTogether( fOut, m_widthName );
+  // MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  // MakeDphiTogether ( fOut );
+  MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -444,7 +444,7 @@ void DiJetAnalysis::AddHistogram( THnSparse* hn ){
   hn->GetAxis(2)->SetTitle("#it{p}_{T}^{1}");
   hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
   if( hn->GetNdimensions() >= 5 ){
-    hn->GetAxis(4)->SetTitle("|#Delta#phi|"); }
+    hn->GetAxis(4)->SetTitle("#Delta#phi"); }
 }
 
 
@@ -515,7 +515,7 @@ void DiJetAnalysis::AnalyzeSpectra( TH2* hSpect,
     double jetPt     = jet.Pt()/1000.;
     
     double jetWeight = GetJetWeight( jet );
-
+    
     hSpect->Fill(  jetYstar,  jetPt,  jetWeight );	
 
     // for pp fill both sides
@@ -714,6 +714,9 @@ TH1* DiJetAnalysis::BinByBinUnfolding( TH1* hM, TH1* hC ){
       std::sqrt( std::pow( eM / vM, 2) +
 		 std::pow( eC / vC, 2) ) ; 
 
+    std::cout << xBin << " - " << vM << " " << eM << " " << vC
+	      << " " << eC << " " << newDphi << " " << newDphiError << std::endl; 
+    
     // newDphiError = eM * vC; 
     
     hUnf->SetBinContent( xBin, newDphi      );
@@ -1670,12 +1673,12 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphiCounts->SetName( hDphiCountsName.c_str() );
 	    styleTool->SetHStyle( hDphiCounts, 0 );
 	    vHdPhi.push_back( hDphiCounts );
-	    
+
 	    // save the per-jet normalized counts histogram.
 	    TH1* hDphi = static_cast< TH1D* >( hDphiCounts->Clone( hDphiName.c_str() ) );
 	    styleTool->SetHStyle( hDphi, 0 );
 	    hDphi->SetYTitle( m_sWidthTitle.c_str() );
-	    hDphi->SetXTitle("|#Delta#phi|");
+	    hDphi->SetXTitle("#Delta#phi");
 	    hDphi->SetTitle( "" );
 	    vHdPhi.push_back( hDphi );
 	    	    
@@ -1834,7 +1837,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double sigmaError = fit->GetParError(2);
 	    
 	    double yieldError = 0;
-	    double yield      = hYields->IntegralAndError( 1, hDphi->GetNbinsX(), yieldError );
+	    double yield      = hYields->IntegralAndError( 5, hDphi->GetNbinsX(), yieldError );
 	 
 	    double width      = std::sqrt( 2 * tau * tau + sigma * sigma ); 
 	    double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
@@ -2971,7 +2974,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  legW.AddEntry( hW_b, Form("%s %s", label_b.c_str(), anaTool->GetLabel
 				    ( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ).c_str()));	
 	}
-	
+
 	hW_a->Draw("ep same X0");
 	hW_b->Draw("ep same X0");
 
@@ -3078,6 +3081,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
 	  h_a->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 
+	  h_a->GetXaxis()->SetTitle("#Delta#phi");
 	  h_a->Draw("ep x0 same");
 	  h_b->Draw("ep x0 same");
 	  
@@ -3147,12 +3151,14 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
 	  double yield_b      = hY_b->GetBinContent( axis3Bin );
 	  double yieldError_b = hY_b->GetBinError  ( axis3Bin );
-	 
+
+	  std::cout << yield_a << std::endl;
+	  
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.79, Form( "%s_{%s}=%0.3f#pm%0.3f", m_sYieldTitle.c_str(),
-				label_a.c_str(),yield_a, yieldError_a ) );
+	    ( 0.53, 0.79, Form( "%s_{%s}=%e#pm%e", m_sYieldTitle.c_str(),
+				label_a.c_str(), yield_a, yieldError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.70, Form( "%s_{%s}=%0.3f#pm%0.3f", m_sYieldTitle.c_str(),
+	    ( 0.53, 0.70, Form( "%s_{%s}=%e#pm%e", m_sYieldTitle.c_str(),
 				label_b.c_str(), yield_b, yieldError_b ) );
 
 	  cc.cd();
@@ -3179,23 +3185,23 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 	      axis2Low, axis2Up, axis3Low, axis3Up );
 
-	  double labelX0 = m_isData ? 0.78 : 0.76;
+	  double labelX0 = m_isData ? 0.80 : 0.78;
 	  
 	  drawTool->DrawAtlasInternal();
 	  drawTool->DrawLeftLatex( labelX0, 0.345, m_isData ? "Data" : "MC" );
 
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.56, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+	    ( 0.19, 0.55, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
 				label_a.c_str(), width_a, widthError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.19, 0.48, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+	    ( 0.19, 0.47, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
 				label_b.c_str(), width_b, widthError_b ) );
 
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.77, Form( "%s_{%s}=%0.3f #pm %0.3f", m_sYieldTitle.c_str(),
+	    ( 0.50, 0.78, Form( "%s_{%s}=%3.1e #pm %3.1e", m_sYieldTitle.c_str(),
 				label_a.c_str(),yield_a, yieldError_a ) );
 	  drawTool->DrawLeftLatex
-	    ( 0.53, 0.69, Form( "%s_{%s}=%0.3f #pm %0.3f", m_sYieldTitle.c_str(),
+	    ( 0.50, 0.70, Form( "%s_{%s}=%3.1e #pm %3.1e", m_sYieldTitle.c_str(),
 				label_b.c_str(), yield_b, yieldError_b ) );
 
 	  SaveAsAll( cc, Form("hf_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
