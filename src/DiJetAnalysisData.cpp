@@ -63,7 +63,6 @@ void DiJetAnalysisData::Initialize(){
     "/home/yakov/Projects/atlas/data/pp/pp.root"  ;
 
   // directory of where unfolding MC files are
-
   std::string system = m_is_pPb ? m_s_pPb : m_s_pp;
 
   std::string unfoldingMCdir =
@@ -1683,6 +1682,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  pY .push_back( yNominal );
 	  eYP.push_back( yNominal * uncertFinYP );
 	  eYN.push_back( yNominal * uncertFinYN );
+
+	  
 	} // end loop over axis3
 	
 	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
@@ -2661,7 +2662,6 @@ void DiJetAnalysisData::CompareCfactorsRBnRB( TFile* fOut ){
 	lineN25.Draw();
 	  
 	SaveAsAll( cWidthsCmp, hNameW );
-
 	
 	// ----------- yields -----------
 	std::string hTagY =

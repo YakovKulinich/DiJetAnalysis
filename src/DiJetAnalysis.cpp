@@ -2843,6 +2843,9 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
     TFile::Open( "output/output_pp_data/myOut_pp_data_phys_0.root" ) :
     TFile::Open( "output/output_pPb_data/myOut_pPb_data_phys_0.root" );
 
+  //  TFile* fDataNoIso = TFile::Open( "data/myOut_pp_data_phys_UF_0.root" ) ;
+  TFile* fDataNoIso = TFile::Open( "data/myOut_pPb_data_phys_UF_0.root" ) ;
+  
   std::string hMCname   = "h_dPhi_reco_All";
   std::string hDataName = "h_dPhi_All";
 
@@ -2907,6 +2910,10 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	double axis2Low , axis2Up;
 	anaTool->GetBinRange
 	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+
+	if( !m_dPP->CorrectPhaseSpace
+	    ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, 0 } ) )
+	  { continue; }
 	
 	// get widths histos
 	std::string hTag =
@@ -3016,6 +3023,97 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	hY_a->Draw("ep same X0");
 	hY_b->Draw("ep same X0");
 
+	// Now Draw everything.
+	TCanvas ccNoIsoW( "ccNoIsoW", "ccNoIsoW", 800, 700 );
+	TPad padNoIsoW1("padNoIsoW1", "", 0.0, 0.35, 1.0, 1.0 );
+	padNoIsoW1.SetBottomMargin(0);
+	padNoIsoW1.Draw();
+	TPad padNoIsoW2("padNoIsoW2", "", 0.0, 0.0, 1.0, 0.34 );
+	padNoIsoW2.SetTopMargin(0.05);
+	padNoIsoW2.SetBottomMargin(0.25);
+	padNoIsoW2.Draw();
+
+	TLegend legNoIsoW( 0.4, 0.1, 0.6, 0.3 );
+	styleTool->SetLegendStyle( &legNoIsoW );
+	
+	TH1* h_DataNoIsoW = static_cast< TH1D* >( fDataNoIso->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_DataNoIsoW, style + 5 );
+	
+	padNoIsoW1.cd();
+	hW_a->Draw("ep X0 same");
+	h_DataNoIsoW->Draw("ep X0 same");
+	legNoIsoW.AddEntry( hW_a, "Isolation" );
+	legNoIsoW.AddEntry( h_DataNoIsoW, "No Isolation" );
+	legNoIsoW.Draw();
+
+	drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" );
+	// drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+	drawTool->DrawAtlasInternal();
+
+	DrawTopLeftLabels
+	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	    axis2Low, axis2Up );
+	
+	TH1D* hRNoIsoW = static_cast< TH1D* >( hW_a->Clone( Form("%s_NoIsoR", hW_a->GetName() ) ) );
+	styleTool->SetHStyleRatio( hRNoIsoW, 0 );
+	hRNoIsoW->GetYaxis()->SetTitle("Ratio");
+	hRNoIsoW->Divide( h_DataNoIsoW );
+	hRNoIsoW->SetMaximum( 1.1 );
+	hRNoIsoW->SetMinimum( 0.9 );
+
+	padNoIsoW2.cd();
+	hRNoIsoW->Draw("p histo X0 same");
+
+	line.Draw();
+	
+	SaveAsAll( ccNoIsoW, hRNoIsoW->GetName() );
+	
+	// Now Draw everything.
+	TCanvas ccNoIsoY( "ccNoIsoY", "ccNoIsoY", 800, 700 );
+	TPad padNoIsoY1("padNoIsoY1", "", 0.0, 0.35, 1.0, 1.0 );
+	padNoIsoY1.SetBottomMargin(0);
+	padNoIsoY1.Draw();
+	TPad padNoIsoY2("padNoIsoY2", "", 0.0, 0.0, 1.0, 0.34 );
+	padNoIsoY2.SetTopMargin(0.05);
+	padNoIsoY2.SetBottomMargin(0.25);
+	padNoIsoY2.Draw();
+	
+	TLegend legNoIsoY( 0.5, 0.1, 0.6, 0.3 );
+	styleTool->SetLegendStyle( &legNoIsoY );
+
+	TH1* h_DataNoIsoY = static_cast< TH1D* >( fDataNoIso->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_DataNoIsoY, style + 5 );
+	
+	padNoIsoY1.cd();
+	padNoIsoY1.SetLogy();
+	hY_a->Draw("ep X0 same");
+	h_DataNoIsoY->Draw("ep X0 same");
+	legNoIsoY.AddEntry( hY_a, "Isolation" );
+	legNoIsoY.AddEntry( h_DataNoIsoY, "No Isolation" );
+	legNoIsoY.Draw();
+
+        drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" );
+	//drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+	drawTool->DrawAtlasInternal();
+
+	DrawTopLeftLabels
+	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	    axis2Low, axis2Up );
+
+	TH1D* hRNoIsoY = static_cast< TH1D* >( hY_a->Clone( Form("%s_NoIsoR", hY_a->GetName() ) ) );
+	styleTool->SetHStyleRatio( hRNoIsoY, 0 );
+	hRNoIsoY->GetYaxis()->SetTitle("Ratio");
+	hRNoIsoY->Divide( h_DataNoIsoY );
+
+	padNoIsoY2.cd();
+	hRNoIsoY->Draw("p histo X0 same");
+	hRNoIsoY->SetMaximum( 1.2 );
+	hRNoIsoY->SetMinimum( 0.8 );
+	
+	line.Draw();
+	
+	SaveAsAll( ccNoIsoY, hRNoIsoY->GetName() );
+	
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 	  // check we are in correct ystar and pt bins
 	  if( !m_dPP->CorrectPhaseSpace
@@ -3027,7 +3125,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
 
 	  TCanvas cc( "cc", "cc", 800, 600 );
-
+	  
 	  // Now Draw everything.
 	  TCanvas ccMC( "ccMC", "ccMC", 800, 700 );
 	  TPad padMC1("padMC1", "", 0.0, 0.35, 1.0, 1.0 );
@@ -3214,6 +3312,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	  TH1* h_MC_UW = static_cast< TH1D* >( fMCUW->Get( Form("%s_%s", hMCname.c_str(), hTagDphi.c_str() ) ) );
 	  styleTool->SetHStyle( h_MC_UW, 2 );
 	  TH1* h_Data = static_cast< TH1D* >( fData->Get( Form("%s_%s", hDataName.c_str(), hTagDphi.c_str() ) ) );
+	  
 	  styleTool->SetHStyle( h_Data, 0 );
 
 	  h_Data->Draw("ep X0 same");
