@@ -398,10 +398,10 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  // MakeFinalPlotsTogether( fOut, m_widthName );
-  // MakeFinalPlotsTogether( fOut, m_yieldName );
+  MakeFinalPlotsTogether( fOut, m_widthName );
+  MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  MakeDphiTogether ( fOut );
+  // MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -1837,7 +1837,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double sigmaError = fit->GetParError(2);
 	    
 	    double yieldError = 0;
-	    double yield      = hYields->IntegralAndError( 5, hDphi->GetNbinsX(), yieldError );
+	    double yield      = hYields->IntegralAndError( 0, hDphi->GetNbinsX(), yieldError );
 	 
 	    double width      = std::sqrt( 2 * tau * tau + sigma * sigma ); 
 	    double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
@@ -2328,7 +2328,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  NormalizeDeltaPhi( hUnfolded, hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true );
 
 	  TF1* fitUnfolded = NULL;
-	  fitUnfolded = anaTool->FitDphi  ( hUnfolded, m_dPhiFittingMin, m_dPhiFittingMax );
+	  fitUnfolded = anaTool->FitDphi( hUnfolded, m_dPhiFittingMin, m_dPhiFittingMax );
 	  
 	  // -------- Unfold Done ---------
 	  	  	  
@@ -2415,8 +2415,12 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  double widthError = std::sqrt( std::pow( 2 * tau   * tauError  , 2 ) +
 					 std::pow( 2 * sigma * sigmaError, 2 ) );
 
+	  double yieldError = 0;
+	  double yield      = hUnfolded->IntegralAndError( 0, hUnfolded->GetNbinsX(), yieldError );
+	  
+	  drawTool->DrawLeftLatex( 0.19, 0.55, Form( "Yield = %5.3f #pm %5.3f", yield, yieldError ) );
 	  drawTool->DrawLeftLatex( 0.19, 0.48, Form( "RMS = %5.3f #pm %5.3f", width, widthError ) );
-	    
+
 	  pad2.cd();
 
 	  TLegend legR( 0.2, 0.79, 0.6, 0.89 );

@@ -1314,10 +1314,20 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   std::string allSystematicsName =
     m_dPhiName + "_" + m_systematicsName + "_" + name + "_" + m_allName;
 
+  std::string allDphiUnfoldedName    =
+    m_dPhiName + "_" + m_unfoldedName    + "_" + m_allName;
+  std::string allDphiSystematicsName =
+    m_dPhiName + "_" + m_systematicsName + "_" + m_allName;
+  
   std::vector< TH1* > vHdef;
   std::vector< TH1* > vHsyst;
   std::vector< TGraphAsymmErrors* > vG;
-  
+
+  std::vector< TH1* > vDphiHdef;
+  std::vector< TH1* > vDphiHsyst;
+  std::vector< TF1* > vDphiFdef;
+  std::vector< TGraphAsymmErrors* > vGdPhi;
+
   TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
   TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
   TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
@@ -1352,6 +1362,13 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   styleTool->SetHStyleRatio( hDefR, 0 );
   hDefR->SetMaximum( 1.55 );
   hDefR->SetMinimum( 0.45 );
+
+  std::string gTitleDphi = ";#Delta#phi;" + m_sWidthTitle ; 
+  
+  TH1* hDefDphi =
+    new TH1D( "hDefDphi", gTitleDphi.c_str(), m_nVarDphiBins, &m_varDphiBinning[0] );
+  styleTool->SetHStyle( hDefDphi, 0 );
+  hDefDphi->GetYaxis()->SetNdivisions( 502 );
   
   // lines to be drawn along axis3. this is
   // x-axis that widths are plotted as function of 
@@ -1367,7 +1384,6 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   lineN25.SetLineStyle( 2  );
   lineN25.SetLineColor( 12 );
   lineN25.SetLineWidth( 2  );
-
   
   // ------------------------------------------------
   //    MC STUFF - TO COMPARE DATA RESULTS TO MC
@@ -1568,8 +1584,14 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	//---------------------------------------------------
 	//------------------ DO WORK HERE -------------------
 	//---------------------------------------------------
-	// for( int axis3Bin = nAxis3Bins; axis3Bin >= 1; axis3Bin-- ){
+
+	// to keep track of maximum of dPhi graph.
+	
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	  
+	  double axis3Low , axis3Up;
+	  anaTool->GetBinRange
+	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
 	  
 	  std::vector< TH1* > vHunc;
 
@@ -1683,16 +1705,182 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  eYP.push_back( yNominal * uncertFinYP );
 	  eYN.push_back( yNominal * uncertFinYN );
 
+	  //-----------------------------------------------
+	  //     dPhi distribution systematics from here
+	  //-----------------------------------------------
+	  // do this only once...
+	  // MakeSystematics is calle twice, once for width
+	  // and once for yield. Only do it for former case.
+	  if( isYield ){ continue; }
 	  
-	} // end loop over axis3
+	  std::string hTagDphi =
+	    Form( "%s_%s_%s_%s",
+		  anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		  anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		  anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		  anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() ); 
+	
+	  std::string hNominalDphiName     = "h_" + allDphiUnfoldedName    + "_" + hTagDphi;
+	  std::string gNominalDphiName     = "g_" + allDphiUnfoldedName    + "_" + hTagDphi;
+	  std::string gSystematicsDphiName = "g_" + allDphiSystematicsName + "_" + hTagDphi;
+	  std::string fNominalDphiName     = "f_" + hNominalDphiName;
+
+	  TH1* hNominalDphi = static_cast<TH1D*>( fInNominal->Get( hNominalDphiName.c_str() ) );
+	  vDphiHdef.push_back( hNominalDphi );
+
+	  TF1* fNominalDphi = static_cast<TF1*>( fInNominal->Get( fNominalDphiName.c_str() ) );
+	  styleTool->SetHStyle( fNominalDphi, 0 );
+	  vDphiFdef.push_back( fNominalDphi );
+	  
+	  // Make all the systematics histograms for each y1, pt1, pt2 bin.
+	  // since we look one bin at a time and process all systematics,
+	  // need to have these histograms ready. Store them to a map
+	  // with the key as the systematic component number.
+	  std::map< int, TH1* > mDphiHsystTmp; 
+	  for( auto uc : v_uc ){
+
+	    // skip uc = 0 (default)
+	    if( !uc ){ continue; }
+
+	    std::string tmpUncertSuffix = uc > 0 ? Form("P%d", uc) : Form("N%d", -1 * uc) ;
+	    std::string hSystematicDphiName
+	      = "h_" + allUnfoldedName + "_" + hTagDphi + "_" + tmpUncertSuffix;
+	    
+	    TH1* hSystematicDphi = static_cast<TH1D*>
+	      ( hNominalDphi->Clone( hSystematicDphiName.c_str() ) );
+	    vDphiHsyst.push_back( hSystematicDphi );
+	    hSystematicDphi->Reset();
+	    mDphiHsystTmp[ uc ] = hSystematicDphi;
+	  }
+
+	  int nDphiBins = hNominalDphi->GetNbinsX();
+	  
+	  std::vector< double > pXdPhi;
+	  std::vector< double > eXdPhi; 
+ 
+	  std::vector< double > pYdPhi;
+	  std::vector< double > eYPdPhi;
+	  std::vector< double > eYNdPhi;
+	  
+	  // loop over dPhi bins
+	  double dPhiMaximum = 0;
+	
+	  for( int dPhiBin = 1; dPhiBin <= nDphiBins; dPhiBin++ ){
+	    std::vector< TH1* > vHuncDphi;
+
+	    // add uncertainties in quadrature;
+	    double uncertFinYP = 0;
+	    double uncertFinYN = 0;
+
+	    double yNominal = hNominalDphi->GetBinContent( dPhiBin );
+	    
+	    // loop over uncertainties
+	    for( auto uc : v_uc ){
+
+	      // skip uc = 0 (default)
+	      if( !uc ){ continue; }
+
+	      // this is same as hNominalName but leave it separate
+	      // to avoid confusion / make more flexible later.
+	      std::string hUncertaintyName = "h_" + allDphiUnfoldedName + "_" + hTagDphi;
+
+	      TH1* hUncertainty = static_cast<TH1D*>( mFinUC[ uc ]->Get( hUncertaintyName.c_str() ) );
+	      vHuncDphi.push_back( hUncertainty );
+
+	      int sign = uc > 0 ? 1 : -1;
+
+	      double yShifted = hUncertainty->GetBinContent( dPhiBin );
+
+	      double uncertaintySq = std::pow( ( yNominal - yShifted ) / yNominal, 2 );
+	     
+	      mDphiHsystTmp[ uc ]->SetBinContent( dPhiBin, yShifted );
+	    
+	      // for JER negative is same as positive (20)
+	      // for Angular Res negative is same as positive (21)
+	      // for Fitting negative is same as positive (22)
+	      // for ReWeight/Unf negative is same as positive (23)
+	      // and we do not have a NN, just use PN
+	      if( uc  >= 20 && uc <= 23 ){
+		uncertFinYP += uncertaintySq;
+		uncertFinYN += uncertaintySq;
+	      } else if( sign > 0 ){
+		// add onto total positive uncertainty
+		uncertFinYP += uncertaintySq ;
+	      } else if( sign < 0 ){
+		// add onto total negative uncertainty
+		uncertFinYN += uncertaintySq;
+	      }
+	    } // end loop over uncertainties
+
+	    // clean up, or there are memory problems
+	    // because each file writes same histo into
+	    // same memory address. so eventually you start
+	    // deleting deleted stuff if you dont do it now
+	    for( auto& h : vHuncDphi ){ delete h; }
+
+	    uncertFinYP = uncertFinYP >= 0 ? std::sqrt( uncertFinYP ) : 0.0;
+	    uncertFinYN = uncertFinYN >= 0 ? std::sqrt( uncertFinYN ) : 0.0;
+
+	    dPhiMaximum = dPhiMaximum > yNominal ? dPhiMaximum : yNominal;
+	    
+	    pXdPhi.push_back( hNominalDphi->GetBinCenter ( dPhiBin ) );
+	    eXdPhi.push_back( hNominalDphi->GetBinWidth  ( dPhiBin ) * 0.2 );
+	    
+	    pYdPhi .push_back( yNominal );
+	    eYPdPhi.push_back( yNominal * uncertFinYP );
+	    eYNdPhi.push_back( yNominal * uncertFinYN );
+	  } // end loop over dPhi bins.
+
+	  std::string hNameFinalDphi =
+	    "h_" + m_dPhiUnfoldedName + "_" + m_sFinal + "_" + hTagDphi;
+	
+	  TGraphAsymmErrors* gNominalDphi     = new TGraphAsymmErrors( hNominalDphi );
+	  TGraphAsymmErrors* gSystematicsDphi = new TGraphAsymmErrors
+	    ( pXdPhi.size(), &(pXdPhi[0]), &(pYdPhi[0]), &(eXdPhi[0]),
+	      &(eXdPhi[0]), &(eYNdPhi[0]), &(eYPdPhi[0]) );
+
+	  gNominalDphi    ->SetName(     gNominalDphiName.c_str() );
+	  gSystematicsDphi->SetName( gSystematicsDphiName.c_str() );
+
+	  vGdPhi.push_back( gNominalDphi     );
+	  vGdPhi.push_back( gSystematicsDphi );
+	
+	  styleTool->SetHStyle( gNominalDphi    , 0 );
+	  styleTool->SetHStyle( gSystematicsDphi, 0 );
+	  gSystematicsDphi->SetFillStyle(0);
+
+	  // remove x errors on nominal graph
+	  for( int i = 0; i < gNominalDphi->GetN(); i++ ){
+	    gNominalDphi->SetPointEXlow ( i, 0 );
+	    gNominalDphi->SetPointEXhigh( i, 0 );
+	  }
+	  
+	  TCanvas cDphi( "cDpi", "cDphi", 800, 600 );
+	  hDefDphi->SetMaximum( dPhiMaximum * 1.7 );
+	  hDefDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
+ 	  hDefDphi->Draw();
+
+	  fNominalDphi->Draw("same");
+
+	  gSystematicsDphi->Draw("2");
+	  gNominalDphi    ->Draw("p");
+	  
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+	    
+	  DrawAtlasRight();
+
+	  SaveAsAll( cDphi, hNameFinalDphi );
+        } // end loop over axis3
 	
 	std::string gSystematicsName = "g_" + allSystematicsName + "_" + hTag;
-
+	
 	TGraphAsymmErrors* gNominal     = new TGraphAsymmErrors( hNominal );
 	TGraphAsymmErrors* gSystematics = new TGraphAsymmErrors
 	  ( nAxis3Bins, &(pX[0]), &(pY[0]), &(eX[0]), &(eX[0]), &(eYN[0]), &(eYP[0]) );
 	
-	gNominal    ->SetName( gNominalName.c_str() );
+	gNominal    ->SetName(     gNominalName.c_str() );
 	gSystematics->SetName( gSystematicsName.c_str() );
 
 	vG.push_back( gNominal );
@@ -1893,6 +2081,12 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   for( auto& h : vHdef  ){ h->Write(); delete h; }
   for( auto& h : vHsyst ){ h->Write(); delete h; }
   for( auto& g : vG     ){ g->Write(); delete g; }
+
+  for( auto& h : vDphiHdef  ){ delete h; }
+  for( auto& h : vDphiHsyst ){ delete h; }
+  for( auto& f : vDphiFdef  ){ f->Write(); delete f; }
+  for( auto& g : vGdPhi     ){ g->Write(); delete g; }
+
   for( auto& p : mFinUC ){ p.second->Close();    }
 }
 
@@ -1928,12 +2122,18 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   std::vector< TH1* > vR;
   std::vector< TGraphAsymmErrors* > vG;
   std::vector< TGraphAsymmErrors* > vGfinal;
+  std::vector< TF1* > vF;
   
   std::string allUnfoldedName    =
     m_dPhiName + "_" + m_unfoldedName    + "_" + name + "_" + m_allName;
   std::string allSystematicsName =
     m_dPhiName + "_" + m_systematicsName + "_" + name + "_" + m_allName;
 
+  std::string allDphiUnfoldedName    =
+    m_dPhiName + "_" + m_unfoldedName    + "_" + m_allName;
+  std::string allDphiSystematicsName =
+    m_dPhiName + "_" + m_systematicsName + "_" + m_allName;
+  
   TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
   TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
   TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
@@ -2005,6 +2205,13 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   styleTool->SetHStyleRatio( hDefR, 0 );
   hDefR->SetMaximum( 1.55 );
   hDefR->SetMinimum( 0.45 );
+
+  std::string gTitleDphi = ";#Delta#phi;" + m_sWidthTitle ; 
+  
+  TH1* hDefDphi =
+    new TH1D( "hDefDphi", gTitleDphi.c_str(), m_nVarDphiBins, &m_varDphiBinning[0] );
+  styleTool->SetHStyle( hDefDphi, 0 );
+  hDefDphi->GetYaxis()->SetNdivisions( 502 );
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -2213,6 +2420,10 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 
+	  double axis3Low , axis3Up;
+	  anaTool->GetBinRange
+	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
+	  
 	  // add uncertainties in quadrature;
 	  double uncertFinYP = 0;
 	  double uncertFinYN = 0;
@@ -2258,12 +2469,6 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	      int sign = uc > 0 ? 1 : -1;
 
-	      /*
-	      std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " "
-			<< axis2Bin << " " << sign << " " << ratioABshifted << " "
-			<< ratioABnominal << " " << std::sqrt( uncertaintySq ) << std::endl;
-	      */
-	      
 	      if( sign > 0 ){
 		uncertFinYP += uncertaintySq;
 		// for ANG, JER, FIT, UNF, need to symmetereize.
@@ -2290,6 +2495,124 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  pY .push_back( ratioABnominal );
 	  eYP.push_back( ratioABnominal * uncertFinYP );
 	  eYN.push_back( ratioABnominal * uncertFinYN );
+
+	  //-----------------------------------------------
+	  //     dPhi distribution systematics from here
+	  //-----------------------------------------------
+	  // do this only once...
+	  // MakeFinalPlots is calle twice, once for width
+	  // and once for yield. Only do it for former case.
+	  if( isYield ){ continue; }
+
+	  std::string hTagDphi =
+	    Form( "%s_%s_%s_%s",
+		  anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		  anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		  anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		  anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() ); 
+	
+	  std::string hNominalDphiName     = "h_" + allDphiUnfoldedName    + "_" + hTagDphi;
+	  std::string gNominalDphiName     = "g_" + allDphiUnfoldedName    + "_" + hTagDphi;
+	  std::string gSystematicsDphiName = "g_" + allDphiSystematicsName + "_" + hTagDphi;
+	  std::string fNominalDphiName     = "f_" + hNominalDphiName;
+
+	  TGraphAsymmErrors* gNominalDphiA =
+	    static_cast< TGraphAsymmErrors* >( fInA->Get( gNominalDphiName.c_str() ) );
+	  TGraphAsymmErrors* gNominalDphiB =
+	    static_cast< TGraphAsymmErrors* >( fInB->Get( gNominalDphiName.c_str() ) );
+
+	  styleTool->SetHStyle( gNominalDphiA, 0 );
+	  styleTool->SetHStyle( gNominalDphiB, 1 );
+
+	  vG.push_back( gNominalDphiA );
+	  vG.push_back( gNominalDphiB );
+	  
+	  TGraphAsymmErrors* gSystematicsDphiA =
+	    static_cast< TGraphAsymmErrors* >( fInA->Get( gSystematicsDphiName.c_str() ) );
+	  TGraphAsymmErrors* gSystematicsDphiB =
+	    static_cast< TGraphAsymmErrors* >( fInB->Get( gSystematicsDphiName.c_str() ) );
+
+	  std::cout << gSystematicsDphiName << std::endl; 
+	  
+	  styleTool->SetHStyle( gSystematicsDphiA, 0 );
+	  styleTool->SetHStyle( gSystematicsDphiB, 1 );
+
+	  gSystematicsDphiA->SetFillStyle(0);
+	  gSystematicsDphiB->SetFillStyle(0);
+	  
+	  vG.push_back( gSystematicsDphiA );
+	  vG.push_back( gSystematicsDphiB );
+
+	  TF1* fNominalDphiA =
+	    static_cast< TF1* >( fInA->Get( fNominalDphiName.c_str() ) );
+	  TF1* fNominalDphiB =
+	    static_cast< TF1* >( fInB->Get( fNominalDphiName.c_str() ) );
+
+	  fNominalDphiA->SetLineColor( gNominalDphiA->GetLineColor() );
+	  fNominalDphiB->SetLineColor( gNominalDphiB->GetLineColor() );
+
+	  vF.push_back( fNominalDphiA );
+	  vF.push_back( fNominalDphiB );
+	  
+	  std::string hNameFinalDphi =
+	    "h_" + m_dPhiName + "_" + m_sFinal + "_" + hTagDphi;
+
+	  // this is dumb, can be done via data structure,
+	  // but for now just copy paste.
+	  // do individually for A and B as they might
+	  // have a different amount of points
+	  // loop through, do some shifts, find maximum
+	  double dPhiMaximum = 0;
+	  for( int i = 0; i < gNominalDphiA->GetN(); i++ ){
+	    double x, y;
+	    gNominalDphiA->GetPoint( i , x , y );
+	    double dX = gSystematicsDphiA->GetErrorXlow(i);
+	    gNominalDphiA    ->SetPoint( i, x + dX * 0.6, y );
+	    gSystematicsDphiA->SetPoint( i, x + dX * 0.6, y );
+	    double topOfPoint = y + gSystematicsDphiA->GetErrorYhigh(i);
+	    dPhiMaximum = topOfPoint > dPhiMaximum ? topOfPoint : dPhiMaximum;
+	  }
+	  for( int i = 0; i < gNominalDphiB->GetN(); i++ ){
+	    double x, y;
+	    gNominalDphiB->GetPoint( i , x , y );
+	    double dX = gSystematicsDphiB->GetErrorXlow(i);
+	    gNominalDphiB    ->SetPoint( i, x - dX * 0.6, y );
+	    gSystematicsDphiB->SetPoint( i, x - dX * 0.6, y );
+	    double topOfPoint = y + gSystematicsDphiB->GetErrorYhigh(i);
+	    dPhiMaximum = topOfPoint > dPhiMaximum ? topOfPoint : dPhiMaximum;
+	  }
+
+	  TLegend legDphi( 0.32, 0.4, 0.55, 0.52 );
+	  styleTool->SetLegendStyle( &legDphi );
+
+	  legDphi.AddEntry( gSystematicsDphiA, label_a.c_str(), "lpf" );
+	  legDphi.AddEntry( gSystematicsDphiB, label_b.c_str(), "lpf" );
+  
+	  TCanvas cDphi( "cDphi", "cDphi", 800, 600 );
+	  hDefDphi->SetMaximum( dPhiMaximum * 1.5 );
+	  hDefDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
+ 	  hDefDphi->Draw();
+
+	  gSystematicsDphiB->Draw("2");
+	  gSystematicsDphiA->Draw("2");
+
+	  gNominalDphiB->Draw("p");
+	  gNominalDphiA->Draw("p");
+
+	  fNominalDphiB->Draw("same");
+	  fNominalDphiA->Draw("same");
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  DrawAtlasRightBoth( 0, 0, 1.0, true );
+
+	  legDphi.Draw();
+	  
+	  SaveAsPdfPng( cDphi, hNameFinalDphi, true );
+	  SaveAsROOT  ( cDphi, hNameFinalDphi );
+	  
 	} // end loop over axis3
 
 	std::string gSystematicsRName = "g_" + allSystematicsName + "_" + m_sRatio + "_" + hTag;
@@ -2462,8 +2785,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
       DrawTopLeftLabels
 	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up );
-	
-      
+
       DrawAtlasRightBoth( 0, 0, 1.0, true );
 
       legSpPb.Draw();
@@ -2489,6 +2811,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   for( auto& h : vHsyst ){ delete h; }
   for( auto& r : vR     ){ delete r; }
   for( auto& g : vG     ){ delete g; }
+  for( auto& f : vF     ){ delete f; }
 }
 
 // CLEAN THIS UP! ITS NOT WORTH THE HEADACHE NOW
@@ -2694,7 +3017,6 @@ void DiJetAnalysisData::CompareCfactorsRBnRB( TFile* fOut ){
 	TH1* hDphiYieldsDF = static_cast< TH1D* >( fDF->Get( hNameY.c_str() ) );
 	styleTool->SetHStyle( hDphiYieldsRB, 0 );
 	styleTool->SetHStyle( hDphiYieldsDF, 5 );
-	// hDphiYieldsRB->SetMarkerSize( hDphiYieldsRB->GetMarkerSize() * 1.5 );
 	vC.push_back( hDphiYieldsRB );
 	vC.push_back( hDphiYieldsDF );
 

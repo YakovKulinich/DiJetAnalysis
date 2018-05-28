@@ -903,7 +903,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
     for( m_ev = startEvent; m_ev < endEvent; m_ev++ ){
       tree->GetEntry( m_ev );
             
-      if( anaTool->DoPrint(m_ev) ) {
+      if( anaTool->DoPrint( m_ev ) ) {
 	std::cout << "\nEvent : " << m_ev 
 		  << "    has : " << vR_jets.size() << " reco jets"
 		  << "    and : " << vT_jets.size() << " truth jets"
@@ -3124,10 +3124,10 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	    TH1* hR = hnR->Projection( 4 );
 
 	    for( int i = 0; i <= hT->GetNbinsX(); i++ ){
-	      if( hT->GetBinContent(i) < 6 ){
+	      if( hT->GetBinContent(i) < 3 ){
 		hT->SetBinContent( i, 0 );
 	      }
-	      if( hR->GetBinContent(i) < 6 ){
+	      if( hR->GetBinContent(i) < 3 ){
 		hR->SetBinContent( i, 0 );
 	      }
 	    }
