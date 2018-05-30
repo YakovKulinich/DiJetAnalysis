@@ -897,7 +897,7 @@ void DiJetAnalysisData::GetDphiUnfoldingInfo( std::string& measuredName,
 
   measuredName  = m_dPhiName;
   truthName     = m_dPhiTruthName;
-  unfoldedLabel = "#Delta#phi";
+  unfoldedLabel = m_sDphi;
   typeLabel     = "Data";
 }
 
@@ -1363,7 +1363,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   hDefR->SetMaximum( 1.55 );
   hDefR->SetMinimum( 0.45 );
 
-  std::string gTitleDphi = ";#Delta#phi;" + m_sWidthTitle ; 
+  std::string gTitleDphi = ";" + m_sDphi + ";" + m_sDphiTitle ; 
   
   TH1* hDefDphi =
     new TH1D( "hDefDphi", gTitleDphi.c_str(), m_nVarDphiBins, &m_varDphiBinning[0] );
@@ -2206,7 +2206,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   hDefR->SetMaximum( 1.55 );
   hDefR->SetMinimum( 0.45 );
 
-  std::string gTitleDphi = ";#Delta#phi;" + m_sWidthTitle ; 
+  std::string gTitleDphi = ";" + m_sDphi + ";" + m_sDphiTitle ; 
   
   TH1* hDefDphi =
     new TH1D( "hDefDphi", gTitleDphi.c_str(), m_nVarDphiBins, &m_varDphiBinning[0] );
@@ -2582,8 +2582,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    dPhiMaximum = topOfPoint > dPhiMaximum ? topOfPoint : dPhiMaximum;
 	  }
 
-	  TLegend legDphi( 0.32, 0.4, 0.55, 0.52 );
-	  styleTool->SetLegendStyle( &legDphi );
+	  TLegend legDphi( 0.60, 0.50, 0.67, 0.58 );
+	  styleTool->SetLegendStyle( &legDphi, 0.70 );
 
 	  legDphi.AddEntry( gSystematicsDphiA, label_a.c_str(), "lpf" );
 	  legDphi.AddEntry( gSystematicsDphiB, label_b.c_str(), "lpf" );
@@ -2604,11 +2604,48 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	  DrawTopLeftLabels
 	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	      axis2Low, axis2Up, axis3Low, axis3Up );
+	      axis2Low, axis2Up, axis3Low, axis3Up, 0.90 );
 
-	  DrawAtlasRightBoth( 0, 0, 1.0, true );
+	  DrawAtlasRightBoth( 0, 0, 0.90, true );
 
 	  legDphi.Draw();
+
+	  double   tauA = fNominalDphiA->GetParameter(1);
+	  double sigmaA = fNominalDphiA->GetParameter(2);
+
+	  double   tauErrorA = fNominalDphiA->GetParError(1);
+	  double sigmaErrorA = fNominalDphiA->GetParError(2);
+	 
+	  double widthA      = std::sqrt( 2 * tauA * tauA + sigmaA * sigmaA ); 
+	  double widthErrorA = std::sqrt( std::pow( 4 * tauA   * tauErrorA  , 2 ) +
+					 std::pow( 2 * sigmaA * sigmaErrorA, 2 ) );
+
+	  double   tauB = fNominalDphiB->GetParameter(1);
+	  double sigmaB = fNominalDphiB->GetParameter(2);
+
+	  double   tauErrorB = fNominalDphiB->GetParError(1);
+	  double sigmaErrorB = fNominalDphiB->GetParError(2);
+	 
+	  double widthB      = std::sqrt( 2 * tauB * tauB + sigmaB * sigmaB ); 
+	  double widthErrorB = std::sqrt( std::pow( 4 * tauB   * tauErrorB  , 2 ) +
+					 std::pow( 2 * sigmaB * sigmaErrorB, 2 ) );
+
+	  double y0 = 0.55; double dY = 0.06;
+
+	  drawTool->DrawLeftLatex
+	    ( 0.19, y0, Form( "(#tau, #sigma)_{%s}=(%4.2f #pm %4.2f, %4.2f #pm %4.2f)",
+				label_a.c_str(), tauA, tauErrorA,
+				sigmaA, sigmaErrorA ), 0.6 );
+	  drawTool->DrawLeftLatex
+	    ( 0.19, y0 - dY, Form( "(#tau, #sigma)_{%s}=(%4.2f #pm %4.2f, %4.2f #pm %4.2f)",
+				label_b.c_str(), tauB, tauErrorB,
+				sigmaB, sigmaErrorB ), 0.6 );
+	  drawTool->DrawLeftLatex
+	    ( 0.19, y0 - 2 * dY, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+				label_a.c_str(), widthA, widthErrorA ), 0.6 );
+	  drawTool->DrawLeftLatex
+	    ( 0.19, y0 - 3 * dY, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+				label_b.c_str(), widthB, widthErrorB ), 0.6 );
 	  
 	  SaveAsPdfPng( cDphi, hNameFinalDphi, true );
 	  SaveAsROOT  ( cDphi, hNameFinalDphi );

@@ -255,6 +255,8 @@ class DiJetAnalysis{
   std::string m_sRatio;
   std::string m_sSum;
 
+  std::string m_sDphi;
+  std::string m_sDphiTitle;
   std::string m_sWidthTitle;
   std::string m_sYieldTitle;
   std::string m_sWidthRatioTitle;

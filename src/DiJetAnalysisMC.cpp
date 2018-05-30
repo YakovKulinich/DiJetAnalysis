@@ -482,6 +482,11 @@ void DiJetAnalysisMC::UnfoldPhysics(){
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
   std::cout << "......Closed  " << std::endl;
+
+
+  // fOut = new TFile( m_fNamePhysUF.c_str(),"UPDATE");
+  // CompareCfactorsWUW( fOut );
+  // fOut->Close(); delete fOut;
 }
 
 void DiJetAnalysisMC::MakeResultsTogether(){
@@ -1679,7 +1684,7 @@ void DiJetAnalysisMC::GetDphiUnfoldingInfo( std::string& measuredName,
 
   measuredName  = m_dPhiRecoName;
   truthName     = m_dPhiTruthName;
-  unfoldedLabel = "#Delta#phi";
+  unfoldedLabel = m_sDphi;
   typeLabel     = "MC";
 }
 
@@ -2076,7 +2081,7 @@ TH3* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
 
   hnAll->GetXaxis()->SetTitle( m_dPP->GetDefaultAxisLabel(0).c_str() );
   hnAll->GetYaxis()->SetTitle( m_dPP->GetDefaultAxisLabel(1).c_str() );
-  hnAll->GetZaxis()->SetTitle( "#Delta#phi" );
+  hnAll->GetZaxis()->SetTitle( m_sDphi.c_str() );
 
   TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
   TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
@@ -3110,7 +3115,8 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	    
 	    drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel, 3, CT::StyleTools::lSS);
 	
-	    drawTool->DrawRightLatex( 0.87, 0.25, Form( "%s %s", system.c_str(), m_mcTypeLabel.c_str() ) );
+	    drawTool->DrawRightLatex
+	      ( 0.87, 0.25, Form( "%s %s", system.c_str(), m_mcTypeLabel.c_str() ) );
     
 	    hDphiRespMat->Write();
 
@@ -3123,15 +3129,16 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	    TH1* hT = hnT->Projection( 4 );
 	    TH1* hR = hnR->Projection( 4 );
 
+	    // TRUNCATE HISTOGRAMS
 	    for( int i = 0; i <= hT->GetNbinsX(); i++ ){
-	      if( hT->GetBinContent(i) < 3 ){
+	      if( hT->GetBinContent(i) <= 2 ){
 		hT->SetBinContent( i, 0 );
 	      }
-	      if( hR->GetBinContent(i) < 3 ){
+	      if( hR->GetBinContent(i) <= 2 ){
 		hR->SetBinContent( i, 0 );
 	      }
 	    }
-	    
+	   
 	    
 	    hT->SetName( Form( "h_T_%s_%s_%s_%s",
 			       m_dPhiName.c_str(), m_sCounts.c_str(),

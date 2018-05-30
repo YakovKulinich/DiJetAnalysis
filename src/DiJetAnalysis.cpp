@@ -77,7 +77,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sRatio    = "ratio";
   m_sSum      = "sum";
 
-  m_sWidthTitle = "RMS (#it{C}_{1,2}(#Delta#phi))";
+  m_sDphi      = "#Delta#phi";
+  m_sDphiTitle = "#it{C}_{1,2}";
+  m_sWidthTitle = "RMS (" + m_sDphiTitle + ")";
   m_sYieldTitle = "#it{I}_{1,2}";
   m_sWidthRatioTitle = "#it{C}_{#it{p}+Pb}";
   m_sYieldRatioTitle = "#it{I}_{#it{p}+Pb}";
@@ -109,7 +111,6 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_dPhiFittingMax  = constants::PI;
 
   m_dPhiFittingMinB = 2 * constants::PI / 3;
-  // m_dPhiFittingMinB = 2.3;
 
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   // for this uncertainty, we change the fitting range.
@@ -398,10 +399,10 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  MakeFinalPlotsTogether( fOut, m_widthName );
-  MakeFinalPlotsTogether( fOut, m_yieldName );
+  // MakeFinalPlotsTogether( fOut, m_widthName );
+  // MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  // MakeDphiTogether ( fOut );
+  MakeDphiTogether ( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -444,7 +445,7 @@ void DiJetAnalysis::AddHistogram( THnSparse* hn ){
   hn->GetAxis(2)->SetTitle("#it{p}_{T}^{1}");
   hn->GetAxis(3)->SetTitle("#it{p}_{T}^{2}");
   if( hn->GetNdimensions() >= 5 ){
-    hn->GetAxis(4)->SetTitle("#Delta#phi"); }
+    hn->GetAxis(4)->SetTitle(m_sDphi.c_str()); }
 }
 
 
@@ -1677,8 +1678,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    // save the per-jet normalized counts histogram.
 	    TH1* hDphi = static_cast< TH1D* >( hDphiCounts->Clone( hDphiName.c_str() ) );
 	    styleTool->SetHStyle( hDphi, 0 );
-	    hDphi->SetYTitle( m_sWidthTitle.c_str() );
-	    hDphi->SetXTitle("#Delta#phi");
+	    hDphi->SetYTitle( m_sDphiTitle.c_str() );
+	    hDphi->SetXTitle(m_sDphi.c_str());
 	    hDphi->SetTitle( "" );
 	    vHdPhi.push_back( hDphi );
 	    	    
@@ -2847,8 +2848,12 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
     TFile::Open( "output/output_pp_data/myOut_pp_data_phys_0.root" ) :
     TFile::Open( "output/output_pPb_data/myOut_pPb_data_phys_0.root" );
 
-  //  TFile* fDataNoIso = TFile::Open( "data/myOut_pp_data_phys_UF_0.root" ) ;
-  TFile* fDataNoIso = TFile::Open( "data/myOut_pPb_data_phys_UF_0.root" ) ;
+  TFile* fDataNoIso = NULL;
+  if( m_is_pPb ){
+    fDataNoIso = TFile::Open( "data/myOut_pPb_data_phys_UF_0.root" ) ;  
+  } else {
+    fDataNoIso = TFile::Open( "data/myOut_pp_data_phys_UF_0.root" ) ;
+  }
   
   std::string hMCname   = "h_dPhi_reco_All";
   std::string hDataName = "h_dPhi_All";
@@ -3040,7 +3045,8 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	TLegend legNoIsoW( 0.4, 0.1, 0.6, 0.3 );
 	styleTool->SetLegendStyle( &legNoIsoW );
 	
-	TH1* h_DataNoIsoW = static_cast< TH1D* >( fDataNoIso->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	TH1* h_DataNoIsoW = static_cast< TH1D* >
+	  ( fDataNoIso->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
 	styleTool->SetHStyle( h_DataNoIsoW, style + 5 );
 	
 	padNoIsoW1.cd();
@@ -3050,8 +3056,12 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	legNoIsoW.AddEntry( h_DataNoIsoW, "No Isolation" );
 	legNoIsoW.Draw();
 
-	drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" );
-	// drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+	if( m_is_pPb ){
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" );
+	} else {
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+	}
+
 	drawTool->DrawAtlasInternal();
 
 	DrawTopLeftLabels
@@ -3096,8 +3106,12 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	legNoIsoY.AddEntry( h_DataNoIsoY, "No Isolation" );
 	legNoIsoY.Draw();
 
-        drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" );
-	//drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+	if( m_is_pPb ){
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" );
+	} else { 
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+	}
+
 	drawTool->DrawAtlasInternal();
 
 	DrawTopLeftLabels
@@ -3183,7 +3197,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
 	  h_a->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 
-	  h_a->GetXaxis()->SetTitle("#Delta#phi");
+	  h_a->GetXaxis()->SetTitle(m_sDphi.c_str());
 	  h_a->Draw("ep x0 same");
 	  h_b->Draw("ep x0 same");
 	  
@@ -3549,7 +3563,7 @@ void DiJetAnalysis::DrawTopLeftLabels( DeltaPhiProj* dPP,
       ( axis2Low, axis2Up, dPP->GetAxisLabel(2) ), scale );
   if( !( axis3Low || axis3Up ) ){ return ; }
   drawTool->DrawLeftLatex
-    ( 0.18, ystart - 3 * dy, CT::AnalysisTools::GetLabel
+    ( 0.19, ystart - 3 * dy, CT::AnalysisTools::GetLabel
       ( axis3Low, axis3Up, dPP->GetAxisLabel(3) ), scale );
 }
 
