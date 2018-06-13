@@ -914,7 +914,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 		  << "    and : " << vT_jets.size() << " truth jets"
 		  << std::endl;
       }
-
+      
       ApplyCleaning ( vR_jets, v_isCleanJet );
       ApplyIsolation( vR_jets, 1.0 );
       ApplyIsolation( vT_jets, 1.0 );
@@ -1006,7 +1006,7 @@ double DiJetAnalysisMC::AnalyzeDeltaPhiWithWeight
   const TLorentzVector* wJet1 = NULL; const TLorentzVector* wJet2 = NULL;
 
   if( !GetDiJets(  v_jets,  jet1,  jet2 ) ||
-      !GetDiJets( vW_jets, wJet1, wJet2 ) )
+      !GetDiJets( vW_jets, wJet1, wJet2, false ) )
     { return -1; }
   
   double jetPt1    = jet1->Pt()/1000.;
@@ -2396,6 +2396,7 @@ TH3* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
 
     hR->Write();
   }
+  
   hnAll->Write();
 
   cAll.cd();
@@ -2404,6 +2405,9 @@ TH3* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
   
   DrawAtlasRight();
 
+  // hardcoded...
+  drawTool->DrawLeftLatex( 0.42, 0.78, "2.7<#it{y}_{1}*<4.0");
+  
   SaveAsAll( cAll, hName.c_str() );
   
   for( auto& f : vF ){ delete f; }

@@ -1480,7 +1480,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	
 	TH1* hNominal = static_cast<TH1D*>( fInNominal->Get( hNominalName.c_str() ) );
        	vHdef.push_back( hNominal );
-
+	
+	std::cout << hNominal << " " << hNominalName << std::endl; 
+	
 	// Make all the systematics histograms for each y1, pt1, pt2 bin.
 	// since we look one bin at a time and process all systematics,
 	// need to have these histograms ready. Store them to a map

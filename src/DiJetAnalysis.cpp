@@ -24,6 +24,9 @@
 #include "DiJetAnalysis.h"
 #include "DeltaPhiProj.h"
 
+static int nPairsPassPtCut = 0;
+static int nPairsFailPtCut = 0;
+
 DiJetAnalysis::DiJetAnalysis() : DiJetAnalysis( false, false, 0, 0 ){}
 
 DiJetAnalysis::DiJetAnalysis( bool is_pPb )
@@ -77,8 +80,8 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sRatio    = "ratio";
   m_sSum      = "sum";
 
-  m_sDphi      = "#Delta#phi";
-  m_sDphiTitle = "#it{C}_{1,2}";
+  m_sDphi       = "#Delta#phi";
+  m_sDphiTitle  = "#it{C}_{1,2}";
   m_sWidthTitle = "RMS (" + m_sDphiTitle + ")";
   m_sYieldTitle = "#it{I}_{1,2}";
   m_sWidthRatioTitle = "#it{C}_{#it{p}+Pb}";
@@ -96,7 +99,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
 
   //==================== Cuts ====================
   m_nMinEntriesFit = 20;
-    
+
+  m_deltaPtCut = 0.0; // GeV
+  
   m_dPhiThirdJetFraction = 0.4;
 
   // where plots are drawn from on dphi axis
@@ -317,6 +322,12 @@ DiJetAnalysis::~DiJetAnalysis(){
   delete anaTool  ; anaTool   = NULL;
   delete drawTool ; drawTool  = NULL;
   delete styleTool; styleTool = NULL;
+
+  std::cout << "          Number of pairs passing pT cut: "
+	    << nPairsPassPtCut 
+	    << "          Number of pairs failin pT cut: "
+	    << nPairsFailPtCut << std::endl;
+
 }
 
 void DiJetAnalysis::Initialize(){
@@ -402,7 +413,8 @@ void DiJetAnalysis::MakeResultsTogether(){
   // MakeFinalPlotsTogether( fOut, m_widthName );
   // MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  MakeDphiTogether ( fOut );
+  MakeDphiTogether( fOut );
+  CompareWeightIsoPtCuts( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -487,7 +499,8 @@ bool DiJetAnalysis::GetFwdCentJets( const std::vector< TLorentzVector>& v_jets,
 
 bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets, 
 			       const TLorentzVector*& jet1,
-			       const TLorentzVector*& jet2 ){
+			       const TLorentzVector*& jet2,
+			       bool requirePtCut ){
   
   for( auto& jet : v_jets ){
     if( !jet1 && jet.Pt() > 0 ){
@@ -499,7 +512,22 @@ bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets,
   }
   
   // make sure we have two jets
-  return ( jet1 && jet2 ) ? true : false;
+  bool haveBothJets = ( jet1 && jet2 ) ? true : false;
+
+  // if we dont leave and return false
+  if( !haveBothJets ){ return false; }
+
+  // if we dont require pt Cut, we can return true now
+  if( !requirePtCut ){ return true; }
+  
+  // otherwise, check pT cut
+  double deltaPt = std::abs( ( jet1->Pt() - jet2->Pt() )/1000. ); 
+
+  if( deltaPt > m_deltaPtCut ){ nPairsPassPtCut++; }
+  else{ nPairsFailPtCut++; }
+  
+  // we have both jets, return true if they pass cut
+  return ( deltaPt > m_deltaPtCut ) ? true : false;
 }
 
 void DiJetAnalysis::AnalyzeSpectra( TH2* hSpect,
@@ -559,6 +587,9 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
 
 bool DiJetAnalysis::ApplyIsolation( std::vector<TLorentzVector>& v_jets,
 				    double Rmin ){
+
+  // do nothing
+  return true;
   
   bool haveIsolated = false;
   std::vector<bool> isIsolated( v_jets.size(), true );
@@ -1844,6 +1875,11 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
 					   std::pow( 2 * sigma * sigmaError, 2 ) );
 
+	    drawTool->DrawLeftLatex
+	      ( 0.19, 0.55, Form( "Yield = %5.3f #pm %5.3f", yield, yieldError ) );
+	    drawTool->DrawLeftLatex
+	      ( 0.19, 0.48, Form( "RMS = %5.3f #pm %5.3f", width, widthError ) );
+
 	    double   tau2 = fit2->GetParameter(1);
 	    double sigma2 = fit2->GetParameter(2);
 
@@ -2034,8 +2070,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   h_dPhiChiS2->SetMaximum
     ( h_dPhiChiS->GetMaximum() > h_dPhiChiS2->GetMaximum() ?
       h_dPhiChiS->GetMaximum() * 1.1 :  h_dPhiChiS2->GetMaximum() * 1.1 );
-  h_dPhiChiS2->Draw("hist C X0 same");
-  h_dPhiChiS ->Draw("hist C X0 same");
+  h_dPhiChiS2->Draw("hist same");
+  h_dPhiChiS ->Draw("hist same");
   legChiSProb.Draw();
 
   
@@ -2043,8 +2079,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
   h_dPhiProb2->SetMaximum
     ( h_dPhiProb->GetMaximum() > h_dPhiProb2->GetMaximum() ?
       h_dPhiProb->GetMaximum() * 1.1 :  h_dPhiProb2->GetMaximum() * 1.1 );
-  h_dPhiProb2->Draw("hist C X0 same");
-  h_dPhiProb ->Draw("hist C X0 same");
+  h_dPhiProb2->Draw("hist same");
+  h_dPhiProb ->Draw("hist same");
   DrawAtlasRight();
 
   h_dPhiChiS ->Write();
@@ -2747,6 +2783,835 @@ void DiJetAnalysis::MakeSpectTogether( TFile* fOut ){
   for( auto& r : vR ){ delete r; }
 }
 
+void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
+   
+  TAxis* axis0 = m_dPP->GetTAxis(0); int nAxis0Bins = axis0->GetNbins();
+  TAxis* axis1 = m_dPP->GetTAxis(1); int nAxis1Bins = axis1->GetNbins();
+  TAxis* axis2 = m_dPP->GetTAxis(2); int nAxis2Bins = axis2->GetNbins();
+  TAxis* axis3 = m_dPP->GetTAxis(3); int nAxis3Bins = axis3->GetNbins();
+
+  // lines to be drawn along axis3. this is
+  // x-axis that widths are plotted as function of 
+  double xMin = axis3->GetXmin(); double xMax = axis3->GetXmax();
+  
+  TLine line( xMin, 1, xMax, 1 );
+  line.SetLineWidth( 2 );
+
+  TLine lineP25( xMin, 1.25, xMax, 1.25 );
+  lineP25.SetLineStyle( 2  );
+  lineP25.SetLineColor( 12 );
+  lineP25.SetLineWidth( 2  );
+	  
+  TLine lineN25( xMin, 0.75, xMax, 0.75 );
+  lineN25.SetLineStyle( 2  );
+  lineN25.SetLineColor( 12 );
+  lineN25.SetLineWidth( 2  );
+
+  xMin = m_dPhiZoomLow;
+  xMax = m_dPhiZoomHigh;
+  
+  TLine dPhiLine( xMin, 1, xMax, 1 );
+  dPhiLine.SetLineWidth( 2 );
+	  
+  TLine dPhiLineP25( xMin, 1.25, xMax, 1.25 );
+  dPhiLineP25.SetLineStyle( 3  );
+  dPhiLineP25.SetLineColor( 12 );
+  dPhiLineP25.SetLineWidth( 2  );
+	  
+  TLine dPhiLineN25( xMin, 0.75, xMax, 0.75 );
+  dPhiLineN25.SetLineStyle( 3 );
+  dPhiLineN25.SetLineColor( 12 );
+  dPhiLineN25.SetLineWidth( 2  );
+  
+  TFile* fData = m_is_pPb ?
+    TFile::Open( "output/output_pPb_data/myOut_pPb_data_phys_0.root" ) :
+    TFile::Open( "output/output_pp_data/myOut_pp_data_phys_0.root" );
+
+  TFile* fMC = m_is_pPb ?
+    TFile::Open( "output/output_pPb_mc_pythia8/myOut_pPb_mc_pythia8_phys_0.root" ) :
+    TFile::Open( "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_phys_0.root" );
+
+  TFile* fMCUW = m_is_pPb ?
+    TFile::Open( "data/output_pPb_mc_pythia8_uw/myOut_pPb_mc_pythia8_phys_0.root" ) :
+    TFile::Open( "data/output_pp_mc_pythia8_uw/myOut_pp_mc_pythia8_phys_0.root" );
+
+  TFile* fDataIso = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_data_phys_UF_0_Iso.root" ) :
+    TFile::Open( "data/myOut_pp_data_phys_UF_0_Iso.root" );
+  
+  TFile* fDataNoIso = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso.root" ) : 
+    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso.root" );
+  
+  TFile* fData0pT = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso_0pT.root" ) : 
+    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso_0pT.root" );
+
+  TFile* fData1pT = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso_1pT.root" ) : 
+    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso_1pT.root" );
+
+  TFile* fData2pT = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso_2pT.root" ) : 
+    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso_2pT.root" );
+
+  TFile* fData3pT = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso_3pT.root" ) : 
+    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso_3pT.root" );
+
+  TFile* fMC0pT = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_0pT.root" ) : 
+    TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_0pT.root" );
+
+  TFile* fMC1pT = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_1pT.root" ) : 
+    TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_1pT.root" );
+
+  TFile* fMC2pT = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_2pT.root" ) : 
+    TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_2pT.root" );
+
+  TFile* fMC3pT = m_is_pPb ?
+    TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_3pT.root" ) : 
+    TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_3pT.root" );
+  
+  std::string hMCname   = "h_dPhi_reco_All";
+  std::string hDataName = "h_dPhi_All";
+
+  TH1* hProbWeight = new TH1D( "hProbWeight", ";Probability;Count", 20, 0, 1 );
+  styleTool->SetHStyle( hProbWeight, 0 );
+  
+  fOut->cd();
+
+  for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
+    double axis0Low, axis0Up;
+    anaTool->GetBinRange
+      ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
+    
+    for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
+      // check we are in correct ystar and pt bins
+      if( !m_dPP->CorrectPhaseSpace
+	  ( std::vector<int>{ axis0Bin, axis1Bin, 0, 0 } ) )
+	{ continue; }
+
+      double axis1Low, axis1Up;
+      anaTool->GetBinRange
+	( axis1, axis1Bin, axis1Bin, axis1Low, axis1Up );
+
+      // tag for widths canvas
+      std::string hTagC =
+	Form ("%s_%s",
+	      anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+	      anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str() );
+
+      for( int axis2Bin = 1; axis2Bin <= nAxis2Bins; axis2Bin++ ){
+	double axis2Low , axis2Up;
+	anaTool->GetBinRange
+	  ( axis2, axis2Bin, axis2Bin, axis2Low, axis2Up );
+
+	if( !m_dPP->CorrectPhaseSpace
+	    ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, 0 } ) )
+	  { continue; }
+	
+	// get widths histos
+	std::string hTag =
+	  Form("%s_%s_%s",
+	       anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+	       anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+	       anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str() );
+
+	//---------------------------------------------
+	// ------------------ WIDTHS ------------------
+	//---------------------------------------------
+
+	// !!! Check Isolation
+	TCanvas ccNoIsoW( "ccNoIsoW", "ccNoIsoW", 800, 700 );
+	TPad padNoIsoW1("padNoIsoW1", "", 0.0, 0.35, 1.0, 1.0 );
+	padNoIsoW1.SetBottomMargin(0);
+	padNoIsoW1.Draw();
+	TPad padNoIsoW2("padNoIsoW2", "", 0.0, 0.0, 1.0, 0.34 );
+	padNoIsoW2.SetTopMargin(0.05);
+	padNoIsoW2.SetBottomMargin(0.25);
+	padNoIsoW2.Draw();
+
+	TLegend legNoIsoW( 0.4, 0.05, 0.6, 0.25 );
+	styleTool->SetLegendStyle( &legNoIsoW );
+
+	TH1* h_DataIsoW = static_cast< TH1D* >
+	  ( fDataIso->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_DataIsoW, 0 );
+	
+	TH1* h_DataNoIsoW = static_cast< TH1D* >
+	  ( fDataNoIso->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_DataNoIsoW, 5 );
+	
+	padNoIsoW1.cd();
+	h_DataIsoW->Draw("ep X0 same");
+	h_DataNoIsoW->Draw("ep X0 same");
+	legNoIsoW.AddEntry( h_DataIsoW, "Iso Cut" );
+	legNoIsoW.AddEntry( h_DataNoIsoW, "No Iso Cut" );
+	legNoIsoW.Draw();
+
+	m_is_pPb ?
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" ) :
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+
+	drawTool->DrawAtlasInternal();
+
+	DrawTopLeftLabels
+	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	    axis2Low, axis2Up );
+	
+	TH1D* hRNoIsoW = static_cast< TH1D* >
+	  ( h_DataIsoW->Clone( Form("%s_NoIsoR", h_DataIsoW->GetName() ) ) );
+	styleTool->SetHStyleRatio( hRNoIsoW, 0 );
+	hRNoIsoW->GetYaxis()->SetTitle("Ratio");
+	hRNoIsoW->Divide( h_DataNoIsoW );
+	hRNoIsoW->SetMaximum( 1.1 );
+	hRNoIsoW->SetMinimum( 0.9 );
+
+	padNoIsoW2.cd();
+	hRNoIsoW->Draw("p histo X0 same");
+
+	line.Draw();
+	
+	SaveAsAll( ccNoIsoW, hRNoIsoW->GetName() );
+
+	// !!! Check pT cuts
+	TCanvas ccPtCutW( "ccPtCutW", "ccPtCutW", 800, 700 );
+	TPad padPtCutW1("padPtCutW1", "", 0.0, 0.35, 1.0, 1.0 );
+	padPtCutW1.SetBottomMargin(0);
+	padPtCutW1.Draw();
+	TPad padPtCutW2("padPtCutW2", "", 0.0, 0.0, 1.0, 0.34 );
+	padPtCutW2.SetTopMargin(0.05);
+	padPtCutW2.SetBottomMargin(0.25);
+	padPtCutW2.Draw();
+
+	TLegend legPtCutW( 0.4, 0.05, 0.6, 0.25 );
+	styleTool->SetLegendStyle( &legPtCutW );
+
+	TH1* h_DataNoPtCutW = static_cast< TH1D* >
+	  ( fData0pT->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_DataNoPtCutW, 0 );
+
+	std::cout << fData1pT->GetName() << std::endl;
+	std::cout <<  Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) << std::endl;
+	
+	TH1* h_Data1PtCutW = static_cast< TH1D* >
+	  ( fData1pT->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_Data1PtCutW, 1 );
+	
+	TH1* h_Data2PtCutW = static_cast< TH1D* >
+	  ( fData2pT->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_Data2PtCutW, 2 );
+
+	TH1* h_Data3PtCutW = static_cast< TH1D* >
+	  ( fData3pT->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_Data3PtCutW, 3 );
+
+	padPtCutW1.cd();
+	h_DataNoPtCutW->Draw("ep X0 same");
+	h_Data1PtCutW ->Draw("ep X0 same");
+	h_Data2PtCutW ->Draw("ep X0 same");
+	h_Data3PtCutW ->Draw("ep X0 same");
+	legPtCutW.AddEntry( h_DataNoPtCutW, "#Delta#it{p}_{T} = 0 GeV" );
+	legPtCutW.AddEntry( h_Data1PtCutW,  "#Delta#it{p}_{T} = 1 GeV" );
+	legPtCutW.AddEntry( h_Data2PtCutW,  "#Delta#it{p}_{T} = 2 GeV" );
+	legPtCutW.AddEntry( h_Data3PtCutW,  "#Delta#it{p}_{T} = 3 GeV" );
+	legPtCutW.Draw();
+
+	m_is_pPb ?
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" ) :
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+
+	drawTool->DrawAtlasInternal();
+
+	DrawTopLeftLabels( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, axis2Low, axis2Up );
+	
+	TH1D* hR1PtCutW = static_cast< TH1D* >
+	  ( h_Data1PtCutW->Clone( Form("%s_1PtCutR", h_Data1PtCutW->GetName() ) ) );
+	hR1PtCutW->GetYaxis()->SetTitle("Ratio");
+	hR1PtCutW->Divide( h_DataNoPtCutW );
+	hR1PtCutW->SetMaximum( 1.5 );
+	hR1PtCutW->SetMinimum( 0.5 );
+
+	TH1D* hR2PtCutW = static_cast< TH1D* >
+	  ( h_Data2PtCutW->Clone( Form("%s_2PtCutR", h_Data2PtCutW->GetName() ) ) );
+	hR2PtCutW->Divide( h_DataNoPtCutW );
+
+	TH1D* hR3PtCutW = static_cast< TH1D* >
+	  ( h_Data3PtCutW->Clone( Form("%s_3PtCutR", h_Data3PtCutW->GetName() ) ) );
+	hR3PtCutW->Divide( h_DataNoPtCutW );
+
+	padPtCutW2.cd();
+	hR1PtCutW->Draw("ep X0 same");
+	hR2PtCutW->Draw("ep X0 same");
+	hR3PtCutW->Draw("ep X0 same");
+
+	line.Draw();
+	
+	SaveAsAll( ccPtCutW, hR1PtCutW->GetName() );
+
+	//---------------------------------------------
+	// ------------------ YIELDS ------------------
+	//---------------------------------------------
+
+	// !!! Check Isolation
+	TCanvas ccNoIsoY( "ccNoIsoY", "ccNoIsoY", 800, 700 );
+	TPad padNoIsoY1("padNoIsoY1", "", 0.0, 0.35, 1.0, 1.0 );
+	padNoIsoY1.SetBottomMargin(0);
+	padNoIsoY1.Draw();
+	TPad padNoIsoY2("padNoIsoY2", "", 0.0, 0.0, 1.0, 0.34 );
+	padNoIsoY2.SetTopMargin(0.05);
+	padNoIsoY2.SetBottomMargin(0.25);
+	padNoIsoY2.Draw();
+	
+	TLegend legNoIsoY( 0.5, 0.05, 0.7, 0.25 );
+	styleTool->SetLegendStyle( &legNoIsoY );
+
+	TH1* h_DataIsoY = static_cast< TH1D* >
+	  ( fDataIso->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_DataIsoY, 0 );
+	
+	TH1* h_DataNoIsoY = static_cast< TH1D* >
+	  ( fDataNoIso->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_DataNoIsoY, 5 );
+	
+	padNoIsoY1.cd();
+	padNoIsoY1.SetLogy();
+	h_DataIsoY->Draw("ep X0 same");
+	h_DataNoIsoY->Draw("ep X0 same");
+	legNoIsoY.AddEntry( h_DataIsoY, "Iso Cut" );
+	legNoIsoY.AddEntry( h_DataNoIsoY, "No Iso Cut" );
+	legNoIsoY.Draw();
+
+	m_is_pPb ?
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" ) :
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
+
+	drawTool->DrawAtlasInternal();
+
+	DrawTopLeftLabels
+	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	    axis2Low, axis2Up );
+
+	TH1D* hRNoIsoY = static_cast< TH1D* >
+	  ( h_DataIsoY->Clone( Form("%s_NoIsoR", h_DataIsoY->GetName() ) ) );
+	styleTool->SetHStyleRatio( hRNoIsoY, 0 );
+	hRNoIsoY->GetYaxis()->SetTitle("Ratio");
+	hRNoIsoY->Divide( h_DataNoIsoY );
+
+	padNoIsoY2.cd();
+	hRNoIsoY->Draw("ep X0 same");
+	hRNoIsoY->SetMaximum( 1.1 );
+	hRNoIsoY->SetMinimum( 0.9 );
+	
+	line.Draw();
+	
+	SaveAsAll( ccNoIsoY, hRNoIsoY->GetName() );
+
+	// !!! Check pT cuts
+	TCanvas ccPtCutY( "ccPtCutY", "ccPtCutY", 800, 700 );
+	TPad padPtCutY1("padPtCutY1", "", 0.0, 0.35, 1.0, 1.0 );
+	padPtCutY1.SetBottomMargin(0);
+	padPtCutY1.Draw();
+	TPad padPtCutY2("padPtCutY2", "", 0.0, 0.0, 1.0, 0.34 );
+	padPtCutY2.SetTopMargin(0.05);
+	padPtCutY2.SetBottomMargin(0.25);
+	padPtCutY2.Draw();
+
+	TLegend legPtCutY( 0.4, 0.05, 0.6, 0.25 );
+	styleTool->SetLegendStyle( &legPtCutY );
+
+	TH1* h_DataNoPtCutY = static_cast< TH1D* >
+	  ( fData0pT->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_DataNoPtCutY, 0 );
+	
+	TH1* h_Data1PtCutY = static_cast< TH1D* >
+	  ( fData1pT->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_Data1PtCutY, 1 );
+
+	TH1* h_Data2PtCutY = static_cast< TH1D* >
+	  ( fData2pT->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_Data2PtCutY, 2 );
+
+	TH1* h_Data3PtCutY = static_cast< TH1D* >
+	  ( fData3pT->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	styleTool->SetHStyle( h_Data3PtCutY, 3 );
+
+	padPtCutY1.cd();
+	padPtCutY1.SetLogy();
+	h_DataNoPtCutY->Draw("ep X0 same");
+	h_Data1PtCutY ->Draw("ep X0 same");
+	h_Data2PtCutY ->Draw("ep X0 same");
+	h_Data3PtCutY ->Draw("ep X0 same");
+	legPtCutY.AddEntry( h_DataNoPtCutY, "#Delta#it{p}_{T} = 0 GeV" );
+	legPtCutY.AddEntry( h_Data1PtCutY,  "#Delta#it{p}_{T} = 1 GeV" );
+	legPtCutY.AddEntry( h_Data2PtCutY,  "#Delta#it{p}_{T} = 2 GeV" );
+	legPtCutY.AddEntry( h_Data3PtCutY,  "#Delta#it{p}_{T} = 3 GeV" );
+	legPtCutY.Draw();
+
+	m_is_pPb ?
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" ) :
+	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}"   );
+
+	drawTool->DrawAtlasInternal();
+
+	DrawTopLeftLabels( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, axis2Low, axis2Up );
+	
+	TH1D* hR1PtCutY = static_cast< TH1D* >
+	  ( h_Data1PtCutY->Clone( Form("%s_1PtCutR", h_Data1PtCutY->GetName() ) ) );
+	hR1PtCutY->GetYaxis()->SetTitle("Ratio");
+	hR1PtCutY->Divide( h_DataNoPtCutY );
+	hR1PtCutY->SetMaximum( 1.1 );
+	hR1PtCutY->SetMinimum( 0.0 );
+
+	TH1D* hR2PtCutY = static_cast< TH1D* >
+	  ( h_Data2PtCutY->Clone( Form("%s_2PtCutR", h_Data2PtCutY->GetName() ) ) );
+	hR2PtCutY->Divide( h_DataNoPtCutY );
+	hR1PtCutY->SetMaximum( 1.1 );
+	hR1PtCutY->SetMinimum( 0.0 );
+
+	TH1D* hR3PtCutY = static_cast< TH1D* >
+	  ( h_Data3PtCutY->Clone( Form("%s_3PtCutR", h_Data3PtCutY->GetName() ) ) );
+	hR3PtCutY->Divide( h_DataNoPtCutY );
+	hR1PtCutY->SetMaximum( 1.1 );
+	hR1PtCutY->SetMinimum( 0.0 );
+
+	padPtCutY2.cd();
+	hR1PtCutY->Draw("ep X0 same");
+	hR2PtCutY->Draw("ep X0 same");
+	hR3PtCutY->Draw("ep X0 same");
+
+	line.Draw();
+	
+	SaveAsAll( ccPtCutY, hR1PtCutY->GetName() );
+
+	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
+	  // check we are in correct ystar and pt bins
+	  if( !m_dPP->CorrectPhaseSpace
+	      ( std::vector<int>{ axis0Bin, axis1Bin, axis2Bin, axis3Bin } ) )
+	    { continue; }
+
+	  double axis3Low , axis3Up;
+	  anaTool->GetBinRange
+	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
+
+	  TCanvas cc( "cc", "cc", 800, 600 );
+	  
+	  // Now Draw everything.
+	  TCanvas ccMC( "ccMC", "ccMC", 800, 700 );
+	  TPad padMC1("padMC1", "", 0.0, 0.35, 1.0, 1.0 );
+	  padMC1.SetBottomMargin(0);
+	  padMC1.Draw();
+	  TPad padMC2("padMC2", "", 0.0, 0.0, 1.0, 0.34 );
+	  padMC2.SetTopMargin(0.05);
+	  padMC2.SetBottomMargin(0.25);
+	  padMC2.Draw();
+	  
+	  // Now Draw everything.
+	  TCanvas c( "c", "c", 800, 800 );
+	  TPad pad1("pad1", "", 0.0, 0.35, 1.0, 1.0 );
+	  pad1.SetBottomMargin(0);
+	  pad1.Draw();
+	  TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.34 );
+	  pad2.SetTopMargin(0.05);
+	  pad2.SetBottomMargin(0.25);
+	  pad2.Draw();
+
+	  std::string hTagDphi =
+	    Form("%s_%s_%s_%s",
+		 anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str(),
+		 anaTool->GetName( axis1Low, axis1Up, m_dPP->GetAxisName(1) ).c_str(),
+		 anaTool->GetName( axis2Low, axis2Up, m_dPP->GetAxisName(2) ).c_str(),
+		 anaTool->GetName( axis3Low, axis3Up, m_dPP->GetAxisName(3) ).c_str() );
+	  
+	  TLegend legMC( 0.2, 0.4, 0.4, 0.55 );
+	  styleTool->SetLegendStyle( &legMC , 0.90 );
+	  
+	  TH1* h_MC = static_cast< TH1D* >
+	    ( fMC->Get( Form("%s_%s", hMCname.c_str(), hTagDphi.c_str() ) ) );
+	  TH1* h_MC_UW = static_cast< TH1D* >
+	    ( fMCUW->Get( Form("%s_%s", hMCname.c_str(), hTagDphi.c_str() ) ) );
+	  TH1* h_Data = static_cast< TH1D* >
+	    ( fData->Get( Form("%s_%s", hDataName.c_str(), hTagDphi.c_str() ) ) );
+
+	  styleTool->SetHStyle( h_MC, 1 );
+	  styleTool->SetHStyle( h_MC_UW, 2 );
+	  styleTool->SetHStyle( h_Data, 0 );
+
+	  double maxMC = h_MC->GetBinContent( h_MC->GetMaximumBin() );
+	  
+	  padMC1.cd();
+	  h_Data->SetMaximum( maxMC * 1.5 );
+	  h_Data->Draw("ep X0 same");
+	  h_MC->Draw("ep X0 same");
+	  h_MC_UW->Draw("ep X0 same");
+
+	  legMC.AddEntry( h_Data, "Data" );
+	  legMC.AddEntry( h_MC, "MC - Weighted" );
+	  legMC.AddEntry( h_MC_UW, "MC - Default" );
+
+	  drawTool->DrawAtlasInternal();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  m_is_pPb ?
+	    drawTool->DrawRightLatex( 0.87, 0.77, "#it{p}+Pb Pythia8") :
+	    drawTool->DrawRightLatex( 0.87, 0.77, "#it{pp} Pythia8");
+	  
+	  legMC.Draw();
+	  
+	  padMC2.cd();
+	  TH1* hR_MC = static_cast< TH1D* >
+	    ( h_Data->Clone
+	      ( Form("%s_%s_%s", hDataName.c_str(), hTagDphi.c_str(), m_sRatio.c_str())));
+	  
+	  styleTool->SetHStyleRatio( hR_MC, 1 );
+	  hR_MC->Divide( h_MC );
+	  hR_MC->Draw( "ep X0 same" );
+	  hR_MC->SetYTitle( "Data/MC" );
+	  hR_MC->SetMinimum( 0.25 );
+	  
+	  TH1* hR_MC_UW = static_cast< TH1D* >
+	    ( h_Data->Clone( Form("%s_%s_%s", hDataName.c_str(), hTagDphi.c_str(), m_sRatio.c_str() ) ) );
+	  styleTool->SetHStyleRatio( hR_MC_UW, 2 );
+	  hR_MC_UW->Divide( h_MC_UW );
+	  hR_MC_UW->Draw( "ep X0 same" );
+	  hR_MC_UW->SetYTitle( "Data/MC" );
+
+	  TLegend legR( 0.6, 0.75, 0.8, 0.9 );
+	  styleTool->SetLegendStyle( &legR, 0.85 );
+	  legR.AddEntry( hR_MC, "Data/MC Weighted" );
+	  legR.AddEntry( hR_MC_UW, "Data/MC Default" );
+
+	  TF1* fR = anaTool->FitPol0( hR_MC, m_dPhiFittingMin , m_dPhiFittingMax );
+	  styleTool->SetHStyle( fR , 0 );
+
+	  std::cout << " ------------- " << fR->GetProb() << std::endl; 
+	  hProbWeight->Fill( fR->GetProb() );
+	  
+	  legR.Draw();
+
+	  fR->Draw("same");
+		       
+	  SaveAsAll( ccMC, Form("hMC_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
+
+	  // -----------------------------------------
+	  //    compare mc with different pT cuts
+	  // -----------------------------------------
+
+	  // TRUTH
+	  TCanvas cTruthMCpT( "cTruthMCpT" ,"cTruthMCpT", 800, 600 );
+
+	  TH1* h_dPhiTruthMCNoPtCut = static_cast< TH1D* >
+	    ( fMC0pT->Get( Form("h_dPhi_truth_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiTruthMCNoPtCut, 0 );
+	
+	  TH1* h_dPhiTruthMC1PtCut = static_cast< TH1D* >
+	    ( fMC1pT->Get( Form("h_dPhi_truth_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiTruthMC1PtCut, 1 );
+
+	  TH1* h_dPhiTruthMC2PtCut = static_cast< TH1D* >
+	    ( fMC2pT->Get( Form("h_dPhi_truth_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiTruthMC2PtCut, 2 );
+
+	  TH1* h_dPhiTruthMC3PtCut = static_cast< TH1D* >
+	    ( fMC3pT->Get( Form("h_dPhi_truth_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiTruthMC3PtCut, 3 );
+
+	  TF1* f_dPhiTruthMCNoPtCut = static_cast< TF1* >
+	    ( fMC0pT->Get( Form("f_h_dPhi_truth_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiTruthMCNoPtCut->SetLineColor( h_dPhiTruthMCNoPtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiTruthMC1PtCut = static_cast< TF1* >
+	    ( fMC1pT->Get( Form("f_h_dPhi_truth_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiTruthMC1PtCut->SetLineColor( h_dPhiTruthMC1PtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiTruthMC2PtCut = static_cast< TF1* >
+	    ( fMC2pT->Get( Form("f_h_dPhi_truth_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiTruthMC2PtCut->SetLineColor( h_dPhiTruthMC2PtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiTruthMC3PtCut = static_cast< TF1* >
+	    ( fMC3pT->Get( Form("f_h_dPhi_truth_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiTruthMC3PtCut->SetLineColor( h_dPhiTruthMC3PtCut->GetLineColor() );
+	  
+	  TLegend legDphiTruthMC( 0.18, 0.35, 0.45, 0.55 );
+	  styleTool->SetLegendStyle( &legDphiTruthMC );
+	  legDphiTruthMC.AddEntry( h_dPhiTruthMCNoPtCut, "#Delta#it{p}_{T} = 0 GeV" );
+	  legDphiTruthMC.AddEntry( h_dPhiTruthMC1PtCut , "#Delta#it{p}_{T} = 1 GeV" );
+	  legDphiTruthMC.AddEntry( h_dPhiTruthMC2PtCut , "#Delta#it{p}_{T} = 2 GeV" );
+	  legDphiTruthMC.AddEntry( h_dPhiTruthMC3PtCut , "#Delta#it{p}_{T} = 3 GeV" );
+
+	  double dPhiTruthMCmax =
+	    h_dPhiTruthMCNoPtCut->GetBinContent( h_dPhiTruthMCNoPtCut->GetMaximumBin() );
+
+	  h_dPhiTruthMCNoPtCut->SetMaximum( dPhiTruthMCmax * 1.5 );
+	  
+	  h_dPhiTruthMCNoPtCut->Draw( "ep X0 same" );
+	  h_dPhiTruthMC1PtCut ->Draw( "ep X0 same" );
+	  h_dPhiTruthMC2PtCut ->Draw( "ep X0 same" );
+	  h_dPhiTruthMC3PtCut ->Draw( "ep X0 same" );
+
+	  f_dPhiTruthMCNoPtCut->Draw( "same" );
+	  f_dPhiTruthMC1PtCut ->Draw( "same" );
+	  f_dPhiTruthMC2PtCut ->Draw( "same" );
+	  f_dPhiTruthMC3PtCut ->Draw( "same" );
+ 
+	  legDphiTruthMC.Draw();
+	  
+	  drawTool->DrawAtlasInternal();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  m_is_pPb ?
+	    drawTool->DrawRightLatex( 0.87, 0.79, "Truth #it{p}+Pb Pythia8") :
+	    drawTool->DrawRightLatex( 0.87, 0.79, "Truth #it{pp} Pythia8");
+
+	  SaveAsAll( cTruthMCpT, Form("hTruthMCpT_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ) );
+
+	  // RECO
+	  TCanvas cRecoMCpT( "cRecoMCpT" ,"cRecoMCpT", 800, 600 );
+
+	  TH1* h_dPhiRecoMCNoPtCut = static_cast< TH1D* >
+	    ( fMC0pT->Get( Form("h_dPhi_reco_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiRecoMCNoPtCut, 0 );
+	
+	  TH1* h_dPhiRecoMC1PtCut = static_cast< TH1D* >
+	    ( fMC1pT->Get( Form("h_dPhi_reco_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiRecoMC1PtCut, 1 );
+
+	  TH1* h_dPhiRecoMC2PtCut = static_cast< TH1D* >
+	    ( fMC2pT->Get( Form("h_dPhi_reco_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiRecoMC2PtCut, 2 );
+
+	  TH1* h_dPhiRecoMC3PtCut = static_cast< TH1D* >
+	    ( fMC3pT->Get( Form("h_dPhi_reco_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiRecoMC3PtCut, 3 );
+
+	  TF1* f_dPhiRecoMCNoPtCut = static_cast< TF1* >
+	    ( fMC0pT->Get( Form("f_h_dPhi_reco_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiRecoMCNoPtCut->SetLineColor( h_dPhiRecoMCNoPtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiRecoMC1PtCut = static_cast< TF1* >
+	    ( fMC1pT->Get( Form("f_h_dPhi_reco_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiRecoMC1PtCut->SetLineColor( h_dPhiRecoMC1PtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiRecoMC2PtCut = static_cast< TF1* >
+	    ( fMC2pT->Get( Form("f_h_dPhi_reco_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiRecoMC2PtCut->SetLineColor( h_dPhiRecoMC2PtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiRecoMC3PtCut = static_cast< TF1* >
+	    ( fMC3pT->Get( Form("f_h_dPhi_reco_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiRecoMC3PtCut->SetLineColor( h_dPhiRecoMC3PtCut->GetLineColor() );
+	  
+	  TLegend legDphiRecoMC( 0.18, 0.35, 0.45, 0.55 );
+	  styleTool->SetLegendStyle( &legDphiRecoMC );
+	  legDphiRecoMC.AddEntry( h_dPhiRecoMCNoPtCut, "#Delta#it{p}_{T} = 0 GeV" );
+	  legDphiRecoMC.AddEntry( h_dPhiRecoMC1PtCut , "#Delta#it{p}_{T} = 1 GeV" );
+	  legDphiRecoMC.AddEntry( h_dPhiRecoMC2PtCut , "#Delta#it{p}_{T} = 2 GeV" );
+	  legDphiRecoMC.AddEntry( h_dPhiRecoMC3PtCut , "#Delta#it{p}_{T} = 3 GeV" );
+
+	  double dPhiRecoMCmax =
+	    h_dPhiRecoMCNoPtCut->GetBinContent( h_dPhiRecoMCNoPtCut->GetMaximumBin() );
+
+	  h_dPhiRecoMCNoPtCut->SetMaximum( dPhiRecoMCmax * 1.5 );
+	  
+	  h_dPhiRecoMCNoPtCut->Draw( "ep X0 same" );
+	  h_dPhiRecoMC1PtCut ->Draw( "ep X0 same" );
+	  h_dPhiRecoMC2PtCut ->Draw( "ep X0 same" );
+	  h_dPhiRecoMC3PtCut ->Draw( "ep X0 same" );
+
+	  f_dPhiRecoMCNoPtCut->Draw( "same" );
+	  f_dPhiRecoMC1PtCut ->Draw( "same" );
+	  f_dPhiRecoMC2PtCut ->Draw( "same" );
+	  f_dPhiRecoMC3PtCut ->Draw( "same" );
+ 
+	  legDphiRecoMC.Draw();
+	  
+	  drawTool->DrawAtlasInternal();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  m_is_pPb ?
+	    drawTool->DrawRightLatex( 0.87, 0.79, "Reco #it{p}+Pb Pythia8") :
+	    drawTool->DrawRightLatex( 0.87, 0.79, "Reco #it{pp} Pythia8");
+
+	  SaveAsAll( cRecoMCpT, Form("hRecoMCpT_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ) );
+
+	  // Data RECO
+	  TCanvas cRecoDatapT( "cRecoDatapT" ,"cRecoDatapT", 800, 600 );
+
+	  TH1* h_dPhiRecoDataNoPtCut = static_cast< TH1D* >
+	    ( fData0pT->Get( Form("h_dPhi_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiRecoDataNoPtCut, 0 );
+	
+	  TH1* h_dPhiRecoData1PtCut = static_cast< TH1D* >
+	    ( fData1pT->Get( Form("h_dPhi_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiRecoData1PtCut, 1 );
+
+	  TH1* h_dPhiRecoData2PtCut = static_cast< TH1D* >
+	    ( fData2pT->Get( Form("h_dPhi_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiRecoData2PtCut, 2 );
+
+	  TH1* h_dPhiRecoData3PtCut = static_cast< TH1D* >
+	    ( fData3pT->Get( Form("h_dPhi_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiRecoData3PtCut, 3 );
+
+	  TF1* f_dPhiRecoDataNoPtCut = static_cast< TF1* >
+	    ( fData0pT->Get( Form("f_h_dPhi_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiRecoDataNoPtCut->SetLineColor( h_dPhiRecoDataNoPtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiRecoData1PtCut = static_cast< TF1* >
+	    ( fData1pT->Get( Form("f_h_dPhi_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiRecoData1PtCut->SetLineColor( h_dPhiRecoData1PtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiRecoData2PtCut = static_cast< TF1* >
+	    ( fData2pT->Get( Form("f_h_dPhi_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiRecoData2PtCut->SetLineColor( h_dPhiRecoData2PtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiRecoData3PtCut = static_cast< TF1* >
+	    ( fData3pT->Get( Form("f_h_dPhi_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiRecoData3PtCut->SetLineColor( h_dPhiRecoData3PtCut->GetLineColor() );
+	  
+	  TLegend legDphiRecoData( 0.18, 0.35, 0.45, 0.55 );
+	  styleTool->SetLegendStyle( &legDphiRecoData );
+	  legDphiRecoData.AddEntry( h_dPhiRecoDataNoPtCut, "#Delta#it{p}_{T} = 0 GeV" );
+	  legDphiRecoData.AddEntry( h_dPhiRecoData1PtCut , "#Delta#it{p}_{T} = 1 GeV" );
+	  legDphiRecoData.AddEntry( h_dPhiRecoData2PtCut , "#Delta#it{p}_{T} = 2 GeV" );
+	  legDphiRecoData.AddEntry( h_dPhiRecoData3PtCut , "#Delta#it{p}_{T} = 3 GeV" );
+
+	  double dPhiRecoDatamax =
+	    h_dPhiRecoDataNoPtCut->GetBinContent( h_dPhiRecoDataNoPtCut->GetMaximumBin() );
+
+	  h_dPhiRecoDataNoPtCut->SetMaximum( dPhiRecoDatamax * 1.5 );
+	  
+	  h_dPhiRecoDataNoPtCut->Draw( "ep X0 same" );
+	  h_dPhiRecoData1PtCut ->Draw( "ep X0 same" );
+	  h_dPhiRecoData2PtCut ->Draw( "ep X0 same" );
+	  h_dPhiRecoData3PtCut ->Draw( "ep X0 same" );
+
+	  f_dPhiRecoDataNoPtCut->Draw( "same" );
+	  f_dPhiRecoData1PtCut ->Draw( "same" );
+	  f_dPhiRecoData2PtCut ->Draw( "same" );
+	  f_dPhiRecoData3PtCut ->Draw( "same" );
+ 
+	  legDphiRecoData.Draw();
+	  
+	  drawTool->DrawAtlasInternal();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  m_is_pPb ?
+	    drawTool->DrawRightLatex( 0.87, 0.79, "Reco Data #it{p}+Pb" ) :
+	    drawTool->DrawRightLatex( 0.87, 0.79, "Reco Data #it{pp}"   );
+
+	  SaveAsAll( cRecoDatapT, Form("hRecoDatapT_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ) );
+
+	  // Data UNFOLDED
+	  TCanvas cUnfoldedDatapT( "cUnfoldedDatapT" ,"cUnfoldedDatapT", 800, 600 );
+
+	  TH1* h_dPhiUnfoldedDataNoPtCut = static_cast< TH1D* >
+	    ( fData0pT->Get( Form("h_dPhi_unfolded_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiUnfoldedDataNoPtCut, 0 );
+	
+	  TH1* h_dPhiUnfoldedData1PtCut = static_cast< TH1D* >
+	    ( fData1pT->Get( Form("h_dPhi_unfolded_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiUnfoldedData1PtCut, 1 );
+
+	  TH1* h_dPhiUnfoldedData2PtCut = static_cast< TH1D* >
+	    ( fData2pT->Get( Form("h_dPhi_unfolded_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiUnfoldedData2PtCut, 2 );
+
+	  TH1* h_dPhiUnfoldedData3PtCut = static_cast< TH1D* >
+	    ( fData3pT->Get( Form("h_dPhi_unfolded_All_%s", hTagDphi.c_str() ) ) );
+	  styleTool->SetHStyle( h_dPhiUnfoldedData3PtCut, 3 );
+
+	  TF1* f_dPhiUnfoldedDataNoPtCut = static_cast< TF1* >
+	    ( fData0pT->Get( Form("f_h_dPhi_unfolded_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiUnfoldedDataNoPtCut->SetLineColor( h_dPhiUnfoldedDataNoPtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiUnfoldedData1PtCut = static_cast< TF1* >
+	    ( fData1pT->Get( Form("f_h_dPhi_unfolded_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiUnfoldedData1PtCut->SetLineColor( h_dPhiUnfoldedData1PtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiUnfoldedData2PtCut = static_cast< TF1* >
+	    ( fData2pT->Get( Form("f_h_dPhi_unfolded_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiUnfoldedData2PtCut->SetLineColor( h_dPhiUnfoldedData2PtCut->GetLineColor() );
+	  
+	  TF1* f_dPhiUnfoldedData3PtCut = static_cast< TF1* >
+	    ( fData3pT->Get( Form("f_h_dPhi_unfolded_All_%s", hTagDphi.c_str() ) ) );
+	  f_dPhiUnfoldedData3PtCut->SetLineColor( h_dPhiUnfoldedData3PtCut->GetLineColor() );
+	  
+	  TLegend legDphiUnfoldedData( 0.18, 0.35, 0.45, 0.55 );
+	  styleTool->SetLegendStyle( &legDphiUnfoldedData );
+	  legDphiUnfoldedData.AddEntry( h_dPhiUnfoldedDataNoPtCut, "#Delta#it{p}_{T} = 0 GeV" );
+	  legDphiUnfoldedData.AddEntry( h_dPhiUnfoldedData1PtCut , "#Delta#it{p}_{T} = 1 GeV" );
+	  legDphiUnfoldedData.AddEntry( h_dPhiUnfoldedData2PtCut , "#Delta#it{p}_{T} = 2 GeV" );
+	  legDphiUnfoldedData.AddEntry( h_dPhiUnfoldedData3PtCut , "#Delta#it{p}_{T} = 3 GeV" );
+
+	  double dPhiUnfoldedDatamax =
+	    h_dPhiUnfoldedDataNoPtCut->GetBinContent( h_dPhiUnfoldedDataNoPtCut->GetMaximumBin() );
+
+	  h_dPhiUnfoldedDataNoPtCut->SetMaximum( dPhiUnfoldedDatamax * 1.5 );
+	  
+	  h_dPhiUnfoldedDataNoPtCut->Draw( "ep X0 same" );
+	  h_dPhiUnfoldedData1PtCut ->Draw( "ep X0 same" );
+	  h_dPhiUnfoldedData2PtCut ->Draw( "ep X0 same" );
+	  h_dPhiUnfoldedData3PtCut ->Draw( "ep X0 same" );
+
+	  f_dPhiUnfoldedDataNoPtCut->Draw( "same" );
+	  f_dPhiUnfoldedData1PtCut ->Draw( "same" );
+	  f_dPhiUnfoldedData2PtCut ->Draw( "same" );
+	  f_dPhiUnfoldedData3PtCut ->Draw( "same" );
+ 
+	  legDphiUnfoldedData.Draw();
+	  
+	  drawTool->DrawAtlasInternal();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up, axis3Low, axis3Up );
+
+	  m_is_pPb ?
+	    drawTool->DrawRightLatex( 0.87, 0.79, "Unfolded Data #it{p}+Pb" ) :
+	    drawTool->DrawRightLatex( 0.87, 0.79, "Unfolded Data #it{pp}"   );
+                     
+	  SaveAsAll( cUnfoldedDatapT, Form("hUnfoldedDatapT_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ) );
+
+	} // end loop over axis3
+      } // end loop over axis2
+
+    } // end loop over ystar2
+  } // end loop over ystar2
+
+  TCanvas cProb( "cProb", "cProb", 800, 600 );
+  hProbWeight->Draw("hist C");
+
+  DrawAtlasRightBoth();
+  if( m_is_pPb ){
+    drawTool->DrawRightLatex( 0.8, 0.8, "#it{p}+Pb" );
+  } else {
+    drawTool->DrawRightLatex( 0.8, 0.8, "#it{pp}" );
+  }
+
+  std::cout << m_is_pPb << std::endl;
+  std::string probName = "h_probWeights_";
+  probName +=  m_is_pPb ? "pPb" : "pp" ; 
+  
+  SaveAsPdfPng( cProb, probName, true );
+  SaveAsROOT  ( cProb, probName );
+  hProbWeight->Write();
+}
+
 void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
   std::vector< TF1* > vF;
@@ -2785,29 +3650,21 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   lineN25.SetLineColor( 12 );
   lineN25.SetLineWidth( 2  );
 
-  TLine lineP50( xMin, 1.50, xMax, 1.50 );
-  lineP50.SetLineStyle( 2  );
-  lineP50.SetLineColor( 12 );
-  lineP50.SetLineWidth( 1  );
-	  
-  TLine lineN50( xMin, 0.50, xMax, 0.50 );
-  lineN50.SetLineStyle( 2  );
-  lineN50.SetLineColor( 12 );
-  lineN50.SetLineWidth( 1  );
-
-  TLine lineP1S( xMin, 1.34, xMax, 1.34 );
-  lineP1S.SetLineStyle( 2  );
-  lineP1S.SetLineColor( 12 );
-  lineP1S.SetLineWidth( 1  );
-	  
-  TLine lineN1S( xMin, 0.66, xMax, 0.66 );
-  lineN1S.SetLineStyle( 2  );
-  lineN1S.SetLineColor( 12 );
-  lineN1S.SetLineWidth( 1  );
-  
+  /*
   TFile* fIn_a = TFile::Open( fName_a.c_str() );
   TFile* fIn_b = TFile::Open( fName_b.c_str() );
+  */
 
+  int pTcut = 2;
+
+  std::string fName_pPb =
+    Form( "data/myOut_pPb_data_phys_UF_0_NoIso_%dpT.root", pTcut );
+  std::string fName_pp =
+    Form( "data/myOut_pp_data_phys_UF_0_NoIso_%dpT.root", pTcut );
+
+  TFile* fIn_a = TFile::Open( fName_pPb.c_str() );
+  TFile* fIn_b = TFile::Open( fName_pp.c_str() );
+   
   xMin = m_dPhiZoomLow;
   xMax = m_dPhiZoomHigh;
   
@@ -2833,33 +3690,6 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   dPhiLineN50.SetLineStyle( 3 );
   dPhiLineN50.SetLineColor( 12 );
   dPhiLineN50.SetLineWidth( 1  );
-
-  std::cout << "!!!!!!!!!!!!!!!! " << m_is_pPb << std::endl;
-  
-  TFile* fMC = m_is_pPb ?
-    TFile::Open( "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_phys_0.root" ) :
-    TFile::Open( "output/output_pPb_mc_pythia8/myOut_pPb_mc_pythia8_phys_0.root" );
-
-  TFile* fMCUW = m_is_pPb ?
-    TFile::Open( "data/output_pp_mc_pythia8_uw/myOut_pp_mc_pythia8_phys_0.root" ) :
-    TFile::Open( "data/output_pPb_mc_pythia8_uw/myOut_pPb_mc_pythia8_phys_0.root" );
-
-  TFile* fData = m_is_pPb ?
-    TFile::Open( "output/output_pp_data/myOut_pp_data_phys_0.root" ) :
-    TFile::Open( "output/output_pPb_data/myOut_pPb_data_phys_0.root" );
-
-  TFile* fDataNoIso = NULL;
-  if( m_is_pPb ){
-    fDataNoIso = TFile::Open( "data/myOut_pPb_data_phys_UF_0.root" ) ;  
-  } else {
-    fDataNoIso = TFile::Open( "data/myOut_pp_data_phys_UF_0.root" ) ;
-  }
-  
-  std::string hMCname   = "h_dPhi_reco_All";
-  std::string hDataName = "h_dPhi_All";
-
-  TH1* hProbWeight = new TH1D( "hProbWeight", ";Probability;Count", 20, 0, 1 );
-  styleTool->SetHStyle( hProbWeight, 0 );
   
   fOut->cd();
 
@@ -3031,106 +3861,6 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	
 	hY_a->Draw("ep same X0");
 	hY_b->Draw("ep same X0");
-
-	// Now Draw everything.
-	TCanvas ccNoIsoW( "ccNoIsoW", "ccNoIsoW", 800, 700 );
-	TPad padNoIsoW1("padNoIsoW1", "", 0.0, 0.35, 1.0, 1.0 );
-	padNoIsoW1.SetBottomMargin(0);
-	padNoIsoW1.Draw();
-	TPad padNoIsoW2("padNoIsoW2", "", 0.0, 0.0, 1.0, 0.34 );
-	padNoIsoW2.SetTopMargin(0.05);
-	padNoIsoW2.SetBottomMargin(0.25);
-	padNoIsoW2.Draw();
-
-	TLegend legNoIsoW( 0.4, 0.1, 0.6, 0.3 );
-	styleTool->SetLegendStyle( &legNoIsoW );
-	
-	TH1* h_DataNoIsoW = static_cast< TH1D* >
-	  ( fDataNoIso->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
-	styleTool->SetHStyle( h_DataNoIsoW, style + 5 );
-	
-	padNoIsoW1.cd();
-	hW_a->Draw("ep X0 same");
-	h_DataNoIsoW->Draw("ep X0 same");
-	legNoIsoW.AddEntry( hW_a, "Isolation" );
-	legNoIsoW.AddEntry( h_DataNoIsoW, "No Isolation" );
-	legNoIsoW.Draw();
-
-	if( m_is_pPb ){
-	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" );
-	} else {
-	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
-	}
-
-	drawTool->DrawAtlasInternal();
-
-	DrawTopLeftLabels
-	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	    axis2Low, axis2Up );
-	
-	TH1D* hRNoIsoW = static_cast< TH1D* >( hW_a->Clone( Form("%s_NoIsoR", hW_a->GetName() ) ) );
-	styleTool->SetHStyleRatio( hRNoIsoW, 0 );
-	hRNoIsoW->GetYaxis()->SetTitle("Ratio");
-	hRNoIsoW->Divide( h_DataNoIsoW );
-	hRNoIsoW->SetMaximum( 1.1 );
-	hRNoIsoW->SetMinimum( 0.9 );
-
-	padNoIsoW2.cd();
-	hRNoIsoW->Draw("p histo X0 same");
-
-	line.Draw();
-	
-	SaveAsAll( ccNoIsoW, hRNoIsoW->GetName() );
-	
-	// Now Draw everything.
-	TCanvas ccNoIsoY( "ccNoIsoY", "ccNoIsoY", 800, 700 );
-	TPad padNoIsoY1("padNoIsoY1", "", 0.0, 0.35, 1.0, 1.0 );
-	padNoIsoY1.SetBottomMargin(0);
-	padNoIsoY1.Draw();
-	TPad padNoIsoY2("padNoIsoY2", "", 0.0, 0.0, 1.0, 0.34 );
-	padNoIsoY2.SetTopMargin(0.05);
-	padNoIsoY2.SetBottomMargin(0.25);
-	padNoIsoY2.Draw();
-	
-	TLegend legNoIsoY( 0.5, 0.1, 0.6, 0.3 );
-	styleTool->SetLegendStyle( &legNoIsoY );
-
-	TH1* h_DataNoIsoY = static_cast< TH1D* >( fDataNoIso->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
-	styleTool->SetHStyle( h_DataNoIsoY, style + 5 );
-	
-	padNoIsoY1.cd();
-	padNoIsoY1.SetLogy();
-	hY_a->Draw("ep X0 same");
-	h_DataNoIsoY->Draw("ep X0 same");
-	legNoIsoY.AddEntry( hY_a, "Isolation" );
-	legNoIsoY.AddEntry( h_DataNoIsoY, "No Isolation" );
-	legNoIsoY.Draw();
-
-	if( m_is_pPb ){
-	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{p}+Pb" );
-	} else { 
-	  drawTool->DrawRightLatex( 0.8, 0.7, "#it{pp}" );
-	}
-
-	drawTool->DrawAtlasInternal();
-
-	DrawTopLeftLabels
-	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	    axis2Low, axis2Up );
-
-	TH1D* hRNoIsoY = static_cast< TH1D* >( hY_a->Clone( Form("%s_NoIsoR", hY_a->GetName() ) ) );
-	styleTool->SetHStyleRatio( hRNoIsoY, 0 );
-	hRNoIsoY->GetYaxis()->SetTitle("Ratio");
-	hRNoIsoY->Divide( h_DataNoIsoY );
-
-	padNoIsoY2.cd();
-	hRNoIsoY->Draw("p histo X0 same");
-	hRNoIsoY->SetMaximum( 1.2 );
-	hRNoIsoY->SetMinimum( 0.8 );
-	
-	line.Draw();
-	
-	SaveAsAll( ccNoIsoY, hRNoIsoY->GetName() );
 	
 	for( int axis3Bin = 1; axis3Bin <= nAxis3Bins; axis3Bin++ ){
 	  // check we are in correct ystar and pt bins
@@ -3214,9 +3944,6 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
 	  TLegend legF( 0.75, 0.22, 0.85, 0.32 );
 	  styleTool->SetLegendStyle( &legF , 0.95 );
-
-	  TLegend legMC( 0.2, 0.4, 0.4, 0.55 );
-	  styleTool->SetLegendStyle( &legMC , 0.95 );
 
 	  h_a->SetMinimum( m_dPhiLogMin );
 	  h_b->SetMinimum( m_dPhiLogMin );
@@ -3321,74 +4048,6 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 				label_b.c_str(), yield_b, yieldError_b ) );
 
 	  SaveAsAll( cc, Form("hf_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
-
-	  ccMC.cd();
-	  padMC1.cd();
-	  
-	  TH1* h_MC = static_cast< TH1D* >( fMC->Get( Form("%s_%s", hMCname.c_str(), hTagDphi.c_str() ) ) );
-	  styleTool->SetHStyle( h_MC, 1 );
-	  TH1* h_MC_UW = static_cast< TH1D* >( fMCUW->Get( Form("%s_%s", hMCname.c_str(), hTagDphi.c_str() ) ) );
-	  styleTool->SetHStyle( h_MC_UW, 2 );
-	  TH1* h_Data = static_cast< TH1D* >( fData->Get( Form("%s_%s", hDataName.c_str(), hTagDphi.c_str() ) ) );
-	  
-	  styleTool->SetHStyle( h_Data, 0 );
-
-	  h_Data->Draw("ep X0 same");
-	  h_MC->Draw("ep X0 same");
-	  h_MC_UW->Draw("ep X0 same");
-
-	  legMC.AddEntry( h_Data, "Data" );
-	  legMC.AddEntry( h_MC, "MC - Weighted" );
-	  legMC.AddEntry( h_MC_UW, "MC - Default" );
-
-	  h_Data->SetMaximum( maximum );
-	  
-	  drawTool->DrawAtlasInternal();
-
-	  DrawTopLeftLabels
-	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	      axis2Low, axis2Up, axis3Low, axis3Up );
-
-	  if( m_is_pPb ){
-	    drawTool->DrawRightLatex( 0.87, 0.77, "#it{p}+Pb Pythia8");
-	  } else {
-	    drawTool->DrawRightLatex( 0.87, 0.77, "#it{pp} Pythia8");
-	  }
-	  
-	  legMC.Draw();
-	  
-	  padMC2.cd();
-	  TH1* hR_MC = static_cast< TH1D* >
-	    ( h_Data->Clone( Form("%s_%s_%s", hDataName.c_str(), hTagDphi.c_str(), m_sRatio.c_str() ) ) );
-	  styleTool->SetHStyleRatio( hR_MC, 1 );
-	  hR_MC->Divide( h_MC );
-	  hR_MC->Draw( "ep X0 same" );
-	  hR_MC->SetYTitle( "Data/MC" );
-	  hR_MC->SetMinimum( 0.25 );
-	  
-	  TH1* hR_MC_UW = static_cast< TH1D* >
-	    ( h_Data->Clone( Form("%s_%s_%s", hDataName.c_str(), hTagDphi.c_str(), m_sRatio.c_str() ) ) );
-	  styleTool->SetHStyleRatio( hR_MC_UW, 2 );
-	  hR_MC_UW->Divide( h_MC_UW );
-	  hR_MC_UW->Draw( "ep X0 same" );
-	  hR_MC_UW->SetYTitle( "Data/MC" );
-
-	  TLegend legR( 0.6, 0.75, 0.8, 0.9 );
-	  styleTool->SetLegendStyle( &legR, 0.85 );
-	  legR.AddEntry( hR_MC, "Data/MC Weighted" );
-	  legR.AddEntry( hR_MC_UW, "Data/MC Default" );
-
-	  TF1* fR = anaTool->FitPol0( hR_MC, m_dPhiFittingMin , m_dPhiFittingMax );
-	  styleTool->SetHStyle( fR , 0 );
-
-	  std::cout << " ------------- " << fR->GetProb() << std::endl; 
-	  hProbWeight->Fill( fR->GetProb() );
-	  
-	  legR.Draw();
-
-	  fR->Draw("same");
-		       
-	  SaveAsAll( ccMC, Form("hMC_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
 	  
 	  styleTool->HideAxis( h_a, "x" );
 	  styleTool->HideAxis( h_b, "x" );
@@ -3399,7 +4058,6 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
 	  dPhiLine.Draw();
 	  dPhiLineP25.Draw(); dPhiLineN25.Draw();
-	  // dPhiLineP50.Draw(); dPhiLineN50.Draw();
 
 	  h_R->Write();
 	  SaveAsAll( c , Form("hr_%s_%s", m_dPhiName.c_str(), hTagDphi.c_str() ), true );
@@ -3412,42 +4070,36 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
       
       legW.Draw("same");
 
-      DrawTopLeftLabels
-	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	  0, 0, 0, 0 );
+      DrawTopLeftLabels( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, 0, 0, 0, 0 );
+      DrawAtlasRightBoth();      
 
-      DrawAtlasRightBoth();
-
+      drawTool->DrawRightLatex( 0.8, 0.8, Form("#Delta#it{p}_{T}=%d GeV", pTcut ) );
+      
       pad2W.cd();
       line.Draw();
       lineP25.Draw();
       lineN25.Draw();
-      lineP50.Draw();
-      lineN50.Draw();
 
       SaveAsPdfPng( cW, Form("h_%s_%s_%s", m_dPhiName.c_str(),
 			     m_widthName.c_str(), hTagC.c_str() ), true );
       SaveAsROOT( cW, Form("h_%s_%s_%s", m_dPhiName.c_str(),
 			   m_widthName.c_str(), hTagC.c_str() ) );
 
-      // back to cW canvas
+      // back to cY canvas
       cY.cd();
       pad1Y.cd();
       
       legY.Draw("same");
 
-      DrawTopLeftLabels
-	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	  0, 0, 0, 0 );
-
+      DrawTopLeftLabels( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up, 0, 0, 0, 0 );
       DrawAtlasRightBoth();
+
+      drawTool->DrawRightLatex( 0.8, 0.8, Form("#Delta#it{p}_{T}=%d GeV", pTcut ) );
 
       pad2Y.cd();
       line.Draw();
       lineP25.Draw();
       lineN25.Draw();
-      lineP50.Draw();
-      lineN50.Draw();
 
       SaveAsPdfPng( cY, Form("h_%s_%s_%s", m_dPhiName.c_str(),
 			     m_yieldName.c_str(), hTagC.c_str() ), true );
@@ -3483,15 +4135,15 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   c.cd(1);
   h_chi2_a->SetMaximum( h_chi2_a->GetMaximum() > h_chi2_b->GetMaximum() ?
 			h_chi2_a->GetMaximum() * 1.1 : h_chi2_b->GetMaximum() * 1.1 );
-  h_chi2_a->Draw("hist C same");
-  h_chi2_b->Draw("hist C same");
+  h_chi2_a->Draw("hist same");
+  h_chi2_b->Draw("hist same");
   DrawAtlasRightBoth();
 
   c.cd(2);
   h_prob_a->SetMaximum( h_prob_a->GetMaximum() > h_prob_b->GetMaximum() ?
 			h_prob_a->GetMaximum() * 1.1 : h_prob_b->GetMaximum() * 1.1 );
-  h_prob_a->Draw("hist C same");
-  h_prob_b->Draw("hist C same");
+  h_prob_a->Draw("hist same");
+  h_prob_b->Draw("hist same");
 
   leg.AddEntry( h_prob_a, label_a.c_str() );
   leg.AddEntry( h_prob_b, label_b.c_str() );
@@ -3502,24 +4154,6 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
   SaveAsPdfPng( c, "h_chi2_prob", true );
   SaveAsROOT  ( c, "h_chi2_prob");
-
-  TCanvas cProb( "cProb", "cProb", 800, 600 );
-  hProbWeight->Draw("hist C");
-
-  DrawAtlasRightBoth();
-  if( m_is_pPb ){
-    drawTool->DrawRightLatex( 0.8, 0.8, "#it{p}+Pb" );
-  } else {
-    drawTool->DrawRightLatex( 0.8, 0.8, "#it{pp}" );
-  }
-
-  std::cout << m_is_pPb << std::endl;
-  std::string probName = "h_probWeights_";
-  probName +=  m_is_pPb ? "pPb" : "pp" ; 
-  
-  SaveAsPdfPng( cProb, probName, true );
-  SaveAsROOT  ( cProb, probName );
-  hProbWeight->Write();
   
   for( auto & f  : vF  ){ delete f ; }
   for( auto & r  : vR  ){ delete r ; }

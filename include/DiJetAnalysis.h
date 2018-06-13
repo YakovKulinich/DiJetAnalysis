@@ -90,7 +90,8 @@ class DiJetAnalysis{
 
   virtual bool GetDiJets( const std::vector<TLorentzVector>&,
 			  const TLorentzVector*&,
-			  const TLorentzVector*& );
+			  const TLorentzVector*&,
+			  bool = true );
 
   virtual void AnalyzeSpectra( TH2*, const std::vector< TLorentzVector >& );
   
@@ -189,6 +190,8 @@ class DiJetAnalysis{
   
   virtual void MakeDphiTogether( TFile* = NULL );
 
+  virtual void CompareWeightIsoPtCuts( TFile* = NULL );
+
   virtual void MakeFinalPlotsTogether( TFile* fOut, const std::string& = "" );
 
   //---------------------------
@@ -275,6 +278,8 @@ class DiJetAnalysis{
   //============ cuts =============
   int    m_nMinEntriesFit;
 
+  double m_deltaPtCut;
+  
   double m_dPhiThirdJetFraction;
 
   double m_dPhiZoomLow;
