@@ -1225,11 +1225,11 @@ void DiJetAnalysisData::MakeNjetsRun( std::vector< TH3* >& vhSample,
     // if( !m_is_pPb && label.compare("HLT_j35_320eta490_L1TE10") ){ continue; }
     // if( !m_is_pPb && label.compare("HLT_j45_320eta490") ){ continue; }
     // if( !m_is_pPb && label.compare("HLT_j30_L1TE5") ){ continue; }
-    // if( !m_is_pPb && label.compare("HLT_j30_L1TE5") ){ continue; }
+    if( !m_is_pPb && label.compare("HLT_j40_L1TE10") ){ continue; }
     
     TH3* hSample = vhSample[ iG ];
     
-    int xBin = 2, yBin = 1; 
+    int xBin = 3, yBin = 3; 
     double xMin, xMax;
     anaTool->GetBinRange
       ( hSample->GetXaxis(), xBin, xBin, xMin, xMax );
@@ -2826,7 +2826,15 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up );
 
       DrawAtlasRightBoth( 0, 0, 1.0, true );
+      
+      if( m_deltaPtCut  && isYield ){
+	drawTool->DrawLeftLatex( 0.19, 0.70, Form( "#Delta#it{p}_{T}=%g GeV", m_deltaPtCut ) );
+      }
+      if( m_deltaPtCut  && !isYield ){
+	drawTool->DrawRightLatex( 0.875, 0.645, Form( "#Delta#it{p}_{T}=%g GeV", m_deltaPtCut ) );
+      }
 
+      
       legSpPb.Draw();
       legSpp .Draw();
 	

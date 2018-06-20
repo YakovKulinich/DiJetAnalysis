@@ -371,9 +371,12 @@ class DiJetAnalysis{
   std::string m_ystarSpectFineRecoName;
   std::string m_ystarSpectFineTruthName;
   
+  // --- ystar response matrix ----
+  std::string m_ystarRespMatName;
+
   // --- spectra response matrix ----
   std::string m_ystarSpectRespMatName;
-
+  
   // ------- spectra cfactors -------
   std::string m_ystarSpectCfactorsName;
 

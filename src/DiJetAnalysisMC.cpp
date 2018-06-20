@@ -589,6 +589,21 @@ void DiJetAnalysisMC::SetupHistograms(){
     m_vHjznYstarSpectRespMat.back()->GetZaxis()->
       Set( m_nVarPtBinsUfOf, &( m_varPtBinningUfOf[0] ) );
     AddHistogram( m_vHjznYstarSpectRespMat.back() );
+
+    // --- ystar response matrix ----
+    m_vHjznYstarRespMat.push_back
+      ( new TH3D( Form("h_%s_%s", m_ystarRespMatName.c_str(), jzn.c_str() ), 
+		  ";#it{y}_{Reco}*;#it{y}_{Truth}*;#it{p}_{T}^{Truth} [GeV]",
+		  m_nVarYstarBins, 0, 1,
+		  m_nVarYstarBins, 0, 1,
+		  m_nVarPtBins, 0, 1 ) );
+    m_vHjznYstarRespMat.back()->GetXaxis()->
+      Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
+    m_vHjznYstarRespMat.back()->GetYaxis()->
+      Set( m_nVarPtBins, &( m_varPtBinning[0] ) );
+    m_vHjznYstarRespMat.back()->GetZaxis()->
+      Set( m_nVarPtBins, &( m_varPtBinning[0] ) );
+    AddHistogram( m_vHjznYstarRespMat.back() );
     
     // --------- recoTruthRpt ---------
     m_vHjznRecoTruthRpt.push_back
@@ -951,8 +966,8 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 	TLorentzVector& rJetFront = vTR_paired_jets.front();
 	TLorentzVector& tJetFront = vTT_paired_jets.front();
 	
-	double recoJetWeight  = GetJetWeight( tJetFront ) * GetSpectWeight( tJetFront );
-	double truthJetWeight = GetJetWeight( rJetFront ) * GetSpectWeight( tJetFront );
+	double recoJetWeight  = GetJetWeight( rJetFront ) * GetSpectWeight( tJetFront );
+	double truthJetWeight = GetJetWeight( tJetFront ) * GetSpectWeight( tJetFront );
 	
 	m_vHjznYstarSpectReco[iG] ->Fill
 	  ( GetYstar( rJetFront ), rJetFront.Pt()/1000., recoJetWeight  );
@@ -969,14 +984,32 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       }
 
       // fill single speectra response matrix
-      AnalyzeSpectRespMat( m_vHjznYstarSpectRespMat[iG], vTR_paired_jets, vTT_paired_jets );
+      AnalyzeSpectRespMat( m_vHjznYstarSpectRespMat[iG], m_vHjznYstarRespMat[iG],
+			   vTR_paired_jets, vTT_paired_jets );
 
       // make spectra
       AnalyzeSpectra( m_vHjznYstarSpectFineTruth[iG], vTT_paired_jets );
-      AnalyzeSpectra( m_vHjznYstarSpectFineReco [iG], vTR_paired_jets );
-      
+
+      // for reco fine, use weights (for comparison later)
+      for( uint iJet = 0; iJet < vTR_paired_jets.size(); iJet++ ){
+	TLorentzVector& rJet = vTR_paired_jets[ iJet ];
+	TLorentzVector& tJet = vTT_paired_jets[ iJet ];
+
+	double jetYstar  = GetYstar( rJet );
+	double jetPt     = rJet.Pt()/1000.;
+    
+	double jetWeight = GetJetWeight( rJet ) * GetSpectWeight( tJet );
+
+	m_vHjznYstarSpectFineReco[iG]->Fill( jetYstar, jetPt, jetWeight );
+
+	// for pp fill both sides
+	if( !m_is_pPb ){
+	  m_vHjznYstarSpectFineReco[iG]->Fill( -jetYstar, jetPt, jetWeight );
+	}
+      }
+            
       // for efficiencies. These have different binning
-      AnalyzeSpectra( m_vHjznYstarSpectFineTruthUP [iG], vT_jets );
+      AnalyzeSpectra( m_vHjznYstarSpectFineTruthUP[iG], vT_jets );
       
       // do JER/JES, angular scales and resolution.
       AnalyzeScaleResolution( vTR_paired_jets, vTT_paired_jets, iG );
@@ -1103,7 +1136,8 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
   } // end loop over pairs
 }
 
-void DiJetAnalysisMC::AnalyzeSpectRespMat( TH3* hRespMat,
+void DiJetAnalysisMC::AnalyzeSpectRespMat( TH3* hRespMatPt,
+					   TH3* hRespMatYstar,
 					   const std::vector< TLorentzVector >& vR_jets,
 					   const std::vector< TLorentzVector >& vT_jets ){
   
@@ -1114,18 +1148,21 @@ void DiJetAnalysisMC::AnalyzeSpectRespMat( TH3* hRespMat,
 
     
     double rJet_pt    = rJet->Pt()/1000.;
+    double rJet_ystar = GetYstar( *rJet );
   
     double tJet_pt    = tJet->Pt()/1000.;
     double tJet_ystar = GetYstar( *tJet );
 
     double jetWeight = GetJetWeight( *tJet );
     
-    hRespMat->Fill(  tJet_ystar, rJet_pt, tJet_pt, jetWeight );
-
+    hRespMatPt->Fill(  tJet_ystar, rJet_pt, tJet_pt, jetWeight );
+    hRespMatPt->Fill(  tJet_ystar, rJet_ystar, tJet_pt, jetWeight );
+    
     // for pp fill plus minus ystar
     if( m_is_pPb ){ return; }
 
-    hRespMat->Fill( -tJet_ystar, rJet_pt, tJet_pt, jetWeight );
+    hRespMatPt->Fill( -tJet_ystar, rJet_pt, tJet_pt, jetWeight );
+    hRespMatPt->Fill( -tJet_ystar, -rJet_ystar, tJet_pt, jetWeight );
   }
 }
 
@@ -1842,7 +1879,13 @@ void DiJetAnalysisMC::LoadHistograms( int opt ){
       ( static_cast< TH3D* >
 	( fIn->Get( Form("h_%s_%s", m_ystarSpectRespMatName.c_str(), jzn.c_str() ))));
     m_vHjznYstarSpectRespMat.back()->SetDirectory(0);
-    
+
+    // --- ystar response matrix ----
+    m_vHjznYstarRespMat.push_back 
+      ( static_cast< TH3D* >
+	( fIn->Get( Form("h_%s_%s", m_ystarRespMatName.c_str(), jzn.c_str() ))));
+    m_vHjznYstarRespMat.back()->SetDirectory(0);
+
     // --------- recoTruthRpt ---------
     m_vHjznRecoTruthRpt.push_back
       ( static_cast< TH3D* >

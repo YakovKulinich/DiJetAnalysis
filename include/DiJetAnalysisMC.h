@@ -83,7 +83,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
-  void AnalyzeSpectRespMat( TH3*,
+  void AnalyzeSpectRespMat( TH3*, TH3*,
 			    const std::vector< TLorentzVector >&,
 			    const std::vector< TLorentzVector >& );
   
@@ -273,8 +273,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   // --- spectra response matrix ----
   std::vector< TH3* > m_vHjznYstarSpectRespMat;
+  std::vector< TH3* > m_vHjznYstarRespMat;
 
   TH3* m_hAllYstarSpectRespMat;
+  TH3* m_hAllYstarRespMat;
   
   // --------- recoTruthRpt ---------
   std::vector< TH3* > m_vHjznRecoTruthRpt;
