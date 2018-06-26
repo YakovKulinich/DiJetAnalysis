@@ -143,8 +143,8 @@ void DiJetAnalysisData::UnfoldPerformance(){
   // open the MC file used for unfolding info.
   // open the data file used for measured info.
   // passed to unfolding function.
-  TFile* fInMC   = TFile::Open( m_fNamePerfUnfoldingMC.c_str() );
   TFile* fInData = TFile::Open( m_fNameDefPerf.c_str()         );
+  TFile* fInMC   = TFile::Open( m_fNamePerfUnfoldingMC.c_str() );
   TFile* fOut    = new TFile( m_fNamePerfUF.c_str(),"UPDATE"   );
 
   std::cout << "----- Unfolding MC ------" << std::endl;
@@ -209,9 +209,9 @@ void DiJetAnalysisData::UnfoldPhysics(){
   // open the MC file used for unfolding info.
   // open teh data file used for measured info.
   // passed to unfolding function.
-  TFile* fInMC     = TFile::Open( m_fNamePhysUnfoldingMC.c_str() );
   TFile* fInData   = TFile::Open( m_fNameDefPhys.c_str()         );
-  TFile* fInMCPerf = TFile::Open( m_fNamePerfUF.c_str()          );
+  TFile* fInMC     = TFile::Open( m_fNamePhysUnfoldingMC.c_str() );
+  TFile* fInPerf   = TFile::Open( m_fNamePerfUF.c_str()          );
   TFile* fOut      = new TFile( m_fNamePhysUF.c_str(), "UPDATE"  );
 
   std::cout << m_fNamePhysUnfoldingMC << std::endl;
@@ -230,14 +230,14 @@ void DiJetAnalysisData::UnfoldPhysics(){
   // and subsequently added to the vectors above.  
   THnSparse* m_hAllDphiUnfolded =
     UnfoldDeltaPhi( fInData, fInMC, m_dPhiUnfoldedName,
-		    fInMCPerf, m_ystarSpectUnfoldedName );
+		    fInPerf, m_ystarSpectUnfoldedName );
   m_vHDphiUnfolded.push_back( m_hAllDphiUnfolded );
   m_vLabelUnfolded.push_back( m_allName );
 
   // make deltaPhi, give flag (true) that its unfolded response
   // so there is no comb subt or normalization or scaling
   MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelUnfolded, m_dPhiUnfoldedName,
-		fInMCPerf, m_ystarSpectUnfoldedName );
+		fInPerf, m_ystarSpectUnfoldedName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;

@@ -743,7 +743,7 @@ std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
 }
 
 std::string CT::AnalysisTools::GetLabel
-( double vMin,double vMax,
+( double vMin, double vMax,
   const std::string& var, const std::string& unitIn ){
 
   // for now, want [GeV] by all pT labels

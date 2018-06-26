@@ -83,10 +83,14 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			       const std::vector< TLorentzVector >&,
 			       const int );
 
-  void AnalyzeSpectRespMat( TH3*, TH3*,
+  void AnalyzeYstarRespMat( TH3*,
 			    const std::vector< TLorentzVector >&,
 			    const std::vector< TLorentzVector >& );
-  
+
+  void AnalyzeSpectRespMat( TH3*,
+			    const std::vector< TLorentzVector >&,
+			    const std::vector< TLorentzVector >& );
+
   void AnalyzeDphiRespMat( THnSparse*, THnSparse*,
 			   const std::vector< TLorentzVector >&,
 			   const std::vector< TLorentzVector >& );
@@ -189,6 +193,10 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   void MakePtRespMat( std::vector< THnSparse* >&,
 		      const std::vector< std::string >&,
 		      const std::string& = "" );
+
+  void MakeYstarRespMat( std::vector< TH3* >&,
+			 const std::vector< std::string >&,
+			 const std::string& = "" );
 
   void CompareAngularRes ( TFile* = NULL );
   

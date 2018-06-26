@@ -81,9 +81,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_sSum      = "sum";
 
   m_sDphi       = "#Delta#phi";
-  m_sDphiTitle  = "#it{C}_{1,2}";
+  m_sDphiTitle  = "#it{C}_{12}";
   m_sWidthTitle = "RMS (" + m_sDphiTitle + ")";
-  m_sYieldTitle = "#it{I}_{1,2}";
+  m_sYieldTitle = "#it{I}_{12}";
   m_sWidthRatioTitle = "#it{C}_{#it{p}+Pb}";
   m_sYieldRatioTitle = "#it{I}_{#it{p}+Pb}";
 
@@ -1472,7 +1472,7 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
 void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 				  const std::vector< std::string >& vLabels,
 				  const std::string& dPhiName,
-				  TFile* fInMCSpect, 
+				  TFile* fInPerf, 
 				  const std::string& spectName ){
 
   // lines to be drawn along axis3. this is
@@ -1571,7 +1571,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	
       // FIX!!!
       TH1* hSpectCounts = static_cast< TH1D* >
-	( fInMCSpect->Get( Form( "h_%s_%s_%s_%s", spectName.c_str(), m_sCounts.c_str(),
+	( fInPerf->Get( Form( "h_%s_%s_%s_%s", spectName.c_str(), m_sCounts.c_str(),
 				 m_allName.c_str(), anaTool->GetName
 				 ( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str() ) ) );
       vSpect.push_back( hSpectCounts );
@@ -2062,7 +2062,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
       } // end loop over axis1     
     } // end loop over axis0
-    SaveAsAll( cAll, Form("h_%s_%s", dPhiName. c_str(),label.c_str() ) );
+    // SaveAsAll( cAll, Form("h_%s_%s", dPhiName. c_str(),label.c_str() ) );
   } // end loop over iG
   
   TCanvas c( "c", "c", 1200, 600 );
@@ -2113,11 +2113,11 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
 THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 					  const std::string& hnUnfoldedName,
-					  TFile* fInMCSpect,
+					  TFile* fInPerf,
 					  const std::string& spectName ){
   
 
-  std::cout << fInData->GetName() << " " << fInMC->GetName() << std::endl;
+  std::cout << " --- " << fInData->GetName() << " " << fInMC->GetName() << std::endl;
   
   std::vector< TH1* > vHdPhi;
   std::vector< TH1* > vSpect;
@@ -2246,9 +2246,9 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
       ( axis0, axis0Bin, axis0Bin, axis0Low, axis0Up );
 
     TH1* hSpectCounts = static_cast< TH1D* >
-      ( fInMCSpect->Get( Form( "h_%s_%s_%s_%s", spectName.c_str(), m_sCounts.c_str(),
-			       m_allName.c_str(), anaTool->GetName
-			       ( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str() ) ) );
+      ( fInPerf->Get( Form( "h_%s_%s_%s_%s", spectName.c_str(), m_sCounts.c_str(),
+			    m_allName.c_str(), anaTool->GetName
+			    ( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str() ) ) );
     vSpect.push_back( hSpectCounts );
 
     for( int axis1Bin = 1; axis1Bin <= nAxis1Bins; axis1Bin++ ){
@@ -2296,8 +2296,8 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	    ( fInData->Get( Form( "h_%s_%s_%s", measuredName.c_str(),
 				  m_allName.c_str(), hTag.c_str())));
 	  TH1* hTruth             = static_cast<TH1D*>
-	    ( fInMC  ->Get( Form( "h_%s_%s_%s", truthName.c_str(),
-				  m_allName.c_str(), hTag.c_str())));
+	    ( fInMC->Get( Form( "h_%s_%s_%s", truthName.c_str(),
+				m_allName.c_str(), hTag.c_str())));
 	  
 	  styleTool->SetHStyle( hMeasured, 1 );
 	  styleTool->SetHStyle( hTruth   , 2 );
@@ -2359,7 +2359,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  // Clone the counts, then normalize
 	  TH1* hUnfolded = static_cast< TH1D* >
 	    ( hUnfoldedCounts->Clone( Form( "h_%s_%s_%s", m_dPhiUnfoldedName.c_str(),
-						m_allName.c_str(), hTag.c_str())));
+					    m_allName.c_str(), hTag.c_str())));
 	  hUnfolded->SetYTitle( hMeasured->GetYaxis()->GetTitle() );
 	  vHdPhi.push_back( hUnfolded );
 
@@ -3929,7 +3929,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
       // this is bs. works though. vary the last factor 
       double deltaYleg = ( axis1Bin - 1 ) * 0.075;
       
-      TLegend legW( 0.50, 0.03, 0.85, 0.13 + deltaYleg );
+      TLegend legW( 0.18, 0.03, 0.53, 0.13 + deltaYleg );
       styleTool->SetLegendStyle( &legW, 0.75 );
 
       TLegend legY( 0.31, 0.03, 0.72, 0.13 + deltaYleg  );
@@ -4265,7 +4265,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
       DrawTopLeftLabels( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up );
       DrawAtlasRightBoth();      
 
-      drawTool->DrawRightLatex( 0.8, 0.8, Form("#Delta#it{p}_{T}=%d GeV", pTcut ) );
+      // drawTool->DrawRightLatex( 0.8, 0.8, Form("#Delta#it{p}_{T}=%d GeV", pTcut ) );
       
       pad2W.cd();
       line.Draw();
@@ -4286,7 +4286,7 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
       DrawTopLeftLabels( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up );
       DrawAtlasRightBoth();
 
-      drawTool->DrawRightLatex( 0.8, 0.8, Form("#Delta#it{p}_{T}=%d GeV", pTcut ) );
+      // drawTool->DrawRightLatex( 0.8, 0.8, Form("#Delta#it{p}_{T}=%d GeV", pTcut ) );
 
       pad2Y.cd();
       line.Draw();

@@ -24,6 +24,8 @@
 #include "DeltaPhiProj.h"
 #include "UncertaintyProvider.h"
 
+bool compToPythia = true;
+
 DiJetAnalysisMC::DiJetAnalysisMC()
   : DiJetAnalysisMC( false, 0, 0 ) {}
 
@@ -346,7 +348,11 @@ void DiJetAnalysisMC::ProcessPerformance(){
 
   MakeSpectCFactorsRespMat( m_vHjznYstarSpectReco, m_vHjznYstarSpectTruth, m_vHjznYstarSpectRespMat,
 			    m_vJznLabels, m_ystarSpectCfactorsName, m_ystarSpectRespMatName );
-     
+
+  // make ystar response matrix
+  m_hAllYstarRespMat = CombineSamples( m_vHjznYstarRespMat, m_ystarRespMatName );
+  MakeYstarRespMat( m_vHjznYstarRespMat, m_vJznLabels, m_ystarRespMatName );
+  
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
   delete fOut;
@@ -370,8 +376,11 @@ void DiJetAnalysisMC::UnfoldPerformance(){
   // open the MC file used for unfolding info.
   // open the data file used for measured info.
   // passed to unfolding function.
-  TFile* fInMC   = TFile::Open( m_fNamePerf.c_str() );
+  std::string fNameMC = m_fNamePerf;
+  if( compToPythia ){ fNameMC = "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_perf_0.root"; }
+
   TFile* fInData = TFile::Open( m_fNamePerf.c_str() );
+  TFile* fInMC   = TFile::Open(     fNameMC.c_str() );
   TFile* fOut    = new TFile( m_fNamePerfUF.c_str(),"UPDATE");
 
   std::cout << "----- Unfolding MC ------" << std::endl;
@@ -446,15 +455,18 @@ void DiJetAnalysisMC::UnfoldPhysics(){
   std::cout << "Copy " << m_fNamePhys << " -> " << m_fNamePhysUF << std::endl;
   TFile::Cp( m_fNamePhys.c_str(), m_fNamePhysUF.c_str() );
 
+  std::string fNameMC = m_fNamePhys;
+  if( compToPythia ){ fNameMC = "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_phys_0.root"; }
+  
   // Open two for reading one for updating.
   // open the MC file used for unfolding info.
   // open the data file used for measured info.
   // passed to unfolding function.
-  TFile* fInMC     = TFile::Open( m_fNamePhys.c_str() );
-  TFile* fInData   = TFile::Open( m_fNamePhys.c_str() );
-  TFile* fInMCPerf = TFile::Open( m_fNamePerfUF.c_str() );
-  TFile* fOut      = new TFile( m_fNamePhysUF.c_str(),"UPDATE");
-  
+  TFile* fInData  = TFile::Open(   m_fNamePhys.c_str() );
+  TFile* fInMC    = TFile::Open(       fNameMC.c_str() );
+  TFile* fInPerf  = TFile::Open( m_fNamePerfUF.c_str() );
+  TFile* fOut     = new TFile( m_fNamePhysUF.c_str(),"UPDATE");
+ 
   std::cout << "----- Unfolding MC ------" << std::endl;
   // make a vector with just the unfolded result.
   // this is to send it to MakeDeltaPhi(..) to have
@@ -469,7 +481,7 @@ void DiJetAnalysisMC::UnfoldPhysics(){
   // and subsequently added to the vectors above.  
   THnSparse* m_hAllDphiRecoUnfolded =
     UnfoldDeltaPhi( fInData, fInMC, m_dPhiRecoUnfoldedName,
-		    fInMCPerf, m_ystarSpectRecoUnfoldedName );
+		    fInPerf, m_ystarSpectRecoUnfoldedName );
   m_vHDphiUnfolded .push_back( m_hAllDphiRecoUnfolded );
   m_vLabelsUnfolded.push_back( m_allName );
 
@@ -477,7 +489,7 @@ void DiJetAnalysisMC::UnfoldPhysics(){
   // make deltaPhi, give flag (true) that its unfolded response
   // so there is no comb subt or normalization or scaling
   MakeDeltaPhi( m_vHDphiUnfolded, m_vLabelsUnfolded, m_dPhiRecoUnfoldedName,
-	        fInMCPerf, m_ystarSpectRecoUnfoldedName );
+	        fInPerf, m_ystarSpectRecoUnfoldedName );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close(); delete fOut;
@@ -579,7 +591,7 @@ void DiJetAnalysisMC::SetupHistograms(){
     m_vHjznYstarSpectRespMat.push_back
       ( new TH3D( Form("h_%s_%s", m_ystarSpectRespMatName.c_str(), jzn.c_str() ), 
 		  ";#it{y}_{1}*;#it{p}_{T1}^{reco} [GeV];#it{p}_{T1}^{truth} [GeV]",
-		  m_nVarYstarBins, 0, 1,
+		  m_nVarYstarBins , 0, 1,
 		  m_nVarPtBinsUfOf, 0, 1,
 		  m_nVarPtBinsUfOf, 0, 1 ) );
     m_vHjznYstarSpectRespMat.back()->GetXaxis()->
@@ -593,14 +605,14 @@ void DiJetAnalysisMC::SetupHistograms(){
     // --- ystar response matrix ----
     m_vHjznYstarRespMat.push_back
       ( new TH3D( Form("h_%s_%s", m_ystarRespMatName.c_str(), jzn.c_str() ), 
-		  ";#it{y}_{Reco}*;#it{y}_{Truth}*;#it{p}_{T}^{Truth} [GeV]",
+		  ";#it{y}_{reco}*;#it{y}_{truth}*;#it{p}_{T}^{Truth}",
 		  m_nVarYstarBins, 0, 1,
 		  m_nVarYstarBins, 0, 1,
-		  m_nVarPtBins, 0, 1 ) );
+		  m_nVarPtBins   , 0, 1 ) );
     m_vHjznYstarRespMat.back()->GetXaxis()->
       Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     m_vHjznYstarRespMat.back()->GetYaxis()->
-      Set( m_nVarPtBins, &( m_varPtBinning[0] ) );
+      Set( m_nVarYstarBins, &( m_varYstarBinning[0] ) );
     m_vHjznYstarRespMat.back()->GetZaxis()->
       Set( m_nVarPtBins, &( m_varPtBinning[0] ) );
     AddHistogram( m_vHjznYstarRespMat.back() );
@@ -746,11 +758,6 @@ void DiJetAnalysisMC::LoadSpectWeights(){
   TFile* fWeights = TFile::Open( fNameWeights.c_str() );
 
   std::string hName = "h_" + m_spectName + "_" + m_sWeights + "_" + m_allName;
-
-  /*
-    TH2* m_spectWeight = static_cast< TH2D* >
-    ( fWeights->Get( hName.c_str() ) );
-  */  
 
   std::string axisLabel, axisLabelTex;
   GetSpectraLabels( axisLabel, axisLabelTex, m_sYstar );
@@ -933,18 +940,21 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       ApplyCleaning ( vR_jets, v_isCleanJet );
       ApplyIsolation( vR_jets, 1.0 );
       ApplyIsolation( vT_jets, 1.0 );
-      
-      std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
-      
+            
       std::vector< TLorentzVector > vTR_paired_jets;
       std::vector< TLorentzVector > vTT_paired_jets;
       PairJets( vT_jets, vR_jets, vTT_paired_jets, vTR_paired_jets );
 
+      // analyze ystar resp mat BEFORE sorting
+      // done to not include JER effects.
+      AnalyzeYstarRespMat( m_vHjznYstarRespMat[iG],
+			   vTR_paired_jets, vTT_paired_jets );
+      
       std::sort( vTR_paired_jets.begin(), vTR_paired_jets.end(),
 		 anaTool->sortByDecendingPt );
       std::sort( vTT_paired_jets.begin(), vTT_paired_jets.end(),
 		 anaTool->sortByDecendingPt );
-
+      
       // If not running on default sample.
       // Apply uncertainties to all reco jets.
       if( m_uncertComp ){
@@ -984,7 +994,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       }
 
       // fill single speectra response matrix
-      AnalyzeSpectRespMat( m_vHjznYstarSpectRespMat[iG], m_vHjznYstarRespMat[iG],
+      AnalyzeSpectRespMat( m_vHjznYstarSpectRespMat[iG],
 			   vTR_paired_jets, vTT_paired_jets );
 
       // make spectra
@@ -1076,17 +1086,18 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
   for( uint iJet = 0; iJet < vR_jets.size(); iJet ++ ){ 
     const TLorentzVector& rJet = vR_jets[iJet];
     const TLorentzVector& tJet = vT_jets[iJet];
-    
-    double   jetEtaReco = rJet.Eta();
-    double   jetPhiReco = rJet.Phi();
-    double    jetPtReco = rJet.Pt()/1000.;
-      
-    double   jetEtaTruth = tJet.Eta();
-    double   jetPhiTruth = tJet.Phi();
-    double    jetPtTruth = tJet.Pt()/1000.;
-    double jetYstarTruth = GetYstar( tJet );
-    	
+
+    // reco jet
+    double    jetEtaReco  = rJet.Eta();
+    double    jetPhiReco  = rJet.Phi();
+    double     jetPtReco  = rJet.Pt()/1000.;
     double jetWeightReco  = GetJetWeight( rJet );
+
+    // truth jet
+    double    jetEtaTruth = tJet.Eta();
+    double    jetPhiTruth = tJet.Phi();
+    double     jetPtTruth = tJet.Pt()/1000.;
+    double  jetYstarTruth = GetYstar( tJet );
     double jetWeightTruth = GetJetWeight( tJet );
 
     if( jetPtReco > 28 && jetPtReco < 35 ){
@@ -1136,8 +1147,7 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
   } // end loop over pairs
 }
 
-void DiJetAnalysisMC::AnalyzeSpectRespMat( TH3* hRespMatPt,
-					   TH3* hRespMatYstar,
+void DiJetAnalysisMC::AnalyzeYstarRespMat( TH3* hRespMatYstar,
 					   const std::vector< TLorentzVector >& vR_jets,
 					   const std::vector< TLorentzVector >& vT_jets ){
   
@@ -1146,23 +1156,47 @@ void DiJetAnalysisMC::AnalyzeSpectRespMat( TH3* hRespMatPt,
     const TLorentzVector* rJet = &vR_jets.front();
     const TLorentzVector* tJet = &vT_jets.front();
 
-    
-    double rJet_pt    = rJet->Pt()/1000.;
+    // reco jet
     double rJet_ystar = GetYstar( *rJet );
-  
+
+    // truth jet
     double tJet_pt    = tJet->Pt()/1000.;
     double tJet_ystar = GetYstar( *tJet );
-
     double jetWeight = GetJetWeight( *tJet );
     
-    hRespMatPt->Fill(  tJet_ystar, rJet_pt, tJet_pt, jetWeight );
-    hRespMatPt->Fill(  tJet_ystar, rJet_ystar, tJet_pt, jetWeight );
+    hRespMatYstar->Fill(  tJet_ystar, rJet_ystar, tJet_pt, jetWeight );
+    
+    // for pp fill plus minus ystar
+    if( m_is_pPb ){ return; }
+
+    hRespMatYstar->Fill( -tJet_ystar, -rJet_ystar, tJet_pt, jetWeight );
+  }
+}
+
+
+void DiJetAnalysisMC::AnalyzeSpectRespMat( TH3* hRespMatPt,
+					   const std::vector< TLorentzVector >& vR_jets,
+					   const std::vector< TLorentzVector >& vT_jets ){
+  
+  if( vR_jets.size() && vT_jets.size() ){
+
+    const TLorentzVector* rJet = &vR_jets.front();
+    const TLorentzVector* tJet = &vT_jets.front();
+
+    // reco jet
+    double rJet_pt    = rJet->Pt()/1000.;
+
+    // truth jet
+    double tJet_pt    = tJet->Pt()/1000.;
+    double tJet_ystar = GetYstar( *tJet );
+    double jetWeight = GetJetWeight( *tJet );
+    
+    hRespMatPt->Fill( tJet_ystar, rJet_pt, tJet_pt, jetWeight );
     
     // for pp fill plus minus ystar
     if( m_is_pPb ){ return; }
 
     hRespMatPt->Fill( -tJet_ystar, rJet_pt, tJet_pt, jetWeight );
-    hRespMatPt->Fill( -tJet_ystar, -rJet_ystar, tJet_pt, jetWeight );
   }
 }
 
@@ -1177,16 +1211,21 @@ void DiJetAnalysisMC::AnalyzeDphiRespMat( THnSparse* hnDphi,
   if( !GetDiJets( vR_jets, rJet1, rJet2 ) ||
       !GetDiJets( vT_jets, tJet1, tJet2 ) ) { return; }
 
+  // reco jet 1
   double rjetPt1    = rJet1->Pt()/1000.;
-  
+
+  // reco jet 2
   double rjetPt2    = rJet2->Pt()/1000.;
-  
+
+  // truth jet 1
   double tjetPt1    = tJet1->Pt()/1000.;
   double tjetYstar1 = GetYstar( *tJet1 );
 
+  // truth jet 2
   double tjetPt2    = tJet2->Pt()/1000.;
   double tjetYstar2 = GetYstar( *tJet2 );
-  
+
+  // dphi reco and truth
   double recoDphi    = anaTool->DeltaPhi( *rJet2, *rJet1 );
   double truthDphi   = anaTool->DeltaPhi( *tJet2, *tJet1 );
   
@@ -2842,14 +2881,8 @@ void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco
   vNentRJzn   .resize( m_nJzn );
   vRespMatJzn .resize( m_nJzn );
 
-  std::string system = "";
-  
-  if( m_is_pPb ){
-    system = "#it{p}+Pb";
-  } else {
-    system = "#it{pp}";
-  }
-
+  std::string system = m_is_pPb ? "#it{p}+Pb" : "#it{pp}";
+ 
   for( uint iG = 0; iG < vHspectRespMat.size(); iG++ ){
 
     std::string label = vLabels[iG];
@@ -3017,13 +3050,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
   vNentRJzn   .resize( m_nJzn );
   vRespMatJzn .resize( m_nJzn );
 
-  std::string system = "";
-  
-  if( m_is_pPb ){
-    system = "#it{p}+Pb";
-  } else {
-    system = "#it{pp}";
-  }
+  std::string system = m_is_pPb ? "#it{p}+Pb" : "#it{pp}";
   
   // ---- loop over group  ----
   // ---- (jzn or trigger) ----
@@ -3300,6 +3327,59 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 }
 
 
+void DiJetAnalysisMC::MakeYstarRespMat( std::vector< TH3* >& vhnYstar,
+					const std::vector< std::string >& vLabels,
+					const std::string& nameYstar ){
+
+  std::string system = m_is_pPb ? "#it{p}+Pb" : "#it{pp}";
+  
+  // ---- loop over group  ----
+  // ---- (jzn or trigger) ----
+  for( uint iG = 0; iG < vhnYstar.size(); iG++ ){      
+    std::string label = vLabels[iG];
+
+    // only draw for all
+    if( label.compare( m_allName ) ){ continue; } 
+    
+    TH3* hYstarPt = vhnYstar[iG];
+    
+    TAxis* ptAxis = hYstarPt->GetZaxis();
+    
+    for( uint ptBin = 1; ptBin <= m_nVarPtBins; ptBin++ ){
+
+      ptAxis->SetRange( ptBin, ptBin );
+      
+      double ptLow = ptAxis->GetBinLowEdge( ptBin );
+      double ptUp  = ptAxis->GetBinUpEdge ( ptBin );
+
+      TH2* hYstarRespMat = static_cast< TH2D* >
+	( hYstarPt->Project3D("yx") );
+      styleTool->SetHStyle( hYstarRespMat, 0 );
+      
+      std::string hName = "h_yStarRespMat_" + anaTool->GetName( ptLow, ptUp, "Pt" );
+      
+      hYstarRespMat->SetName( hName.c_str() );
+      hYstarRespMat->SetTitle("");
+      
+      TCanvas c("c","c", 800, 600 );
+      c.SetLogz();
+
+      hYstarRespMat->Draw("col");
+      hYstarRespMat->Draw("text same");
+
+      drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel, 3, CT::StyleTools::lSS );
+      drawTool->DrawLeftLatex( 0.19, 0.87, Form( "%s %s", system.c_str(), m_mcTypeLabel.c_str() ) );
+      drawTool->DrawRightLatex( 0.87, 0.25, anaTool->GetLabel( ptLow, ptUp, ptAxis->GetTitle() ) );  
+      
+      hYstarRespMat->Write();
+      SaveAsAll( c, hName );
+
+      delete hYstarRespMat;
+    } // end loop over pT bin
+  }
+}
+
+
 void DiJetAnalysisMC::MakePtRespMat( std::vector< THnSparse* >& vhnPt,
 				     const std::vector< std::string >& vLabels,
 				     const std::string& namePt ){  
@@ -3311,7 +3391,7 @@ void DiJetAnalysisMC::MakePtRespMat( std::vector< THnSparse* >& vhnPt,
   // ---- loop over group  ----
   // ---- (jzn or trigger) ----
   for( uint iG = 0; iG < vhnPt.size(); iG++ ){      
-    // in data only draw for all
+    // only draw for all
     std::string label = vLabels[iG];
 
     if( label.compare( m_allName ) ){ continue; } 
