@@ -377,7 +377,9 @@ void DiJetAnalysisMC::UnfoldPerformance(){
   // open the data file used for measured info.
   // passed to unfolding function.
   std::string fNameMC = m_fNamePerf;
-  if( compToPythia ){ fNameMC = "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_perf_0.root"; }
+  if( compToPythia && !m_is_pPb ){
+    fNameMC = "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_perf_0.root";
+  }
 
   TFile* fInData = TFile::Open( m_fNamePerf.c_str() );
   TFile* fInMC   = TFile::Open(     fNameMC.c_str() );
@@ -456,7 +458,9 @@ void DiJetAnalysisMC::UnfoldPhysics(){
   TFile::Cp( m_fNamePhys.c_str(), m_fNamePhysUF.c_str() );
 
   std::string fNameMC = m_fNamePhys;
-  if( compToPythia ){ fNameMC = "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_phys_0.root"; }
+  if( compToPythia && !m_is_pPb ){
+    fNameMC = "output/output_pp_mc_pythia8/myOut_pp_mc_pythia8_phys_0.root";
+  }
   
   // Open two for reading one for updating.
   // open the MC file used for unfolding info.

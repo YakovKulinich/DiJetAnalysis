@@ -82,10 +82,10 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
 
   m_sDphi       = "#Delta#phi";
   m_sDphiTitle  = "#it{C}_{12}";
-  m_sWidthTitle = "RMS (" + m_sDphiTitle + ")";
+  m_sWidthTitle = "#it{W}_{12}";
   m_sYieldTitle = "#it{I}_{12}";
-  m_sWidthRatioTitle = "#it{C}_{#it{p}+Pb}";
-  m_sYieldRatioTitle = "#it{I}_{#it{p}+Pb}";
+  m_sWidthRatioTitle = "#rho_{#it{W}}^{pPb}";
+  m_sYieldRatioTitle = "#rho_{#it{I}}^{pPb}";
 
   m_unweightedFileSuffix  = "UW";
   m_unfoldingFileSuffix   = "UF";
@@ -100,7 +100,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   //==================== Cuts ====================
   m_nMinEntriesFit = 20;
 
-  m_deltaPtCut = 0.0; // GeV
+  m_deltaPtCut = 1.0; // GeV
   
   m_dPhiThirdJetFraction = 0.4;
 
@@ -412,11 +412,11 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  MakeFinalPlotsTogether( fOut, m_widthName );
-  MakeFinalPlotsTogether( fOut, m_yieldName );
+  // MakeFinalPlotsTogether( fOut, m_widthName );
+  // MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  // MakeDphiTogether( fOut );
-  // CompareWeightIsoPtCuts( fOut );
+  MakeDphiTogether( fOut );
+  CompareWeightIsoPtCuts( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -688,9 +688,7 @@ void DiJetAnalysis::NormalizeDeltaPhi( TH1* hIn, TH1* hNorm,
   } else {
     int      xBin = hNorm->FindBin( xBinCenter );
     double  nJets = hNorm->GetBinContent( xBin );
-    std::cout << hIn->GetName() << " " << hIn->GetBinContent(6) << " " << nJets << std::endl;
     hIn->Scale( 1./nJets );
-    std::cout << hIn->GetBinContent(6) << std::endl;
   }
 }
 
@@ -2911,10 +2909,10 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 
     // Now Draw everything.
     TCanvas ccSpectMC( "ccSpectMC", "ccSpectMC", 800, 700 );
-    TPad padSpectMC1("padSpectMC1", "", 0.0, 0.35, 1.0, 1.0 );
+    TPad padSpectMC1("padSpectMC1", "", 0.0, 0.40, 1.0, 1.0 );
     padSpectMC1.SetBottomMargin(0);
     padSpectMC1.Draw();
-    TPad padSpectMC2("padSpectMC2", "", 0.0, 0.0, 1.0, 0.34 );
+    TPad padSpectMC2("padSpectMC2", "", 0.0, 0.0, 1.0, 0.39 );
     padSpectMC2.SetTopMargin(0.05);
     padSpectMC2.SetBottomMargin(0.25);
     padSpectMC2.Draw();
@@ -2929,14 +2927,26 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
     TH1* h_SpectData  = static_cast< TH1D* >
       ( fSpectData->Get( Form("%s_%s", hSpectDataName.c_str(), hTagSpect.c_str() ) ) );
 
+    h_SpectMC->Rebin(2);
+    h_SpectMC_UW->Rebin(2);
+    h_SpectData->Rebin(2);
+    
+    h_SpectData->GetXaxis()->SetRangeUser( m_varPtBinning.front(), m_varPtBinning.back() );
+
     styleTool->SetHStyle( h_SpectMC, 1 );
     styleTool->SetHStyle( h_SpectMC_UW, 2 );
     styleTool->SetHStyle( h_SpectData, 0 );
 	  
     padSpectMC1.cd();
     padSpectMC1.SetLogy();
+
+    int pTbinLow = h_SpectData->FindBin( m_varPtBinning.front() ) + 1;
+    int pTbinUp  = h_SpectData->FindBin( m_varPtBinning.back () ) - 1;
     
-    double scalingFactor = h_SpectMC_UW->Integral() / h_SpectData->Integral();
+    double integralData  = h_SpectData->Integral( pTbinLow, pTbinUp );
+    double integralMC    = h_SpectMC  ->Integral( pTbinLow, pTbinUp );
+    
+    double scalingFactor = integralMC / integralData;
     h_SpectData->Scale( scalingFactor );
     double maxSpectData = h_SpectData->GetBinContent( h_SpectData->GetMaximumBin() );
     h_SpectData->SetMaximum( maxSpectData * 2 );
@@ -2946,8 +2956,8 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
     h_SpectMC_UW->Draw("ep X0 same");
 
     legSpectMC.AddEntry( h_SpectData, "Data" );
-    legSpectMC.AddEntry( h_SpectMC, "Reco MC - Weighted" );
     legSpectMC.AddEntry( h_SpectMC_UW, "Reco MC - Default" );
+    legSpectMC.AddEntry( h_SpectMC, "Reco MC - Re-weighted" );
 
     drawTool->DrawAtlasInternal();
 
@@ -2964,12 +2974,14 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
     TH1* hR_SpectMC = static_cast< TH1D* >
       ( h_SpectData->Clone
 	( Form("%s_%s_%s", hDataName.c_str(), hTagSpect.c_str(), m_sRatio.c_str())));
-	  
+
+    hR_SpectMC->GetXaxis()->SetRangeUser( m_varPtBinning.front(), m_varPtBinning.back() );
+    
     styleTool->SetHStyleRatio( hR_SpectMC, 1 );
     hR_SpectMC->Divide( h_SpectMC );
     hR_SpectMC->Draw( "ep X0 same" );
     hR_SpectMC->SetYTitle( "Data/MC" );
-    hR_SpectMC->SetMinimum( 0.25 );
+    hR_SpectMC->SetMinimum( 0.6 );
 	  
     TH1* hR_SpectMC_UW = static_cast< TH1D* >
       ( h_SpectData->Clone
@@ -2979,10 +2991,13 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
     hR_SpectMC_UW->Draw( "ep X0 same" );
     hR_SpectMC_UW->SetYTitle( "Data/SpectMC" );
 
-    TLegend legSpectR( 0.6, 0.75, 0.8, 0.9 );
+    double xSr0 = 0.15;
+    double xSr1 = 0.60;
+    
+    TLegend legSpectR( xSr0, 0.73, xSr1, 0.9 );
     styleTool->SetLegendStyle( &legSpectR, 0.85 );
-    legSpectR.AddEntry( hR_SpectMC, "Data/MC Reweighted" );
-    legSpectR.AddEntry( hR_SpectMC_UW, "Data/MC Default" );
+    legSpectR.AddEntry( hR_SpectMC_UW, "Data/MC Reco (Spectra Weights)" );
+    legSpectR.AddEntry( hR_SpectMC, "Data/MC Re-weighted" );
     
     legSpectR.Draw();
 
@@ -3845,9 +3860,9 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   TFile* fIn_a = TFile::Open( fName_a.c_str() );
   TFile* fIn_b = TFile::Open( fName_b.c_str() );
 
+  /*
   int pTcut = 0;
 
-  /*
   std::string fName_pPb =
     Form( "data/myOut_pPb_data_phys_UF_0_NoIso_%dpT.root", pTcut );
   std::string fName_pp =
@@ -3882,6 +3897,8 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
   dPhiLineN50.SetLineStyle( 3 );
   dPhiLineN50.SetLineColor( 12 );
   dPhiLineN50.SetLineWidth( 1  );
+
+  bool isPythia8Closure = !m_isData && m_mcType == 0 ? true : false; 
   
   fOut->cd();
 
@@ -3995,6 +4012,12 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	hW_R->SetTitleOffset( 2.3, "x" );
 	styleTool->SetHStyleRatio( hW_R, style );
 	hW_R->SetMarkerSize( hW_R->GetMarkerSize() * 1.5 );
+
+	// for pythia8 MC closure comparisons, zoom in on the ratios
+	if( isPythia8Closure ){
+	  hW_R->SetMaximum( 1.2 );
+	  hW_R->SetMinimum( 0.8 );
+	}
 	
 	vR.push_back( hW_R );
 	hW_R->Draw("ep x0 same");
@@ -4030,6 +4053,12 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 	hY_R->SetTitleOffset( 2.3, "x" );
 	styleTool->SetHStyleRatio( hY_R, style );
 	hY_R->SetMarkerSize( hY_R->GetMarkerSize() * 1.5 );
+
+	// for pythia8 MC closure comparisons, zoom in on the ratios
+	if( isPythia8Closure ){
+	  hY_R->SetMaximum( 1.2 );
+	  hY_R->SetMinimum( 0.8 );
+	}
 	
 	vR.push_back( hY_R );
 	hY_R->Draw("ep x0 same");
@@ -4269,8 +4298,11 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
       
       pad2W.cd();
       line.Draw();
-      lineP25.Draw();
-      lineN25.Draw();
+
+      if( !isPythia8Closure ){
+	lineP25.Draw();
+	lineN25.Draw();
+      }
 
       SaveAsPdfPng( cW, Form("h_%s_%s_%s", m_dPhiName.c_str(),
 			     m_widthName.c_str(), hTagC.c_str() ), true );
@@ -4290,8 +4322,11 @@ void DiJetAnalysis::MakeDphiTogether( TFile* fOut ){
 
       pad2Y.cd();
       line.Draw();
-      lineP25.Draw();
-      lineN25.Draw();
+
+      if( !isPythia8Closure ){
+	lineP25.Draw();
+	lineN25.Draw();
+      }
 
       SaveAsPdfPng( cY, Form("h_%s_%s_%s", m_dPhiName.c_str(),
 			     m_yieldName.c_str(), hTagC.c_str() ), true );

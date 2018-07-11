@@ -1763,6 +1763,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  std::vector< double > pYdPhi;
 	  std::vector< double > eYPdPhi;
 	  std::vector< double > eYNdPhi;
+	   
+	  std::vector< double > eYPdPhiUncorr;
+	  std::vector< double > eYNdPhiUncorr;
 	  
 	  // loop over dPhi bins
 	  double dPhiMaximum = 0;
@@ -1774,6 +1777,10 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	    double uncertFinYP = 0;
 	    double uncertFinYN = 0;
 
+	    // add uncertainties in quadrature;
+	    double uncertFinYPuncorr = 0;
+	    double uncertFinYNuncorr = 0;
+	    
 	    double yNominal = hNominalDphi->GetBinContent( dPhiBin );
 	    
 	    // loop over uncertainties
@@ -1802,7 +1809,10 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	      // for Fitting negative is same as positive (22)
 	      // for ReWeight/Unf negative is same as positive (23)
 	      // and we do not have a NN, just use PN
-	      if( uc  >= 20 && uc <= 23 ){
+	      if( uc == 22 || uc == 23 ){
+		uncertFinYPuncorr += uncertaintySq;
+		uncertFinYNuncorr += uncertaintySq;
+	      } else if( uc == 20 ){
 		uncertFinYP += uncertaintySq;
 		uncertFinYN += uncertaintySq;
 	      } else if( sign > 0 ){
@@ -1823,6 +1833,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	    uncertFinYP = uncertFinYP >= 0 ? std::sqrt( uncertFinYP ) : 0.0;
 	    uncertFinYN = uncertFinYN >= 0 ? std::sqrt( uncertFinYN ) : 0.0;
 
+	    uncertFinYPuncorr = uncertFinYPuncorr >= 0 ? std::sqrt( uncertFinYPuncorr ) : 0.0;
+	    uncertFinYNuncorr = uncertFinYNuncorr >= 0 ? std::sqrt( uncertFinYNuncorr ) : 0.0;
+	    
 	    dPhiMaximum = dPhiMaximum > yNominal ? dPhiMaximum : yNominal;
 	    
 	    pXdPhi.push_back( hNominalDphi->GetBinCenter ( dPhiBin ) );
@@ -1831,6 +1844,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	    pYdPhi .push_back( yNominal );
 	    eYPdPhi.push_back( yNominal * uncertFinYP );
 	    eYNdPhi.push_back( yNominal * uncertFinYN );
+	    
+	    eYPdPhiUncorr.push_back( yNominal * uncertFinYPuncorr );
+	    eYNdPhiUncorr.push_back( yNominal * uncertFinYNuncorr );
 	  } // end loop over dPhi bins.
 
 	  std::string hNameFinalDphi =
@@ -1840,12 +1856,18 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  TGraphAsymmErrors* gSystematicsDphi = new TGraphAsymmErrors
 	    ( pXdPhi.size(), &(pXdPhi[0]), &(pYdPhi[0]), &(eXdPhi[0]),
 	      &(eXdPhi[0]), &(eYNdPhi[0]), &(eYPdPhi[0]) );
+	  TGraphAsymmErrors* gSystematicsDphiUncorr = new TGraphAsymmErrors
+	    ( pXdPhi.size(), &(pXdPhi[0]), &(pYdPhi[0]), &(eXdPhi[0]),
+	      &(eXdPhi[0]), &(eYNdPhiUncorr[0]), &(eYPdPhiUncorr[0]) );
 
 	  gNominalDphi    ->SetName(     gNominalDphiName.c_str() );
 	  gSystematicsDphi->SetName( gSystematicsDphiName.c_str() );
+	  gSystematicsDphiUncorr->
+	    SetName( Form( "%s_uncorr", gSystematicsDphiName.c_str() ) );
 
 	  vGdPhi.push_back( gNominalDphi     );
 	  vGdPhi.push_back( gSystematicsDphi );
+	  vGdPhi.push_back( gSystematicsDphiUncorr );
 	
 	  styleTool->SetHStyle( gNominalDphi    , 0 );
 	  styleTool->SetHStyle( gSystematicsDphi, 0 );
@@ -2533,8 +2555,6 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    static_cast< TGraphAsymmErrors* >( fInA->Get( gSystematicsDphiName.c_str() ) );
 	  TGraphAsymmErrors* gSystematicsDphiB =
 	    static_cast< TGraphAsymmErrors* >( fInB->Get( gSystematicsDphiName.c_str() ) );
-
-	  std::cout << gSystematicsDphiName << std::endl; 
 	  
 	  styleTool->SetHStyle( gSystematicsDphiA, 0 );
 	  styleTool->SetHStyle( gSystematicsDphiB, 1 );
@@ -2545,6 +2565,20 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  vG.push_back( gSystematicsDphiA );
 	  vG.push_back( gSystematicsDphiB );
 
+	  TGraphAsymmErrors* gSystematicsDphiAuncorr =
+	    static_cast< TGraphAsymmErrors* >
+	    ( fInA->Get( Form( "%s_uncorr",  gSystematicsDphiName.c_str() ) ) );
+	  TGraphAsymmErrors* gSystematicsDphiBuncorr =
+	    static_cast< TGraphAsymmErrors* >
+	    ( fInB->Get( Form( "%s_uncorr",  gSystematicsDphiName.c_str() ) ) );
+
+	  
+	  styleTool->SetHStyle( gSystematicsDphiAuncorr, 0 );
+	  styleTool->SetHStyle( gSystematicsDphiBuncorr, 1 );
+
+	  vG.push_back( gSystematicsDphiAuncorr );
+	  vG.push_back( gSystematicsDphiBuncorr );
+	  
 	  TF1* fNominalDphiA =
 	    static_cast< TF1* >( fInA->Get( fNominalDphiName.c_str() ) );
 	  TF1* fNominalDphiB =
@@ -2559,10 +2593,6 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  std::string hNameFinalDphi =
 	    "h_" + m_dPhiName + "_" + m_sFinal + "_" + hTagDphi;
 
-	  // this is dumb, can be done via data structure,
-	  // but for now just copy paste.
-	  // do individually for A and B as they might
-	  // have a different amount of points
 	  // loop through, do some shifts, find maximum
 	  double dPhiMaximum = 0;
 	  for( int i = 0; i < gNominalDphiA->GetN(); i++ ){
@@ -2571,6 +2601,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    double dX = gSystematicsDphiA->GetErrorXlow(i);
 	    gNominalDphiA    ->SetPoint( i, x + dX * 0.6, y );
 	    gSystematicsDphiA->SetPoint( i, x + dX * 0.6, y );
+	    gSystematicsDphiAuncorr->SetPoint( i, x + dX * 0.6, y );
 	    double topOfPoint = y + gSystematicsDphiA->GetErrorYhigh(i);
 	    dPhiMaximum = topOfPoint > dPhiMaximum ? topOfPoint : dPhiMaximum;
 	  }
@@ -2580,6 +2611,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    double dX = gSystematicsDphiB->GetErrorXlow(i);
 	    gNominalDphiB    ->SetPoint( i, x - dX * 0.6, y );
 	    gSystematicsDphiB->SetPoint( i, x - dX * 0.6, y );
+	    gSystematicsDphiBuncorr->SetPoint( i, x - dX * 0.6, y );
 	    double topOfPoint = y + gSystematicsDphiB->GetErrorYhigh(i);
 	    dPhiMaximum = topOfPoint > dPhiMaximum ? topOfPoint : dPhiMaximum;
 	  }
@@ -2595,9 +2627,12 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  hDefDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
  	  hDefDphi->Draw();
 
+	  gSystematicsDphiBuncorr->Draw("2");
+	  gSystematicsDphiAuncorr->Draw("2");
+	  
 	  gSystematicsDphiB->Draw("2");
 	  gSystematicsDphiA->Draw("2");
-
+	  
 	  gNominalDphiB->Draw("p");
 	  gNominalDphiA->Draw("p");
 
@@ -2643,10 +2678,10 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 				label_b.c_str(), tauB, tauErrorB,
 				sigmaB, sigmaErrorB ), 0.6 );
 	  drawTool->DrawLeftLatex
-	    ( 0.19, y0 - 2 * dY, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+	    ( 0.19, y0 - 2 * dY, Form( "%s^{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
 				label_a.c_str(), widthA, widthErrorA ), 0.6 );
 	  drawTool->DrawLeftLatex
-	    ( 0.19, y0 - 3 * dY, Form( "%s_{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+	    ( 0.19, y0 - 3 * dY, Form( "%s^{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
 				label_b.c_str(), widthB, widthErrorB ), 0.6 );
 	  
 	  SaveAsPdfPng( cDphi, hNameFinalDphi, true );

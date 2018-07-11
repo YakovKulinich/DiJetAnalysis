@@ -50,8 +50,7 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //       Analysis
   //---------------------------
-  bool JetInTrigPtRange  ( const TLorentzVector*, int,
-			   double = 0 );
+  bool JetInTrigPtRange  ( const TLorentzVector*, int, double = 0 );
   
   bool JetInTrigEtaRange ( const TLorentzVector*, int );
   
