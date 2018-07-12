@@ -302,7 +302,7 @@ void CT::AnalysisTools::UndoWidthScaling( TH1* h ){
 TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
 
   auto EMG = [&]( double* x, double* par){
-    return par[0]*TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
+    return (par[0]) * TMath::Exp(par[2]*par[2]/(2*par[1]*par[1])) *
     ( TMath::Exp((x[0]-constants::PI)/par[1]) * 0.5 *
       TMath::Erfc( (1/1.41) * (x[0]-constants::PI)/par[2] + par[2]/par[1]) +
       TMath::Exp((constants::PI-x[0])/par[1]) *
@@ -326,7 +326,7 @@ TF1* CT::AnalysisTools::FitDphi( TH1* histo, double xLow, double xHigh ){
   
   dPhiFit->SetParameters( amp, 0.20, 0.20 );
   dPhiFit->SetParLimits ( 1, 1E-2, 0.60 );
-  dPhiFit->SetParLimits ( 2, 1E-3, 0.40 );
+  dPhiFit->SetParLimits ( 2, 1E-3, 0.40 ); 
 
   if( !name.compare("h_dPhi_unfolded_All_40_Ystar1_27_45_Pt1_90_28_Pt2_35_40_Ystar2_27"))
     dPhiFit->SetParLimits ( 2, 1.6E-1, 0.50 );

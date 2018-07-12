@@ -620,11 +620,22 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	double jetYstar = GetYstar( jet );
 
 	if( triggerPassed ){
+	  // fill negative because the coordinate system is
+	  // with p going in positive eta
 	  if( jetPt > 28 && jetPt < 35 ){
-	    m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
-	    m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
+	    m_vHtriggerEtaPhiMap[iG]->Fill( -jetEta, jetPhi );
+	    m_vHtriggerEtaPtMap [iG]->Fill( -jetEta, jetPt  ); 
 	  }
-	  m_vHtriggerEtaPhiPtMap[iG]->Fill( jetEta, jetPhi, jetPt );
+	  m_vHtriggerEtaPhiPtMap[iG]->Fill( -jetEta, jetPhi, jetPt );
+
+	  // for pp fill both sides
+	  if( !m_is_pPb ){
+	    if( jetPt > 28 && jetPt < 35 ){
+	      m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
+	      m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
+	    }
+	    m_vHtriggerEtaPhiPtMap[iG]->Fill( jetEta, jetPhi, jetPt );
+	  }
 	}
 
 	// check if jet is in trigger range
@@ -1195,7 +1206,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     if( !m_is_pPb && iX == 1 ){
       drawTool->DrawRightLatex( 0.65, 0.725, "-3.2<|#eta|<3.2" );
     } else {
-      drawTool->DrawRightLatex( 0.65, 0.725, cLabel, 0.85 );
+      drawTool->DrawRightLatex( 0.65, 0.725, "3.2<#eta<4.4", 0.85 );
     }
     
     SaveAsAll( c, Form("%s_%s", type.c_str(), cName.c_str() ) );

@@ -100,7 +100,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   //==================== Cuts ====================
   m_nMinEntriesFit = 20;
 
-  m_deltaPtCut = 1.0; // GeV
+  m_deltaPtCut = 0.0; // GeV
   
   m_dPhiThirdJetFraction = 0.4;
 
@@ -953,13 +953,13 @@ void DiJetAnalysis::MakeEtaPhiPtMap( std::vector< TH2* >& vSampleMaps,
     h->Draw("col");
     styleTool->SetHStyle( h, 0 );
 
-    /*
     DrawAtlasRight();
 
     if( name.find("etaPhi") != std::string::npos ){
-      drawTool->DrawRightLatex( 0.87, 0.77, "28<#it{p}_{T}<35 [GeV]" );
+      double yLabel = 0.71;
+      if( m_isData ){ yLabel = 0.62; }
+      drawTool->DrawRightLatex( 0.87, yLabel, "28<#it{p}_{T}<35 [GeV]" );
     }
-    */
     
     SaveAsAll( c_map, h->GetName() );
     h->Write();
@@ -1713,36 +1713,86 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphi->SetXTitle(m_sDphi.c_str());
 	    hDphi->SetTitle( "" );
 	    vHdPhi.push_back( hDphi );
-	    	    
+
+	    // save the per-jet normalized counts histogram.
+	    TH1* hDphiUs = static_cast< TH1D* >( hDphi->Clone( Form( "%s_us", hDphiName.c_str() ) ) );
+	    styleTool->SetHStyle( hDphiUs, 1 );
+	    hDphiUs->SetYTitle( m_sDphiTitle.c_str() );
+	    hDphiUs->SetXTitle(m_sDphi.c_str());
+	    hDphiUs->SetTitle( "" );
+	    vHdPhi.push_back( hDphiUs );
+	   
 	    // Combinatoric subtraction after scaling by width
 	    // then normalize by jet spectra.
-	    NormalizeDeltaPhi( hDphi, hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true );
+	    NormalizeDeltaPhi( hDphi  , hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true  );
+	    NormalizeDeltaPhi( hDphiUs, hSpectCounts, 0.5 * ( axis1Up + axis1Low ), false );
 	    
 	    // take final dPhi histogram, and redo
 	    // bin width normalization to get per-jet
 	    // yields after comb subtaction
 	    TH1* hYields = static_cast< TH1D* >( hDphi->Clone( hYieldsName.c_str() ) );
-	    styleTool->SetHStyle( hDphi, 0 );
 	    vHdPhi.push_back( hYields );
-
 	    // undo the hDphi->Scale( 1., "width" ) part
 	    anaTool->UndoWidthScaling( hYields );
 
+	    TH1* hYieldsUs = static_cast< TH1D* >( hDphiUs->Clone( Form( "%s_us" , hYieldsName.c_str() ) ) );
+	    vHdPhi.push_back( hYieldsUs );
+	    // undo the hDphi->Scale( 1., "width" ) part
+	    anaTool->UndoWidthScaling( hYieldsUs );
+	    
 	    TCanvas c( hDphi->GetName(), hDphi->GetName(), 800, 600 );
 	    c.SetLogy();
 
 	    hDphi->SetMinimum( m_dPhiLogMin );
 	    hDphi->SetMaximum( m_dPhiLogMax );
-	    hDphi->Draw("ep same x0");
+	    hDphi  ->Draw("ep same x0");
+	    hDphiUs->Draw("ep same x0");
+	    
+	    TLegend legUs( 0.76, 0.36, 0.86, 0.46 );
+	    styleTool->SetLegendStyle( &legUs, 0.85 );
 
-	    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-	    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-	    TF1* fit  = NULL;
-	    TF1* fit2 = NULL; 
+	    legUs.AddEntry( hDphiUs, "NO CS");
+	    legUs.AddEntry( hDphi  , "W/CS" );
+	    
+	    legUs.Draw();
+	    
+	    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	    TF1* fit   = NULL;
+	    TF1* fit2  = NULL; 
+	    TF1* fitUs = NULL;
 	    
 	    // now fit
-	    fit  = anaTool->FitDphi  ( hDphi, m_dPhiFittingMin , m_dPhiFittingMax );
-	    fit2 = anaTool->FitDphi  ( hDphi, m_dPhiFittingMinB, m_dPhiFittingMax );
+	    fit   = anaTool->FitDphi( hDphi  , m_dPhiFittingMin , m_dPhiFittingMax );
+	    fit2  = anaTool->FitDphi( hDphi  , m_dPhiFittingMinB, m_dPhiFittingMax );
+	    fitUs = anaTool->FitDphi( hDphiUs, m_dPhiFittingMin , m_dPhiFittingMax );
+
+	    double   tau = fit->GetParameter(1);
+	    double sigma = fit->GetParameter(2);
+
+	    double   tauError = fit->GetParError(1);
+	    double sigmaError = fit->GetParError(2);
+	    
+	    double yieldError = 0;
+	    double yield      = hYields->IntegralAndError( 0, hDphi->GetNbinsX(), yieldError );
+	 
+	    double width      = std::sqrt( 2 * tau * tau + sigma * sigma ); 
+	    double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
+					   std::pow( 2 * sigma * sigmaError, 2 ) );
+
+	    double   tauUs = fitUs->GetParameter(1);
+	    double sigmaUs = fitUs->GetParameter(2);
+
+	    double   tauErrorUs = fitUs->GetParError(1);
+	    double sigmaErrorUs = fitUs->GetParError(2);
+	    
+	    double yieldErrorUs = 0;
+	    double yieldUs      = hYieldsUs->IntegralAndError( 0, hDphiUs->GetNbinsX(), yieldErrorUs );
+	 
+	    double widthUs      = std::sqrt( 2 * tauUs * tauUs + sigmaUs * sigmaUs ); 
+	    double widthErrorUs = std::sqrt( std::pow( 4 * tauUs   * tauErrorUs  , 2 ) +
+					     std::pow( 2 * sigmaUs * sigmaErrorUs, 2 ) );
+
 	    
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
@@ -1751,14 +1801,20 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    fit2->SetLineColor( kRed );
 	    fit2->SetName( Form( "%s_2", fit2->GetName() ) );
 	    vFits.push_back( fit2 );
-	    
+
+	    styleTool->SetHStyle( fitUs, 0 );
+	    fitUs->SetLineColor( kRed );
+	    fitUs->SetName( Form( "%s_Us", fitUs->GetName() ) );
+	    vFits.push_back( fitUs );
+
 	    // set range back to what it should be.
 	    // it can be changed in the fit funtion
 	    hDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
 
 	    // draw longer fit first;
 	    // fit2->Draw("same");
-	    fit ->Draw("same");
+	    fit  ->Draw("same");
+	    fitUs->Draw("same");
 	    
 	    double chi2NDF  = fit->GetChisquare() / fit->GetNDF();
 	    double prob     = fit->GetProb();
@@ -1771,6 +1827,20 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	    h_dPhiChiS2->Fill( chi2NDF2 );
 	    h_dPhiProb2->Fill( prob2    );
+	    
+	    drawTool->DrawLeftLatex
+	      ( 0.19, 0.48, Form( "%s^{CS} = %6.4f #pm %6.4f",
+				  m_sYieldTitle.c_str(), yield, yieldError ), 0.7 );
+	    drawTool->DrawLeftLatex
+	      ( 0.19, 0.42, Form( "%s^{CS} = %6.4f #pm %6.4f",
+				  m_sWidthTitle.c_str(), width, widthError ), 0.7 );
+
+	    drawTool->DrawLeftLatex
+	      ( 0.19, 0.60, Form( "#color[2]{%s^{No CS} = %6.4f #pm %6.4f}",
+				  m_sYieldTitle.c_str(), yieldUs, yieldErrorUs ), 0.7 );
+	    drawTool->DrawLeftLatex
+	      ( 0.19, 0.54, Form( "#color[2]{%s^{No CS} = %6.4f #pm %6.4f}",
+				  m_sWidthTitle.c_str(), widthUs, widthErrorUs ), 0.7 );
 
 	    if( prob < 0.05 ){
 	      v_listBadHist.push_back( hDphi->GetName() );
@@ -1778,15 +1848,15 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    }
 	    
 	    drawTool->DrawLeftLatex
-	      ( 0.70, 0.33, Form( "Prob = %4.2f", prob ) );
+	      ( 0.71, 0.31, Form( "Prob = %4.2f", prob ), 0.85 );
 	    drawTool->DrawLeftLatex
-	      ( 0.65, 0.25, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ) );
+	      ( 0.67, 0.25, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ), 0.85 );
 	  
 	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-		axis2Low, axis2Up, axis3Low, axis3Up );
+		axis2Low, axis2Up, axis3Low, axis3Up, 0.85 );
 
-	    DrawAtlasRight();
+	    DrawAtlasRight( 0, 0, 0.85 );
 	    if( !m_isData ){
 	      drawTool->DrawRightLatex( 0.875, 0.81, mcLevel.c_str() );
 	    }
@@ -1861,19 +1931,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    
 	    if( fit->GetParameter(1) < 0 )
 	      { continue; }
-
-	    double   tau = fit->GetParameter(1);
-	    double sigma = fit->GetParameter(2);
-
-	    double   tauError = fit->GetParError(1);
-	    double sigmaError = fit->GetParError(2);
-	    
-	    double yieldError = 0;
-	    double yield      = hYields->IntegralAndError( 0, hDphi->GetNbinsX(), yieldError );
-	 
-	    double width      = std::sqrt( 2 * tau * tau + sigma * sigma ); 
-	    double widthError = std::sqrt( std::pow( 4 * tau   * tauError  , 2 ) +
-					   std::pow( 2 * sigma * sigmaError, 2 ) );
 
 	    drawTool->DrawLeftLatex
 	      ( 0.19, 0.55, Form( "Yield = %5.3f #pm %5.3f", yield, yieldError ) );
@@ -1992,6 +2049,10 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  hWR->Divide( hDphiWidths2 );
 
 	  hWR->Draw("ep X0" );
+
+	  TF1* fWR = anaTool->FitPol1( hWR, axis3->GetXmin(), axis3->GetXmax() );
+	  styleTool->SetHStyle( fWR, 0 );
+	  fWR->Draw("same");
 	  
 	  line.Draw();
 	  lineP25.Draw();

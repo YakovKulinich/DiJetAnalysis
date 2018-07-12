@@ -1105,7 +1105,9 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     double jetWeightTruth = GetJetWeight( tJet );
 
     if( jetPtReco > 28 && jetPtReco < 35 ){
-      m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
+      // fill negative because the coordinate system is
+      // with p going in positive eta
+      m_vHjznEtaPhiMap[iG]->Fill( -jetEtaReco, jetPhiReco, jetWeightReco );
     }
     
     m_vHjznEtaPtMap [iG]->Fill( jetEtaReco, jetPtReco , jetWeightReco );
@@ -1129,7 +1131,7 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     if( m_is_pPb ){ continue; }
 
     if( jetEtaReco > 28 && jetEtaReco < 35 ){
-      m_vHjznEtaPhiMap[iG]->Fill( -jetEtaReco, jetPhiReco, jetWeightReco );
+      m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
     }
     m_vHjznEtaPtMap [iG]->Fill( -jetEtaReco, jetPtReco , jetWeightReco );
 
@@ -2912,8 +2914,11 @@ void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco
 
       TCanvas cSpectRespMat( hRespMat->GetName(), hRespMat->GetName(), 800, 600 );
       cSpectRespMat.SetLogz();
+
+      gStyle->SetPaintTextFormat(".1e");
+      // anaTool->AverageOver( hRespMat, "row" );
       
-      hRespMat->Draw("col");
+      hRespMat->Draw("col text25");
       hRespMat->SetTitle("");
 
       drawTool->DrawLeftLatex
@@ -3364,7 +3369,11 @@ void DiJetAnalysisMC::MakeYstarRespMat( std::vector< TH3* >& vhnYstar,
       
       hYstarRespMat->SetName( hName.c_str() );
       hYstarRespMat->SetTitle("");
-      
+
+      // normalize rows to 1 to get purity
+      gStyle->SetPaintTextFormat(".3f");
+      anaTool->AverageOver( hYstarRespMat, "row" );
+ 
       TCanvas c("c","c", 800, 600 );
       c.SetLogz();
 
