@@ -298,6 +298,8 @@ class DiJetAnalysis{
   double m_dPhiFittingMax;
 
   double m_dPhiFittingMinB;
+  double m_dPhiFittingMinC;
+  double m_dPhiFittingMinD;
   
   double m_dPhiUnfoldingMin;
   double m_dPhiUnfoldingMax; 

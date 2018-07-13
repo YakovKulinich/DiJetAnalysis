@@ -116,7 +116,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_dPhiFittingMax  = constants::PI;
 
   m_dPhiFittingMinB = 2 * constants::PI / 3;
-
+  m_dPhiFittingMinC = 1.8;
+  m_dPhiFittingMinD = 2.6;
+  
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   // for this uncertainty, we change the fitting range.
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1642,9 +1644,25 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  hDphiWidths2->SetYTitle( m_sWidthTitle.c_str() );
 	  hDphiWidths2->SetMarkerSize( hDphiWidths2->GetMarkerSize() * 2 );
 	  styleTool->SetHStyle( hDphiWidths2, 5 + style );
-	  hDphiWidths2->SetMarkerColor( kBlue );
-	  hDphiWidths2->SetLineColor  ( kBlue );
 	  vDphiWidths.push_back( hDphiWidths2 );
+
+	  TH1* hDphiWidths3Tmp = hn->Projection( fAxisI );
+	  TH1* hDphiWidths3 = FlipOverXaxis( hDphiWidths3Tmp, m_varYstarBinningFlipped );
+	  hDphiWidths3->Reset();
+	  hDphiWidths3->SetName( Form( "%s_2", hNameW.c_str() ) );
+	  hDphiWidths3->SetYTitle( m_sWidthTitle.c_str() );
+	  hDphiWidths3->SetMarkerSize( hDphiWidths3->GetMarkerSize() * 2 );
+	  styleTool->SetHStyle( hDphiWidths3, 5 + style );
+	  vDphiWidths.push_back( hDphiWidths3 );
+
+	  TH1* hDphiWidths4Tmp = hn->Projection( fAxisI );
+	  TH1* hDphiWidths4 = FlipOverXaxis( hDphiWidths4Tmp, m_varYstarBinningFlipped );
+	  hDphiWidths4->Reset();
+	  hDphiWidths4->SetName( Form( "%s_2", hNameW.c_str() ) );
+	  hDphiWidths4->SetYTitle( m_sWidthTitle.c_str() );
+	  hDphiWidths4->SetMarkerSize( hDphiWidths4->GetMarkerSize() * 2 );
+	  styleTool->SetHStyle( hDphiWidths4, 5 + style );
+	  vDphiWidths.push_back( hDphiWidths4 );
 	  
 	  TH1* hDphiWidthsStatTmp = hn->Projection( fAxisI );
 	  TH1* hDphiWidthsStat = FlipOverXaxis( hDphiWidthsStatTmp, m_varYstarBinningFlipped );
@@ -1761,14 +1779,18 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	    TF1* fit   = NULL;
-	    TF1* fit2  = NULL; 
 	    TF1* fitUs = NULL;
+	    TF1* fit2  = NULL; 
+	    TF1* fit3  = NULL; 
+	    TF1* fit4  = NULL; 
 	    
 	    // now fit
 	    fit   = anaTool->FitDphi( hDphi  , m_dPhiFittingMin , m_dPhiFittingMax );
-	    fit2  = anaTool->FitDphi( hDphi  , m_dPhiFittingMinB, m_dPhiFittingMax );
 	    fitUs = anaTool->FitDphi( hDphiUs, m_dPhiFittingMin , m_dPhiFittingMax );
-
+	    fit2  = anaTool->FitDphi( hDphi  , m_dPhiFittingMinB, m_dPhiFittingMax );
+	    fit3  = anaTool->FitDphi( hDphi  , m_dPhiFittingMinC, m_dPhiFittingMax );
+	    fit4  = anaTool->FitDphi( hDphi  , m_dPhiFittingMinD, m_dPhiFittingMax );
+	    
 	    double   tau = fit->GetParameter(1);
 	    double sigma = fit->GetParameter(2);
 
@@ -1799,15 +1821,22 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    styleTool->SetHStyle( fit, 0 );
 	    vFits.push_back( fit );
 
-	    styleTool->SetHStyle( fit2, 0 );
-	    fit2->SetLineColor( kRed );
-	    fit2->SetName( Form( "%s_2", fit2->GetName() ) );
-	    vFits.push_back( fit2 );
-
 	    styleTool->SetHStyle( fitUs, 0 );
 	    fitUs->SetLineColor( kRed );
 	    fitUs->SetName( Form( "%s_Us", fitUs->GetName() ) );
 	    vFits.push_back( fitUs );
+
+	    styleTool->SetHStyle( fit3, 0 );
+	    fit2->SetName( Form( "%s_2", fit3->GetName() ) );
+	    vFits.push_back( fit2 );
+
+	    styleTool->SetHStyle( fit3, 0 );
+	    fit2->SetName( Form( "%s_3", fit3->GetName() ) );
+	    vFits.push_back( fit3 );
+
+	    styleTool->SetHStyle( fit4, 0 );
+	    fit2->SetName( Form( "%s_4", fit4->GetName() ) );
+	    vFits.push_back( fit4 );
 
 	    // set range back to what it should be.
 	    // it can be changed in the fit funtion
@@ -1948,6 +1977,27 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double width2      = std::sqrt( 2 * tau2 * tau2 + sigma2 * sigma2 ); 
 	    double widthError2 = std::sqrt( std::pow( 4 * tau2   * tauError2  , 2 ) +
 					    std::pow( 2 * sigma2 * sigmaError2, 2 ) );
+
+	    double   tau3 = fit3->GetParameter(1);
+	    double sigma3 = fit3->GetParameter(2);
+
+	    double   tauError3 = fit3->GetParError(1);
+	    double sigmaError3 = fit3->GetParError(2);
+	    
+	    double width3      = std::sqrt( 2 * tau3 * tau3 + sigma3 * sigma3 ); 
+	    double widthError3 = std::sqrt( std::pow( 4 * tau3   * tauError3  , 2 ) +
+					    std::pow( 2 * sigma3 * sigmaError3, 2 ) );
+
+	    double   tau4 = fit4->GetParameter(1);
+	    double sigma4 = fit4->GetParameter(2);
+
+	    double   tauError4 = fit4->GetParError(1);
+	    double sigmaError4 = fit4->GetParError(2);
+	    
+	    double width4      = std::sqrt( 2 * tau4 * tau4 + sigma4 * sigma4 ); 
+	    double widthError4 = std::sqrt( std::pow( 4 * tau4   * tauError4  , 2 ) +
+					    std::pow( 2 * sigma4 * sigmaError4, 2 ) );
+	   
 	    
 	    // Now, put results on histogram
 	    std::pair< double, double > rmsAndError =
@@ -1978,6 +2028,12 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    hDphiWidths2->SetBinContent( nAxis3Bins + 1 - axis3Bin, width2      );
 	    hDphiWidths2->SetBinError  ( nAxis3Bins + 1 - axis3Bin, widthError2 );
 
+	    hDphiWidths3->SetBinContent( nAxis3Bins + 1 - axis3Bin, width3      );
+	    hDphiWidths3->SetBinError  ( nAxis3Bins + 1 - axis3Bin, widthError3 );
+
+	    hDphiWidths4->SetBinContent( nAxis3Bins + 1 - axis3Bin, width4      );
+	    hDphiWidths4->SetBinError  ( nAxis3Bins + 1 - axis3Bin, widthError4 );
+	    
 	    hDphiWidthsStat->SetBinContent( nAxis3Bins + 1 - axis3Bin, widthStat      );
 	    hDphiWidthsStat->SetBinError  ( nAxis3Bins + 1 - axis3Bin, widthStatError );
 	  } // end loop over axis3
@@ -2003,7 +2059,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  pad2.SetBottomMargin(0.25);
 	  pad2.Draw();
 
-	  TLegend legWAll( 0.30, 0.08, 0.69, 0.22 );
+	  TLegend legWAll( 0.30, 0.05, 0.69, 0.20 );
 	  styleTool->SetLegendStyle( &legWAll );
 
 	  pad1.cd();
@@ -2018,17 +2074,26 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  vDphiWidths.push_back( hDphiWidthsCmp );
 	  
 	  styleTool->SetHStyle( hDphiWidthsCmp , 0 );
-	  styleTool->SetHStyle( hDphiWidths2   , 6 );
+	  styleTool->SetHStyle( hDphiWidths2   , 1 );
+	  styleTool->SetHStyle( hDphiWidths3   , 2 );
+	  styleTool->SetHStyle( hDphiWidths4   , 3 );
 	  styleTool->SetHStyle( hDphiWidthsStat, 5 );
 	   
 	  hDphiWidthsCmp->Draw("epsame X0");
 	  hDphiWidths2  ->Draw("epsame X0");
+	  // hDphiWidths3  ->Draw("epsame X0");
+	  // hDphiWidths4  ->Draw("epsame X0");
 	
 	  legWAll.AddEntry
 	    ( hDphiWidthsCmp,Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMin  ) );
 	  legWAll.AddEntry
 	    ( hDphiWidths2,  Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinB ) );
-	  
+	  /*
+	  legWAll.AddEntry
+	    ( hDphiWidths3,  Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinC ) );
+	  legWAll.AddEntry
+	    ( hDphiWidths4,  Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinD ) );
+	  */
 	  legWAll.Draw();
 
 	  DrawTopLeftLabels
@@ -2041,27 +2106,37 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	  std::string hNameR = hNameW + "_" + m_sRatio;
  
-	  TH1* hWR = static_cast< TH1D* >( hDphiWidths2->Clone( hNameR.c_str() ) );
-	  styleTool->SetHStyle( hWR, 0 );
-	  vWR.push_back( hWR );
-	  hWR->Divide( hDphiWidthsCmp );
-	  hWR->SetYTitle( "Red/Blk" );
+	  TH1* hWR2 = static_cast< TH1D* >( hDphiWidths2->Clone( hNameR.c_str() ) );
+	  styleTool->SetHStyle( hWR2, 1 );
+	  vWR.push_back( hWR2 );
+	  hWR2->Divide( hDphiWidthsCmp );
+	  hWR2->SetYTitle( "Red/Blk" );
+	  hWR2->SetMinimum( 0.5 );
+	  hWR2->SetMaximum( 1.5 );
+	  hWR2->Draw("ep X0 same");
 
-	  hWR->SetMinimum( 0.5 );
-	  hWR->SetMaximum( 1.5 );
+	  TH1* hWR3 = static_cast< TH1D* >( hDphiWidths3->Clone( hNameR.c_str() ) );
+	  styleTool->SetHStyle( hWR3, 2 );
+	  vWR.push_back( hWR3 );
+	  hWR3->Divide( hDphiWidthsCmp );
+	  // hWR3->Draw("ep X0 same");
 
-	  hWR->Draw("ep X0");
+	  TH1* hWR4 = static_cast< TH1D* >( hDphiWidths4->Clone( hNameR.c_str() ) );
+	  styleTool->SetHStyle( hWR4, 3 );
+	  vWR.push_back( hWR4 );
+	  hWR4->Divide( hDphiWidthsCmp );
+	  // hWR4->Draw("ep X0 same");
 
-	  TAxis* axisHwr = hWR->GetXaxis();
-    	  TF1* fWR1 = anaTool->FitPol0( hWR, axisHwr->GetXmin(), axisHwr->GetXmax() );
-	  styleTool->SetHStyle( fWR1, 0 );
-
-	  drawTool->DrawRightLatex
-	    ( 0.87, 0.85, Form("%f #pm %f", fWR1->GetParameter(0), fWR1->GetParError(0) ) );
-	  drawTool->DrawRightLatex
-	    ( 0.87, 0.31,  Form("Prob = %4.2f", fWR1->GetProb() ) );
+	  TAxis* axisHwr = hWR2->GetXaxis();
+    	  TF1* fWR2 = anaTool->FitPol0( hWR2, axisHwr->GetXmin(), axisHwr->GetXmax() );
+	  styleTool->SetHStyle( fWR2, 0 );
 	  
-	  fWR1->Draw("same");
+	  drawTool->DrawRightLatex
+	    ( 0.87, 0.85, Form("%f #pm %f", fWR2->GetParameter(0), fWR2->GetParError(0) ) );
+	  drawTool->DrawRightLatex
+	    ( 0.87, 0.31,  Form("Prob = %4.2f", fWR2->GetProb() ) );
+	  
+	  fWR2->Draw("same");
 
 	  line.Draw();
 	  lineP25.Draw();
@@ -2073,18 +2148,18 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  // the statistical error twice.
 	  // Bins with good statistics can be treated as is.
 	  if( m_uncertComp == 22 ){
-	    TH1* hWR2 = static_cast< TH1D* >
+	    TH1* hWRF = static_cast< TH1D* >
 	      ( hDphiWidthsCmp->Clone( Form( "%s_2", hNameR.c_str() ) ) );
-	    styleTool->SetHStyle( hWR2, 1 );
-	    vWR.push_back( hWR2 );
-	    hWR2->Divide( hDphiWidths2 );
+	    styleTool->SetHStyle( hWRF, 1 );
+	    vWR.push_back( hWRF );
+	    hWRF->Divide( hDphiWidths2 );
 	    
-	    TF1* fWR2 = anaTool->FitPol0( hWR2, axisHwr->GetXmin(), axisHwr->GetXmax() );
-	    styleTool->SetHStyle( fWR2, 0 );
-	    fWR2->SetLineColor( kRed );
+	    TF1* fWRF = anaTool->FitPol0( hWRF, axisHwr->GetXmin(), axisHwr->GetXmax() );
+	    styleTool->SetHStyle( fWRF, 0 );
+	    fWRF->SetLineColor( kRed );
 
-	    hWR2->Draw( "ep X0 same" );
-	    fWR2->Draw( "same" );
+	    hWRF->Draw( "ep X0 same" );
+	    fWRF->Draw( "same" );
 
 	    for( int i = 1; i <= nAxis3Bins; i++ ){
 	      /*
@@ -2099,8 +2174,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	      if( std::abs( v1 - v2 ) < e1 ){ continue; }
 	      */	      
 	      
-	      double ci = std::abs( hWR2->GetBinContent( i ) );
-	      double cf = std::abs( fWR2->GetParameter(0) ) +  fWR2->GetParError(0);
+	      double ci = std::abs( hWRF->GetBinContent( i ) );
+	      double cf = std::abs( fWRF->GetParameter(0) ) +  fWRF->GetParError(0);
 	      double widthOld = hDphiWidthsCmp->GetBinContent( i );
 	      double widthNew = widthOld * ( cf / ci );
 	      std::cout << " ------ " << i << " -------- " << ci << " " << cf << " "
