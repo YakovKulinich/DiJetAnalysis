@@ -121,7 +121,9 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   // for this uncertainty, we change the fitting range.
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   if( m_uncertComp == 22 ){
+    double dPhiFittingTmp = m_dPhiFittingMin;
     m_dPhiFittingMin  = m_dPhiFittingMinB; 
+    m_dPhiFittingMinB = dPhiFittingTmp;
   }
   
   // sets range of unfolding and where
@@ -412,11 +414,11 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  // MakeFinalPlotsTogether( fOut, m_widthName );
-  // MakeFinalPlotsTogether( fOut, m_yieldName );
+  MakeFinalPlotsTogether( fOut, m_widthName );
+  MakeFinalPlotsTogether( fOut, m_yieldName );
 
-  MakeDphiTogether( fOut );
-  CompareWeightIsoPtCuts( fOut );
+  // MakeDphiTogether( fOut );
+  // CompareWeightIsoPtCuts( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -1992,16 +1994,16 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  // ----------- widths -----------
 	  TCanvas cWidthsCmp( "cWidthsCmp", "cWidthsCmp", 800, 800 );
 
-	  TPad pad1("pad1", "", 0.0, 0.35, 1.0, 1.0 );
+	  TPad pad1("pad1", "", 0.0, 0.40, 1.0, 1.0 );
 	  pad1.SetBottomMargin(0.0);
 	  pad1.Draw();
 	  
-	  TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.34 );
+	  TPad pad2("pad2", "", 0.0, 0.0, 1.0, 0.39 );
 	  pad2.SetTopMargin(0.05);
 	  pad2.SetBottomMargin(0.25);
 	  pad2.Draw();
 
-	  TLegend legWAll( 0.30, 0.1, 0.69, 0.28 );
+	  TLegend legWAll( 0.30, 0.08, 0.69, 0.22 );
 	  styleTool->SetLegendStyle( &legWAll );
 
 	  pad1.cd();
@@ -2025,7 +2027,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  legWAll.AddEntry
 	    ( hDphiWidthsCmp,Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMin  ) );
 	  legWAll.AddEntry
-	    ( hDphiWidths2, Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinB ) );
+	    ( hDphiWidths2,  Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinB ) );
 	  
 	  legWAll.Draw();
 
@@ -2038,27 +2040,81 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  pad2.cd();
 
 	  std::string hNameR = hNameW + "_" + m_sRatio;
-	  TH1* hWR = static_cast< TH1D* >( hDphiWidths->Clone( hNameR.c_str() ) );
+ 
+	  TH1* hWR = static_cast< TH1D* >( hDphiWidths2->Clone( hNameR.c_str() ) );
 	  styleTool->SetHStyle( hWR, 0 );
 	  vWR.push_back( hWR );
-	  
-	  hWR->SetMaximum( 1.5 );
+	  hWR->Divide( hDphiWidthsCmp );
+	  hWR->SetYTitle( "Red/Blk" );
+
 	  hWR->SetMinimum( 0.5 );
-	  hWR->SetYTitle( "Ratio" );
+	  hWR->SetMaximum( 1.5 );
 
-	  hWR->Divide( hDphiWidths2 );
+	  hWR->Draw("ep X0");
 
-	  hWR->Draw("ep X0" );
+	  TAxis* axisHwr = hWR->GetXaxis();
+    	  TF1* fWR1 = anaTool->FitPol0( hWR, axisHwr->GetXmin(), axisHwr->GetXmax() );
+	  styleTool->SetHStyle( fWR1, 0 );
 
-	  TF1* fWR = anaTool->FitPol1( hWR, axis3->GetXmin(), axis3->GetXmax() );
-	  styleTool->SetHStyle( fWR, 0 );
-	  fWR->Draw("same");
+	  drawTool->DrawRightLatex
+	    ( 0.87, 0.85, Form("%f #pm %f", fWR1->GetParameter(0), fWR1->GetParError(0) ) );
+	  drawTool->DrawRightLatex
+	    ( 0.87, 0.31,  Form("Prob = %4.2f", fWR1->GetProb() ) );
 	  
+	  fWR1->Draw("same");
+
 	  line.Draw();
 	  lineP25.Draw();
 	  lineN25.Draw();
-	  
+
+	  // for case uncertainty = 22 (fitting)
+	  // now change results where fit values had large statistical
+	  // error to fit + error, this is to not double count
+	  // the statistical error twice.
+	  // Bins with good statistics can be treated as is.
+	  if( m_uncertComp == 22 ){
+	    TH1* hWR2 = static_cast< TH1D* >
+	      ( hDphiWidthsCmp->Clone( Form( "%s_2", hNameR.c_str() ) ) );
+	    styleTool->SetHStyle( hWR2, 1 );
+	    vWR.push_back( hWR2 );
+	    hWR2->Divide( hDphiWidths2 );
+	    
+	    TF1* fWR2 = anaTool->FitPol0( hWR2, axisHwr->GetXmin(), axisHwr->GetXmax() );
+	    styleTool->SetHStyle( fWR2, 0 );
+	    fWR2->SetLineColor( kRed );
+
+	    hWR2->Draw( "ep X0 same" );
+	    fWR2->Draw( "same" );
+
+	    for( int i = 1; i <= nAxis3Bins; i++ ){
+	      /*
+	      double v1 = hDphiWidthsCmp->GetBinContent( i );
+	      double e1 = hDphiWidthsCmp->GetBinError  ( i );
+	      double v2 = hDphiWidths2  ->GetBinContent( i );
+	      double e2 = hDphiWidths2  ->GetBinError  ( i );
+
+	      // only treat bins with where one of the fits has
+	      // larger error ( > 10% ) of value in this way
+	      if( ( e1/v1 ) < 0.1 && ( e2/v2 ) < 0.1 ){ continue;}
+	      if( std::abs( v1 - v2 ) < e1 ){ continue; }
+	      */	      
+	      
+	      double ci = std::abs( hWR2->GetBinContent( i ) );
+	      double cf = std::abs( fWR2->GetParameter(0) ) +  fWR2->GetParError(0);
+	      double widthOld = hDphiWidthsCmp->GetBinContent( i );
+	      double widthNew = widthOld * ( cf / ci );
+	      std::cout << " ------ " << i << " -------- " << ci << " " << cf << " "
+			<< widthOld << " " << widthNew << std::endl;
+	      hDphiWidths->SetBinContent( i, widthNew );
+	    }
+	    pad1.cd();
+	    styleTool->SetHStyle( hDphiWidths, 2 );
+	    hDphiWidths->Draw( "ep X0 same" );
+	  }
+
 	  SaveAsAll( cWidthsCmp, hNameW );
+
+	  styleTool->SetHStyle( hDphiWidths, 0 );
 
 	  // ----------- yields -----------
 	  TCanvas cYieldsAll( "cYieldsAll", "cYieldsAll",800,600);

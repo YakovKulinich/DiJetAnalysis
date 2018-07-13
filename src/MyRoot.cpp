@@ -427,9 +427,7 @@ TF1* CT::AnalysisTools::FitPol1( TH1* histo, double xLow, double xHigh){
 
   fit->SetParameters( 1, 1 );
 
-  if( histo->GetEntries() > 5 ){
-    histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
-  }
+  histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
   
   return fit;
 }
@@ -439,9 +437,17 @@ TF1* CT::AnalysisTools::FitPol2( TH1* histo, double xLow, double xHigh){
 
   fit->SetParameters( 1, 1, 1 );
 
-  if( histo->GetEntries() > 5 ){
-    histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
-  }
+  histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
+  
+  return fit;
+}
+
+TF1* CT::AnalysisTools::FitPol3( TH1* histo, double xLow, double xHigh){
+  TF1* fit  = new TF1( Form("f_%s", histo->GetName()), "pol3(0)", xLow, xHigh );
+
+  fit->SetParameters( 1, 1, 1, 1 );
+
+  histo->Fit( fit->GetName(), "NQ", "", xLow, xHigh );
   
   return fit;
 }
@@ -467,7 +473,7 @@ void CT::AnalysisTools::FitPol0Syst
   double& c0, double& dc0, double& dc1, double& dc2,
   double xMin, double xMax ){
 
-  TGraphAsymmErrors* g = static_cast< TGraphAsymmErrors* >( gIn->Clone() );
+  TGraphAsymmErrors* g     = static_cast< TGraphAsymmErrors* >( gIn->Clone() );
   TGraphAsymmErrors* gUp   = static_cast< TGraphAsymmErrors* >( gIn->Clone() );
   TGraphAsymmErrors* gDown = static_cast< TGraphAsymmErrors* >( gIn->Clone() );
 

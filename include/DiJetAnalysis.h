@@ -447,7 +447,7 @@ class DiJetAnalysis{
   double m_effMax;
   
   // ---- forward eta binning ---
-  std::vector<double> m_varFwdEtaBinning;
+  std::vector< double > m_varFwdEtaBinning;
   uint m_nVarFwdEtaBins;
 
   // --- whole range variable ----

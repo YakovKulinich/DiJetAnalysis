@@ -120,6 +120,8 @@ namespace CT{
     TF1* FitPol1    ( TH1*, double = 0, double = 0 );
 
     TF1* FitPol2    ( TH1*, double = 0, double = 0 );
+    
+    TF1* FitPol3    ( TH1*, double = 0, double = 0 );
 
     TF1* FitLogPol2 ( TH1*, double = 0, double = 0 );
 
