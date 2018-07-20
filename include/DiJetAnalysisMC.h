@@ -72,7 +72,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
     ( THnSparse*,
       const std::vector <TLorentzVector >&,
       const std::vector <TLorentzVector >&,
-      int = 0);
+      int = 0,
+      bool = true);
 
   double AnalyzeDeltaPhiWithDphiWeight
     ( THnSparse*,

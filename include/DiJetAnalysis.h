@@ -93,6 +93,8 @@ class DiJetAnalysis{
 			  const TLorentzVector*&,
 			  bool = true );
 
+  virtual bool PassHECCuts( const TLorentzVector& );
+  
   virtual void AnalyzeSpectra( TH2*, const std::vector< TLorentzVector >& );
   
   virtual double AnalyzeDeltaPhi( THnSparse*,
@@ -282,6 +284,20 @@ class DiJetAnalysis{
   
   double m_dPhiThirdJetFraction;
 
+  double m_jetDeltaR;
+  
+  double m_hecEtaMinA;
+  double m_hecEtaMaxA;
+
+  double m_hecPhiMinA;
+  double m_hecPhiMaxA;
+
+  double m_hecEtaMinB;
+  double m_hecEtaMaxB;
+
+  double m_hecPhiMinB;
+  double m_hecPhiMaxB;
+  
   double m_dPhiZoomLow;
   double m_dPhiZoomHigh;
   

@@ -852,8 +852,8 @@ void DiJetAnalysisMC::ProcessEventsForWeights( int nEventsIn, int startEventIn, 
       }
 
       ApplyCleaning ( vR_jets, v_isCleanJet );
-      ApplyIsolation( vR_jets, 1.0 );
-      ApplyIsolation( vT_jets, 1.0 );
+      // ApplyIsolation( vR_jets, 1.0 );
+      // ApplyIsolation( vT_jets, 1.0 );
       
       std::vector< TLorentzVector > vTR_paired_jets;
       std::vector< TLorentzVector > vTT_paired_jets;
@@ -942,8 +942,8 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       }
       
       ApplyCleaning ( vR_jets, v_isCleanJet );
-      ApplyIsolation( vR_jets, 1.0 );
-      ApplyIsolation( vT_jets, 1.0 );
+      // ApplyIsolation( vR_jets, 1.0 );
+      // ApplyIsolation( vT_jets, 1.0 );
             
       std::vector< TLorentzVector > vTR_paired_jets;
       std::vector< TLorentzVector > vTT_paired_jets;
@@ -958,7 +958,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 		 anaTool->sortByDecendingPt );
       std::sort( vTT_paired_jets.begin(), vTT_paired_jets.end(),
 		 anaTool->sortByDecendingPt );
-      
+
       // If not running on default sample.
       // Apply uncertainties to all reco jets.
       if( m_uncertComp ){
@@ -969,7 +969,8 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       // last parameter is mode, we use 2 to get dphi weight.
       int mode = 2;
       AnalyzeDeltaPhiWithWeight( m_vHjznDphiReco [iG], vTR_paired_jets, vTT_paired_jets, mode );
-      AnalyzeDeltaPhiWithWeight( m_vHjznDphiTruth[iG], vTT_paired_jets, vTT_paired_jets, mode );
+      AnalyzeDeltaPhiWithWeight( m_vHjznDphiTruth[iG], vTT_paired_jets,
+				 vTT_paired_jets, mode, false );
       
       AnalyzeDphiRespMat
         ( m_vHjznDphiRespMat[iG], m_vHjznDphiRespMatReb[iG], vTR_paired_jets, vTT_paired_jets );
@@ -1047,7 +1048,8 @@ double DiJetAnalysisMC::AnalyzeDeltaPhiWithWeight
 ( THnSparse* hn,
   const std::vector< TLorentzVector >& v_jets,
   const std::vector< TLorentzVector >& vW_jets,
-  int mode ){
+  int mode,
+  bool isReco){
 
   const TLorentzVector* jet1  = NULL; const TLorentzVector* jet2  = NULL;
   const TLorentzVector* wJet1 = NULL; const TLorentzVector* wJet2 = NULL;
@@ -1055,6 +1057,10 @@ double DiJetAnalysisMC::AnalyzeDeltaPhiWithWeight
   if( !GetDiJets(  v_jets,  jet1,  jet2 ) ||
       !GetDiJets( vW_jets, wJet1, wJet2, false ) )
     { return -1; }
+
+  // in pPb, quit if there is a subleading
+  // jet in Pb going HEC region
+  if( isReco && !PassHECCuts( *jet2 ) ){ return -1; }
   
   double jetPt1    = jet1->Pt()/1000.;
   double jetYstar1 = GetYstar( *jet1 );
@@ -1107,7 +1113,7 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     if( jetPtReco > 28 && jetPtReco < 35 ){
       // fill negative because the coordinate system is
       // with p going in positive eta
-      m_vHjznEtaPhiMap[iG]->Fill( -jetEtaReco, jetPhiReco, jetWeightReco );
+      m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
     }
     
     m_vHjznEtaPtMap [iG]->Fill( jetEtaReco, jetPtReco , jetWeightReco );
@@ -1131,7 +1137,7 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     if( m_is_pPb ){ continue; }
 
     if( jetEtaReco > 28 && jetEtaReco < 35 ){
-      m_vHjznEtaPhiMap[iG]->Fill( jetEtaReco, jetPhiReco, jetWeightReco );
+      m_vHjznEtaPhiMap[iG]->Fill( -jetEtaReco, jetPhiReco, jetWeightReco );
     }
     m_vHjznEtaPtMap [iG]->Fill( -jetEtaReco, jetPtReco , jetWeightReco );
 
@@ -1223,6 +1229,10 @@ void DiJetAnalysisMC::AnalyzeDphiRespMat( THnSparse* hnDphi,
   // reco jet 2
   double rjetPt2    = rJet2->Pt()/1000.;
 
+  // in pPb, quit if there is a subleading
+  // reco jet in Pb going HEC region
+  if( !PassHECCuts( *rJet2 ) ){ return; }
+  
   // truth jet 1
   double tjetPt1    = tJet1->Pt()/1000.;
   double tjetYstar1 = GetYstar( *tJet1 );
@@ -1682,20 +1692,8 @@ void DiJetAnalysisMC::SetCfactorsErrors( TH1* hR, TH1* hT, TH2* hM, TH1* hC ){
 
 double DiJetAnalysisMC::GetJetWeight( const TLorentzVector& jet ){
 
-
-  /*
-  if( !m_hPowhegWeights ) { return 1; } 
-
-  int xb = m_hPowhegWeights->GetXaxis()->FindBin( jet.Pt()/1000. );
-  int yb = m_hPowhegWeights->GetYaxis()->FindBin( jet.Eta()      );
-  int zb = m_hPowhegWeights->GetZaxis()->FindBin( jet.Phi()      );
-  float jet_weight = m_hPowhegWeights->GetBinContent( xb, yb, zb );
-  
-  return jet_weight;
-  */
-
   // !!ONLY FOR pPb!!
- 
+  
   if( m_is_pPb ){
     if( m_FCalEt > 0.09 ){
       return h_pPbFCalWeights->GetBinContent

@@ -556,7 +556,7 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
     }
 
     ApplyCleaning ( vR_jets, v_isCleanJet );
-    ApplyIsolation( vR_jets, 1.0 );
+    // ApplyIsolation( vR_jets, 1.0 );
     
     std::sort( vR_jets.begin(), vR_jets.end(), anaTool->sortByDecendingPt );
     
@@ -623,18 +623,18 @@ void DiJetAnalysisData::ProcessEvents( int nEvents, int startEvent ){
 	  // fill negative because the coordinate system is
 	  // with p going in positive eta
 	  if( jetPt > 28 && jetPt < 35 ){
-	    m_vHtriggerEtaPhiMap[iG]->Fill( -jetEta, jetPhi );
-	    m_vHtriggerEtaPtMap [iG]->Fill( -jetEta, jetPt  ); 
+	    m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
+	    m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
 	  }
-	  m_vHtriggerEtaPhiPtMap[iG]->Fill( -jetEta, jetPhi, jetPt );
+	  m_vHtriggerEtaPhiPtMap[iG]->Fill( jetEta, jetPhi, jetPt );
 
 	  // for pp fill both sides
 	  if( !m_is_pPb ){
 	    if( jetPt > 28 && jetPt < 35 ){
-	      m_vHtriggerEtaPhiMap[iG]->Fill( jetEta, jetPhi );
-	      m_vHtriggerEtaPtMap [iG]->Fill( jetEta, jetPt  ); 
+	      m_vHtriggerEtaPhiMap[iG]->Fill( -jetEta, jetPhi );
+	      m_vHtriggerEtaPtMap [iG]->Fill( -jetEta, jetPt  ); 
 	    }
-	    m_vHtriggerEtaPhiPtMap[iG]->Fill( jetEta, jetPhi, jetPt );
+	    m_vHtriggerEtaPhiPtMap[iG]->Fill( -jetEta, jetPhi, jetPt );
 	  }
 	}
 
@@ -1205,8 +1205,10 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     DrawAtlasRight( 0, 0, 0.85 );
     if( !m_is_pPb && iX == 1 ){
       drawTool->DrawRightLatex( 0.65, 0.725, "-3.2<|#eta|<3.2" );
+    } else if( !m_is_pPb ){
+      drawTool->DrawRightLatex( 0.65, 0.725, "3.2<|#eta|<4.4", 0.85 );
     } else {
-      drawTool->DrawRightLatex( 0.65, 0.725, "3.2<#eta<4.4", 0.85 );
+      drawTool->DrawRightLatex( 0.65, 0.725, "-4.4<#eta<-3.2", 0.85 );
     }
     
     SaveAsAll( c, Form("%s_%s", type.c_str(), cName.c_str() ) );
@@ -1654,8 +1656,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	    // for Angular Res negative is same as positive (21)
 	    // for Fitting negative is same as positive (22)
 	    // for ReWeight/Unf negative is same as positive (23)
+	    // for HEC uncertainty, negative same as positive (24)
 	    // and we do not have a NN, just use PN
-	    if( uc  >= 20 && uc <= 23 ){
+	    if( uc  >= 20 && uc <= 24 ){
 	      uncertFinYP += uncertaintySq;
 	      uncertFinYN += uncertaintySq;
 
@@ -1820,7 +1823,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	      // for Fitting negative is same as positive (22)
 	      // for ReWeight/Unf negative is same as positive (23)
 	      // and we do not have a NN, just use PN
-	      if( uc == 22 || uc == 23 ){
+	      if( uc == 22 || uc == 23  || uc == 24 ){
 		uncertFinYPuncorr += uncertaintySq;
 		uncertFinYNuncorr += uncertaintySq;
 	      } else if( uc == 20 ){
@@ -2479,7 +2482,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    // for FIT, UNC, errors uncorrelated, add in quadrature
 	    // for pp and pPb, and combine to a total error which
 	    // is then added to the other correlated systematics.
-	    if( uc == 22 || uc == 23 ){
+	    if( uc == 22 || uc == 23 || uc == 24 ){
 	      double eYA = mHsystTmpA[ uc ]->GetBinContent( axis3Bin );
 	      double yA  = hNominalA->GetBinContent( axis3Bin );
 	      double deltaEyA =  eYA - yA;
@@ -3221,10 +3224,10 @@ void DiJetAnalysisData::CompareCfactorsRBnRB( TFile* fOut ){
 	  vC.push_back( hDphiRB  );
 	  vC.push_back( hDphiDF );
 	  
-	  TLegend legDphi( 0.7, 0.20, 0.8, 0.4 );
+	  TLegend legDphi( 0.7, 0.20, 0.83, 0.4 );
 	  styleTool->SetLegendStyle( &legDphi );
-	  legDphi.AddEntry( hDphiRB, "Weighted"   );
-	  legDphi.AddEntry( hDphiDF, "UnWeighted" );
+	  legDphi.AddEntry( hDphiRB, "Re-Weighted"   );
+	  legDphi.AddEntry( hDphiDF, "Not Re-Weighted" );
 	  
 	  TCanvas cDphi( "cDphi", "cDphi", 800, 800 );
 	  TPad padDphi1("padDphi1", "", 0.0, 0.35, 1.0, 1.0 );

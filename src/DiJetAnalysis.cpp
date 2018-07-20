@@ -101,8 +101,25 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_nMinEntriesFit = 20;
 
   m_deltaPtCut = 0.0; // GeV
+
+  m_jetDeltaR = 0.4;
+
+  // for this uncertainty, dont add the jet deltaR
+  if( m_uncertComp == 24 ){
+    m_jetDeltaR = 0.3;
+  }
   
-  m_dPhiThirdJetFraction = 0.4;
+  m_hecEtaMinA = 1.5 - m_jetDeltaR;
+  m_hecEtaMaxA = 3.2 + m_jetDeltaR;
+
+  m_hecPhiMinA = -constants::PI;
+  m_hecPhiMaxA = -constants::PI / 2 + m_jetDeltaR;
+  
+  m_hecEtaMinB = 1.5 - m_jetDeltaR;
+  m_hecEtaMaxB = 3.2 + m_jetDeltaR;
+  
+  m_hecPhiMinB = constants::PI - m_jetDeltaR;
+  m_hecPhiMaxB = constants::PI;
 
   // where plots are drawn from on dphi axis
   m_dPhiZoomLow      = 2 * constants::PI / 3;
@@ -536,6 +553,26 @@ bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets,
   return ( deltaPt > m_deltaPtCut ) ? true : false;
 }
 
+bool DiJetAnalysis::PassHECCuts( const TLorentzVector& jet ){
+
+  // for pp, this isnt a problem
+  if( !m_is_pPb ){ return true; }
+  
+  double jetEta = jet.Eta();
+  double jetPhi = jet.Phi();
+
+  // now, if second jet is in Pb direction
+  // hec region, throw this event out.
+  if( ( ( jetEta < m_hecEtaMaxA && jetEta > m_hecEtaMinA ) &&
+	( jetPhi < m_hecPhiMaxA && jetPhi > m_hecPhiMinA ) ) ||
+      ( ( jetEta < m_hecEtaMaxB && jetEta > m_hecEtaMinB ) &&
+	( jetPhi < m_hecPhiMaxB && jetPhi > m_hecPhiMinB ) ) )
+    { return false; }
+
+  return true;
+
+}
+
 void DiJetAnalysis::AnalyzeSpectra( TH2* hSpect,
 				    const std::vector< TLorentzVector >& vJets){
 
@@ -567,6 +604,10 @@ double DiJetAnalysis::AnalyzeDeltaPhi( THnSparse* hn,
 
   if( !GetDiJets( v_jets, jet1, jet2 ) ){ return -1; }
 
+  // in pPb, quit if there is a subleading
+  // jet in Pb going HEC region
+  if( !PassHECCuts( *jet2 ) ){ return -1; }
+  
   double jet1_pt    = jet1->Pt()/1000.;
   double jet1_ystar = GetYstar( *jet1 );
 
@@ -957,14 +998,61 @@ void DiJetAnalysis::MakeEtaPhiPtMap( std::vector< TH2* >& vSampleMaps,
     h->Draw("col");
     styleTool->SetHStyle( h, 0 );
 
-    DrawAtlasRight();
-
-    if( name.find("etaPhi") != std::string::npos ){
-      double yLabel = 0.71;
-      if( m_isData ){ yLabel = 0.62; }
-      drawTool->DrawRightLatex( 0.87, yLabel, "28<#it{p}_{T}<35 [GeV]" );
-    }
+    DrawAtlasRight( 0, -0.05);    
     
+    if( name.find("etaPhi") != std::string::npos ){
+      double yLabel = 0.66;
+      if( m_isData ){ yLabel = 0.57; }
+      drawTool->DrawRightLatex( 0.87, yLabel, "28<#it{p}_{T}<35 [GeV]" );
+
+      // draw lines showing excluded regions
+      TLine lA( m_hecEtaMinA, m_hecPhiMinA, m_hecEtaMinA, m_hecPhiMaxA );
+      TLine rA( m_hecEtaMaxA, m_hecPhiMinA, m_hecEtaMaxA, m_hecPhiMaxA );
+      TLine tA( m_hecEtaMinA, m_hecPhiMaxA, m_hecEtaMaxA, m_hecPhiMaxA );
+      TLine bA( m_hecEtaMinA, m_hecPhiMinA, m_hecEtaMaxA, m_hecPhiMinA );
+
+      TLine lB( m_hecEtaMinB, m_hecPhiMinB, m_hecEtaMinB, m_hecPhiMaxB );
+      TLine rB( m_hecEtaMaxB, m_hecPhiMinB, m_hecEtaMaxB, m_hecPhiMaxB );
+      TLine tB( m_hecEtaMinB, m_hecPhiMaxB, m_hecEtaMaxB, m_hecPhiMaxB );
+      TLine bB( m_hecEtaMinB, m_hecPhiMinB, m_hecEtaMaxB, m_hecPhiMinB );
+
+      TLine lAA( m_hecEtaMinA + m_jetDeltaR, m_hecPhiMinA,
+		 m_hecEtaMinA + m_jetDeltaR, m_hecPhiMaxA - m_jetDeltaR );
+      TLine rAA( m_hecEtaMaxA - m_jetDeltaR, m_hecPhiMinA,
+		 m_hecEtaMaxA - m_jetDeltaR, m_hecPhiMaxA - m_jetDeltaR );
+      TLine tAA( m_hecEtaMinA + m_jetDeltaR, m_hecPhiMaxA - m_jetDeltaR,
+		 m_hecEtaMaxA - m_jetDeltaR, m_hecPhiMaxA - m_jetDeltaR );
+      TLine bAA( m_hecEtaMinA + m_jetDeltaR, m_hecPhiMinA,
+		 m_hecEtaMaxA - m_jetDeltaR, m_hecPhiMinA );
+
+ 
+      lA.SetLineWidth(3); rA.SetLineWidth(3);
+      tA.SetLineWidth(3); bA.SetLineWidth(3);
+
+      lB.SetLineWidth(3); rB.SetLineWidth(3);
+      tB.SetLineWidth(3); bB.SetLineWidth(3);
+
+      lAA.SetLineWidth(3); rAA.SetLineWidth(3);
+      tAA.SetLineWidth(3); bAA.SetLineWidth(3);
+
+      lAA.SetLineColor(kRed); rAA.SetLineColor(kRed);
+      tAA.SetLineColor(kRed); bAA.SetLineColor(kRed);
+
+      lA.Draw(); rA.Draw();
+      tA.Draw(); bA.Draw();
+
+      lB.Draw(); rB.Draw();
+      tB.Draw(); bB.Draw();
+
+      lAA.Draw(); rAA.Draw();
+      tAA.Draw(); bAA.Draw();
+
+      // save and continue or else lines dont draw.
+      SaveAsAll( c_map, h->GetName() );
+      h->Write();
+
+      continue;
+    }
     SaveAsAll( c_map, h->GetName() );
     h->Write();
   }
@@ -3078,7 +3166,46 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
   TFile* fMC3pT = m_is_pPb ?
     TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_3pT.root" ) : 
     TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_3pT.root" );
+
+  bool useOverlay = true;
+  std::string sOverlayOrNot = useOverlay ? "overlay" : "def"; 
+
+  /*
+  TFile* fpPbDataHEC =
+    TFile::Open("data/hec/output_pPb_data_def_hec/myOut_pPb_data_phys_UF_0.root" );
+  TFile* fpPbMCHEC   =
+    TFile::Open( "data/hec/output_pPb_mc_pythia8_def_hec/myOut_pPb_mc_pythia8_phys_UF_0.root" );
   
+  TFile* fpPbDataHEC =
+    TFile::Open( Form("data/hec/output_pPb_data_%s_hec/myOut_pPb_data_phys_UF_0.root",
+		      sOverlayOrNot.c_str() ) );
+  TFile* fpPbMCHEC   =
+    TFile::Open( Form("data/hec/output_pPb_mc_pythia8_%s_hec/myOut_pPb_mc_pythia8_phys_UF_0.root",
+		      sOverlayOrNot.c_str() ) );
+
+  TFile* fpPbDataHEC =
+    TFile::Open("output/output_pPb_data/myOut_pPb_data_phys_UF_0.root" );
+  TFile* fpPbMCHEC   =
+    TFile::Open("output/output_pPb_mc_pythia8/myOut_pPb_mc_pythia8_phys_UF_0.root" );
+ 
+  TFile* fpPbDataHEC =
+    TFile::Open( Form("data/hec/output_pPb_data_%s_hec/myOut_pPb_data_phys_UF_0.root",
+		      sOverlayOrNot.c_str() ) );
+  */
+  TFile* fpPbDataHEC =
+    TFile::Open("output/output_pPb_data/myOut_pPb_data_phys_UF_P24.root" );
+  
+  TFile* fpPbMCHEC   =
+    TFile::Open( Form("data/hec/output_pPb_mc_pythia8_%s_hec/myOut_pPb_mc_pythia8_phys_UF_0.root",
+		      sOverlayOrNot.c_str() ) );
+  
+  TFile* fpPbDataNoHEC =
+    TFile::Open( Form("data/hec/output_pPb_data_%s_nohec/myOut_pPb_data_phys_UF_0.root",
+		      sOverlayOrNot.c_str() ) );
+  TFile* fpPbMCNoHEC   =
+    TFile::Open( Form("data/hec/output_pPb_mc_pythia8_%s_nohec/myOut_pPb_mc_pythia8_phys_UF_0.root",
+		      sOverlayOrNot.c_str() ) ) ;
+
   std::string hMCname   = "h_dPhi_reco_All";
   std::string hDataName = "h_dPhi_All";
 
@@ -3364,6 +3491,64 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	
 	SaveAsAll( ccPtCutW, hR1PtCutW->GetName() );
 
+	// compare the results with and without the HEC enabled for pPb
+	if( m_is_pPb ){
+	  TFile* fHEC   = m_isData ? fpPbDataHEC : fpPbMCHEC;
+	  TFile* fNoHEC = m_isData ? fpPbDataNoHEC  : fpPbMCNoHEC;
+
+	  TH1* hW_HEC = static_cast< TH1D* >
+	    ( fHEC->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hW_HEC, 0 );
+	  TH1* hW_noHEC = static_cast< TH1D* >
+	    ( fNoHEC->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hW_noHEC, 1 );
+
+	  TH1* hWR = static_cast< TH1D* >
+	    ( hW_HEC->Clone( Form("h_dPhi_unfolded_width_All_hec_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyleRatio( hWR, 0 );
+	  // hWR->GetYaxis()->SetTitle("Include/Exclude");
+	  hWR->GetYaxis()->SetTitle("Small/Large");
+	  hWR->Divide( hW_noHEC );
+	  hWR->SetMaximum( 1.2 );
+	  hWR->SetMinimum( 0.8 );
+
+	  TCanvas ccHecW( "ccHecW", "ccHecW", 800, 700 );
+	  TPad padHecW1("padHecW1", "", 0.0, 0.35, 1.0, 1.0 );
+	  padHecW1.SetBottomMargin(0);
+	  padHecW1.Draw();
+	  TPad padHecW2("padHecW2", "", 0.0, 0.0, 1.0, 0.34 );
+	  padHecW2.SetTopMargin(0.05);
+	  padHecW2.SetBottomMargin(0.25);
+	  padHecW2.Draw();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up );
+
+	  DrawAtlasRight();
+	  
+	  padHecW1.cd();
+	  hW_HEC  ->Draw("ep X0 same");
+	  hW_noHEC->Draw("ep X0 same");
+
+	  TLegend legWhec( 0.2, 0.12, 0.3, 0.27 );
+	  styleTool->SetLegendStyle( &legWhec );
+	  // legWhec.AddEntry( hW_HEC, "Include HEC" );
+	  // legWhec.AddEntry( hW_noHEC, "Exclude HEC" );
+	  legWhec.AddEntry( hW_HEC, "Small Box" );
+	  legWhec.AddEntry( hW_noHEC, "Large Box" );
+
+	  legWhec.Draw();
+	  drawTool->DrawLeftLatex( 0.2, 0.07, sOverlayOrNot );
+	  
+	  padHecW2.cd();
+	  hWR->Draw("ep X0");
+
+	  line.Draw();
+	  
+	  SaveAsAll( ccHecW, Form("h_dPhi_unfolded_width_All_hec_%s", hTag.c_str() ) );
+	}
+	
 	//---------------------------------------------
 	// ------------------ YIELDS ------------------
 	//---------------------------------------------
@@ -3499,13 +3684,75 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	
 	SaveAsAll( ccPtCutY, hR1PtCutY->GetName() );
 
+	// compare the results with and without the HEC enabled for pPb
+	if( m_is_pPb ){
+	  TFile* fHEC   = m_isData ? fpPbDataHEC : fpPbMCHEC;
+	  TFile* fNoHEC = m_isData ? fpPbDataNoHEC  : fpPbMCNoHEC;
+
+	  TH1* hY_HEC = static_cast< TH1D* >
+	    ( fHEC->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hY_HEC, 0 );
+	  TH1* hY_noHEC = static_cast< TH1D* >
+	    ( fNoHEC->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hY_noHEC, 1 );
+
+	  TH1* hYR = static_cast< TH1D* >
+	    ( hY_HEC->Clone( Form("h_dPhi_unfolded_yield_All_hec_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyleRatio( hYR, 0 );
+	  // hYR->GetYaxis()->SetTitle("Include/Exclude");
+	  hYR->GetYaxis()->SetTitle("Small/Large");
+	  hYR->Divide( hY_noHEC );
+	  hYR->SetMaximum( 1.2 );
+	  hYR->SetMinimum( 0.8 );
+
+	  TCanvas ccHecY( "ccHecY", "ccHecY", 800, 700 );
+	  TPad padHecY1("padHecY1", "", 0.0, 0.35, 1.0, 1.0 );
+	  padHecY1.SetBottomMargin(0);
+	  padHecY1.Draw();
+	  padHecY1.SetLogy();
+	  TPad padHecY2("padHecY2", "", 0.0, 0.0, 1.0, 0.34 );
+	  padHecY2.SetTopMargin(0.05);
+	  padHecY2.SetBottomMargin(0.25);
+	  padHecY2.Draw();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up );
+
+	  DrawAtlasRight();
+	  
+	  padHecY1.cd();
+	  hY_HEC  ->Draw("ep X0 same");
+	  hY_noHEC->Draw("ep X0 same");
+
+	  TLegend legYhec( 0.4, 0.15, 0.5, 0.30 );
+	  styleTool->SetLegendStyle( &legYhec );
+	  // legYhec.AddEntry( hY_HEC, "Include HEC" );
+	  // legYhec.AddEntry( hY_noHEC, "Exclude HEC" );
+	  legYhec.AddEntry( hY_HEC, "Small Region" );
+	  legYhec.AddEntry( hY_noHEC, "Large Region" );
+
+	  legYhec.Draw();
+	  drawTool->DrawLeftLatex( 0.4, 0.07, sOverlayOrNot );
+
+	  padHecY2.cd();
+	  hYR->Draw("ep X0");
+
+	  line.Draw();
+	  
+	  SaveAsAll( ccHecY, Form("h_dPhi_unfolded_yield_All_hec_%s", hTag.c_str() ) );
+	}
+
 	// ----- weighting vs y* -----
-	TH1* h_MC_ys    = new TH1D( Form("h_MC_ys_%s", hTag.c_str() )   , ";#it{y}_{2}*Integral C_{12} Near #pi;",
-				 m_nVarYstarBins, &m_varYstarBinning[0] );
-	TH1* h_MC_UW_ys = new TH1D( Form("h_MC_UW_ys_%s", hTag.c_str() ), ";#it{y}_{2}*Integral C_{12} Near #pi;",
-				 m_nVarYstarBins, &m_varYstarBinning[0] );
-	TH1* h_Data_ys  = new TH1D( Form("h_Data_ys_%s", hTag.c_str() ) , ";#it{y}_{2}*Integral C_{12} Near #pi;",
-				 m_nVarYstarBins, &m_varYstarBinning[0] );
+	TH1* h_MC_ys    =
+	  new TH1D( Form("h_MC_ys_%s", hTag.c_str() )   , ";#it{y}_{2}*Integral C_{12} Near #pi;",
+		    m_nVarYstarBins, &m_varYstarBinning[0] );
+	TH1* h_MC_UW_ys =
+	  new TH1D( Form("h_MC_UW_ys_%s", hTag.c_str() ), ";#it{y}_{2}*Integral C_{12} Near #pi;",
+		    m_nVarYstarBins, &m_varYstarBinning[0] );
+	TH1* h_Data_ys  =
+	  new TH1D( Form("h_Data_ys_%s", hTag.c_str() ) , ";#it{y}_{2}*Integral C_{12} Near #pi;",
+		    m_nVarYstarBins, &m_varYstarBinning[0] );
 
 	styleTool->SetHStyle( h_MC_ys   , 1 );
 	styleTool->SetHStyle( h_MC_UW_ys, 2 );
@@ -3570,7 +3817,7 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	  h_MC_UW->Draw("ep X0 same");
 
 	  legMC.AddEntry( h_Data, "Data" );
-	  legMC.AddEntry( h_MC, "MC - Weighted" );
+	  legMC.AddEntry( h_MC, "MC - Re-Weighted" );
 	  legMC.AddEntry( h_MC_UW, "MC - Default" );
 
 	  drawTool->DrawAtlasInternal();
@@ -3936,7 +4183,7 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	styleTool->SetLegendStyle( &legYS, 0.9 );
 	
 	legYS.AddEntry( h_Data_ys , "Data" );
-	legYS.AddEntry( h_MC_ys   , "MC - Weighted" );
+	legYS.AddEntry( h_MC_ys   , "MC - Re-Weighted" );
 	legYS.AddEntry( h_MC_UW_ys, "MC - Default" );
 	
 	cYS.cd();

@@ -1168,7 +1168,7 @@ void CT::DrawTools::DrawAtlasInternalDataRight
   double xstart = 0.875;
  
   DrawRightLatex
-    ( 0.87 , 0.875,"#bf{#font[72]{ATLAS}} Internal", CT::StyleTools::lSS, 1 );
+    ( 0.87 , 0.875 + y0,"#bf{#font[72]{ATLAS}} Internal", CT::StyleTools::lSS, 1 );
   if( is_pPb ){
     DrawRightLatex
       ( xstart + x0, ystart + y0, GetLumipPb(), scale, 1 );
@@ -1196,7 +1196,7 @@ void CT::DrawTools::DrawAtlasInternalMCRight
     system = "#it{p}+Pb";
   }
   
-  DrawRightLatex( xstart, 0.87, 
+  DrawRightLatex( xstart, 0.87 + y0, 
 		  "#bf{#font[72]{ATLAS}} Simulation Internal", CT::StyleTools::lSS, 1 );
   if( mode != 3 ){
     DrawRightLatex( xstart + x0, ystart + y0,
