@@ -106,7 +106,7 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
 
   // for this uncertainty, dont add the jet deltaR
   if( m_uncertComp == 24 ){
-    m_jetDeltaR = 0.3;
+    m_jetDeltaR = 0.5;
   }
   
   m_hecEtaMinA = 1.5 - m_jetDeltaR;
@@ -191,6 +191,10 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
 
   boost::assign::push_back( m_varYstarBinningFlipped )
     ( -4.0 )( -1.8 )( 0 )( 1.8 )( 2.7 )( 4.0 );
+
+  boost::assign::push_back( m_varEtaBinning )
+    ( -4.5 )( -2.7 )( -1.8 )( 0 )( 1.8 )( 4.0 );
+  m_nVarEtaBins = m_varEtaBinning.size() - 1;
 
   // --- variable pt binning ---
   boost::assign::push_back( m_varPtBinning )
@@ -433,11 +437,11 @@ void DiJetAnalysis::MakeResultsTogether(){
   TFile* fOut  = new TFile( m_fNameTogether.c_str() ,"recreate");
 
   // MakeSpectTogether( fOut );
-  MakeFinalPlotsTogether( fOut, m_widthName );
-  MakeFinalPlotsTogether( fOut, m_yieldName );
+  // MakeFinalPlotsTogether( fOut, m_widthName );
+  // MakeFinalPlotsTogether( fOut, m_yieldName );
 
   // MakeDphiTogether( fOut );
-  // CompareWeightIsoPtCuts( fOut );
+  CompareWeightIsoPtCuts( fOut );
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -3128,44 +3132,44 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
     TFile::Open( "data/output_pp_mc_pythia8_uw/myOut_pp_mc_pythia8_phys_0.root" );
 
   TFile* fDataIso = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_data_phys_UF_0_Iso.root" ) :
-    TFile::Open( "data/myOut_pp_data_phys_UF_0_Iso.root" );
+    TFile::Open( "data/iso/myOut_pPb_data_phys_UF_0_Iso.root" ) :
+    TFile::Open( "data/iso/myOut_pp_data_phys_UF_0_Iso.root" );
   
   TFile* fDataNoIso = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso.root" ) : 
-    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso.root" );
+    TFile::Open( "data/iso/myOut_pPb_data_phys_UF_0_NoIso.root" ) : 
+    TFile::Open( "data/iso/myOut_pp_data_phys_UF_0_NoIso.root" );
   
   TFile* fData0pT = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso_0pT.root" ) : 
-    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso_0pT.root" );
+    TFile::Open( "data/ptcut/myOut_pPb_data_phys_UF_0_NoIso_0pT.root" ) : 
+    TFile::Open( "data/ptcut/myOut_pp_data_phys_UF_0_NoIso_0pT.root" );
 
   TFile* fData1pT = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso_1pT.root" ) : 
-    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso_1pT.root" );
+    TFile::Open( "data/ptcut/myOut_pPb_data_phys_UF_0_NoIso_1pT.root" ) : 
+    TFile::Open( "data/ptcut/myOut_pp_data_phys_UF_0_NoIso_1pT.root" );
 
   TFile* fData2pT = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso_2pT.root" ) : 
-    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso_2pT.root" );
+    TFile::Open( "data/ptcut/myOut_pPb_data_phys_UF_0_NoIso_2pT.root" ) : 
+    TFile::Open( "data/ptcut/myOut_pp_data_phys_UF_0_NoIso_2pT.root" );
 
   TFile* fData3pT = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_data_phys_UF_0_NoIso_3pT.root" ) : 
-    TFile::Open( "data/myOut_pp_data_phys_UF_0_NoIso_3pT.root" );
+    TFile::Open( "data/ptcut/myOut_pPb_data_phys_UF_0_NoIso_3pT.root" ) : 
+    TFile::Open( "data/ptcut/myOut_pp_data_phys_UF_0_NoIso_3pT.root" );
 
   TFile* fMC0pT = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_0pT.root" ) : 
-    TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_0pT.root" );
+    TFile::Open( "data/ptcut/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_0pT.root" ) : 
+    TFile::Open( "data/ptcut/myOut_pp_mc_pythia8_phys_UF_0_NoIso_0pT.root" );
 
   TFile* fMC1pT = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_1pT.root" ) : 
-    TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_1pT.root" );
+    TFile::Open( "data/ptcut/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_1pT.root" ) : 
+    TFile::Open( "data/ptcut/myOut_pp_mc_pythia8_phys_UF_0_NoIso_1pT.root" );
 
   TFile* fMC2pT = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_2pT.root" ) : 
-    TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_2pT.root" );
+    TFile::Open( "data/ptcut/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_2pT.root" ) : 
+    TFile::Open( "data/ptcut/myOut_pp_mc_pythia8_phys_UF_0_NoIso_2pT.root" );
 
   TFile* fMC3pT = m_is_pPb ?
-    TFile::Open( "data/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_3pT.root" ) : 
-    TFile::Open( "data/myOut_pp_mc_pythia8_phys_UF_0_NoIso_3pT.root" );
+    TFile::Open( "data/ptcut/myOut_pPb_mc_pythia8_phys_UF_0_NoIso_3pT.root" ) : 
+    TFile::Open( "data/ptcut/myOut_pp_mc_pythia8_phys_UF_0_NoIso_3pT.root" );
 
   bool useOverlay = true;
   std::string sOverlayOrNot = useOverlay ? "overlay" : "def"; 
@@ -3173,38 +3177,29 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
   /*
   TFile* fpPbDataHEC =
     TFile::Open("data/hec/output_pPb_data_def_hec/myOut_pPb_data_phys_UF_0.root" );
-  TFile* fpPbMCHEC   =
-    TFile::Open( "data/hec/output_pPb_mc_pythia8_def_hec/myOut_pPb_mc_pythia8_phys_UF_0.root" );
-  
   TFile* fpPbDataHEC =
     TFile::Open( Form("data/hec/output_pPb_data_%s_hec/myOut_pPb_data_phys_UF_0.root",
 		      sOverlayOrNot.c_str() ) );
-  TFile* fpPbMCHEC   =
-    TFile::Open( Form("data/hec/output_pPb_mc_pythia8_%s_hec/myOut_pPb_mc_pythia8_phys_UF_0.root",
-		      sOverlayOrNot.c_str() ) );
-
   TFile* fpPbDataHEC =
     TFile::Open("output/output_pPb_data/myOut_pPb_data_phys_UF_0.root" );
-  TFile* fpPbMCHEC   =
-    TFile::Open("output/output_pPb_mc_pythia8/myOut_pPb_mc_pythia8_phys_UF_0.root" );
- 
   TFile* fpPbDataHEC =
     TFile::Open( Form("data/hec/output_pPb_data_%s_hec/myOut_pPb_data_phys_UF_0.root",
 		      sOverlayOrNot.c_str() ) );
-  */
-  TFile* fpPbDataHEC =
-    TFile::Open("output/output_pPb_data/myOut_pPb_data_phys_UF_P24.root" );
-  
-  TFile* fpPbMCHEC   =
-    TFile::Open( Form("data/hec/output_pPb_mc_pythia8_%s_hec/myOut_pPb_mc_pythia8_phys_UF_0.root",
-		      sOverlayOrNot.c_str() ) );
-  
   TFile* fpPbDataNoHEC =
     TFile::Open( Form("data/hec/output_pPb_data_%s_nohec/myOut_pPb_data_phys_UF_0.root",
 		      sOverlayOrNot.c_str() ) );
-  TFile* fpPbMCNoHEC   =
-    TFile::Open( Form("data/hec/output_pPb_mc_pythia8_%s_nohec/myOut_pPb_mc_pythia8_phys_UF_0.root",
-		      sOverlayOrNot.c_str() ) ) ;
+  TFile* fpPbDataNoHEC =
+    TFile::Open( "data/pPb_signal/myOut_pPb_data_phys_UF_0.root" );
+  */
+  TFile* fpPbDataNoHec =
+    TFile::Open("output/output_pPb_data/myOut_pPb_data_phys_UF_0.root" );
+  TFile* fpPbDataNoHecShift =
+    TFile::Open( "output/output_pPb_data/myOut_pPb_data_phys_UF_P24.root" );
+
+  TFile* fpPbDataJes =
+    TFile::Open("output/output_pPb_data/myOut_pPb_data_phys_UF_0.root" );
+  TFile* fpPbDataNoJes = 
+    TFile::Open( "output/output_pPb_data/myOut_pPb_data_phys_UF_P25.root" );
 
   std::string hMCname   = "h_dPhi_reco_All";
   std::string hDataName = "h_dPhi_All";
@@ -3491,24 +3486,25 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	
 	SaveAsAll( ccPtCutW, hR1PtCutW->GetName() );
 
-	// compare the results with and without the HEC enabled for pPb
+	// compare the results when there is no hec default, and a shifted region
 	if( m_is_pPb ){
-	  TFile* fHEC   = m_isData ? fpPbDataHEC : fpPbMCHEC;
-	  TFile* fNoHEC = m_isData ? fpPbDataNoHEC  : fpPbMCNoHEC;
+	  TFile* fNoHec   = fpPbDataNoHec;
+	  TFile* fNoHecShift = fpPbDataNoHecShift;
 
-	  TH1* hW_HEC = static_cast< TH1D* >
-	    ( fHEC->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
-	  styleTool->SetHStyle( hW_HEC, 0 );
-	  TH1* hW_noHEC = static_cast< TH1D* >
-	    ( fNoHEC->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
-	  styleTool->SetHStyle( hW_noHEC, 1 );
+	  TH1* hW_NoHec = static_cast< TH1D* >
+	    ( fNoHec->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hW_NoHec, 0 );
+	  TH1* hW_noHecShift = static_cast< TH1D* >
+	    ( fNoHecShift->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hW_noHecShift, 1 );
 
 	  TH1* hWR = static_cast< TH1D* >
-	    ( hW_HEC->Clone( Form("h_dPhi_unfolded_width_All_hec_%s", hTag.c_str() ) ) );
+	    ( hW_NoHec->Clone( Form("h_dPhi_unfolded_width_All_hec_%s", hTag.c_str() ) ) );
 	  styleTool->SetHStyleRatio( hWR, 0 );
 	  // hWR->GetYaxis()->SetTitle("Include/Exclude");
 	  hWR->GetYaxis()->SetTitle("Small/Large");
-	  hWR->Divide( hW_noHEC );
+	  // hWR->GetYaxis()->SetTitle("Overlay/Signal");
+	  hWR->Divide( hW_noHecShift );
 	  hWR->SetMaximum( 1.2 );
 	  hWR->SetMinimum( 0.8 );
 
@@ -3528,15 +3524,17 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	  DrawAtlasRight();
 	  
 	  padHecW1.cd();
-	  hW_HEC  ->Draw("ep X0 same");
-	  hW_noHEC->Draw("ep X0 same");
+	  hW_NoHec  ->Draw("ep X0 same");
+	  hW_noHecShift->Draw("ep X0 same");
 
 	  TLegend legWhec( 0.2, 0.12, 0.3, 0.27 );
 	  styleTool->SetLegendStyle( &legWhec );
-	  // legWhec.AddEntry( hW_HEC, "Include HEC" );
-	  // legWhec.AddEntry( hW_noHEC, "Exclude HEC" );
-	  legWhec.AddEntry( hW_HEC, "Small Box" );
-	  legWhec.AddEntry( hW_noHEC, "Large Box" );
+	  // legWhec.AddEntry( hW_NoHec, "Include NoHec" );
+	  // legWhec.AddEntry( hW_noHecShift, "Exclude NoHec" );
+	  legWhec.AddEntry( hW_NoHec, "Small Region" );
+	  legWhec.AddEntry( hW_noHecShift, "Large Region" );
+	  // legWhec.AddEntry( hW_NoHec, "Overlay" );
+	  // legWhec.AddEntry( hW_noHecShift, "Signal" );
 
 	  legWhec.Draw();
 	  drawTool->DrawLeftLatex( 0.2, 0.07, sOverlayOrNot );
@@ -3547,6 +3545,68 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	  line.Draw();
 	  
 	  SaveAsAll( ccHecW, Form("h_dPhi_unfolded_width_All_hec_%s", hTag.c_str() ) );
+	}
+	// compare the results with and without new JES uncertainty
+	if( m_is_pPb ){
+	  TFile* fJes   = fpPbDataJes;
+	  TFile* fNoJes = fpPbDataNoJes;
+
+	  TH1* hW_jes = static_cast< TH1D* >
+	    ( fJes->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hW_jes, 0 );
+	  TH1* hW_noJes = static_cast< TH1D* >
+	    ( fNoJes->Get( Form("h_dPhi_unfolded_width_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hW_noJes, 1 );
+
+	  TH1* hWR = static_cast< TH1D* >
+	    ( hW_jes->Clone( Form("h_dPhi_unfolded_width_All_jes_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyleRatio( hWR, 0 );
+	  // hWR->GetYaxis()->SetTitle("Include/Exclude");
+	  hWR->GetYaxis()->SetTitle("JES/No JES Correction");
+	  // hWR->GetYaxis()->SetTitle("Overlay/Signal");
+	  hWR->Divide( hW_noJes );
+	  hWR->SetMaximum( 1.2 );
+	  hWR->SetMinimum( 0.8 );
+
+	  TCanvas ccHecW( "ccHecW", "ccHecW", 800, 700 );
+	  TPad padHecW1("padHecW1", "", 0.0, 0.35, 1.0, 1.0 );
+	  padHecW1.SetBottomMargin(0);
+	  padHecW1.Draw();
+	  padHecW1.SetLogy();
+	  TPad padHecW2("padHecW2", "", 0.0, 0.0, 1.0, 0.34 );
+	  padHecW2.SetTopMargin(0.05);
+	  padHecW2.SetBottomMargin(0.25);
+	  padHecW2.Draw();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up );
+
+	  DrawAtlasRight();
+	  
+	  padHecW1.cd();
+	  hW_jes  ->Draw("ep X0 same");
+	  hW_noJes->Draw("ep X0 same");
+
+	  TLegend legWhec( 0.4, 0.15, 0.5, 0.30 );
+	  styleTool->SetLegendStyle( &legWhec );
+	  // legWhec.AddEntry( hW_jes, "Include jes" );
+	  // legWhec.AddEntry( hW_noJes, "Exclude jes" );
+	  legWhec.AddEntry( hW_jes, "JES Correction" );
+	  legWhec.AddEntry( hW_noJes, "No Correction" );
+	  // legWhec.AddEntry( hW_jes,  "Overlay" );
+	  // legWhec.AddEntry( hW_noJes, "Signal" );
+
+	  
+	  legWhec.Draw();
+	  drawTool->DrawLeftLatex( 0.4, 0.07, sOverlayOrNot );
+
+	  padHecW2.cd();
+	  hWR->Draw("ep X0");
+
+	  line.Draw();
+	  
+	  SaveAsAll( ccHecW, Form("h_dPhi_unfolded_width_All_jes_%s", hTag.c_str() ) );
 	}
 	
 	//---------------------------------------------
@@ -3684,24 +3744,25 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	
 	SaveAsAll( ccPtCutY, hR1PtCutY->GetName() );
 
-	// compare the results with and without the HEC enabled for pPb
+	// compare the results when there is no hec default, and a shifted region
 	if( m_is_pPb ){
-	  TFile* fHEC   = m_isData ? fpPbDataHEC : fpPbMCHEC;
-	  TFile* fNoHEC = m_isData ? fpPbDataNoHEC  : fpPbMCNoHEC;
+	  TFile* fNoHec   = fpPbDataNoHec;
+	  TFile* fNoHecShift = fpPbDataNoHecShift;
 
-	  TH1* hY_HEC = static_cast< TH1D* >
-	    ( fHEC->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
-	  styleTool->SetHStyle( hY_HEC, 0 );
-	  TH1* hY_noHEC = static_cast< TH1D* >
-	    ( fNoHEC->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
-	  styleTool->SetHStyle( hY_noHEC, 1 );
+	  TH1* hY_NoHec = static_cast< TH1D* >
+	    ( fNoHec->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hY_NoHec, 0 );
+	  TH1* hY_noHecShift = static_cast< TH1D* >
+	    ( fNoHecShift->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hY_noHecShift, 1 );
 
 	  TH1* hYR = static_cast< TH1D* >
-	    ( hY_HEC->Clone( Form("h_dPhi_unfolded_yield_All_hec_%s", hTag.c_str() ) ) );
+	    ( hY_NoHec->Clone( Form("h_dPhi_unfolded_yield_All_hec_%s", hTag.c_str() ) ) );
 	  styleTool->SetHStyleRatio( hYR, 0 );
 	  // hYR->GetYaxis()->SetTitle("Include/Exclude");
 	  hYR->GetYaxis()->SetTitle("Small/Large");
-	  hYR->Divide( hY_noHEC );
+	  // hYR->GetYaxis()->SetTitle("Overlay/Signal");
+	  hYR->Divide( hY_noHecShift );
 	  hYR->SetMaximum( 1.2 );
 	  hYR->SetMinimum( 0.8 );
 
@@ -3722,16 +3783,19 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	  DrawAtlasRight();
 	  
 	  padHecY1.cd();
-	  hY_HEC  ->Draw("ep X0 same");
-	  hY_noHEC->Draw("ep X0 same");
+	  hY_NoHec  ->Draw("ep X0 same");
+	  hY_noHecShift->Draw("ep X0 same");
 
 	  TLegend legYhec( 0.4, 0.15, 0.5, 0.30 );
 	  styleTool->SetLegendStyle( &legYhec );
-	  // legYhec.AddEntry( hY_HEC, "Include HEC" );
-	  // legYhec.AddEntry( hY_noHEC, "Exclude HEC" );
-	  legYhec.AddEntry( hY_HEC, "Small Region" );
-	  legYhec.AddEntry( hY_noHEC, "Large Region" );
+	  // legYhec.AddEntry( hY_NoHec, "Include NoHec" );
+	  // legYhec.AddEntry( hY_noHecShift, "Exclude NoHec" );
+	  legYhec.AddEntry( hY_NoHec, "Small Region" );
+	  legYhec.AddEntry( hY_noHecShift, "Large Region" );
+	  // legYhec.AddEntry( hY_NoHec,  "Overlay" );
+	  // legYhec.AddEntry( hY_noHecShift, "Signal" );
 
+	  
 	  legYhec.Draw();
 	  drawTool->DrawLeftLatex( 0.4, 0.07, sOverlayOrNot );
 
@@ -3741,6 +3805,68 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	  line.Draw();
 	  
 	  SaveAsAll( ccHecY, Form("h_dPhi_unfolded_yield_All_hec_%s", hTag.c_str() ) );
+	}
+	// compare the results with and without new JES uncertainty
+	if( m_is_pPb ){
+	  TFile* fJes   = fpPbDataJes;
+	  TFile* fNoJes = fpPbDataNoJes;
+
+	  TH1* hY_jes = static_cast< TH1D* >
+	    ( fJes->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hY_jes, 0 );
+	  TH1* hY_noJes = static_cast< TH1D* >
+	    ( fNoJes->Get( Form("h_dPhi_unfolded_yield_All_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyle( hY_noJes, 1 );
+
+	  TH1* hYR = static_cast< TH1D* >
+	    ( hY_jes->Clone( Form("h_dPhi_unfolded_yield_All_jes_%s", hTag.c_str() ) ) );
+	  styleTool->SetHStyleRatio( hYR, 0 );
+	  // hYR->GetYaxis()->SetTitle("Include/Exclude");
+	  hYR->GetYaxis()->SetTitle("JES/No JES Correction");
+	  // hYR->GetYaxis()->SetTitle("Overlay/Signal");
+	  hYR->Divide( hY_noJes );
+	  hYR->SetMaximum( 1.2 );
+	  hYR->SetMinimum( 0.8 );
+
+	  TCanvas ccHecY( "ccHecY", "ccHecY", 800, 700 );
+	  TPad padHecY1("padHecY1", "", 0.0, 0.35, 1.0, 1.0 );
+	  padHecY1.SetBottomMargin(0);
+	  padHecY1.Draw();
+	  padHecY1.SetLogy();
+	  TPad padHecY2("padHecY2", "", 0.0, 0.0, 1.0, 0.34 );
+	  padHecY2.SetTopMargin(0.05);
+	  padHecY2.SetBottomMargin(0.25);
+	  padHecY2.Draw();
+
+	  DrawTopLeftLabels
+	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+	      axis2Low, axis2Up );
+
+	  DrawAtlasRight();
+	  
+	  padHecY1.cd();
+	  hY_jes  ->Draw("ep X0 same");
+	  hY_noJes->Draw("ep X0 same");
+
+	  TLegend legYhec( 0.4, 0.15, 0.5, 0.30 );
+	  styleTool->SetLegendStyle( &legYhec );
+	  // legYhec.AddEntry( hY_jes, "Include jes" );
+	  // legYhec.AddEntry( hY_noJes, "Exclude jes" );
+	  legYhec.AddEntry( hY_jes, "JES Correction" );
+	  legYhec.AddEntry( hY_noJes, "No Correction" );
+	  // legYhec.AddEntry( hY_jes,  "Overlay" );
+	  // legYhec.AddEntry( hY_noJes, "Signal" );
+
+	  
+	  legYhec.Draw();
+	  drawTool->DrawLeftLatex( 0.4, 0.07, sOverlayOrNot );
+
+	  padHecY2.cd();
+	  hYR->Draw("ep X0");
+
+	  line.Draw();
+	  
+	  SaveAsAll( ccHecY, Form("h_dPhi_unfolded_yield_All_jes_%s", hTag.c_str() ) );
 	}
 
 	// ----- weighting vs y* -----

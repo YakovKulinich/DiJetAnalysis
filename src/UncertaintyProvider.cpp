@@ -125,15 +125,15 @@ void AngularUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& 
  
     float uncertaintyEta  =
       std::abs( hAngularUncertEta->
-		GetBinContent( hAngularUncertEta->FindBin( recoJetYstar, recoJetPt ) ) );
+		GetBinContent( hAngularUncertEta->FindBin( recoJetEta, recoJetPt ) ) );
     float uncertaintyPhi  =
       std::abs( hAngularUncertPhi->
-		GetBinContent( hAngularUncertPhi->FindBin( recoJetYstar, recoJetPt ) ) );
+		GetBinContent( hAngularUncertPhi->FindBin( recoJetEta, recoJetPt ) ) );
 
     float etaRes = hAngularResEta->
-      GetBinContent( hAngularResEta->FindBin( recoJetYstar, recoJetPt ) );
+      GetBinContent( hAngularResEta->FindBin( recoJetEta, recoJetPt ) );
     float phiRes = hAngularResPhi->
-      GetBinContent( hAngularResPhi->FindBin( recoJetYstar, recoJetPt ) );
+      GetBinContent( hAngularResPhi->FindBin( recoJetEta, recoJetPt ) );
  
     float smearingFactorSystEta =
       sqrt( pow( etaRes + uncertaintyEta, 2 ) - pow( etaRes, 2 ) );
@@ -212,7 +212,7 @@ void JERUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& reco
     int   etaBin       = GetEtaUJERBin( recoJetEta );
     float uncertainty  = m_vJERhistos[ etaBin ]->Interpolate( recoJetPt );
     
-    int   jerBin       = hJER->FindBin( recoJetYstar, recoJetPt );
+    int   jerBin       = hJER->FindBin( recoJetEta, recoJetPt );
     float JER          = hJER->GetBinContent( jerBin ); 
     float smearingFactorSyst =
       std::sqrt( std::pow( JER + uncertainty, 2 ) - pow( JER, 2 ) );

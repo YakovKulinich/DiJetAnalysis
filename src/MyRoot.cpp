@@ -77,16 +77,32 @@ void CT::AnalysisTools::TruncateHistoBins( THnSparse* hn,
   }
 }
 
-void CT::AnalysisTools::TruncateHistoBins( TH3* h3 ){
-  for( int z = 1; z <= h3->GetZaxis()->GetNbins(); z++ ){
-    for( int y = 1; y <= h3->GetYaxis()->GetNbins(); y++ ){    
-      for( int x = 1; x <= h3->GetXaxis()->GetNbins(); x++ ){
-	if( h3->GetBinContent( x, y, z ) < 3 )
-	  { h3->SetBinContent( x, y, z, 0 ); }
+void CT::AnalysisTools::TruncateHistoBins( TH3* h ){
+  for( int z = 1; z <= h->GetZaxis()->GetNbins(); z++ ){
+    for( int y = 1; y <= h->GetYaxis()->GetNbins(); y++ ){    
+      for( int x = 1; x <= h->GetXaxis()->GetNbins(); x++ ){
+	if( h->GetBinContent( x, y, z ) < 5 )
+	  { h->SetBinContent( x, y, z, 0 ); }
       }
     }
   }
 }
+
+void CT::AnalysisTools::TruncateHistoBins( TH2* h ){
+  for( int y = 1; y <= h->GetYaxis()->GetNbins(); y++ ){    
+    for( int x = 1; x <= h->GetXaxis()->GetNbins(); x++ ){
+      if( h->GetBinContent( x, y ) < 5 )
+	{ h->SetBinContent( x, y, 0 ); }
+    }
+  }
+}
+
+void CT::AnalysisTools::TruncateHistoBins( TH1* h ){
+  for( int x = 1; x <= h->GetXaxis()->GetNbins(); x++ ){
+    if( h->GetBinContent( x ) < 5 )
+      { h->SetBinContent( x, 0 ); }
+  }
+ }
 
 
 void CT::AnalysisTools::SetZeroEntryError( THnSparse* h ){

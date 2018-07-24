@@ -64,7 +64,7 @@ class DiJetAnalysis{
   virtual void UnfoldPhysics        () = 0;
 
   virtual void MakeResultsTogether  ();
-
+  
   virtual void ProcessSystematics   ();
   
   //---------------------------
@@ -282,8 +282,6 @@ class DiJetAnalysis{
 
   double m_deltaPtCut;
   
-  double m_dPhiThirdJetFraction;
-
   double m_jetDeltaR;
   
   double m_hecEtaMinA;
@@ -472,6 +470,9 @@ class DiJetAnalysis{
   std::vector<double> m_varYstarBinning;
   std::vector<double> m_varYstarBinningFlipped;
   uint m_nVarYstarBins;
+
+  std::vector<double> m_varEtaBinning;
+  uint m_nVarEtaBins;
   
   // ---- variable pt binning ----
   std::vector<double> m_varPtBinning;

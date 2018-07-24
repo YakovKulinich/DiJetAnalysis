@@ -90,6 +90,10 @@ namespace CT{
     
     void TruncateHistoBins( TH3* = NULL );
 
+    void TruncateHistoBins( TH2* = NULL );
+    
+    void TruncateHistoBins( TH1* = NULL );
+
     void SetZeroEntryError( THnSparse* = NULL );
     
     std::pair< double, double> GetRMS

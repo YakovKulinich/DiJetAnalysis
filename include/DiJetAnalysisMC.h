@@ -48,8 +48,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void UnfoldPhysics        ();
 
-  void MakeResultsTogether  ();
-  
   //---------------------------
   //       Fill Tree
   //---------------------------
@@ -200,7 +198,9 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 			 const std::string& = "" );
 
   void CompareAngularRes ( TFile* = NULL );
-  
+
+  void CompareScaleRes   ( TFile* = NULL, const std::string& = "" );
+
   void CompareCfactorsWUW( TFile* = NULL );
   
   //---------------------------
@@ -298,7 +298,7 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // --------- recoTruthDphi ---------
   std::vector< TH3* > m_vHjznRecoTruthDphi;
   std::vector< TH2* > m_vHjznRecoTruthDphiNent;
-
+  
   // -------------- dPhi -------------
   std::vector< THnSparse* > m_vHjznDphiReco;
   std::vector< THnSparse* > m_vHjznDphiTruth;
@@ -331,6 +331,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   int    m_nPtTruthBins;
 
   // ---- JES/PRes/Etc -----
+  bool m_scaleResUseEta;
+
   // --- var range ----
   int    m_nRPtRecoTruthBins;
   double m_rPtRecoTruthMin;
