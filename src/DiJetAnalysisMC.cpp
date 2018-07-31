@@ -361,10 +361,10 @@ void DiJetAnalysisMC::ProcessPerformance(){
   std::cout << "......Closed  " << std::endl;
 
   fOut = new TFile( m_fNamePerf.c_str(), "UPDATE");
-  CompareAngularRes( fOut );
+  // CompareAngularRes( fOut );
   CompareScaleRes( fOut, "recoTruthRpt"  );
-  CompareScaleRes( fOut, "recoTruthDeta" );
-  CompareScaleRes( fOut, "recoTruthDphi" );
+  // CompareScaleRes( fOut, "recoTruthDeta" );
+  // CompareScaleRes( fOut, "recoTruthDphi" );
   fOut->Close(); delete fOut;
 }
 
@@ -949,6 +949,13 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       std::vector< TLorentzVector > vTT_paired_jets;
       PairJets( vT_jets, vR_jets, vTT_paired_jets, vTR_paired_jets );
 
+      // If not running on default sample.
+      // Apply uncertainties to all reco jets.
+      if( m_uncertComp ){
+	m_uncertaintyProvider->RegisterUFactors  ( &v_sysUncert );
+	m_uncertaintyProvider->ApplyUncertainties( vTR_paired_jets, vTT_paired_jets );
+      }
+      
       // analyze ystar resp mat BEFORE sorting
       // done to not include JER effects.
       AnalyzeYstarRespMat( m_vHjznYstarRespMat[iG],
@@ -958,13 +965,6 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 		 anaTool->sortByDecendingPt );
       std::sort( vTT_paired_jets.begin(), vTT_paired_jets.end(),
 		 anaTool->sortByDecendingPt );
-
-      // If not running on default sample.
-      // Apply uncertainties to all reco jets.
-      if( m_uncertComp ){
-	m_uncertaintyProvider->RegisterUFactors  ( &v_sysUncert );
-	m_uncertaintyProvider->ApplyUncertainties( vTR_paired_jets, vTT_paired_jets );
-      }
 
       // last parameter is mode, we use 2 to get dphi weight.
       int mode = 2;
@@ -3913,9 +3913,9 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
 
   // ------------------- Mean --------------------
   TH2* hDeltaMeanAll1 = static_cast< TH2D* >
-    ( hMean_pPb->Clone( Form("h_delta_mean1_%s", type.c_str() ) ) );
+    ( hMean_pPb->Clone( Form("h_delta_mean_%s_1", type.c_str() ) ) );
   TH2* hDeltaMeanAll2 = static_cast< TH2D* >
-    ( hMean_pPb->Clone( Form("h_delta_mean2_%s", type.c_str() ) ) );
+    ( hMean_pPb->Clone( Form("h_delta_mean_%s_2", type.c_str() ) ) );
 
   hDeltaMeanAll1->Reset();
   hDeltaMeanAll1->Reset();
@@ -4025,15 +4025,15 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
 
     hD1->SetTitleOffset( 2.0, "y" );
     hD1->Draw( "ep same" );
-    hD2->Draw( "ep same" );
+    // hD2->Draw( "ep same" );
     hD3->Draw( "ep same" );
 
     TLegend legR( 0.4, 0.85, 0.9, 0.95 );
     styleTool->SetLegendStyle( &legR );
     legR.SetNColumns(3);
-    legR.AddEntry( hD2, "Blk - Blu" );
-    legR.AddEntry( hD3, "Blk - Red" );
-    legR.AddEntry( hD1, "Red - Blu" );
+    legR.AddEntry( hD3, "#color[4]{overlay - signal}" );
+    // legR.AddEntry( hD2, "ov - pp" );
+    legR.AddEntry( hD1, "signal - pp" );
  
     legR.Draw();
     
@@ -4044,9 +4044,9 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
     // go through and fill all histos
     for( int yBin = 1; yBin <= hDeltaMeanAll1->GetNbinsY(); yBin++ ){
       hDeltaMeanAll1->SetBinContent( xBin, yBin, hD3->GetBinContent(yBin) );
-      hDeltaMeanAll2->SetBinContent( xBin, yBin, hD2->GetBinContent(yBin) );
+      hDeltaMeanAll2->SetBinContent( xBin, yBin, hD1->GetBinContent(yBin) );
       hDeltaMeanAll1->SetBinError( xBin, yBin, hD3->GetBinError(yBin) );
-      hDeltaMeanAll2->SetBinError( xBin, yBin, hD2->GetBinError(yBin) );
+      hDeltaMeanAll2->SetBinError( xBin, yBin, hD1->GetBinError(yBin) );
     }
   }
 
@@ -4153,9 +4153,10 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
     TLegend legR( 0.4, 0.85, 0.9, 0.95 );
     styleTool->SetLegendStyle( &legR );
     legR.SetNColumns(3);
-    legR.AddEntry( hD2, "Blk - Blu" );
-    legR.AddEntry( hD3, "Blk - Red" );
-    legR.AddEntry( hD1, "Red - Blu" );
+    legR.AddEntry( hD3, "ov - sig" );
+    legR.AddEntry( hD1, "sig - pp" );
+    legR.AddEntry( hD2, "ov - pp" );
+
 
     legR.Draw();
     

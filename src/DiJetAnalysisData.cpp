@@ -1388,6 +1388,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   TLine line( x0, 1, x1, 1 );
   line.SetLineWidth( 2 );
 
+  TLine line0( x0, 0, x1, 0 );
+  line.SetLineWidth( 2 );
+
   TLine lineP25( x0, 1.25, x1, 1.25 );
   lineP25.SetLineStyle( 2  );
   lineP25.SetLineColor( 12 );
@@ -1532,6 +1535,18 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	hNTOT->Reset();
 	styleTool->SetHStyle( hNTOT, 0 );
 
+	std::string hPTOTNOJESName = "h_" + allSystematicsName + "_PTOTNOJES_" + hTag;
+	TH1* hPTOTNOJES = static_cast< TH1D* >( hNominal->Clone( hPTOTNOJESName.c_str() ) );
+	vHsyst.push_back( hPTOTNOJES );
+	hPTOTNOJES->Reset();
+	styleTool->SetHStyle( hPTOTNOJES, 0 );
+	
+	std::string hNTOTNOJESName = "h_" + allSystematicsName + "_NTOTNOJES_" + hTag;
+	TH1* hNTOTNOJES = static_cast< TH1D* >( hNominal->Clone( hNTOTNOJESName.c_str() ) );
+	vHsyst.push_back( hNTOTNOJES );
+	hNTOTNOJES->Reset();
+	styleTool->SetHStyle( hNTOTNOJES, 0 );
+
 	std::string hPJESName = "h_" + allSystematicsName + "_PJES_" + hTag;
 	TH1* hPJES = static_cast< TH1D* >( hNominal->Clone( hPJESName.c_str() ) );
 	vHsyst.push_back( hPJES );
@@ -1562,7 +1577,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	vHsyst.push_back( hPJER );
 	hPJER->Reset();
 	styleTool->SetHStyle( hPJER, 4 );
-
+	
 	std::string hPANGName = "h_" + allSystematicsName + "_PANG_" + hTag;
 	std::string hNANGName = "h_" + allSystematicsName + "_NANG_" + hTag;
 	TH1* hPANG = static_cast< TH1D* >( hNominal->Clone( hPANGName.c_str() ) );
@@ -1585,6 +1600,28 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	hPFIT->Reset();
 	styleTool->SetHStyle( hPFIT, 1 );
 	hPFIT->SetLineStyle( 7 );
+
+	std::string hPDETName = "h_" + allSystematicsName + "_PDET_" + hTag;
+	std::string hNDETName = "h_" + allSystematicsName + "_NDET_" + hTag;
+	TH1* hPDET = static_cast< TH1D* >( hNominal->Clone( hPDETName.c_str() ) ); 
+	vHsyst.push_back( hPDET );
+	hPDET->Reset();
+	styleTool->SetHStyle( hPDET, 2 );
+	hPDET->SetLineStyle( 7 );
+	
+	std::string hPJESpPbName = "h_" + allSystematicsName + "_PJESpPb_" + hTag;
+	TH1* hPJESpPb = static_cast< TH1D* >( hNominal->Clone( hPJESpPbName.c_str() ) );
+	vHsyst.push_back( hPJESpPb );
+	hPJESpPb->Reset();
+	styleTool->SetHStyle( hPJESpPb, 2 );
+	hPJESpPb->SetLineStyle( 7 );
+
+	std::string hNJESpPbName = "h_" + allSystematicsName + "_NJESpPb_" + hTag;
+	TH1* hNJESpPb = static_cast< TH1D* >( hNominal->Clone( hNJESpPbName.c_str() ) );
+	vHsyst.push_back( hNJESpPb );
+	hNJESpPb->Reset();
+	styleTool->SetHStyle( hNJESpPb, 2 );
+	hNJESpPb->SetLineStyle( 7 );
 	
 	std::vector< double > pX;
 	std::vector< double > eX( nAxis3Bins, pDx1 * 0.5 );
@@ -1615,8 +1652,16 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  double uncertFinYN = 0;
 
 	  // add uncertainties in quadrature;
+	  double uncertFinNoJesYP = 0;
+	  double uncertFinNoJesYN = 0;
+
+	  // add uncertainties in quadrature;
 	  double uncertFinYPJES = 0;
 	  double uncertFinYNJES = 0;
+
+	  // add uncertainties in quadrature;
+	  double uncertFinYPJESpPb = 0;
+	  double uncertFinYNJESpPb = 0;
 
 	  double yNominal = hNominal->GetBinContent( axis3Bin );
 	  pX.push_back( hNominal->GetBinCenter( axis3Bin ) );
@@ -1651,7 +1696,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 		( axis2Bin == 1 || axis2Bin == 2 ) ){
 	      continue;
 	    }
-	    
+
 	    // for JER negative is same as positive (20)
 	    // for Angular Res negative is same as positive (21)
 	    // for Fitting negative is same as positive (22)
@@ -1661,6 +1706,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	    if( uc  >= 20 && uc <= 24 ){
 	      uncertFinYP += uncertaintySq;
 	      uncertFinYN += uncertaintySq;
+
+	      uncertFinNoJesYP += uncertaintySq;
+	      uncertFinNoJesYN += uncertaintySq;
 
 	      // set these uncertainties in % ( x100 ) directly, since they
 	      // do not depend on quadrature sum with anything.
@@ -1672,8 +1720,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 		hPFIT->SetBinContent( axis3Bin, uncertainty * 100 );
 	      } else if( uc == 23 ){
 		hPUNF->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc == 24 ){
+		hPDET->SetBinContent( axis3Bin, uncertainty * 100 );
 	      } 
-	      continue;
 	    } else if( sign > 0 ){
 	      // add onto total positive uncertainty
 	      uncertFinYP += uncertaintySq ;
@@ -1681,9 +1730,16 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	      // first, check if it is JES, then if HIJES
 	      if( uc >= 1 && uc <= 18 ){
 		uncertFinYPJES += uncertaintySq;
+		uncertFinNoJesYP += uncertaintySq ;
 	      } else if( uc == 19 ){
 		hPHIJES->SetBinContent( axis3Bin, uncertainty * 100 );
-	      } 
+		uncertFinNoJesYP += uncertaintySq ;
+	      } else if( uc == 25 || uc == 26 ){
+		// add this uncertainty to total JES
+		// and to JESpPb for comparison later
+	        uncertFinYPJES    += uncertaintySq;
+		uncertFinYPJESpPb += uncertaintySq;
+	      }
 	    } else if( sign < 0 ){
 	      // add onto total negative uncertainty
 	      uncertFinYN += uncertaintySq;
@@ -1691,8 +1747,15 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	      // first, check if it is JES, then if HIJES
 	      if( uc >= -18 && uc <= -1 ){
 		uncertFinYNJES += uncertaintySq;
+		uncertFinNoJesYN += uncertaintySq ;
 	      } else if( uc == -19 ){
 		hNHIJES->SetBinContent( axis3Bin, uncertainty * 100 );
+		uncertFinNoJesYN += uncertaintySq ;
+	      } else if( uc == -25 || uc == -26 ){
+		// add this uncertainty to total JES
+		// and to JESpPb for comparison later
+	        uncertFinYNJES    += uncertaintySq;
+		uncertFinYNJESpPb += uncertaintySq;
 	      } 
 	    }
 	  } // end loop over uncertainties
@@ -1706,16 +1769,29 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  uncertFinYP = uncertFinYP >= 0 ? std::sqrt( uncertFinYP ) : 0.0;
 	  uncertFinYN = uncertFinYN >= 0 ? std::sqrt( uncertFinYN ) : 0.0;
 
+	  uncertFinNoJesYP = uncertFinNoJesYP >= 0 ? std::sqrt( uncertFinNoJesYP ) : 0.0;
+	  uncertFinNoJesYN = uncertFinNoJesYN >= 0 ? std::sqrt( uncertFinNoJesYN ) : 0.0;
+	  
 	  hPTOT->SetBinContent( axis3Bin, uncertFinYP * 100 );
 	  hNTOT->SetBinContent( axis3Bin, uncertFinYN * 100 );
-	  
+
+	  hPTOTNOJES->SetBinContent( axis3Bin, uncertFinNoJesYP * 100 );
+	  hNTOTNOJES->SetBinContent( axis3Bin, uncertFinNoJesYN * 100 );
+
 	  uncertFinYPJES = uncertFinYPJES >= 0 ? std::sqrt( uncertFinYPJES ) : 0.0;
 	  uncertFinYNJES = uncertFinYNJES >= 0 ? std::sqrt( uncertFinYNJES ) : 0.0;
 
+	  uncertFinYPJESpPb = uncertFinYPJESpPb >= 0 ? std::sqrt( uncertFinYPJESpPb ) : 0.0;
+	  uncertFinYNJESpPb = uncertFinYNJESpPb >= 0 ? std::sqrt( uncertFinYNJESpPb ) : 0.0;
+	  
 	  hPJES->SetBinContent( axis3Bin, uncertFinYPJES * 100 );
 	  hNJES->SetBinContent( axis3Bin, uncertFinYNJES * 100 );
+
+	  hPJESpPb->SetBinContent( axis3Bin, uncertFinYPJESpPb * 100 );
+	  hNJESpPb->SetBinContent( axis3Bin, uncertFinYNJESpPb * 100 );
 	  
-	  std::cout << hNominalName << " " << uncertFinYP << " " << uncertFinYN << std::endl;
+	  std::cout << hNominalName << " " << uncertFinNoJesYP << " " << uncertFinYP << " "
+		    << uncertFinNoJesYN << " " << uncertFinYN << std::endl;
 	  
 	  pY .push_back( yNominal );
 	  eYP.push_back( yNominal * uncertFinYP );
@@ -1998,7 +2074,9 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	if( !isYield ){
 	  legSyst.AddEntry( hPFIT, "Fitting", "l" );
 	}
-
+	if( m_is_pPb ){
+	  legSyst.AddEntry( hPDET, "Detector", "l" );
+	}
 
 	TH1* hNJER = static_cast< TH1D* >
 	  ( hPJER->Clone( hNJERName.c_str() ) );
@@ -2008,6 +2086,8 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  ( hPUNF->Clone( hNUNFName.c_str() ) );
 	TH1* hNFIT = static_cast< TH1D* >
 	  ( hPFIT->Clone( hNFITName.c_str() ) );
+	TH1* hNDET = static_cast< TH1D* >
+	  ( hPDET->Clone( hNDETName.c_str() ) );
 	
 	int maxBin = hPTOT->GetMaximumBin();
 	int minBin = hNTOT->GetMaximumBin();
@@ -2068,6 +2148,13 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  hNFIT->Scale( -1. );
 	  hNFIT->Draw( "histo same" );
 	}
+	if( m_is_pPb ){
+	  hPDET->SetMaximum( newSystMax );
+	  hPDET->SetMinimum( newSystMin );
+	  hPDET->Draw( "histo same" );
+	  hNDET->Scale( -1. );
+	  hNDET->Draw( "histo same" );
+	}
 	// Draw Last
 	hPTOT->SetMaximum( newSystMax );
 	hPTOT->SetMinimum( newSystMin );
@@ -2091,6 +2178,69 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
  
 	SaveAsAll( cSyst, hNameSystFinal );
 
+	// -------------------------------------
+	//        Draw Ratio of JES to JESpPb
+	// -------------------------------------
+	if( m_is_pPb ){
+	  TCanvas cJEScomp( "cJEScomp", "cJEScomp", 800, 600 );
+	
+	  double newJEScompMax = 40;
+	  double newJEScompMin = -35;
+
+	  if( !isYield ){
+	    newJEScompMax = 25;
+	    newJEScompMin = -20;
+	  }
+	  
+	  TH1* hPJESR = static_cast< TH1D* >
+	    ( hPTOT->Clone( Form( "%s_r", hPJES->GetName() ) ) );
+	  TH1* hNJESR = static_cast< TH1D* >
+	    ( hNTOT->Clone( Form( "%s_r", hNJES->GetName() ) ) );
+	  hPJESR->SetLineStyle( 7 );
+	  hNJESR->SetLineStyle( 7 );
+
+	  hNJESR->Scale( -1. );
+
+	  hPJESR->Add( hPTOTNOJES, -1 );
+	  hNJESR->Add( hNTOTNOJES, -1 );
+	  
+	  hPJESR->Divide( hPTOT );
+	  hNJESR->Divide( hNTOT );
+
+	  hNJESR->Scale( -1. );
+	  
+	  hPJESR->Scale(  100. );
+	  hNJESR->Scale( -100. );
+	  
+	  hPJESR->SetYTitle( Form("1 - #delta%s^{Old} / #delta%s^{W/New JES}",
+				  yTitle.c_str(), yTitle.c_str() ) );
+	  hPJESR->SetNdivisions( 505 );
+	  hPJESR->SetMaximum( newJEScompMax );
+	  hPJESR->SetMinimum( newJEScompMin );
+
+	  if( !isYield && axis0Bin == 1 && axis1Bin == 3 && axis2Bin == 1 ){
+	    hPJESR->SetBinContent( 1, 0 );
+	    hNJESR->SetBinContent( 1, 0 );
+	  }
+
+	  hPJESR->Draw( "histo same" );
+	  hNJESR->Draw( "histo same" );
+	  
+	  drawTool->DrawLeftLatex
+	    ( 0.46, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
+	  drawTool->DrawLeftLatex
+	    ( 0.18 , 0.87 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
+	  drawTool->DrawLeftLatex
+	    ( 0.18 , 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
+	  DrawAtlasRight( 0, 0, 0.9 );
+
+	  line0.Draw();
+	  
+	  std::string hNameJEScompFinal =
+	    "h_" + name + "_JEScomp_" + m_sFinal + "_" + hTag;
+ 
+	  SaveAsAll( cJEScomp, hNameJEScompFinal );
+	}
 	// INCREMENT STYLE
 	style++;
 	// !!! Important !!!
@@ -2479,10 +2629,11 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    // skip uc = 0 (default)
 	    if( !uc ){ continue; }
 	     
-	    // for FIT, UNC, errors uncorrelated, add in quadrature
+	    // for FIT, UNC, DET errors uncorrelated, add in quadrature
 	    // for pp and pPb, and combine to a total error which
 	    // is then added to the other correlated systematics.
-	    if( uc == 22 || uc == 23 || uc == 24 ){
+	    // Also, the additional JES for pPb are uncorrelated with pp
+	    if( uc == 22 || uc == 23 || uc == 24 || std::abs(uc) == 25 || std::abs(uc) == 26 ){
 	      double eYA = mHsystTmpA[ uc ]->GetBinContent( axis3Bin );
 	      double yA  = hNominalA->GetBinContent( axis3Bin );
 	      double deltaEyA =  eYA - yA;
@@ -2493,9 +2644,14 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	      double quadSumAB = std::sqrt( std::pow( deltaEyA, 2 ) +
 					    std::pow( deltaEyB, 2 ) );
-	      
-	      uncertUnCorrYP += std::pow( quadSumAB, 2 );
-	      uncertUnCorrYN += std::pow( quadSumAB, 2 );
+	      if( uc == 25 || uc == 26 ){
+		uncertUnCorrYP += std::pow( quadSumAB, 2 );
+	      } else if( uc == -25 || uc == -26 ){
+		uncertUnCorrYN += std::pow( quadSumAB, 2 );
+	      } else {
+		uncertUnCorrYP += std::pow( quadSumAB, 2 );
+		uncertUnCorrYN += std::pow( quadSumAB, 2 );
+	      }
 	    } else {
 	      double shiftA  =  mHsystTmpA[ uc ]->GetBinContent( axis3Bin );
 	      double shiftB  =  mHsystTmpB[ uc ]->GetBinContent( axis3Bin );

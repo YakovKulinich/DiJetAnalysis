@@ -90,6 +90,7 @@ class HIJESUncertaintyTool : public UncertaintyTool{
 
  private:
   std::vector<TH1*> m_vJEShistos;
+  TH2* hDeltaJES;
 };
 
 //--------------------------------

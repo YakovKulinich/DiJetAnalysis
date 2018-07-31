@@ -238,13 +238,21 @@ HIJESUncertaintyTool::HIJESUncertaintyTool( int uc, bool is_pPb )
 
   // load histograms for JES
   //HI JES <-> crosscalibration
-  TFile* f_HI_JES = new TFile(  "data/cc_sys_090816.root" ,"read" );
+  TFile* f_HI_JES = TFile::Open( "data/cc_sys_090816.root" );
   for( int ybin = 0; ybin < 7; ybin++ ){
     m_vJEShistos.push_back( (TH1D*)f_HI_JES->Get(Form("fsys_rel_%i",ybin)));
     m_vJEShistos.back()->SetDirectory(0);
   }
   
   f_HI_JES->Close();
+
+  f_HI_JES = TFile::Open( "data/pPb_delta_meanEta_recoTruthRpt.root" );
+
+  // 25 is the first jes, 26 is second
+  int deltaJesNumber = std::abs( m_uc ) - 24; 
+  
+  hDeltaJES = static_cast<TH2D*>
+    ( f_HI_JES->Get( Form("h_delta_mean_recoTruthRpt_%d", deltaJesNumber ) ) );
 }
 
 HIJESUncertaintyTool::~HIJESUncertaintyTool(){
@@ -254,6 +262,8 @@ HIJESUncertaintyTool::~HIJESUncertaintyTool(){
 void HIJESUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& recoJets,
 					       std::vector< TLorentzVector >& truthJets ){
 
+  int pos_uc = std::abs( m_uc );
+  
   for( uint iJet = 0; iJet < recoJets.size(); iJet++ ){
     TLorentzVector& recoJet  = recoJets[ iJet ];
   
@@ -261,10 +271,18 @@ void HIJESUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& re
     double pT  = recoJet.Pt()/1000.;
   
     int etaBin = GetEtaUJERBin( eta );
-    // need to subtract 1 after, the values are around 1.
-    double histoFactor = m_vJEShistos[ etaBin ]->Interpolate( pT );
-    histoFactor -= 1;
-    
+
+    double histoFactor = 0;
+    // these are the atlas JES things
+    if( pos_uc < 19 && pos_uc > 0 ){
+      // need to subtract 1 after, the values are around 1.
+      histoFactor = m_vJEShistos[ etaBin ]->Interpolate( pT );
+      histoFactor -= 1;
+    } else if( pos_uc == 25 || pos_uc == 26 ){
+      int histoFactorBin = hDeltaJES->FindBin( eta, pT );
+      histoFactor = hDeltaJES->GetBinContent( histoFactorBin );
+    }
+      
     recoJet.SetPtEtaPhiM( recoJet.Pt() * ( 1 + histoFactor * m_sign ),
 			  recoJet.Eta(), recoJet.Phi(), recoJet.M() );
 
@@ -321,16 +339,19 @@ UncertaintyProvider::UncertaintyProvider( int uc, bool is_pPb ) : m_uncertaintyT
   int pos_uc = std::abs( uc );
 
   if( pos_uc > 0  && pos_uc <= 18 ){
-    m_uncertaintyTool = new JESUncertaintyTool      ( uc, is_pPb );
+    m_uncertaintyTool = new JESUncertaintyTool     ( uc, is_pPb );
   } else if( pos_uc == 19 ) {
-    m_uncertaintyTool = new HIJESUncertaintyTool    ( uc, is_pPb );
+    m_uncertaintyTool = new HIJESUncertaintyTool   ( uc, is_pPb );
   } else if( pos_uc == 20 ) {
-    m_uncertaintyTool = new JERUncertaintyTool      ( uc, is_pPb );
+    m_uncertaintyTool = new JERUncertaintyTool     ( uc, is_pPb );
   } else if( pos_uc == 21 ) {
-    m_uncertaintyTool = new AngularUncertaintyTool  ( uc, is_pPb );
-  } else if( pos_uc > 21 ){
+    m_uncertaintyTool = new AngularUncertaintyTool ( uc, is_pPb );
+  } else if( is_pPb && ( pos_uc == 25 || pos_uc == 26 ) ){
+    // This is only for pPb. Correct for the JES shift.
+    m_uncertaintyTool = new HIJESUncertaintyTool   ( uc, is_pPb );
+  } else{
     m_uncertaintyTool = NULL;
-  }
+  } 
 }  
 
 UncertaintyProvider::~UncertaintyProvider(){
