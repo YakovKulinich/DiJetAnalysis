@@ -24,7 +24,7 @@
 #include "DeltaPhiProj.h"
 #include "UncertaintyProvider.h"
 
-bool compToPythia = true;
+static const bool compToPythia = true;
 
 DiJetAnalysisMC::DiJetAnalysisMC()
   : DiJetAnalysisMC( false, 0, 0 ) {}
@@ -2941,7 +2941,8 @@ void DiJetAnalysisMC::MakeSpectCFactorsRespMat( std::vector< TH2* >& vHspectReco
       drawTool->DrawLeftLatex
 	( 0.2, 0.85, anaTool->GetLabel( xMin, xMax, axisLabelTex ).c_str() );
 
-      drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel, 3, CT::StyleTools::lSS );
+      drawTool->DrawAtlasInternalMCRight( CT::DrawTools::drawX0, CT::DrawTools::drawY0,
+					  m_mcTypeLabel, 3, CT::StyleTools::lSS );
 
       drawTool->DrawRightLatex( 0.87, 0.25, Form( "%s %s", system.c_str(), m_mcTypeLabel.c_str() ) );
       
@@ -3213,7 +3214,8 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 		axis2Low, axis2Up, axis3Low, axis3Up );
 	    
-	    drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel, 3, CT::StyleTools::lSS);
+	    drawTool->DrawAtlasInternalMCRight( CT::DrawTools::drawX0, CT::DrawTools::drawY0,
+						m_mcTypeLabel, 3, CT::StyleTools::lSS);
 	
 	    drawTool->DrawRightLatex
 	      ( 0.87, 0.25, Form( "%s %s", system.c_str(), m_mcTypeLabel.c_str() ) );
@@ -3397,7 +3399,8 @@ void DiJetAnalysisMC::MakeYstarRespMat( std::vector< TH3* >& vhnYstar,
       hYstarRespMat->Draw("col");
       hYstarRespMat->Draw("text same");
 
-      drawTool->DrawAtlasInternalMCRight( 0, 0, m_mcTypeLabel, 3, CT::StyleTools::lSS );
+      drawTool->DrawAtlasInternalMCRight( CT::DrawTools::drawX0, CT::DrawTools::drawY0,
+					  m_mcTypeLabel, 3, CT::StyleTools::lSS );
       drawTool->DrawLeftLatex( 0.19, 0.87, Form( "%s %s", system.c_str(), m_mcTypeLabel.c_str() ) );
       drawTool->DrawRightLatex( 0.87, 0.25, anaTool->GetLabel( ptLow, ptUp, ptAxis->GetTitle() ) );  
       
@@ -4447,7 +4450,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   double lx1 = 0.40;
   double ly1 = 0.88;
   
-  if( type2.find("mean") == std::string::npos ){
+  if( type2.find("sigma") != std::string::npos ){
     lx0 = 0.36;
     ly0 = 0.61;
     lx1 = 0.85;
@@ -4460,6 +4463,21 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   
   }
 
+  // trying to finish my phd.
+  // just hard code this part.
+  // final paper only has 4 MC plots
+  if( finalPlots  && type2.find("sigma") != std::string::npos ){
+    lx0 = 0.64;
+    ly0 = 0.575;
+    lx1 = 0.84;
+    ly1 = 0.885;
+  } else if( finalPlots  && type2.find("mean") != std::string::npos ){
+    lx0 = 0.19;
+    ly0 = 0.575;
+    lx1 = 0.39;
+    ly1 = 0.885;
+  }
+  
   TLegend leg( lx0, ly0, lx1, ly1 );
   styleTool->SetLegendStyle( &leg );
 
@@ -4469,23 +4487,54 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   // plot every single bin 
   // plot every n on canvas
   for( uint xRange = 0; xRange < vHIN.size(); xRange++ ){
-    styleTool->SetHStyle( vHIN[ xRange], style++ );
-    leg.AddEntry( vHIN[ xRange ], vHIN[ xRange ]->GetTitle() );
-    vHIN[ xRange ]->SetTitle("");
-    vHIN[ xRange ]->Draw("epsame");
-    SetMinMax( vHIN[ xRange ], type1, type2 );
-    vHIN[ xRange ]->Write();
-   }
+    TH1* h = vHIN[ xRange ];
+    styleTool->SetHStyle( h, style++ );
+    // hardcoded shit
+    if( xRange <= 2){
+      leg.AddEntry( h, h->GetTitle() );
+    } else {
+      leg.AddEntry( h, Form( " %s", h->GetTitle() ) );
+    }
+    h->SetTitle("");
+    h->Draw("epsame");
+    SetMinMax( h, type1, type2 );
+    h->Write();
+  }
 
   leg.Draw();
   
   double y0 = GetLineHeight( type1 );
   
-  
   TLine line( m_ptTruthMin, y0, m_ptTruthMax, y0);
-  line.Draw();
+  line.SetLineWidth(2);
+  if( type2.find("mean") != std::string::npos ){ line.Draw(); }
 
-  DrawAtlasRight();
+  double scale = 0.9;
+  
+  if( finalPlots && type2.find("sigma") != std::string::npos ){
+    drawTool->DrawAtlasSimulationInternal( 0.64, 0.27, 1.0 );
+    if( m_is_pPb ){
+      drawTool->DrawAtlasJetInfo     ( 0.60, 0.85, m_is_pPb, scale );
+      drawTool->DrawAtlasOverlayInfo ( 0.60, 0.785, scale );
+      drawTool->DrawAtlasEnergy      ( 0.43, 0.36, scale );
+    } else {
+      drawTool->DrawAtlasJetInfo     ( 0.60, 0.85, m_is_pPb, scale );
+      drawTool->DrawAtlasEnergy      ( 0.43, 0.36, scale );
+    }
+  } else if( finalPlots && type2.find("mean") != std::string::npos ){
+    if( m_is_pPb ){
+      drawTool->DrawAtlasSimulationInternal( 0.875, 0.855 );
+      drawTool->DrawAtlasJetInfo     ( 0.875, 0.78, m_is_pPb, scale );
+      drawTool->DrawAtlasOverlayInfo ( 0.875, 0.71, scale );
+      drawTool->DrawAtlasEnergy      ( 0.875, 0.64, scale );
+    } else {
+      drawTool->DrawAtlasSimulationInternal( 0.875, 0.855 );
+      drawTool->DrawAtlasJetInfo     ( 0.875, 0.78, m_is_pPb, scale );
+      drawTool->DrawAtlasEnergy      ( 0.875, 0.71, scale );
+    }
+  } else {
+    DrawAtlasRight();
+  }
   
   SaveAsAll( c, Form("%s_%s", type1.c_str(), type2.c_str() ) );
 }
@@ -4497,11 +4546,13 @@ SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
   // JES JER
   if( type1.find("Rpt") != std::string::npos ){ 
     if( type2.find("mean") != std::string::npos ){ // sigma
-      h1->SetMaximum(1.2);
-      h1->SetMinimum(0.91);
+      h1->SetMaximum(1.10);
+      h1->SetMinimum(0.97);
     } else if( !type2.compare("sigma") ){ // sigma
       h1->SetMaximum(0.34);
+      if( finalPlots ){ h1->SetMaximum( 0.20 ); }
       h1->SetMinimum(0.);
+      if( finalPlots ){ h1->SetMinimum( 0.05 ); }
     }
   }
   // ANGLES
@@ -4512,7 +4563,9 @@ SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
       h1->SetMinimum(-0.020);
     } else if( !type2.compare("sigma") ){ // sigma
       h1->SetMaximum(0.07);
+      if( finalPlots ){ h1->SetMaximum( 0.055 ); }
       h1->SetMinimum(0.);
+      if( finalPlots ){ h1->SetMinimum( 0.005 ); }
     } 
   } 
 }

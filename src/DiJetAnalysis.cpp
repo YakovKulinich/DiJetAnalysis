@@ -24,9 +24,6 @@
 #include "DiJetAnalysis.h"
 #include "DeltaPhiProj.h"
 
-static int nPairsPassPtCut = 0;
-static int nPairsFailPtCut = 0;
-
 DiJetAnalysis::DiJetAnalysis() : DiJetAnalysis( false, false, 0, 0 ){}
 
 DiJetAnalysis::DiJetAnalysis( bool is_pPb )
@@ -350,11 +347,6 @@ DiJetAnalysis::~DiJetAnalysis(){
   delete drawTool ; drawTool  = NULL;
   delete styleTool; styleTool = NULL;
 
-  std::cout << "          Number of pairs passing pT cut: "
-	    << nPairsPassPtCut 
-	    << "          Number of pairs failin pT cut: "
-	    << nPairsFailPtCut << std::endl;
-
 }
 
 void DiJetAnalysis::Initialize(){
@@ -550,9 +542,6 @@ bool DiJetAnalysis::GetDiJets( const std::vector< TLorentzVector >& v_jets,
   // otherwise, check pT cut
   double deltaPt = std::abs( ( jet1->Pt() - jet2->Pt() )/1000. ); 
 
-  if( deltaPt > m_deltaPtCut ){ nPairsPassPtCut++; }
-  else{ nPairsFailPtCut++; }
-  
   // we have both jets, return true if they pass cut
   return ( deltaPt > m_deltaPtCut ) ? true : false;
 }
@@ -1002,7 +991,7 @@ void DiJetAnalysis::MakeEtaPhiPtMap( std::vector< TH2* >& vSampleMaps,
     h->Draw("col");
     styleTool->SetHStyle( h, 0 );
 
-    DrawAtlasRight( 0, -0.05);    
+    DrawAtlasRight();
     
     if( name.find("etaPhi") != std::string::npos ){
       double yLabel = 0.66;
@@ -1979,7 +1968,7 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 		axis2Low, axis2Up, axis3Low, axis3Up, 0.85 );
 
-	    DrawAtlasRight( 0, 0, 0.85 );
+	    DrawAtlasRight( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 0.85 );
 	    if( !m_isData ){
 	      drawTool->DrawRightLatex( 0.875, 0.81, mcLevel.c_str() );
 	    }
@@ -4034,7 +4023,8 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 	  hR_MC->SetMinimum( 0.25 );
 	  
 	  TH1* hR_MC_UW = static_cast< TH1D* >
-	    ( h_Data->Clone( Form("%s_%s_%s", hDataName.c_str(), hTagDphi.c_str(), m_sRatio.c_str() ) ) );
+	    ( h_Data->Clone
+	      ( Form("%s_%s_%s", hDataName.c_str(), hTagDphi.c_str(), m_sRatio.c_str() ) ) );
 	  styleTool->SetHStyleRatio( hR_MC_UW, 2 );
 	  hR_MC_UW->Divide( h_MC_UW );
 	  hR_MC_UW->Draw( "ep X0 same" );

@@ -771,7 +771,7 @@ std::string CT::AnalysisTools::GetLabel
   // for now, want [GeV] by all pT labels
   std::string unit = unitIn;
   if( var.find("{p}_{T") != std::string::npos )
-    { unit = "[GeV]"; }
+    { unit = "GeV"; }
 
   if( var.find("{y}") != std::string::npos ){
     if( vMin > 0.1 || vMin < -0.1 ){
@@ -1118,10 +1118,6 @@ void CT::StyleTools::HideAxis( TH1* h, const std::string& xyz ){
   } // continue like this
 }
 
-const double CT::StyleTools::lSS = 0.95;
-
-const double CT::StyleTools::hSS = 1.00;
-
 //===================================
 //          DRAWING STUFF
 //===================================
@@ -1160,48 +1156,74 @@ void CT::DrawTools::DrawCenterLatex
   tltx.SetTextAlign(22);
   tltx.DrawLatex( x, y, s.c_str() );
 }
- 
-// ============ DATA ================
 
-void CT::DrawTools::DrawAtlasInternal( double scale ){
-  
-  DrawRightLatex( 0.87, 0.875, "#bf{#font[72]{ATLAS}} Internal", scale, 1 );
+void CT::DrawTools::DrawAtlasEnergy( double x0, double y0, double scale ){
+
+  DrawRightLatex( x0, y0, "#sqrt{s_{NN}} = 5.02 TeV", scale );
 }
 
+void CT::DrawTools::DrawAtlasJetInfo( double x0, double y0, int mode , double scale ){
+
+  if( mode == 0 ){
+    DrawRightLatex( x0, y0, "#it{pp} anti-#it{k}_{t} #it{R}=0.4 jets", scale );  
+  } else if ( mode == 1 ){
+    DrawRightLatex( x0, y0, "#it{p}+Pb anti-#it{k}_{t} #it{R}=0.4 jets", scale );  
+  } else if ( mode == 2 ){
+    DrawRightLatex( x0, y0, "anti-#it{k}_{t} #it{R}=0.4 jets", scale );  
+  }
+}
+
+
+// ============ DATA ================
+
+void CT::DrawTools::DrawAtlasInternal( double x0, double y0, double scale ){
+  
+  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Internal", 1.0 );
+}
+
+
 std::string CT::DrawTools::GetLumipPb(){
-  return Form( "#it{p}+Pb 2016, %3.1f #mub^{-1}", constants::pPbLumi2016 );
+  return Form( "2016 #it{p}+Pb data, %3.1f #mub^{-1}", constants::pPbLumi2016 );
 }
 
 std::string CT::DrawTools::GetLumipp(){
-  return Form( "#it{pp} 2015, %2.0f pb^{-1}", constants::ppLumi2015 );
+  return Form( "2015 #it{pp} data, %2.0f pb^{-1}", constants::ppLumi2015 );
 }
 
 void CT::DrawTools::DrawAtlasInternalDataRight
 ( double x0, double y0, bool is_pPb, double scale ){
   
-  double dy = 0.09 * scale;
-  double ystart = 0.785 + ( 1 - scale ) * 0.1;
-  double xstart = 0.875;
- 
-  DrawRightLatex
-    ( 0.87 , 0.875 + y0,"#bf{#font[72]{ATLAS}} Internal", CT::StyleTools::lSS, 1 );
+  double dy = 0.08 * scale;
+  y0 += ( 1 - scale ) * 0.1;
+
+  DrawAtlasInternal( x0, y0, scale );
+  
   if( is_pPb ){
-    DrawRightLatex
-      ( xstart + x0, ystart + y0, GetLumipPb(), scale, 1 );
+    DrawRightLatex( x0, y0 - dy, GetLumipPb(), scale, 1 );
   } else {
-    DrawRightLatex
-      ( xstart + x0, ystart + y0, GetLumipp(), scale, 1 );
+    DrawRightLatex( x0, y0 - dy, GetLumipp(), scale, 1 );
   }
-  DrawRightLatex( xstart + x0, ystart - dy + y0, "#sqrt{s_{NN}}=5.02 TeV", scale, 1 );
+  
+  DrawAtlasEnergy( x0, y0 - 2 * dy );
 }
 
 // ============ MC ================
 
+void CT::DrawTools::DrawAtlasSimulationInternal( double x0, double y0, double scale ){
+
+  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Simulation Internal", 1.0 );
+}
+
+void CT::DrawTools::DrawAtlasOverlayInfo( double x0, double y0, double scale ){ 
+
+  DrawRightLatex( x0, y0, "#it{p}+Pb data overlay", scale );
+}
+
 void CT::DrawTools::DrawAtlasInternalMCRight
 ( double x0, double y0, const std::string& mcType, int mode, double scale ){ 
 
-  double ystart = 0.785 + ( 1 - scale ) * 0.1;
-  double xstart = 0.875;
+  double dy = 0.08 * scale;
+  y0 += ( 1 - scale ) * 0.1;
   
   std::string system = "";
   
@@ -1212,10 +1234,9 @@ void CT::DrawTools::DrawAtlasInternalMCRight
     system = "#it{p}+Pb";
   }
   
-  DrawRightLatex( xstart, 0.87 + y0, 
-		  "#bf{#font[72]{ATLAS}} Simulation Internal", CT::StyleTools::lSS, 1 );
+  DrawAtlasSimulationInternal( x0, y0, scale );
+  
   if( mode != 3 ){
-    DrawRightLatex( xstart + x0, ystart + y0,
-		    Form( "%s %s", system.c_str(), mcType.c_str() ), scale, 1 );
+    DrawRightLatex( x0, y0 - dy, Form( "%s %s", system.c_str(), mcType.c_str() ), scale, 1 );
   }
 }

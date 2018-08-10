@@ -114,10 +114,13 @@ class DiJetAnalysisData : public DiJetAnalysis{
   //---------------------------
   //        Drawing
   //---------------------------
-  void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
+  void DrawAtlasRight    ( double = CT::DrawTools::drawX0,
+			   double = CT::DrawTools::drawY0,
+			   double = CT::StyleTools::lSS );
   
-  void DrawAtlasRightBoth( double = 0, double = 0,
-			   double = CT::StyleTools::lSS, bool = false); 
+  void DrawAtlasRightBoth( double = CT::DrawTools::drawX0,
+			   double = CT::DrawTools::drawY0,
+			   double = CT::StyleTools::lSS, bool = false );
 
  private:
   //============ settings =============

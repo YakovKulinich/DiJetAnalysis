@@ -20,8 +20,14 @@ class TTree;
 
 class DeltaPhiProj;
 
-class DiJetAnalysis{
+// this variable is to change labels and or axis ranges
+// on the final plots that go into the paper.
+// this is for ther performance plots, dPhi w/syst,
+// overall systematics, and final plots.
+static const bool finalPlots = true;
 
+class DiJetAnalysis{
+  
  public:
   DiJetAnalysis();
 
@@ -199,10 +205,14 @@ class DiJetAnalysis{
   //---------------------------
   //        Drawing
   //---------------------------
-  virtual void DrawAtlasRight( double = 0, double = 0, double = CT::StyleTools::lSS );
+  virtual void DrawAtlasRight( double = CT::DrawTools::drawX0,
+			       double = CT::DrawTools::drawY0,
+			       double = CT::StyleTools::lSS );
 
-  virtual void DrawAtlasRightBoth( double = 0, double = 0, double = CT::StyleTools::lSS );
-
+  virtual void DrawAtlasRightBoth(  double = CT::DrawTools::drawX0,
+				    double = CT::DrawTools::drawY0,
+				    double = CT::StyleTools::lSS );
+  
   virtual void DrawTopLeftLabels( DeltaPhiProj*, 
 				  double = 0, double = 0,
 				  double = 0, double = 0,

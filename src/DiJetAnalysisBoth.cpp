@@ -150,7 +150,7 @@ void DiJetAnalysisBoth::MakeDphiTogether(){
 	drawTool->DrawRightLatex
 	  ( 0.88, 0.76, Form("MC %s level", m_mcLevel.c_str() ) );
 	
-	drawTool->DrawAtlasInternalDataRight( 0, 0, m_is_pPb );
+	drawTool->DrawAtlasInternalDataRight( 0.875, 0.785, m_is_pPb, 1);
 
 	SaveAsAll( c, Form("h_%s_%s", m_dPhiName.c_str(), hTagW.c_str() ) );
       } // end loop over axis2

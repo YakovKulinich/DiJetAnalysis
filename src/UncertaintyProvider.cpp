@@ -149,15 +149,6 @@ void AngularUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& 
     recoJet.SetPtEtaPhiM
       ( recoJetPt * 1000, recoJetEtaNew, recoJetPhiNew, recoJetM );
 
-    /*
-    if( recoJetPt < 28 ){ continue; }
-
-    std::cout << "----" << recoJetPt << std::endl;
-    std::cout << "Eta:   " <<  uncertaintyEta << " ... " << etaRes << " ... " << smearingFactorSystEta
-	      << "..." << correctionEta << " : " << recoJetEta << " -> " << recoJetEtaNew << std::endl;
-    std::cout << "Phi:   " <<  uncertaintyPhi << " ... " << phiRes << " ... " << smearingFactorSystEta
-	      << "..." << correctionPhi << " : " << recoJetPhi << " -> " << recoJetPhiNew << std::endl;
-    */
   }
 }
 
@@ -274,7 +265,7 @@ void HIJESUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& re
 
     double histoFactor = 0;
     // these are the atlas JES things
-    if( pos_uc < 19 && pos_uc > 0 ){
+    if( pos_uc == 19 ){
       // need to subtract 1 after, the values are around 1.
       histoFactor = m_vJEShistos[ etaBin ]->Interpolate( pT );
       histoFactor -= 1;

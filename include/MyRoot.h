@@ -31,7 +31,7 @@
 #include <string>
 
 //===================================
-//         CONSTANTS
+//           CONSTANTS
 //===================================
 
 
@@ -180,8 +180,8 @@ namespace CT{
   //===================================
   class StyleTools{
   public:
-    static const double lSS; 
-    static const double hSS;
+    static constexpr double lSS = 0.95; 
+    static constexpr double hSS = 1.00;
   
     // Histogram/Graph/Function styles
     void SetCustomMarkerStyle( TH1* his    , int iflag );
@@ -208,6 +208,10 @@ namespace CT{
   //===================================
   class DrawTools{
   public:
+
+    static constexpr double drawX0 = 0.875;
+    static constexpr double drawY0 = 0.875;
+
     void DrawRightLatex ( double x, double y, const std::string&,
 			  double scale = StyleTools::lSS,
 			  int color = 1 );
@@ -217,17 +221,35 @@ namespace CT{
     void DrawCenterLatex( double x, double y, const std::string&,
 			  double scale = StyleTools::lSS,
 			  int color = 1 );
-    void DrawAtlasInternal( double scale = StyleTools::lSS );
+
+    void DrawAtlasEnergy( double = 0., double = 0.,
+			  double = StyleTools::lSS );
+
+    void DrawAtlasJetInfo( double = 0., double = 0., int = 0,
+			   double = StyleTools::lSS );
+    
+    // ============ DATA ================
+    
+    void DrawAtlasInternal(  double = CT::DrawTools::drawX0,
+			     double = CT::DrawTools::drawY0,
+			     double = CT::StyleTools::lSS );
 
     std::string GetLumipPb();
 
     std::string GetLumipp();
     
-    void DrawAtlasInternalDataRight( double = 0, double = 0, bool = false,
-				     double = StyleTools::lSS );
-    void DrawAtlasInternalMCRight  ( double = 0, double = 0,
-				     const std::string& = "", int = 0,
-				     double = StyleTools::lSS );
+    void DrawAtlasInternalDataRight( double, double, bool, double );
+
+    // ============ MC ================
+    void DrawAtlasSimulationInternal( double = CT::DrawTools::drawX0,
+				      double = CT::DrawTools::drawY0,
+				      double = CT::StyleTools::lSS );
+    
+    void DrawAtlasOverlayInfo( double = 0., double = 0.,
+			       double = StyleTools::lSS );
+
+    void DrawAtlasInternalMCRight( double, double, const std::string&,
+				   int, double );
   };
 }
 

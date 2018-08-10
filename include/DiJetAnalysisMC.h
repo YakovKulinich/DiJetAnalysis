@@ -211,9 +211,13 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		   const std::string& = "" );
 		 
 
-  void DrawAtlasRight    ( double = 0, double = 0, double = CT::StyleTools::lSS );
+  void DrawAtlasRight    ( double = CT::DrawTools::drawX0,
+			   double = CT::DrawTools::drawY0,
+			   double = CT::StyleTools::lSS );
 
-  void DrawAtlasRightBoth( double = 0, double = 0, double = CT::StyleTools::lSS ); 
+  void DrawAtlasRightBoth( double = CT::DrawTools::drawX0,
+			   double = CT::DrawTools::drawY0,
+			   double = CT::StyleTools::lSS ); 
   
   //===== MinMax and line drawing =====
   void SetMinMax( TH1*,

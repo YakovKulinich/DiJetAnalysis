@@ -1202,7 +1202,7 @@ void DiJetAnalysisData::MakeEfficiencies( std::vector< TH2* >& vTrigSpect,
     TLine line( xMin, 1, xMax, 1);
     line.Draw();    
     
-    DrawAtlasRight( 0, 0, 0.85 );
+    DrawAtlasRight( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 0.85 );
     if( !m_is_pPb && iX == 1 ){
       drawTool->DrawRightLatex( 0.65, 0.725, "-3.2<|#eta|<3.2" );
     } else if( !m_is_pPb ){
@@ -1685,18 +1685,19 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 
 	    double uncertaintySq = std::pow( ( yNominal - yShifted ) / yNominal, 2 );
 	    double uncertainty   = std::sqrt( uncertaintySq ); 
-	    
+
+	    if( !m_is_pPb && !isYield && ( axis2Bin == 1 || axis2Bin == 2 ) &&
+		axis0Bin == 1 && axis1Bin == 3 && axis3Bin == 1 ){
+	      uncertaintySq = 0;
+	      uncertainty   = 0;
+	    }
+	  
 	    std::cout << "++++" << uc << " ++++" << axis3Bin << " " << axis1Bin << " "
 		      << axis2Bin << " " << sign << " " << yShifted << " "
 		      << yNominal << " " << uncertainty << std::endl;
 
 	    mHsystTmp[ uc ]->SetBinContent( axis3Bin, yShifted );
 	    
-	    if( !m_is_pPb && !isYield && axis1Bin == 3 && axis3Bin == 1 &&
-		( axis2Bin == 1 || axis2Bin == 2 ) ){
-	      continue;
-	    }
-
 	    // for JER negative is same as positive (20)
 	    // for Angular Res negative is same as positive (21)
 	    // for Fitting negative is same as positive (22)
@@ -1766,27 +1767,31 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  // deleting deleted stuff if you dont do it now
 	  for( auto& h : vHunc ){ delete h; }
 
+	  //--------------
 	  uncertFinYP = uncertFinYP >= 0 ? std::sqrt( uncertFinYP ) : 0.0;
 	  uncertFinYN = uncertFinYN >= 0 ? std::sqrt( uncertFinYN ) : 0.0;
 
-	  uncertFinNoJesYP = uncertFinNoJesYP >= 0 ? std::sqrt( uncertFinNoJesYP ) : 0.0;
-	  uncertFinNoJesYN = uncertFinNoJesYN >= 0 ? std::sqrt( uncertFinNoJesYN ) : 0.0;
-	  
 	  hPTOT->SetBinContent( axis3Bin, uncertFinYP * 100 );
 	  hNTOT->SetBinContent( axis3Bin, uncertFinYN * 100 );
 
+	  //--------------
+	  uncertFinNoJesYP = uncertFinNoJesYP >= 0 ? std::sqrt( uncertFinNoJesYP ) : 0.0;
+	  uncertFinNoJesYN = uncertFinNoJesYN >= 0 ? std::sqrt( uncertFinNoJesYN ) : 0.0;
+	  
 	  hPTOTNOJES->SetBinContent( axis3Bin, uncertFinNoJesYP * 100 );
 	  hNTOTNOJES->SetBinContent( axis3Bin, uncertFinNoJesYN * 100 );
 
+	  //--------------
 	  uncertFinYPJES = uncertFinYPJES >= 0 ? std::sqrt( uncertFinYPJES ) : 0.0;
 	  uncertFinYNJES = uncertFinYNJES >= 0 ? std::sqrt( uncertFinYNJES ) : 0.0;
 
-	  uncertFinYPJESpPb = uncertFinYPJESpPb >= 0 ? std::sqrt( uncertFinYPJESpPb ) : 0.0;
-	  uncertFinYNJESpPb = uncertFinYNJESpPb >= 0 ? std::sqrt( uncertFinYNJESpPb ) : 0.0;
-	  
 	  hPJES->SetBinContent( axis3Bin, uncertFinYPJES * 100 );
 	  hNJES->SetBinContent( axis3Bin, uncertFinYNJES * 100 );
 
+	  //--------------
+	  uncertFinYPJESpPb = uncertFinYPJESpPb >= 0 ? std::sqrt( uncertFinYPJESpPb ) : 0.0;
+	  uncertFinYNJESpPb = uncertFinYNJESpPb >= 0 ? std::sqrt( uncertFinYNJESpPb ) : 0.0;
+	  
 	  hPJESpPb->SetBinContent( axis3Bin, uncertFinYPJESpPb * 100 );
 	  hNJESpPb->SetBinContent( axis3Bin, uncertFinYNJESpPb * 100 );
 	  
@@ -2060,181 +2065,297 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	//+++++++++++++++++++++++++++++++++++++++++++
 	// Draw Uncertainties
 	//+++++++++++++++++++++++++++++++++++++++++++
-	TCanvas cSyst( "cSyst", "cSyst", 800, 600 );
-	TLegend legSyst( 0.2, 0.2, 0.9, 0.3 );
-	styleTool->SetLegendStyle( &legSyst, 0.90 );
-	legSyst.SetNColumns( 4 );
-	
-	legSyst.AddEntry( hPTOT, "Total", "l" );
-	legSyst.AddEntry( hPJES, "JES", "l" );
-	legSyst.AddEntry( hPHIJES, "HI JES", "l" );
-	legSyst.AddEntry( hPJER, "JER", "l" );
-	legSyst.AddEntry( hPANG, "JAR", "l" );
-	legSyst.AddEntry( hPUNF, "Unfolding", "l" );
-	if( !isYield ){
-	  legSyst.AddEntry( hPFIT, "Fitting", "l" );
-	}
-	if( m_is_pPb ){
-	  legSyst.AddEntry( hPDET, "Detector", "l" );
-	}
-
-	TH1* hNJER = static_cast< TH1D* >
-	  ( hPJER->Clone( hNJERName.c_str() ) );
-	TH1* hNANG = static_cast< TH1D* >
-	  ( hPANG->Clone( hNANGName.c_str() ) );
-	TH1* hNUNF = static_cast< TH1D* >
-	  ( hPUNF->Clone( hNUNFName.c_str() ) );
-	TH1* hNFIT = static_cast< TH1D* >
-	  ( hPFIT->Clone( hNFITName.c_str() ) );
-	TH1* hNDET = static_cast< TH1D* >
-	  ( hPDET->Clone( hNDETName.c_str() ) );
-	
-	int maxBin = hPTOT->GetMaximumBin();
-	int minBin = hNTOT->GetMaximumBin();
 
 	double newSystMax = systMax;
 	double newSystMin = systMin;
-	
-	if( hPTOT->GetBinContent( maxBin ) > 20 &&
-	    hPTOT->GetBinContent( maxBin ) < 25 ){
-	  newSystMax += 10;
-	} else if( hPTOT->GetBinContent( maxBin ) > 25 &&
-		   hPTOT->GetBinContent( maxBin ) < 30 ){
-	  newSystMax += 15;
-	} else if( hPTOT->GetBinContent( maxBin ) > 30 &&
-		   hPTOT->GetBinContent( maxBin ) < 50 ){
-	  newSystMax += 25;
-	}
 
-	if( hNTOT->GetBinContent( minBin ) > 25 &&
-	    hNTOT->GetBinContent( minBin ) < 40 ){
-	  newSystMin -= 10;
-	} else if( hNTOT->GetBinContent( minBin ) > 40 &&
-		   hNTOT->GetBinContent( minBin ) < 50 ){
-	  newSystMin -= 15;
-	}
-	
-	hPJES->SetYTitle( yTitleUncert.c_str() );
-	hPJES->SetNdivisions( 505 );
-	hPJES->SetMaximum( newSystMax );
-	hPJES->SetMinimum( newSystMin );
-	hPJES->Draw( "histo same" );
-	hNJES->Scale( -1. );
-	hNJES->Draw( "histo same" );
-        hPHIJES->SetMaximum( newSystMax );
-	hPHIJES->SetMinimum( newSystMin );
-	hPHIJES->Draw( "histo same" );
-	hNHIJES->Scale( -1. );
-	hNHIJES->Draw( "histo same" );
-	hPANG->SetMaximum( newSystMax );
-	hPANG->SetMinimum( newSystMin );
-	hPANG->Draw( "histo same" );
-	hNANG->Scale( -1. );
-	hNANG->Draw( "histo same" );
-	hPJER->SetMaximum( newSystMax );
-	hPJER->SetMinimum( newSystMin );
-	hPJER->Draw( "histo same" );
-	hNJER->Scale( -1. );
-	hNJER->Draw( "histo same" );
-	hPUNF->SetMaximum( newSystMax );
-	hPUNF->SetMinimum( newSystMin );
-	hPUNF->Draw( "histo same" );
-	hNUNF->Scale( -1. );
-	hNUNF->Draw( "histo same" );
-	if( !isYield ){
-	  hPFIT->SetMaximum( newSystMax );
-	  hPFIT->SetMinimum( newSystMin );
-	  hPFIT->Draw( "histo same" );
-	  hNFIT->Scale( -1. );
-	  hNFIT->Draw( "histo same" );
-	}
-	if( m_is_pPb ){
-	  hPDET->SetMaximum( newSystMax );
-	  hPDET->SetMinimum( newSystMin );
-	  hPDET->Draw( "histo same" );
-	  hNDET->Scale( -1. );
-	  hNDET->Draw( "histo same" );
-	}
-	// Draw Last
-	hPTOT->SetMaximum( newSystMax );
-	hPTOT->SetMinimum( newSystMin );
-	hPTOT->Draw( "histo same" );
-	hNTOT->Scale( -1. );
-	hNTOT->Draw( "histo same" );
-		
-	// Draw the final canvas with all of the graphs.
-	legSyst.Draw();
 
-	drawTool->DrawLeftLatex
-	  ( 0.46, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
-	drawTool->DrawLeftLatex
-	  ( 0.18 , 0.87 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
-	drawTool->DrawLeftLatex
-	  ( 0.18 , 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
-	DrawAtlasRight( 0, 0, 0.9 );
+	//!!!!!!!!!!!!!!!!!!!!!!! FOR FINAL PLOTS
+	if( finalPlots ){
+	  TCanvas cSyst( "cSyst", "cSyst", 800, 600 );
+	  TLegend legSyst( 0.2, 0.225, 0.9, 0.325 );
+	  styleTool->SetLegendStyle( &legSyst, 0.90 );
+	  legSyst.SetNColumns( 4 );
 	
-	std::string hNameSystFinal =
-	"h_" + name + "_" + m_systematicsName + "_" + m_sFinal + "_" + hTag;
- 
-	SaveAsAll( cSyst, hNameSystFinal );
-
-	// -------------------------------------
-	//        Draw Ratio of JES to JESpPb
-	// -------------------------------------
-	if( m_is_pPb ){
-	  TCanvas cJEScomp( "cJEScomp", "cJEScomp", 800, 600 );
-	
-	  double newJEScompMax = 40;
-	  double newJEScompMin = -35;
-
+	  legSyst.AddEntry( hPTOT, "Total", "l" );
+	  legSyst.AddEntry( hPJES, "JES", "l" );
+	  legSyst.AddEntry( hPHIJES, "HI JES", "l" );
+	  legSyst.AddEntry( hPJER, "JER", "l" );
+	  legSyst.AddEntry( hPANG, "JAR", "l" );
+	  legSyst.AddEntry( hPUNF, "Unfolding", "l" );
 	  if( !isYield ){
-	    newJEScompMax = 25;
-	    newJEScompMin = -20;
+	    legSyst.AddEntry( hPFIT, "Fitting", "l" );
 	  }
-	  
-	  TH1* hPJESR = static_cast< TH1D* >
-	    ( hPTOT->Clone( Form( "%s_r", hPJES->GetName() ) ) );
-	  TH1* hNJESR = static_cast< TH1D* >
-	    ( hNTOT->Clone( Form( "%s_r", hNJES->GetName() ) ) );
-	  hPJESR->SetLineStyle( 7 );
-	  hNJESR->SetLineStyle( 7 );
-
-	  hNJESR->Scale( -1. );
-
-	  hPJESR->Add( hPTOTNOJES, -1 );
-	  hNJESR->Add( hNTOTNOJES, -1 );
-	  
-	  hPJESR->Divide( hPTOT );
-	  hNJESR->Divide( hNTOT );
-
-	  hNJESR->Scale( -1. );
-	  
-	  hPJESR->Scale(  100. );
-	  hNJESR->Scale( -100. );
-	  
-	  hPJESR->SetYTitle( Form("1 - #delta%s^{Old} / #delta%s^{W/New JES}",
-				  yTitle.c_str(), yTitle.c_str() ) );
-	  hPJESR->SetNdivisions( 505 );
-	  hPJESR->SetMaximum( newJEScompMax );
-	  hPJESR->SetMinimum( newJEScompMin );
-
-	  if( !isYield && axis0Bin == 1 && axis1Bin == 3 && axis2Bin == 1 ){
-	    hPJESR->SetBinContent( 1, 0 );
-	    hNJESR->SetBinContent( 1, 0 );
+	  if( m_is_pPb ){
+	    legSyst.AddEntry( hPDET, "Detector", "l" );
 	  }
 
-	  hPJESR->Draw( "histo same" );
-	  hNJESR->Draw( "histo same" );
+	  TH1* hNJER = static_cast< TH1D* >
+	    ( hPJER->Clone( hNJERName.c_str() ) );
+	  TH1* hNANG = static_cast< TH1D* >
+	    ( hPANG->Clone( hNANGName.c_str() ) );
+	  TH1* hNUNF = static_cast< TH1D* >
+	    ( hPUNF->Clone( hNUNFName.c_str() ) );
+	  TH1* hNFIT = static_cast< TH1D* >
+	    ( hPFIT->Clone( hNFITName.c_str() ) );
+	  TH1* hNDET = static_cast< TH1D* >
+	    ( hPDET->Clone( hNDETName.c_str() ) );
+	
+	  int maxBin = hPTOT->GetMaximumBin();
+	  int minBin = hNTOT->GetMaximumBin();
+	
+	  if( hPTOT->GetBinContent( maxBin ) > 20 &&
+	      hPTOT->GetBinContent( maxBin ) < 25 ){
+	    newSystMax += 10;
+	  } else if( hPTOT->GetBinContent( maxBin ) > 25 &&
+		     hPTOT->GetBinContent( maxBin ) < 30 ){
+	    newSystMax += 15;
+	  } else if( hPTOT->GetBinContent( maxBin ) > 30 &&
+		     hPTOT->GetBinContent( maxBin ) < 50 ){
+	    newSystMax += 25;
+	  }
+
+	  if( hNTOT->GetBinContent( minBin ) > 25 &&
+	      hNTOT->GetBinContent( minBin ) < 40 ){
+	    newSystMin -= 10;
+	  } else if( hNTOT->GetBinContent( minBin ) > 40 &&
+		     hNTOT->GetBinContent( minBin ) < 50 ){
+	    newSystMin -= 15;
+	  }
+
+	  newSystMax = 75;
+	  newSystMin = -50;
 	  
+	  hPJES->SetYTitle( yTitleUncert.c_str() );
+	  hPJES->SetNdivisions( 505 );
+	  hPJES->SetMaximum( newSystMax );
+	  hPJES->SetMinimum( newSystMin );
+	  hPJES->Draw( "histo L same" );
+	  hNJES->Scale( -1. );
+	  hNJES->Draw( "histo L same" );
+	  hPHIJES->SetMaximum( newSystMax );
+	  hPHIJES->SetMinimum( newSystMin );
+	  hPHIJES->Draw( "histo L same" );
+	  hNHIJES->Scale( -1. );
+	  hNHIJES->Draw( "histo L same" );
+	  hPANG->SetMaximum( newSystMax );
+	  hPANG->SetMinimum( newSystMin );
+	  hPANG->Draw( "histo L same" );
+	  hNANG->Scale( -1. );
+	  hNANG->Draw( "histo L same" );
+	  hPJER->SetMaximum( newSystMax );
+	  hPJER->SetMinimum( newSystMin );
+	  hPJER->Draw( "histo L same" );
+	  hNJER->Scale( -1. );
+	  hNJER->Draw( "histo L same" );
+	  hPUNF->SetMaximum( newSystMax );
+	  hPUNF->SetMinimum( newSystMin );
+	  hPUNF->Draw( "histo L same" );
+	  hNUNF->Scale( -1. );
+	  hNUNF->Draw( "histo L same" );
+	  if( !isYield ){
+	    hPFIT->SetMaximum( newSystMax );
+	    hPFIT->SetMinimum( newSystMin );
+	    hPFIT->Draw( "histo L same" );
+	    hNFIT->Scale( -1. );
+	    hNFIT->Draw( "histo L same" );
+	  }
+	  if( m_is_pPb ){
+	    hPDET->SetMaximum( newSystMax );
+	    hPDET->SetMinimum( newSystMin );
+	    hPDET->Draw( "histo L same" );
+	    hNDET->Scale( -1. );
+	    hNDET->Draw( "histo L same" );
+	  }
+	  // Draw Last
+	  hPTOT->SetMaximum( newSystMax );
+	  hPTOT->SetMinimum( newSystMin );
+	  hPTOT->Draw( "histo L same" );
+	  hNTOT->Scale( -1. );
+	  hNTOT->Draw( "histo L same" );
+		
+	  // Draw the final canvas with all of the graphs.
+	  legSyst.Draw();
+
+	  double scale = 0.9;
+
+	  drawTool->DrawAtlasSimulationInternal( CT::DrawTools::drawX0, 0.87 );
+	  if( m_is_pPb ){
+	    drawTool->DrawRightLatex  ( CT::DrawTools::drawX0, 0.795, drawTool->GetLumipPb(), scale );
+	  } else {
+	    drawTool->DrawRightLatex  ( CT::DrawTools::drawX0, 0.795, drawTool->GetLumipp(), scale );
+	  }
+	  drawTool->DrawAtlasJetInfo( CT::DrawTools::drawX0, 0.715, 2, scale );
+	  drawTool->DrawAtlasEnergy ( CT::DrawTools::drawX0, 0.64, scale );
+
+	  
+	  drawTool->DrawLeftLatex
+	    ( 0.19, 0.86, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale );
+	  drawTool->DrawLeftLatex
+	    ( 0.18 , 0.785 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), scale );
+	  drawTool->DrawLeftLatex
+	    ( 0.18 , 0.705, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), scale );
+	  
+	  std::string hNameSystFinal =
+	    "h_" + name + "_" + m_systematicsName + "_" + m_sFinal + "_" + hTag;
+ 
+	  SaveAsAll( cSyst, hNameSystFinal );
+	  // END OF FINAL PLOTS
+	} else {
+	  TCanvas cSyst( "cSyst", "cSyst", 800, 600 );
+	  TLegend legSyst( 0.2, 0.2, 0.9, 0.3 );
+	  styleTool->SetLegendStyle( &legSyst, 0.90 );
+	  legSyst.SetNColumns( 4 );
+	
+	  legSyst.AddEntry( hPTOT, "Total", "l" );
+	  legSyst.AddEntry( hPJES, "JES", "l" );
+	  legSyst.AddEntry( hPHIJES, "HI JES", "l" );
+	  legSyst.AddEntry( hPJER, "JER", "l" );
+	  legSyst.AddEntry( hPANG, "JAR", "l" );
+	  legSyst.AddEntry( hPUNF, "Unfolding", "l" );
+	  if( !isYield ){
+	    legSyst.AddEntry( hPFIT, "Fitting", "l" );
+	  }
+	  if( m_is_pPb ){
+	    legSyst.AddEntry( hPDET, "Detector", "l" );
+	  }
+
+	  TH1* hNJER = static_cast< TH1D* >
+	    ( hPJER->Clone( hNJERName.c_str() ) );
+	  TH1* hNANG = static_cast< TH1D* >
+	    ( hPANG->Clone( hNANGName.c_str() ) );
+	  TH1* hNUNF = static_cast< TH1D* >
+	    ( hPUNF->Clone( hNUNFName.c_str() ) );
+	  TH1* hNFIT = static_cast< TH1D* >
+	    ( hPFIT->Clone( hNFITName.c_str() ) );
+	  TH1* hNDET = static_cast< TH1D* >
+	    ( hPDET->Clone( hNDETName.c_str() ) );
+	
+	  int maxBin = hPTOT->GetMaximumBin();
+	  int minBin = hNTOT->GetMaximumBin();
+	
+	  if( hPTOT->GetBinContent( maxBin ) > 20 &&
+	      hPTOT->GetBinContent( maxBin ) < 25 ){
+	    newSystMax += 10;
+	  } else if( hPTOT->GetBinContent( maxBin ) > 25 &&
+		     hPTOT->GetBinContent( maxBin ) < 30 ){
+	    newSystMax += 15;
+	  } else if( hPTOT->GetBinContent( maxBin ) > 30 &&
+		     hPTOT->GetBinContent( maxBin ) < 50 ){
+	    newSystMax += 25;
+	  }
+
+	  if( hNTOT->GetBinContent( minBin ) > 25 &&
+	      hNTOT->GetBinContent( minBin ) < 40 ){
+	    newSystMin -= 10;
+	  } else if( hNTOT->GetBinContent( minBin ) > 40 &&
+		     hNTOT->GetBinContent( minBin ) < 50 ){
+	    newSystMin -= 15;
+	  }
+	
+	  hPJES->SetYTitle( yTitleUncert.c_str() );
+	  hPJES->SetNdivisions( 505 );
+	  hPJES->SetMaximum( newSystMax );
+	  hPJES->SetMinimum( newSystMin );
+	  hPJES->Draw( "histo same" );
+	  hNJES->Scale( -1. );
+	  hNJES->Draw( "histo same" );
+	  hPHIJES->SetMaximum( newSystMax );
+	  hPHIJES->SetMinimum( newSystMin );
+	  hPHIJES->Draw( "histo same" );
+	  hNHIJES->Scale( -1. );
+	  hNHIJES->Draw( "histo same" );
+	  hPANG->SetMaximum( newSystMax );
+	  hPANG->SetMinimum( newSystMin );
+	  hPANG->Draw( "histo same" );
+	  hNANG->Scale( -1. );
+	  hNANG->Draw( "histo same" );
+	  hPJER->SetMaximum( newSystMax );
+	  hPJER->SetMinimum( newSystMin );
+	  hPJER->Draw( "histo same" );
+	  hNJER->Scale( -1. );
+	  hNJER->Draw( "histo same" );
+	  hPUNF->SetMaximum( newSystMax );
+	  hPUNF->SetMinimum( newSystMin );
+	  hPUNF->Draw( "histo same" );
+	  hNUNF->Scale( -1. );
+	  hNUNF->Draw( "histo same" );
+	  if( !isYield ){
+	    hPFIT->SetMaximum( newSystMax );
+	    hPFIT->SetMinimum( newSystMin );
+	    hPFIT->Draw( "histo same" );
+	    hNFIT->Scale( -1. );
+	    hNFIT->Draw( "histo same" );
+	  }
+	  if( m_is_pPb ){
+	    hPDET->SetMaximum( newSystMax );
+	    hPDET->SetMinimum( newSystMin );
+	    hPDET->Draw( "histo same" );
+	    hNDET->Scale( -1. );
+	    hNDET->Draw( "histo same" );
+	  }
+	  // Draw Last
+	  hPTOT->SetMaximum( newSystMax );
+	  hPTOT->SetMinimum( newSystMin );
+	  hPTOT->Draw( "histo same" );
+	  hNTOT->Scale( -1. );
+	  hNTOT->Draw( "histo same" );
+		
+	  // Draw the final canvas with all of the graphs.
+	  legSyst.Draw();
+
 	  drawTool->DrawLeftLatex
 	    ( 0.46, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
 	  drawTool->DrawLeftLatex
 	    ( 0.18 , 0.87 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
 	  drawTool->DrawLeftLatex
 	    ( 0.18 , 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
-	  DrawAtlasRight( 0, 0, 0.9 );
+	  DrawAtlasRight( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 0.9 );
+	
+	  std::string hNameSystFinal =
+	    "h_" + name + "_" + m_systematicsName + "_" + m_sFinal + "_" + hTag;
+ 
+	  SaveAsAll( cSyst, hNameSystFinal );
+	}
+
+	// -------------------------------------
+	//        Draw Ratio of JES to JESpPb
+	// -------------------------------------
+	if( m_is_pPb ){
+	  TCanvas cJEScomp( "cJEScomp", "cJEScomp", 800, 600 );
+
+	  hPTOTNOJES->SetMaximum( newSystMax );
+	  hNTOTNOJES->SetMinimum( newSystMin );
+	  hNTOTNOJES->Scale( -1 );
+
+	  styleTool->SetHStyle( hPTOTNOJES, 1 );
+	  styleTool->SetHStyle( hNTOTNOJES, 1 );
+	  hPTOTNOJES->SetLineStyle(7);
+	  hNTOTNOJES->SetLineStyle(7);
+	  	  
+	  hPTOT->SetYTitle( yTitleUncert.c_str() );
+	  hPTOT->Draw( "histo same" );
+	  hNTOT->Draw( "histo same" );
+	  hPTOTNOJES->Draw( "histo same" );
+	  hNTOTNOJES->Draw( "histo same" );
+
+	  drawTool->DrawLeftLatex
+	    ( 0.46, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
+	  drawTool->DrawLeftLatex
+	    ( 0.18 , 0.87 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
+	  drawTool->DrawLeftLatex
+	    ( 0.18 , 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
+
+	  DrawAtlasRightBoth( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 0.9, true );
 
 	  line0.Draw();
+
+	  TLegend legCompR( 0.2, 0.2, 0.45, 0.35 );
+	  styleTool->SetLegendStyle( &legCompR );
+
+	  legCompR.AddEntry( hPTOTNOJES, Form( "%s - NO new JES", yTitleUncert.c_str() ) );
+	  legCompR.AddEntry( hPTOT, Form( "%s - WITH new JES", yTitleUncert.c_str() ) );
+	  legCompR.Draw();
 	  
 	  std::string hNameJEScompFinal =
 	    "h_" + name + "_JEScomp_" + m_sFinal + "_" + hTag;
@@ -2342,6 +2463,9 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   TLine line( x0, 1, x1, 1 );
   line.SetLineWidth( 2 );
 
+  TLine line0( x0, 0, x1, 0 );
+  line.SetLineWidth( 2 );
+  
   TLine lineP25( x0, 1.25, x1, 1.25 );
   lineP25.SetLineStyle( 2  );
   lineP25.SetLineColor( 12 );
@@ -2564,7 +2688,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 	    axis2Low, axis2Up );
 
-	DrawAtlasRightBoth( 0, 0, 1.0, true );
+	DrawAtlasRightBoth( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 1.0, true );
 	
 	std::string hNameFinal =
 	  "h_" + name + "_" + m_sFinal + "_" + hTag;
@@ -2599,6 +2723,113 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  mHsystTmpB[ uc ] = hSystematicB;
 	}
 
+	double systMax = 60;
+	double systMin = -50;
+	
+	// Make all the systematics histograms for each y1, pt1, pt2 bin.
+	// These are more specific (PJER, PJER, HIJES, TOT, etc )
+	std::string hPTOTName = "h_" + allSystematicsName + "_PTOT_" + hTag;
+	TH1* hPTOT = static_cast< TH1D* >( hNominalR->Clone( hPTOTName.c_str() ) );
+	vHsyst.push_back( hPTOT );
+	hPTOT->Reset();
+	styleTool->SetHStyle( hPTOT, 0 );
+	
+	std::string hNTOTName = "h_" + allSystematicsName + "_NTOT_" + hTag;
+	TH1* hNTOT = static_cast< TH1D* >( hNominalR->Clone( hNTOTName.c_str() ) );
+	vHsyst.push_back( hNTOT );
+	hNTOT->Reset();
+	styleTool->SetHStyle( hNTOT, 0 );
+
+	std::string hPTOTNOJESName = "h_" + allSystematicsName + "_PTOTNOJES_" + hTag;
+	TH1* hPTOTNOJES = static_cast< TH1D* >( hNominalR->Clone( hPTOTNOJESName.c_str() ) );
+	vHsyst.push_back( hPTOTNOJES );
+	hPTOTNOJES->Reset();
+	styleTool->SetHStyle( hPTOTNOJES, 1 );
+	hPTOTNOJES->SetLineStyle(7);
+	
+	std::string hNTOTNOJESName = "h_" + allSystematicsName + "_NTOTNOJES_" + hTag;
+	TH1* hNTOTNOJES = static_cast< TH1D* >( hNominalR->Clone( hNTOTNOJESName.c_str() ) );
+	vHsyst.push_back( hNTOTNOJES );
+	hNTOTNOJES->Reset();
+	styleTool->SetHStyle( hNTOTNOJES, 1 );
+	hNTOTNOJES->SetLineStyle(7);
+ 
+	std::string hPJESName = "h_" + allSystematicsName + "_PJES_" + hTag;
+	TH1* hPJES = static_cast< TH1D* >( hNominalR->Clone( hPJESName.c_str() ) );
+	vHsyst.push_back( hPJES );
+	hPJES->Reset();
+	styleTool->SetHStyle( hPJES, 1 );
+
+	std::string hNJESName = "h_" + allSystematicsName + "_NJES_" + hTag;
+	TH1* hNJES = static_cast< TH1D* >( hNominalR->Clone( hNJESName.c_str() ) );
+	vHsyst.push_back( hNJES );
+	hNJES->Reset();
+	styleTool->SetHStyle( hNJES, 1 );
+	
+	std::string hPHIJESName = "h_" + allSystematicsName + "_PHIJES_" + hTag;
+	TH1* hPHIJES = static_cast< TH1D* >( hNominalR->Clone( hPHIJESName.c_str() ) );
+	vHsyst.push_back( hPHIJES );
+	hPHIJES->Reset();
+	styleTool->SetHStyle( hPHIJES, 2 );
+
+	std::string hNHIJESName = "h_" + allSystematicsName + "_NHIJES_" + hTag;
+	TH1* hNHIJES = static_cast< TH1D* >( hNominalR->Clone( hNHIJESName.c_str() ) );
+	vHsyst.push_back( hNHIJES );
+	hNHIJES->Reset();
+	styleTool->SetHStyle( hNHIJES, 2 );
+
+	std::string hPJERName = "h_" + allSystematicsName + "_PJER_" + hTag;
+	std::string hNJERName = "h_" + allSystematicsName + "_NJER_" + hTag;
+	TH1* hPJER = static_cast< TH1D* >( hNominalR->Clone( hPJERName.c_str() ) );
+	vHsyst.push_back( hPJER );
+	hPJER->Reset();
+	styleTool->SetHStyle( hPJER, 4 );
+	
+	std::string hPANGName = "h_" + allSystematicsName + "_PANG_" + hTag;
+	std::string hNANGName = "h_" + allSystematicsName + "_NANG_" + hTag;
+	TH1* hPANG = static_cast< TH1D* >( hNominalR->Clone( hPANGName.c_str() ) );
+	vHsyst.push_back( hPANG );
+	hPANG->Reset();
+	styleTool->SetHStyle( hPANG, 3 );
+		
+	std::string hPUNFName = "h_" + allSystematicsName + "_PUNF_" + hTag;
+	std::string hNUNFName = "h_" + allSystematicsName + "_NUNF_" + hTag;
+	TH1* hPUNF = static_cast< TH1D* >( hNominalR->Clone( hPUNFName.c_str() ) );
+	vHsyst.push_back( hPUNF );
+	hPUNF->Reset();
+	styleTool->SetHStyle( hPUNF, 0 );
+	hPUNF->SetLineStyle( 7 );
+
+	std::string hPFITName = "h_" + allSystematicsName + "_PFIT_" + hTag;
+	std::string hNFITName = "h_" + allSystematicsName + "_NFIT_" + hTag;
+	TH1* hPFIT = static_cast< TH1D* >( hNominalR->Clone( hPFITName.c_str() ) ); 
+	vHsyst.push_back( hPFIT );
+	hPFIT->Reset();
+	styleTool->SetHStyle( hPFIT, 1 );
+	hPFIT->SetLineStyle( 7 );
+
+	std::string hPDETName = "h_" + allSystematicsName + "_PDET_" + hTag;
+	std::string hNDETName = "h_" + allSystematicsName + "_NDET_" + hTag;
+	TH1* hPDET = static_cast< TH1D* >( hNominalR->Clone( hPDETName.c_str() ) ); 
+	vHsyst.push_back( hPDET );
+	hPDET->Reset();
+	styleTool->SetHStyle( hPDET, 2 );
+	hPDET->SetLineStyle( 7 );
+	
+	std::string hPJESpPbName = "h_" + allSystematicsName + "_PJESpPb_" + hTag;
+	TH1* hPJESpPb = static_cast< TH1D* >( hNominalR->Clone( hPJESpPbName.c_str() ) );
+	vHsyst.push_back( hPJESpPb );
+	hPJESpPb->Reset();
+	styleTool->SetHStyle( hPJESpPb, 2 );
+	hPJESpPb->SetLineStyle( 7 );
+
+	std::string hNJESpPbName = "h_" + allSystematicsName + "_NJESpPb_" + hTag;
+	TH1* hNJESpPb = static_cast< TH1D* >( hNominalR->Clone( hNJESpPbName.c_str() ) );
+	vHsyst.push_back( hNJESpPb );
+	hNJESpPb->Reset();
+	styleTool->SetHStyle( hNJESpPb, 2 );
+	hNJESpPb->SetLineStyle( 7 );
+	
 	std::vector< double > pX;
         std::vector< double > eX( nAxis3Bins, pDx1 * 0.5 );
  
@@ -2612,13 +2843,25 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  anaTool->GetBinRange
 	    ( axis3, axis3Bin, axis3Bin, axis3Low, axis3Up );
 	  
+	  
 	  // add uncertainties in quadrature;
 	  double uncertFinYP = 0;
 	  double uncertFinYN = 0;
 
-	  // for FIT(22) and UNC(23)
+	  double uncertFinNoJesYP = 0;
+	  double uncertFinNoJesYN = 0;
+	  
+	  // for FIT(22), UNC(23), DET(24)
+	  // and new JES for pPb(25, 26)
 	  double uncertUnCorrYP = 0;
 	  double uncertUnCorrYN = 0;
+
+	  double uncertUnCorrNoJesYP = 0;
+	  double uncertUnCorrNoJesYN = 0;
+
+	  // add uncertainties in quadrature;
+	  double uncertFinYPJES = 0;
+	  double uncertFinYNJES = 0;
 
 	  // nominal ratio
 	  double ratioABnominal = hNominalR->GetBinContent( axis3Bin );
@@ -2628,31 +2871,66 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    
 	    // skip uc = 0 (default)
 	    if( !uc ){ continue; }
-	     
+
+	    int pos_uc = std::abs(uc);
+	    
 	    // for FIT, UNC, DET errors uncorrelated, add in quadrature
 	    // for pp and pPb, and combine to a total error which
 	    // is then added to the other correlated systematics.
 	    // Also, the additional JES for pPb are uncorrelated with pp
-	    if( uc == 22 || uc == 23 || uc == 24 || std::abs(uc) == 25 || std::abs(uc) == 26 ){
+	    if( pos_uc >= 22 && pos_uc <= 26 ){
 	      double eYA = mHsystTmpA[ uc ]->GetBinContent( axis3Bin );
 	      double yA  = hNominalA->GetBinContent( axis3Bin );
-	      double deltaEyA =  eYA - yA;
-	      
+	      double deltaEyA = eYA - yA;
+
 	      double eYB = mHsystTmpB[ uc ]->GetBinContent( axis3Bin );
 	      double yB  = hNominalB->GetBinContent( axis3Bin );
-	      double deltaEyB =  eYB - yB;
+	      double deltaEyB = eYB - yB;
 
-	      double quadSumAB = std::sqrt( std::pow( deltaEyA, 2 ) +
-					    std::pow( deltaEyB, 2 ) );
+	      double quadSumAB = std::sqrt( std::pow( deltaEyA/yA, 2 ) +
+					    std::pow( deltaEyB/yB, 2 ) );
+
+	      double uncertaintySq = std::pow( quadSumAB, 2 );
+	      double uncertainty   = quadSumAB;
+
+	      if( !m_is_pPb && !isYield && ( axis2Bin == 1 || axis2Bin == 2 ) &&
+		  axis0Bin == 1 && axis1Bin == 3 && axis3Bin == 1 ){
+		uncertaintySq = 0;
+		uncertainty   = 0;
+	      }
+	      
+	      // fill total uncertainty histograms
 	      if( uc == 25 || uc == 26 ){
-		uncertUnCorrYP += std::pow( quadSumAB, 2 );
+		std::cout << "                    " << uc << " " << uncertainty << std::endl;
+		uncertUnCorrYP += uncertaintySq;
 	      } else if( uc == -25 || uc == -26 ){
-		uncertUnCorrYN += std::pow( quadSumAB, 2 );
+		std::cout << "                    " << uc << " " << uncertainty << std::endl;
+		uncertUnCorrYN += uncertaintySq;
 	      } else {
-		uncertUnCorrYP += std::pow( quadSumAB, 2 );
-		uncertUnCorrYN += std::pow( quadSumAB, 2 );
+		// fill both
+		// later this gets added to total
+		uncertUnCorrNoJesYP += uncertaintySq;
+		uncertUnCorrNoJesYN += uncertaintySq;
+		// later this gets added to total
+		uncertUnCorrYP += uncertaintySq;
+		uncertUnCorrYN += uncertaintySq;
+	      }
+	      
+	      // fill the individual uncertainty histograms
+	      if( uc == 22 ){
+		hPFIT->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc == 23 ){
+		hPUNF->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc == 24 ){
+		hPDET->SetBinContent( axis3Bin, uncertainty * 100 );
+	      } else if( uc ==  25 || uc ==  26 ){
+		uncertFinYPJES += uncertaintySq;
+	      } else if( uc == -25 || uc == -26 ){
+		uncertFinYNJES += uncertaintySq;
 	      }
 	    } else {
+	      // here it will be all besides uncorrelated uncertainties [22, 26]
+	      
 	      double shiftA  =  mHsystTmpA[ uc ]->GetBinContent( axis3Bin );
 	      double shiftB  =  mHsystTmpB[ uc ]->GetBinContent( axis3Bin );
 	      
@@ -2660,31 +2938,92 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	      
 	      double uncertaintySq =
 		std::pow( ( ratioABnominal - ratioABshifted ) / ratioABnominal, 2 );
+	      double uncertainty = std::sqrt( uncertaintySq ); 
 
+	      if( !m_is_pPb && !isYield && ( axis2Bin == 1 || axis2Bin == 2 ) &&
+		  axis0Bin == 1 && axis1Bin == 3 && axis3Bin == 1 ){
+		uncertaintySq = 0;
+		uncertainty   = 0;
+	      }
+	      
 	      int sign = uc > 0 ? 1 : -1;
 
 	      if( sign > 0 ){
-		uncertFinYP += uncertaintySq;
-		// for ANG, JER, FIT, UNF, need to symmetereize.
-		if( uc >= 20 && uc <= 23 ){
-		  uncertFinYN += uncertaintySq;
+		uncertFinYP      += uncertaintySq;
+		uncertFinNoJesYP += uncertaintySq;
+		if( uc == 19 ){
+		  hPHIJES->SetBinContent( axis3Bin, uncertainty * 100 );
+		} else if( uc >= 1 && uc <= 18 ){
+		  uncertFinYPJES += uncertaintySq;
+		} else if( uc == 20 || uc == 21 ){
+		  // for ANG and JER, need to symmetereize.
+		  // but they are correlated. they only exist for
+		  // positive sign
+		  uncertFinYN      += uncertaintySq;
+		  uncertFinNoJesYN += uncertaintySq;
+		  if( uc == 20 ){
+		    hPJER->SetBinContent( axis3Bin, uncertainty * 100 );
+		  } else if( uc == 21 ){
+		    hPANG->SetBinContent( axis3Bin, uncertainty * 100 );
+		  }
 		}
-		continue;
-	      } else{
-		uncertFinYN += uncertaintySq;
-		continue;
+	      } else {
+		uncertFinYN      += uncertaintySq;
+		uncertFinNoJesYN += uncertaintySq;
+		if( uc == -19 ){
+		  hNHIJES->SetBinContent( axis3Bin, uncertainty * 100 );
+		} else if( uc >= -18 && uc <= -1 ){
+		  uncertFinYNJES += uncertaintySq;
+		}
 	      }
 	    }
 	  }
 
+	  //--------------
+	  // add the correlated and uncorrelated systematics
+	  double uncertFinNoUnCorrYP = uncertFinYP;
+	  double uncertFinNoUnCorrYN = uncertFinYN;
+	  
 	  uncertFinYP = uncertUnCorrYP >= 0 ? uncertFinYP + uncertUnCorrYP : 0;
 	  uncertFinYN = uncertUnCorrYN >= 0 ? uncertFinYN + uncertUnCorrYN : 0;
 	  
-	  // now get the final uncertainties.
 	  uncertFinYP = uncertFinYP >= 0 ? std::sqrt( uncertFinYP ) : 0.0;
 	  uncertFinYN = uncertFinYN >= 0 ? std::sqrt( uncertFinYN ) : 0.0;
 
-	  std::cout << hNominalRName << " " << uncertFinYP << " " << uncertFinYN << std::endl;
+	  hPTOT->SetBinContent( axis3Bin, uncertFinYP * 100 );
+	  hNTOT->SetBinContent( axis3Bin, uncertFinYN * 100 );
+
+	  //--------------
+	  uncertFinYPJES = uncertFinYPJES >= 0 ? std::sqrt( uncertFinYPJES ) : 0.0;
+	  uncertFinYNJES = uncertFinYNJES >= 0 ? std::sqrt( uncertFinYNJES ) : 0.0;
+
+	  hPJES->SetBinContent( axis3Bin, uncertFinYPJES * 100 );
+	  hNJES->SetBinContent( axis3Bin, uncertFinYNJES * 100 );
+
+	  //--------------
+	  uncertUnCorrYP = uncertUnCorrYP >= 0 ? std::sqrt( uncertUnCorrYP ) : 0.0;
+	  uncertUnCorrYN = uncertUnCorrYN >= 0 ? std::sqrt( uncertUnCorrYN ) : 0.0;
+
+	  //--------------
+	  uncertFinNoJesYP = uncertUnCorrNoJesYP >= 0 ? uncertFinNoJesYP + uncertUnCorrNoJesYP : 0;
+	  uncertFinNoJesYN = uncertUnCorrNoJesYN >= 0 ? uncertFinNoJesYN + uncertUnCorrNoJesYN : 0;
+
+	  uncertFinNoJesYP = uncertFinNoJesYP >= 0 ? std::sqrt( uncertFinNoJesYP ) : 0.0;
+	  uncertFinNoJesYN = uncertFinNoJesYN >= 0 ? std::sqrt( uncertFinNoJesYN ) : 0.0;
+	   
+	  hPTOTNOJES->SetBinContent( axis3Bin, uncertFinNoJesYP * 100 );
+	  hNTOTNOJES->SetBinContent( axis3Bin, uncertFinNoJesYN * 100 );
+
+	  //--------------
+	  uncertUnCorrNoJesYP = uncertUnCorrNoJesYP >= 0 ? std::sqrt( uncertUnCorrNoJesYP ) : 0.0;
+	  uncertUnCorrNoJesYN = uncertUnCorrNoJesYN >= 0 ? std::sqrt( uncertUnCorrNoJesYN ) : 0.0;
+	  	  
+	  std::cout << hNominalRName  << " " << axis3Bin << "\n"
+		    << uncertFinYP    << " " << uncertFinYN    << " " << uncertFinNoJesYP    << " " << uncertFinNoJesYN    << "\n"
+		    << uncertFinNoUnCorrYP << " " << uncertFinNoUnCorrYN << "\n"
+		    << uncertUnCorrYP << " " << uncertUnCorrYN << " " << uncertUnCorrNoJesYP << " " << uncertUnCorrNoJesYN << "\n"
+		    << uncertFinYPJES << " " << uncertFinYNJES << "\n" 
+		    << 100 * uncertUnCorrYP/uncertFinYP << "% " << 100 * uncertUnCorrYN/uncertFinYN << "% "<< std::endl;
 	  
 	  pY .push_back( ratioABnominal );
 	  eYP.push_back( ratioABnominal * uncertFinYP );
@@ -2786,8 +3125,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    dPhiMaximum = topOfPoint > dPhiMaximum ? topOfPoint : dPhiMaximum;
 	  }
 
-	  TLegend legDphi( 0.60, 0.50, 0.67, 0.58 );
-	  styleTool->SetLegendStyle( &legDphi, 0.70 );
+	  TLegend legDphi( 0.56, 0.48, 0.72, 0.63 );
+	  styleTool->SetLegendStyle( &legDphi, 1.0 );
 
 	  legDphi.AddEntry( gSystematicsDphiA, label_a.c_str(), "lpf" );
 	  legDphi.AddEntry( gSystematicsDphiB, label_b.c_str(), "lpf" );
@@ -2809,12 +3148,28 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  fNominalDphiB->Draw("same");
 	  fNominalDphiA->Draw("same");
 
-	  DrawTopLeftLabels
-	    ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
-	      axis2Low, axis2Up, axis3Low, axis3Up, 0.90 );
+	  double scale = 0.90;
+	  
+	  if( finalPlots ){
+	    drawTool->DrawAtlasInternal( 0.45, 0.87, 1.0 );
+	    drawTool->DrawRightLatex( CT::DrawTools::drawX0, 0.87, drawTool->GetLumipPb(), scale );
+	    drawTool->DrawRightLatex( CT::DrawTools::drawX0, 0.79, drawTool->GetLumipp(), scale );
 
-	  DrawAtlasRightBoth( 0, 0, 0.90, true );
-
+	    drawTool->DrawLeftLatex
+	      ( 0.19, 0.59, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale );
+	    drawTool->DrawLeftLatex
+	      ( 0.18, 0.51, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), scale );
+	    drawTool->DrawLeftLatex
+	      ( 0.18, 0.43, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), scale );
+	    drawTool->DrawLeftLatex
+	      ( 0.19, 0.35, anaTool->GetLabel( axis3Low, axis3Up, m_dPP->GetAxisLabel(3) ), scale );
+	  } else {
+	    DrawTopLeftLabels
+	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
+		axis2Low, axis2Up, axis3Low, axis3Up, scale );
+	    DrawAtlasRightBoth( CT::DrawTools::drawX0, CT::DrawTools::drawY0, scale, true );
+	  } 
+	  
 	  legDphi.Draw();
 
 	  double   tauA = fNominalDphiA->GetParameter(1);
@@ -2839,20 +3194,25 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	  double y0 = 0.55; double dY = 0.06;
 
-	  drawTool->DrawLeftLatex
-	    ( 0.19, y0, Form( "(#tau, #sigma)_{%s}=(%4.2f #pm %4.2f, %4.2f #pm %4.2f)",
+	  if( finalPlots ){
+	    drawTool->DrawAtlasJetInfo( 0.445, 0.79, 2, scale);
+	    drawTool->DrawAtlasEnergy ( 0.425, 0.72, scale );
+	  } else {
+	    drawTool->DrawLeftLatex
+	      ( 0.19, y0, Form( "(#tau, #sigma)_{%s}=(%4.2f #pm %4.2f, %4.2f #pm %4.2f)",
 				label_a.c_str(), tauA, tauErrorA,
 				sigmaA, sigmaErrorA ), 0.6 );
-	  drawTool->DrawLeftLatex
-	    ( 0.19, y0 - dY, Form( "(#tau, #sigma)_{%s}=(%4.2f #pm %4.2f, %4.2f #pm %4.2f)",
-				label_b.c_str(), tauB, tauErrorB,
-				sigmaB, sigmaErrorB ), 0.6 );
-	  drawTool->DrawLeftLatex
-	    ( 0.19, y0 - 2 * dY, Form( "%s^{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
-				label_a.c_str(), widthA, widthErrorA ), 0.6 );
-	  drawTool->DrawLeftLatex
-	    ( 0.19, y0 - 3 * dY, Form( "%s^{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
-				label_b.c_str(), widthB, widthErrorB ), 0.6 );
+	    drawTool->DrawLeftLatex
+	      ( 0.19, y0 - dY, Form( "(#tau, #sigma)_{%s}=(%4.2f #pm %4.2f, %4.2f #pm %4.2f)",
+				     label_b.c_str(), tauB, tauErrorB,
+				     sigmaB, sigmaErrorB ), 0.6 );
+	    drawTool->DrawLeftLatex
+	      ( 0.19, y0 - 2 * dY, Form( "%s^{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+					 label_a.c_str(), widthA, widthErrorA ), 0.6 );
+	    drawTool->DrawLeftLatex
+	      ( 0.19, y0 - 3 * dY, Form( "%s^{%s}=%4.2f #pm %4.2f", m_sWidthTitle.c_str(),
+					 label_b.c_str(), widthB, widthErrorB ), 0.6 );
+	  }
 	  
 	  SaveAsPdfPng( cDphi, hNameFinalDphi, true );
 	  SaveAsROOT  ( cDphi, hNameFinalDphi );
@@ -2909,9 +3269,9 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  ( 0.18, 0.78, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 1.0 );
 	drawTool->DrawLeftLatex
 	  ( 0.18, 0.275, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 1.0 );
-	
-	DrawAtlasRightBoth( 0, 0, 1.0, true );
-	  
+		
+	DrawAtlasRightBoth( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 1.0, true );
+  
 	std::string hNameFinalR =
 	  "h_" + name + "_" + m_sRatio + "_" + m_sFinal + "_" + hTag;
 
@@ -2988,6 +3348,168 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	style++;
 
+	//+++++++++++++++++++++++++++++++++++++++++++
+	// Draw Uncertainties
+	//+++++++++++++++++++++++++++++++++++++++++++
+	TCanvas cSyst( "cSyst", "cSyst", 800, 600 );
+	TLegend legSyst( 0.2, 0.2, 0.9, 0.3 );
+	styleTool->SetLegendStyle( &legSyst, 0.90 );
+	legSyst.SetNColumns( 4 );
+	
+	legSyst.AddEntry( hPTOT, "Total", "l" );
+	legSyst.AddEntry( hPJES, "JES", "l" );
+	legSyst.AddEntry( hPHIJES, "HI JES", "l" );
+	legSyst.AddEntry( hPJER, "JER", "l" );
+	legSyst.AddEntry( hPANG, "JAR", "l" );
+	legSyst.AddEntry( hPUNF, "Unfolding", "l" );
+	if( !isYield ){
+	  legSyst.AddEntry( hPFIT, "Fitting", "l" );
+	}
+	if( m_is_pPb ){
+	  legSyst.AddEntry( hPDET, "Detector", "l" );
+	}
+
+	TH1* hNJER = static_cast< TH1D* >
+	  ( hPJER->Clone( hNJERName.c_str() ) );
+	TH1* hNANG = static_cast< TH1D* >
+	  ( hPANG->Clone( hNANGName.c_str() ) );
+	TH1* hNUNF = static_cast< TH1D* >
+	  ( hPUNF->Clone( hNUNFName.c_str() ) );
+	TH1* hNFIT = static_cast< TH1D* >
+	  ( hPFIT->Clone( hNFITName.c_str() ) );
+	TH1* hNDET = static_cast< TH1D* >
+	  ( hPDET->Clone( hNDETName.c_str() ) );
+	
+	int maxBin = hPTOT->GetMaximumBin();
+	int minBin = hNTOT->GetMaximumBin();
+
+	double newSystMax = systMax;
+	double newSystMin = systMin;
+	
+	if( hPTOT->GetBinContent( maxBin ) > 20 &&
+	    hPTOT->GetBinContent( maxBin ) < 25 ){
+	  newSystMax += 10;
+	} else if( hPTOT->GetBinContent( maxBin ) > 25 &&
+		   hPTOT->GetBinContent( maxBin ) < 30 ){
+	  newSystMax += 15;
+	} else if( hPTOT->GetBinContent( maxBin ) > 30 &&
+		   hPTOT->GetBinContent( maxBin ) < 50 ){
+	  newSystMax += 25;
+	}
+
+	if( hNTOT->GetBinContent( minBin ) > 25 &&
+	    hNTOT->GetBinContent( minBin ) < 40 ){
+	  newSystMin -= 10;
+	} else if( hNTOT->GetBinContent( minBin ) > 40 &&
+		   hNTOT->GetBinContent( minBin ) < 50 ){
+	  newSystMin -= 15;
+	}
+	
+	std::string yTitleUncert = "#delta " + sRatio + " %";
+ 
+	hPJES->SetYTitle( yTitleUncert.c_str() );
+	hPJES->SetNdivisions( 505 );
+	hPJES->SetMaximum( newSystMax );
+	hPJES->SetMinimum( newSystMin );
+	hPJES->Draw( "histo same" );
+	hNJES->Scale( -1. );
+	hNJES->Draw( "histo same" );
+        hPHIJES->SetMaximum( newSystMax );
+	hPHIJES->SetMinimum( newSystMin );
+	hPHIJES->Draw( "histo same" );
+	hNHIJES->Scale( -1. );
+	hNHIJES->Draw( "histo same" );
+	hPANG->SetMaximum( newSystMax );
+	hPANG->SetMinimum( newSystMin );
+	hPANG->Draw( "histo same" );
+	hNANG->Scale( -1. );
+	hNANG->Draw( "histo same" );
+	hPJER->SetMaximum( newSystMax );
+	hPJER->SetMinimum( newSystMin );
+	hPJER->Draw( "histo same" );
+	hNJER->Scale( -1. );
+	hNJER->Draw( "histo same" );
+	hPUNF->SetMaximum( newSystMax );
+	hPUNF->SetMinimum( newSystMin );
+	hPUNF->Draw( "histo same" );
+	hNUNF->Scale( -1. );
+	hNUNF->Draw( "histo same" );
+	if( !isYield ){
+	  hPFIT->SetMaximum( newSystMax );
+	  hPFIT->SetMinimum( newSystMin );
+	  hPFIT->Draw( "histo same" );
+	  hNFIT->Scale( -1. );
+	  hNFIT->Draw( "histo same" );
+	}
+	hPDET->SetMaximum( newSystMax );
+	hPDET->SetMinimum( newSystMin );
+	hPDET->Draw( "histo same" );
+	hNDET->Scale( -1. );
+	hNDET->Draw( "histo same" );
+	// Draw Last
+	hPTOT->SetMaximum( newSystMax );
+	hPTOT->SetMinimum( newSystMin );
+	hPTOT->Draw( "histo same" );
+	hNTOT->Scale( -1. );
+	hNTOT->Draw( "histo same" );
+		
+	// Draw the final canvas with all of the graphs.
+	legSyst.Draw();
+
+	drawTool->DrawLeftLatex
+	  ( 0.46, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
+	drawTool->DrawLeftLatex
+	  ( 0.18 , 0.87 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
+	drawTool->DrawLeftLatex
+	  ( 0.18 , 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
+
+	DrawAtlasRightBoth( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 0.9, true );
+
+	std::string hNameSystFinal =
+	  "h_" + name + "_" + m_systematicsName + "_" + m_sFinal + "_" + hTag;
+ 
+	SaveAsPdfPng( cSyst, hNameSystFinal, true );
+	SaveAsROOT  ( cSyst, hNameSystFinal );
+
+	// -------------------------------------
+	//        Draw Ratio of JES to JESpPb
+	// -------------------------------------
+	TCanvas cJEScomp( "cJEScomp", "cJEScomp", 800, 600 );
+
+	hPTOTNOJES->SetMaximum( newSystMax );
+	hNTOTNOJES->SetMinimum( newSystMin );
+	hNTOTNOJES->Scale( -1 );
+	
+	hPTOT->SetYTitle( yTitleUncert.c_str() );
+	hPTOT->Draw( "histo same" );
+	hNTOT->Draw( "histo same" );
+	hPTOTNOJES->Draw( "histo same" );
+	hNTOTNOJES->Draw( "histo same" );
+
+	drawTool->DrawLeftLatex
+	  ( 0.46, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
+	drawTool->DrawLeftLatex
+	  ( 0.18 , 0.87 , anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), 0.85 );
+	drawTool->DrawLeftLatex
+	  ( 0.18 , 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
+
+	DrawAtlasRightBoth( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 0.9, true );
+
+	line0.Draw();
+
+	TLegend legCompR( 0.2, 0.2, 0.45, 0.35 );
+	styleTool->SetLegendStyle( &legCompR );
+
+	legCompR.AddEntry( hPTOTNOJES, Form( "#delta %s %% - NO new JES", sRatio.c_str() ) );
+	legCompR.AddEntry( hPTOT, Form( "#delta %s %% - WITH new JES", sRatio.c_str() ) );
+	legCompR.Draw();
+	  
+	std::string hNameJEScompFinal =
+	  "h_" + name + "_JEScomp_" + m_sFinal + "_" + hTag;
+ 
+	SaveAsPdfPng( cJEScomp, hNameJEScompFinal, true);
+	SaveAsROOT  ( cJEScomp, hNameJEScompFinal );
+	
 	//--------------------------------------------
 	// Fit some bins to see the results on ratios
 	//--------------------------------------------
@@ -3030,7 +3552,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
       DrawTopLeftLabels
 	( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up );
 
-      DrawAtlasRightBoth( 0, 0, 1.0, true );
+      DrawAtlasRightBoth( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 1.0, true );
       
       if( m_deltaPtCut  && isYield ){
 	drawTool->DrawLeftLatex( 0.19, 0.70, Form( "#Delta#it{p}_{T}=%g GeV", m_deltaPtCut ) );
@@ -3493,12 +4015,12 @@ void DiJetAnalysisData::DrawAtlasRight( double x0, double y0, double scale )
 { drawTool->DrawAtlasInternalDataRight( x0, y0, m_is_pPb, scale ); } 
 
 void DiJetAnalysisData::DrawAtlasRightBoth( double x0, double y0, double scale, bool fin ){
-  drawTool->DrawAtlasInternal( scale );
+  drawTool->DrawAtlasInternal( x0, y0, scale );
   if( fin ){
     drawTool->DrawRightLatex
-      ( 0.875, 0.805, drawTool->GetLumipPb(), scale, 1 );
+      ( CT::DrawTools::drawX0, 0.805, drawTool->GetLumipPb(), scale, 1 );
     drawTool->DrawRightLatex
-      ( 0.875, 0.735, drawTool->GetLumipp(), scale, 1 );
+      ( CT::DrawTools::drawX0, 0.735, drawTool->GetLumipp(), scale, 1 );
   } else { 
     drawTool->DrawRightLatex( 0.87, 0.78, "Data" );	  	  
   }
