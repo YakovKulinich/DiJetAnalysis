@@ -275,7 +275,7 @@ std::vector<double> CT::AnalysisTools::vectoriseD
    return result;
 }   
 
-bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xHigh ){
+TF1* CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xHigh ){
 
   auto combFit = [&]( double* x, double* par){ return par[0]; };
 
@@ -284,13 +284,14 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
   // distribution has very few entries
   // only do if there are bins with entries
   // on that range.
-  if( !hProj->Integral( 1, hProj->FindBin( 1. ) ) ){ return false; }
-
-  TF1 cFit( "cFit", combFit, xLow, xHigh, 1 );
-  hProj->Fit( "cFit", "NQ", "", xLow, xHigh ); 
+  if( !hProj->Integral( 1, hProj->FindBin( 1. ) ) ){ return NULL; }
+  
+  TF1* cFit = new TF1
+    ( Form("f_comb_%s", hProj->GetName() ), combFit, xLow, xHigh, 1 );
+  hProj->Fit( Form("f_comb_%s", hProj->GetName() ), "NQ", "", xLow, xHigh ); 
     
-  double comb      = cFit.GetParameter(0);
-  double combError = cFit.GetParError (0);
+  double comb      = cFit->GetParameter(0);
+  double combError = cFit->GetParError (0);
     
   for( int xBin = 1; xBin <= hProj->GetNbinsX(); xBin++ ){
     double val      = hProj->GetBinContent( xBin );
@@ -302,7 +303,7 @@ bool CT::AnalysisTools::SubtractCombinatoric( TH1* hProj, double xLow, double xH
     hProj->SetBinError  ( xBin, newError );
   }
 
-  return true;
+  return cFit;
 }
 
 void CT::AnalysisTools::UndoWidthScaling( TH1* h ){
@@ -873,28 +874,28 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
     his->SetLineColor(kBlack);
     his->SetMarkerColor(kBlack);
     his->SetMarkerStyle(20);
-    his->SetMarkerSize(1.4);
+    his->SetMarkerSize(1.5);
   } else if(iflag == 1 ){
     his->SetLineColor(kRed);
     his->SetMarkerColor(kRed);
     his->SetMarkerStyle(21);
-    his->SetMarkerSize(1.3);
+    his->SetMarkerSize(1.4);
   } else if(iflag == 2 ){
     his->SetLineColor(kAzure-3);
     his->SetMarkerColor(kAzure-3);
     his->SetMarkerStyle(33);
-    his->SetMarkerSize(2.0);
+    his->SetMarkerSize(2.3);
   } else if(iflag == 3 ){
     his->SetLineColor(kSpring-6);
     his->SetMarkerColor(kSpring-6);
     his->SetMarkerStyle(34);
-    his->SetMarkerSize(1.7);
+    his->SetMarkerSize(2.1);
   } else if(iflag == 4 ){
     his->SetLineColor(kOrange+1);
     his->SetLineWidth(2);
     his->SetMarkerColor(kOrange+1);
     his->SetMarkerStyle(29);
-    his->SetMarkerSize(1.8);
+    his->SetMarkerSize(2.5);
   } else if(iflag == 5 ){
     his->SetLineColor(kBlack);
     his->SetMarkerColor(kBlack);
@@ -963,43 +964,52 @@ void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
     graph->SetLineColor( kAzure - 3 );
     graph->SetMarkerColor( kAzure - 3 );
     graph->SetMarkerStyle(33);
-    graph->SetMarkerSize(2.0);
+    graph->SetMarkerSize(2.1);
     graph->SetFillColor( kAzure - 4 );
     graph->SetFillStyle( 1001 );
-  }
-  else if(iflag == 3 ){
+  } else if(iflag == 3 ){
     graph->SetLineColor( kSpring - 6 );
     graph->SetMarkerColor( kSpring - 6 );
     graph->SetMarkerStyle(34);
     graph->SetMarkerSize(1.8);
     graph->SetFillColor( kSpring - 5 );
     graph->SetFillStyle( 1001 );
-  }
-  else if(iflag == 4 ){
+  } else if(iflag == 4 ){
+    graph->SetLineColor( kMagenta + 1 );
+    graph->SetMarkerColor( kMagenta + 1);
+    graph->SetMarkerStyle(20);
+    graph->SetMarkerSize(1.4);
+    graph->SetFillColor( kMagenta + 1 );
+    graph->SetFillStyle( 1001 );
+  } else if(iflag == 5 ){
+    graph->SetLineColor(kOrange+1);
+    graph->SetMarkerColor(kOrange+1);
+    graph->SetMarkerStyle(29);
+    graph->SetMarkerSize(2.1);
+    graph->SetFillColor( kOrange + 1 );
+    graph->SetFillStyle( 1001 );
+  } else if(iflag == 6 ){
     graph->SetLineColor(kBlack);
     graph->SetMarkerColor(kBlack);
     graph->SetMarkerStyle(24);
     graph->SetMarkerSize(1.5);
     graph->SetFillColor( kGray + 1 );
     graph->SetFillStyle( 1001 );
-  }
-  else if(iflag == 5 ){
+  } else if(iflag == 7 ){
     graph->SetLineColor(kRed);
     graph->SetMarkerColor(kRed);
     graph->SetMarkerStyle(25);
     graph->SetMarkerSize(1.4);
     graph->SetFillColor( kRed - 9 );
     graph->SetFillStyle( 1001 );
-   }  
-  else if(iflag == 6 ){
+   } else if(iflag == 8 ){
     graph->SetLineColor( kAzure - 3 );
     graph->SetMarkerColor( kAzure - 3 );
     graph->SetMarkerStyle(27);
     graph->SetMarkerSize(2.1);
     graph->SetFillColor( kAzure - 9 );
     graph->SetFillStyle( 1001 );
-  }
-  else if(iflag == 7 ){
+  } else if(iflag == 9 ){
     graph->SetLineColor( kSpring - 6 );
     graph->SetMarkerColor( kSpring - 6 );
     graph->SetMarkerStyle(28);
@@ -1157,9 +1167,13 @@ void CT::DrawTools::DrawCenterLatex
   tltx.DrawLatex( x, y, s.c_str() );
 }
 
-void CT::DrawTools::DrawAtlasEnergy( double x0, double y0, double scale ){
+void CT::DrawTools::DrawAtlasEnergy( double x0, double y0, int mode, double scale ){
 
-  DrawRightLatex( x0, y0, "#sqrt{s_{NN}} = 5.02 TeV", scale );
+  if( mode == 1 ){
+    DrawRightLatex( x0, y0, "#sqrt{#it{s}_{NN}} = 5.02 TeV", scale );
+  } else if( mode == 0 ){
+     DrawRightLatex( x0, y0, "#sqrt{#it{s}} = 5.02 TeV", scale );
+  }
 }
 
 void CT::DrawTools::DrawAtlasJetInfo( double x0, double y0, int mode , double scale ){
@@ -1178,12 +1192,12 @@ void CT::DrawTools::DrawAtlasJetInfo( double x0, double y0, int mode , double sc
 
 void CT::DrawTools::DrawAtlasInternal( double x0, double y0, double scale ){
   
-  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Internal", 1.0 );
+  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Internal", scale );
 }
 
 
 std::string CT::DrawTools::GetLumipPb(){
-  return Form( "2016 #it{p}+Pb data, %3.1f #mub^{-1}", constants::pPbLumi2016 );
+  return Form( "2016 #it{p}+Pb data, %3.0f #mub^{-1}", constants::pPbLumi2016 );
 }
 
 std::string CT::DrawTools::GetLumipp(){

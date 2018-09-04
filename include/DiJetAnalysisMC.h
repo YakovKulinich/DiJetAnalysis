@@ -199,6 +199,8 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 
   void CompareAngularRes ( TFile* = NULL );
 
+  void CompareRtrk       ( TFile* = NULL ); 
+  
   void CompareScaleRes   ( TFile* = NULL, const std::string& = "" );
 
   void CompareCfactorsWUW( TFile* = NULL );
@@ -210,7 +212,6 @@ class DiJetAnalysisMC : public DiJetAnalysis{
 		   const std::string& = "",
 		   const std::string& = "" );
 		 
-
   void DrawAtlasRight    ( double = CT::DrawTools::drawX0,
 			   double = CT::DrawTools::drawY0,
 			   double = CT::StyleTools::lSS );
@@ -302,6 +303,14 @@ class DiJetAnalysisMC : public DiJetAnalysis{
   // --------- recoTruthDphi ---------
   std::vector< TH3* > m_vHjznRecoTruthDphi;
   std::vector< TH2* > m_vHjznRecoTruthDphiNent;
+
+  // ----- rtrk ----
+  std::vector< TH3* > m_vHjznRtrk1;
+  std::vector< TH3* > m_vHjznRtrk2;
+  std::vector< TH3* > m_vHjznRtrk4;
+  TH3* m_hAllJznRtrk1;
+  TH3* m_hAllJznRtrk2;
+  TH3* m_hAllJznRtrk4;
   
   // -------------- dPhi -------------
   std::vector< THnSparse* > m_vHjznDphiReco;

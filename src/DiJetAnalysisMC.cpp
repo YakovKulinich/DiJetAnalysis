@@ -354,6 +354,21 @@ void DiJetAnalysisMC::ProcessPerformance(){
   // make ystar response matrix
   m_hAllYstarRespMat = CombineSamples( m_vHjznYstarRespMat, m_ystarRespMatName );
   MakeYstarRespMat( m_vHjznYstarRespMat, m_vJznLabels, m_ystarRespMatName );
+
+  if( m_is_pPb && doRtrk ){
+    m_hAllJznRtrk1 = CombineSamples( m_vHjznRtrk1, Form("%s1", m_rtrkName.c_str() ) );
+    m_hAllJznRtrk2 = CombineSamples( m_vHjznRtrk2, Form("%s2", m_rtrkName.c_str() ) );
+    m_hAllJznRtrk4 = CombineSamples( m_vHjznRtrk4, Form("%s4", m_rtrkName.c_str() ) );
+
+    m_hAllJznRtrk1->Write();
+    m_hAllJznRtrk2->Write();
+    m_hAllJznRtrk4->Write();
+    
+    MakeRtrk( m_vHjznRtrk1, m_vJznLabels, Form("%s1", m_rtrkName.c_str() ) );
+    MakeRtrk( m_vHjznRtrk2, m_vJznLabels, Form("%s2", m_rtrkName.c_str() ) );
+    MakeRtrk( m_vHjznRtrk4, m_vJznLabels, Form("%s4", m_rtrkName.c_str() ) );
+  }
+  
   
   std::cout << "DONE! Closing " << fOut->GetName() << std::endl;
   fOut->Close();
@@ -366,6 +381,8 @@ void DiJetAnalysisMC::ProcessPerformance(){
   // CompareScaleRes( fOut, "recoTruthDeta" );
   // CompareScaleRes( fOut, "recoTruthDphi" );
   fOut->Close(); delete fOut;
+
+  CompareRtrk( fOut );
 }
 
 void DiJetAnalysisMC::UnfoldPerformance(){
@@ -681,6 +698,43 @@ void DiJetAnalysisMC::SetupHistograms(){
       Set( nScaleResBins, scaleResBinning );
     AddHistogram( m_vHjznRecoTruthDphiNent.back() );
 
+    // rtrk
+    m_vHjznRtrk1.push_back
+      ( new TH3D( Form("h_%s1_%s", m_rtrkName.c_str(), jzn.c_str() ), 
+		  ";#eta;#it{p}_{T} [GeV];Rtrk",
+		  m_nVarEtaBarrelBins, 0, 1,
+		  m_nVarRtrkPtBins, 0, 1,
+		  50, 0, 1 ) ) ;
+    m_vHjznRtrk1.back()->GetXaxis()->
+      Set( m_nVarEtaBarrelBins, &( m_varEtaBarrelBinning[0] ) );
+    m_vHjznRtrk1.back()->GetYaxis()->
+      Set( m_nVarRtrkPtBins, &( m_varRtrkPtBinning[0] ) );
+    AddHistogram( m_vHjznRtrk1.back() );
+   
+    m_vHjznRtrk2.push_back
+      ( new TH3D( Form("h_%s2_%s", m_rtrkName.c_str(), jzn.c_str() ), 
+		  ";#eta;#it{p}_{T} [GeV];Rtrk",
+		  m_nVarEtaBarrelBins, 0, 1,
+		  m_nVarRtrkPtBins, 0, 1,
+		  50, 0, 1 ) ) ;
+    m_vHjznRtrk2.back()->GetXaxis()->
+      Set( m_nVarEtaBarrelBins, &( m_varEtaBarrelBinning[0] ) );
+    m_vHjznRtrk2.back()->GetYaxis()->
+      Set( m_nVarRtrkPtBins, &( m_varRtrkPtBinning[0] ) );
+    AddHistogram( m_vHjznRtrk2.back() );
+
+    m_vHjznRtrk4.push_back
+      ( new TH3D( Form("h_%s4_%s", m_rtrkName.c_str(), jzn.c_str() ), 
+		  ";#eta;#it{p}_{T} [GeV];Rtrk",
+		  m_nVarEtaBarrelBins, 0, 1,
+		  m_nVarRtrkPtBins, 0, 1,
+		  50, 0, 1 ) ) ;
+    m_vHjznRtrk4.back()->GetXaxis()->
+      Set( m_nVarEtaBarrelBins, &( m_varEtaBarrelBinning[0] ) );
+    m_vHjznRtrk4.back()->GetYaxis()->
+      Set( m_nVarRtrkPtBins, &( m_varRtrkPtBinning[0] ) );
+    AddHistogram( m_vHjznRtrk4.back() );
+
     // -------- dPhi --------
     THnSparse* hnDphiReco =
       new THnSparseD( Form("h_%s_%s", m_dPhiRecoName.c_str(), jzn.c_str() ), "",
@@ -894,6 +948,13 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
   std::vector< std::vector< float > >    v_sysUncert;
   std::vector< std::vector< float > >* p_v_sysUncert = & v_sysUncert;
 
+  std::vector< double > vRtrk1;
+  std::vector< double > vRtrk2;
+  std::vector< double > vRtrk4;
+
+  std::vector< double >* p_vRtrk1 = &vRtrk1;
+  std::vector< double >* p_vRtrk2 = &vRtrk2;
+  std::vector< double >* p_vRtrk4 = &vRtrk4;
   
   TH2* hJerComp = new TH2D( "hJerComp", ";#it{p}_T;After/Before", 124, 28, 90, 50, 0, 2 );
   styleTool->SetHStyle( hJerComp, 0 );
@@ -911,6 +972,12 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
     tree->SetBranchAddress( "v_isCleanJet" , &p_v_isCleanJet );
     tree->SetBranchAddress( "v_sysUncert"  , &p_v_sysUncert  );
 
+    if( m_is_pPb && doRtrk ){
+      tree->SetBranchAddress( "vRtrk1", &p_vRtrk1 );
+      tree->SetBranchAddress( "vRtrk2", &p_vRtrk2 );
+      tree->SetBranchAddress( "vRtrk4", &p_vRtrk4 );
+    }
+    
     if( m_is_pPb ){
       m_FCalEt = tree->SetBranchAddress( "FCalEtA"  , &m_FCalEt );
     } else {
@@ -960,6 +1027,33 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       // done to not include JER effects.
       AnalyzeYstarRespMat( m_vHjznYstarRespMat[iG],
 			   vTR_paired_jets, vTT_paired_jets );
+
+      // do rtrk stuff in pPb before sorting
+      if( m_is_pPb && doRtrk ){
+	
+	for( uint iJet = 0; iJet < vR_jets.size(); iJet++ ){
+
+	  if( !PassHECCuts( vR_jets[iJet] ) ){ continue; }
+
+	  double jetPt   = vR_jets[iJet].Pt() / 1000.;
+	  double jetEta  = vR_jets[iJet].Eta();
+
+	  double rTrkPt1 = vRtrk1[iJet] / 1000.;
+	  double rTrkPt2 = vRtrk2[iJet] / 1000.;
+	  double rTrkPt4 = vRtrk4[iJet] / 1000.;
+
+	  if( std::abs( jetEta ) > 2.5 || !jetPt ){ continue; }
+
+	  if( rTrkPt1 ){
+	    m_vHjznRtrk1[iG]->Fill( jetEta, jetPt, jetPt/rTrkPt1 );
+	  } if( rTrkPt2 ){
+	    m_vHjznRtrk2[iG]->Fill( jetEta, jetPt, jetPt/rTrkPt2 );
+	  } if( rTrkPt4 ){
+	    m_vHjznRtrk4[iG]->Fill( jetEta, jetPt, jetPt/rTrkPt4 );
+	  } 
+	}
+      }
+    
       
       std::sort( vTR_paired_jets.begin(), vTR_paired_jets.end(),
 		 anaTool->sortByDecendingPt );
@@ -1969,6 +2063,24 @@ void DiJetAnalysisMC::LoadHistograms( int opt ){
 	( fIn->Get( Form("h_recoTruthDphiNent_%s", jzn.c_str() ))));
     m_vHjznRecoTruthDphiNent.back()->SetDirectory(0);
 
+    // ----- rtrk ----
+    if( m_is_pPb && doRtrk ){
+      m_vHjznRtrk1.push_back
+	( static_cast< TH3D* >
+	  ( fIn->Get( Form("h_%s1_%s", m_rtrkName.c_str(), jzn.c_str() ))));
+      m_vHjznRtrk1.back()->SetDirectory(0);
+
+      m_vHjznRtrk2.push_back
+	( static_cast< TH3D* >
+	  ( fIn->Get( Form("h_%s2_%s", m_rtrkName.c_str(), jzn.c_str() ))));
+      m_vHjznRtrk2.back()->SetDirectory(0);
+
+      m_vHjznRtrk4.push_back
+	( static_cast< TH3D* >
+	  ( fIn->Get( Form("h_%s4_%s", m_rtrkName.c_str(), jzn.c_str() ))));
+      m_vHjznRtrk4.back()->SetDirectory(0);
+    }
+    
     // -------- dPhi- --------
     m_vHjznDphiReco.push_back
       ( static_cast< THnSparse *>
@@ -4184,6 +4296,80 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
   delete hDeltaMeanAll2;
 }
 
+void DiJetAnalysisMC::CompareRtrk( TFile* fOut ){
+
+  TFile* fMCov = TFile::Open("data/rtrk/myOut_pPb_mc_pythia8_perf_0.overlay.root");
+  TFile* fMCsi = TFile::Open("data/rtrk/myOut_pPb_mc_pythia8_perf_0.signal.root");
+  TFile* fData = TFile::Open("data/rtrk/myOut_pPb_data_perf_0.root");
+
+  TH1* hMCov  = static_cast< TH2D* >( fMCov->Get("h_rtrk1") );
+  TH1* hMCsi  = static_cast< TH2D* >( fMCsi->Get("h_rtrk4") );
+  TH1* hData1 = static_cast< TH2D* >( fData->Get("h_rtrk1") );
+  TH1* hData2 = static_cast< TH2D* >( fData->Get("h_rtrk4") );
+
+  TH2* hRov = static_cast< TH2D* >( hMCov->Clone("hRov") );
+  TH2* hRsi = static_cast< TH2D* >( hMCsi->Clone("hRov") );
+
+  hRov->Divide( hData1 );
+  hRsi->Divide( hData2 );
+
+  for( int xBin = 1; xBin <= hRov->GetNbinsX(); xBin++ ){
+
+    double xLow  = hRov->GetXaxis()->GetBinLowEdge( xBin );
+    double xHigh = hRov->GetXaxis()->GetBinUpEdge ( xBin );
+    
+    TH1* hOv = static_cast<TH1D*>
+      ( hRov->ProjectionY( Form( "h_rtrk_ov_%d", xBin ), xBin, xBin ) );    
+    styleTool->SetHStyleRatio( hOv, 0 );
+    TH1* hSi = static_cast<TH1D*>
+      ( hRsi->ProjectionY( Form( "h_rtrk_si_%d", xBin ), xBin, xBin ) );    
+    styleTool->SetHStyleRatio( hSi, 1 );
+
+    hSi->GetYaxis()->SetTitle( "#it{r}_{trk}^{MC}/#it{r}_{trk}^{Data}" );
+    hSi->GetXaxis()->SetTitleOffset( 1.5 );
+    
+    TCanvas c("c","c", 800, 600 );
+
+    double maximum = 1.15;
+    double minimum = 0.91;
+
+    if( xBin == 1 ){
+      maximum = 1.30;
+      minimum = 0.75;
+    }
+    
+    hSi->SetMaximum( maximum );
+    hSi->SetMinimum( minimum );
+    
+    hSi->Draw("ep same");
+    hOv->Draw("ep same");
+
+    double scale = 0.9;
+
+    TLegend leg( 0.2, 0.2, 0.4, 0.4 );
+    styleTool->SetLegendStyle( &leg );
+
+    leg.AddEntry( hOv, "MC w/Overlay #it{p}_{T}^{trk} > 1 GeV " );
+    leg.AddEntry( hSi, "MC Signal #it{p}_{T}^{trk} > 4 GeV " );
+
+    leg.Draw();
+    
+    drawTool->DrawAtlasInternal( CT::DrawTools::drawX0, 0.87, 1.0 );
+    drawTool->DrawRightLatex( CT::DrawTools::drawX0, 0.80, drawTool->GetLumipPb(), scale );
+    drawTool->DrawAtlasOverlayInfo ( CT::DrawTools::drawX0, 0.725, scale );
+    drawTool->DrawAtlasJetInfo( 0.46, 0.87, 2, scale);
+    drawTool->DrawAtlasEnergy ( 0.46, 0.80, m_is_pPb, scale );
+
+    TLine line( 20, 1, 90, 1 );
+    line.Draw();
+    
+    drawTool->DrawLeftLatex( 0.20, 0.72, anaTool->GetLabel( xLow, xHigh, "#eta" ) );
+
+    SaveAsPdfPng( c, Form( "h_rtrk_%d", xBin ) );
+  }  
+}
+
+
 // CLEAN THIS UP! ITS NOT WORTH THE HEADACHE NOW
 // BUT STILL, NOT GOOD (03.22.18)
 void DiJetAnalysisMC::CompareCfactorsWUW( TFile* fOut ){
@@ -4496,6 +4682,7 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
       leg.AddEntry( h, Form( " %s", h->GetTitle() ) );
     }
     h->SetTitle("");
+    // h->SetMarkerSize( h->GetMarkerSize() * 1.3 );
     h->Draw("epsame");
     SetMinMax( h, type1, type2 );
     h->Write();
@@ -4516,21 +4703,21 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
     if( m_is_pPb ){
       drawTool->DrawAtlasJetInfo     ( 0.60, 0.85, m_is_pPb, scale );
       drawTool->DrawAtlasOverlayInfo ( 0.60, 0.785, scale );
-      drawTool->DrawAtlasEnergy      ( 0.43, 0.36, scale );
+      drawTool->DrawAtlasEnergy      ( 0.43, 0.36, m_is_pPb, scale );
     } else {
       drawTool->DrawAtlasJetInfo     ( 0.60, 0.85, m_is_pPb, scale );
-      drawTool->DrawAtlasEnergy      ( 0.43, 0.36, scale );
+      drawTool->DrawAtlasEnergy      ( 0.43, 0.36, m_is_pPb,  scale );
     }
   } else if( finalPlots && type2.find("mean") != std::string::npos ){
     if( m_is_pPb ){
       drawTool->DrawAtlasSimulationInternal( 0.875, 0.855 );
       drawTool->DrawAtlasJetInfo     ( 0.875, 0.78, m_is_pPb, scale );
       drawTool->DrawAtlasOverlayInfo ( 0.875, 0.71, scale );
-      drawTool->DrawAtlasEnergy      ( 0.875, 0.64, scale );
+      drawTool->DrawAtlasEnergy      ( 0.875, 0.64, m_is_pPb, scale );
     } else {
       drawTool->DrawAtlasSimulationInternal( 0.875, 0.855 );
       drawTool->DrawAtlasJetInfo     ( 0.875, 0.78, m_is_pPb, scale );
-      drawTool->DrawAtlasEnergy      ( 0.875, 0.71, scale );
+      drawTool->DrawAtlasEnergy      ( 0.875, 0.71, m_is_pPb, scale );
     }
   } else {
     DrawAtlasRight();

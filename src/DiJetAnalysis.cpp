@@ -101,7 +101,8 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
 
   m_jetDeltaR = 0.4;
 
-  // for this uncertainty, dont add the jet deltaR
+  // increase the size of the jet or the region
+  // excluded by hec for systematics.
   if( m_uncertComp == 24 ){
     m_jetDeltaR = 0.5;
   }
@@ -193,10 +194,19 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
     ( -4.5 )( -2.7 )( -1.8 )( 0 )( 1.8 )( 4.0 );
   m_nVarEtaBins = m_varEtaBinning.size() - 1;
 
+  boost::assign::push_back( m_varEtaBarrelBinning )
+    ( -2.5 )( -1.8 )( 0 )( 1.8 )( 2.5 );
+  m_nVarEtaBarrelBins = m_varEtaBarrelBinning.size() - 1;
+  
   // --- variable pt binning ---
   boost::assign::push_back( m_varPtBinning )
     ( 28 )( 35 )( 45 )( 90 );
   m_nVarPtBins = m_varPtBinning.size() - 1;
+
+  boost::assign::push_back( m_varRtrkPtBinning )
+    ( 20 )( 22 )( 24 )( 26 )( 28 )( 30 )( 32 )( 34 )( 36 )( 38 )
+    ( 40 )( 44 )( 48 )( 53 )( 58 )( 64 )( 70 )( 78 )( 90 );
+  m_nVarRtrkPtBins = m_varRtrkPtBinning.size() - 1;
 
   // --- for resp mat ---
   // here we include underflow and overflow pt bins
@@ -247,8 +257,8 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_dPhiWidthMin = 0.0;
   m_dPhiWidthMax = 1.0;
 
-  m_dPhiYieldMin = 5.0e-6;
   m_dPhiYieldMax = 1.0e-2;
+  m_dPhiYieldMin = 5.0e-6;
 
   // default values 0->2 are in
   // SetHStyleRatio.
@@ -323,6 +333,8 @@ DiJetAnalysis::DiJetAnalysis( bool is_pPb, bool isData, int mcType, int uncertCo
   m_ystarSpectFineRecoName  = m_ystarSpectFineName + "_" + m_recoName;
   m_ystarSpectFineTruthName = m_ystarSpectFineName + "_" + m_truthName;
 
+  m_rtrkName = "rtrk";
+  
   m_ystarRespMatName           = m_sYstar         + "_" + m_respMatName;  
   
   m_ystarSpectRespMatName      = m_ystarSpectName + "_" + m_respMatName;  
@@ -710,16 +722,20 @@ bool DiJetAnalysis::IsForwardYstar( const double& ystar )
 bool DiJetAnalysis::IsCentralYstar( const double& ystar )
 { return ( std::abs(ystar - constants::BETAZ) < constants::CETAMAX ); }
 
-void DiJetAnalysis::NormalizeDeltaPhi( TH1* hIn, TH1* hNorm,
+TF1* DiJetAnalysis::NormalizeDeltaPhi( TH1* hIn, TH1* hNorm,
 				       double xBinCenter, bool comb ){
 
-  if( !hIn->GetEntries() ){ return; }
+  TF1* combFit = NULL;
+
+  if( !hIn->GetEntries() ){ return combFit; }
 
   // for yields, have to rescale later.
   // need this for comb subtraction, however
   hIn->Scale( 1., "width" );
   
-  if( comb ){ anaTool->SubtractCombinatoric( hIn ); }
+  if( comb ){
+    combFit = anaTool->SubtractCombinatoric( hIn );
+  }
 
   if( !hNorm ){
     hIn->Scale( 1./hIn->Integral() ) ;
@@ -727,7 +743,13 @@ void DiJetAnalysis::NormalizeDeltaPhi( TH1* hIn, TH1* hNorm,
     int      xBin = hNorm->FindBin( xBinCenter );
     double  nJets = hNorm->GetBinContent( xBin );
     hIn->Scale( 1./nJets );
+    if( combFit ){
+      combFit->SetParameter
+	( 0, combFit->GetParameter(0) * 1./nJets );
+    }
   }
+
+  return combFit;
 }
 
 double DiJetAnalysis::GetJetWeight( const TLorentzVector& jet )
@@ -967,6 +989,47 @@ TH1* DiJetAnalysis::FlipOverXaxis( TH1* h, std::vector< double >& binning ){
   return hFlip;
 }
 
+void DiJetAnalysis::GetSignficance( TGraphAsymmErrors* gNominalR,
+				    TGraphAsymmErrors* gSystematicsR ){
+  //--------------------------------------------
+  // Fit some bins to see the results on ratios
+  //--------------------------------------------
+  double posYstarFitMin = 1.5;
+  double posYstarFitMax = 4.0;
+  double c0Pos = 0, dc0Pos = 0, dc1Pos = 0, dc2Pos = 0;
+  anaTool->FitPol0Syst
+    ( gNominalR, gSystematicsR, c0Pos, dc0Pos, dc1Pos, dc2Pos,
+      posYstarFitMin, posYstarFitMax );
+
+  std::string posFitResult = Form( "%5.4f +- %5.4f + %5.4f - %5.4f",
+				   c0Pos, dc0Pos, dc1Pos, dc2Pos );
+	
+  double negYstarFitMin = -4.0;
+  double negYstarFitMax =  0.0;
+  double c0Neg = 0, dc0Neg = 0, dc1Neg = 0, dc2Neg = 0;
+  anaTool->FitPol0Syst
+    ( gNominalR, gSystematicsR, c0Neg, dc0Neg, dc1Neg, dc2Neg,
+      negYstarFitMin, negYstarFitMax );
+
+  std::string negFitResult = Form( "%5.4f +- %5.4f + %5.4f - %5.4f",
+				   c0Neg, dc0Neg, dc1Neg, dc2Neg );
+
+  double significancePos =
+    ( 1 - c0Pos ) / std::sqrt( std::pow( dc0Pos, 2 ) + std::pow( dc1Pos, 2 ) );
+  double significanceNeg =
+    ( 1 - c0Neg ) / std::sqrt( std::pow( dc0Neg, 2 ) + std::pow( dc1Neg, 2 ) );
+	
+  std::cout << "   " << gNominalR->GetName() << std::endl;
+  std::cout << "-----------------Positive------------------------" << std::endl;
+  std::cout << "   " << posFitResult  << std::endl;
+  std::cout << "   sigma : " << significancePos << std::endl;
+  std::cout << "-----------------Negative------------------------" << std::endl;
+  std::cout << "   " << negFitResult  << std::endl;
+  std::cout << "   sigma : " << significanceNeg << std::endl;
+  std::cout << "-----------------Negative------------------------" << std::endl;
+
+
+}
 
 //---------------------------
 //   Get Quantities / Plot 
@@ -1269,6 +1332,65 @@ void DiJetAnalysis::MakeSpectra( std::vector< TH2* >& vSampleSpect,
     }
   }
 } 
+
+void DiJetAnalysis::MakeRtrk( std::vector< TH3* >& vSampleRtrk,
+			      const std::vector< std::string>& vLabels,
+			      const std::string& name ){
+    
+  if( !vSampleRtrk.size() ){ return; }
+
+  // it should be in every file
+  TH3*  hRef = vSampleRtrk[0];
+  int nXbins = hRef->GetNbinsX();
+  int nYbins = hRef->GetNbinsY();
+
+  uint nSamples = vSampleRtrk.size();
+  
+  std::vector< std::vector< TH1* > > vRtrk;
+  vRtrk.resize( nSamples );
+
+  std::string yAxisTitle = "rTrk";
+
+  TH2* hRtrk = new TH2D( Form( "h_%s", name.c_str() ), "",
+			 m_nVarEtaBarrelBins, 0, 1,
+			 m_nVarRtrkPtBins, 0, 1 );
+  hRtrk->GetXaxis()->Set( m_nVarEtaBarrelBins, &( m_varEtaBarrelBinning[0] ) );
+  hRtrk->GetYaxis()->Set( m_nVarRtrkPtBins, &( m_varRtrkPtBinning[0] ) ) ;
+  hRtrk->GetXaxis()->SetTitle( hRef->GetXaxis()->GetTitle() );
+  hRtrk->GetYaxis()->SetTitle( hRef->GetYaxis()->GetTitle() );
+  hRtrk->GetZaxis()->SetTitle( yAxisTitle.c_str() );
+  styleTool->SetHStyle( hRtrk, 0 );
+
+  for( auto& s : vSampleRtrk ){
+    std::cout << s->GetName() << std::endl;
+  }
+  
+  for( uint iG = 0; iG < nSamples; iG++){
+
+    std::string label = vLabels[iG];
+    
+    // skip for all other ones 
+    if( label.compare( m_allName ) ){ continue; }
+
+    TH3* hRtrkAll = vSampleRtrk[iG];
+
+    // hRtrkAll->RebinY();
+    
+    // loop over eta
+    for( int xBin = 1; xBin <= nXbins; xBin++ ){
+      // loop over ept
+      for( int yBin = 1; yBin <= nYbins; yBin++ ){
+	TH1* hTmp = static_cast<TH1D*>
+	  ( hRtrkAll->ProjectionZ( "hTmp", xBin, xBin, yBin, yBin ) );
+	hRtrk->SetBinContent( xBin, yBin, hTmp->GetMean() );
+	hRtrk->SetBinError  ( xBin, yBin, hTmp->GetMeanError() );
+	delete hTmp;
+      }
+    }
+  }
+
+  hRtrk->Write();
+}
 
 TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
 				   const std::string& hUnfoldedName ){
@@ -1825,8 +1947,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	   
 	    // Combinatoric subtraction after scaling by width
 	    // then normalize by jet spectra.
-	    NormalizeDeltaPhi( hDphi  , hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true  );
 	    NormalizeDeltaPhi( hDphiUs, hSpectCounts, 0.5 * ( axis1Up + axis1Low ), false );
+	    TF1* combFit = NormalizeDeltaPhi( hDphi  , hSpectCounts, 0.5 * ( axis1Up + axis1Low ), true  );
 	    
 	    // take final dPhi histogram, and redo
 	    // bin width normalization to get per-jet
@@ -1842,16 +1964,31 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    anaTool->UndoWidthScaling( hYieldsUs );
 	    
 	    TCanvas c( hDphi->GetName(), hDphi->GetName(), 800, 600 );
-	    c.SetLogy();
+	    // c.SetLogy();
 
-	    hDphi->SetMinimum( m_dPhiLogMin );
-	    hDphi->SetMaximum( m_dPhiLogMax );
+	    hDphi->SetMaximum( hDphi->GetMaximum() * 0.5 );
+	    hDphi->SetMinimum( -1 * hDphi->GetMaximum() * 0.05 );
+	    // hDphi->SetMinimum( m_dPhiLogMin );
+	    // hDphi->SetMaximum( m_dPhiLogMax );
 	    hDphi  ->Draw("ep same x0");
 	    hDphiUs->Draw("ep same x0");
-	    
+
+	    // if there was something to fit, draw the fit result
+	    if( combFit ){
+	      styleTool->SetHStyle( combFit, 1 );
+	      combFit->SetLineColor( kRed );
+	      vFits.push_back( combFit );
+	      combFit->Draw( "same" );
+	    }
+
+	    /*
 	    TLegend legUs( 0.76, 0.36, 0.86, 0.46 );
 	    styleTool->SetLegendStyle( &legUs, 0.85 );
-
+	    */
+	    
+	    TLegend legUs( 0.53, 0.40, 0.63, 0.50 );
+	    styleTool->SetLegendStyle( &legUs, 0.70 );
+	    	    
 	    legUs.AddEntry( hDphiUs, "NO CS");
 	    legUs.AddEntry( hDphi  , "W/CS" );
 	    
@@ -1921,8 +2058,9 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 
 	    // set range back to what it should be.
 	    // it can be changed in the fit funtion
-	    hDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
-
+	    // hDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
+	    hDphi->GetXaxis()->SetRange( 1, m_dPhiZoomHighBin );
+ 
 	    // draw longer fit first;
 	    // fit2->Draw("same");
 	    fit  ->Draw("same");
@@ -1958,12 +2096,19 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	      v_listBadHist.push_back( hDphi->GetName() );
 	      v_listBadFits.push_back( fit  ->GetName() );
 	    }
-	    
+
+	    /*
 	    drawTool->DrawLeftLatex
 	      ( 0.71, 0.31, Form( "Prob = %4.2f", prob ), 0.85 );
 	    drawTool->DrawLeftLatex
 	      ( 0.67, 0.25, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ), 0.85 );
-	  
+	    */
+	    drawTool->DrawLeftLatex
+	      ( 0.53, 0.60, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ), 0.7 );
+	    drawTool->DrawLeftLatex
+	      ( 0.53, 0.54, Form( "Prob = %4.2f", prob ), 0.7 );
+	    
+	    
 	    DrawTopLeftLabels
 	      ( m_dPP, axis0Low, axis0Up, axis1Low, axis1Up,
 		axis2Low, axis2Up, axis3Low, axis3Up, 0.85 );

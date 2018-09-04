@@ -174,6 +174,15 @@ class DiJetAnalysisData : public DiJetAnalysis{
   TH3* m_hAllNjetsRun;
   std::vector< TH3* > m_vHtriggerNjetsRunFine;
   TH3* m_hAllNjetsRunFine;
+
+  // ----- rtrk ----
+  std::vector< TH3* > m_vHtriggerRtrk1;
+  std::vector< TH3* > m_vHtriggerRtrk2;
+  std::vector< TH3* > m_vHtriggerRtrk4;
+  TH3* m_hAllTriggerRtrk1;
+  TH3* m_hAllTriggerRtrk2;
+  TH3* m_hAllTriggerRtrk4;
+  
   // ----- efficiencies ----
   std::vector< TH2* > m_vHtriggerEtaSpectSim;
   std::vector< TH2* > m_vHtriggerEtaSpectDenom;

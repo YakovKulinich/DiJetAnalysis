@@ -109,7 +109,7 @@ namespace CT{
 
     std::vector<double> vectoriseD(TString str, TString sep);
 
-    bool SubtractCombinatoric( TH1*, double = 0, double = 1 );
+    TF1* SubtractCombinatoric( TH1*, double = 0, double = 1 );
 
     void UndoWidthScaling( TH1* );
     
@@ -222,7 +222,7 @@ namespace CT{
 			  double scale = StyleTools::lSS,
 			  int color = 1 );
 
-    void DrawAtlasEnergy( double = 0., double = 0.,
+    void DrawAtlasEnergy( double = 0., double = 0., int = 0,
 			  double = StyleTools::lSS );
 
     void DrawAtlasJetInfo( double = 0., double = 0., int = 0,
@@ -232,7 +232,7 @@ namespace CT{
     
     void DrawAtlasInternal(  double = CT::DrawTools::drawX0,
 			     double = CT::DrawTools::drawY0,
-			     double = CT::StyleTools::lSS );
+			     double = 1.0 );
 
     std::string GetLumipPb();
 

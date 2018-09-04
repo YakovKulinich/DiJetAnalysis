@@ -26,6 +26,8 @@ class DeltaPhiProj;
 // overall systematics, and final plots.
 static const bool finalPlots = true;
 
+static const bool doRtrk = true;
+
 class DiJetAnalysis{
   
  public:
@@ -128,7 +130,7 @@ class DiJetAnalysis{
 
   bool IsCentralYstar( const double& ystar );
   
-  void NormalizeDeltaPhi( TH1*, TH1* = NULL, double = 0, bool = true );
+  TF1* NormalizeDeltaPhi( TH1*, TH1* = NULL, double = 0, bool = true );
  
   virtual double GetJetWeight( const TLorentzVector& );
 
@@ -166,6 +168,8 @@ class DiJetAnalysis{
   void MakeLogBinning( std::vector< double >&, std::vector< double >&, int );
 
   TH1* FlipOverXaxis( TH1*, std::vector< double >& );
+
+  void GetSignficance(TGraphAsymmErrors*, TGraphAsymmErrors*);
   
   //---------------------------
   //   Get Quantities / Plot 
@@ -180,6 +184,10 @@ class DiJetAnalysis{
 			    const std::vector< std::string >&, 
 			    const std::string& = "" );
 
+  virtual void MakeRtrk( std::vector< TH3* >&,
+			 const std::vector< std::string >&, 
+			 const std::string& = "" );
+  
   virtual TH2* UnfoldSpectra( TFile*, TFile*,
 			      const std::string& = "" );
   
@@ -396,6 +404,9 @@ class DiJetAnalysis{
   std::string m_ystarSpectFineName;
   std::string m_ystarSpectFineRecoName;
   std::string m_ystarSpectFineTruthName;
+
+  // --- rtrk ----
+  std::string m_rtrkName;
   
   // --- ystar response matrix ----
   std::string m_ystarRespMatName;
@@ -483,11 +494,18 @@ class DiJetAnalysis{
 
   std::vector<double> m_varEtaBinning;
   uint m_nVarEtaBins;
+
+  // ---- barrel eta binning ----
+  std::vector<double> m_varEtaBarrelBinning;
+  uint m_nVarEtaBarrelBins;
   
   // ---- variable pt binning ----
   std::vector<double> m_varPtBinning;
   uint m_nVarPtBins;
 
+  std::vector<double> m_varRtrkPtBinning;
+  uint m_nVarRtrkPtBins;
+  
   // --- variable pt binning w/over+underflow ---
   std::vector< double > m_varPtBinningUfOf;
   uint m_nVarPtBinsUfOf;

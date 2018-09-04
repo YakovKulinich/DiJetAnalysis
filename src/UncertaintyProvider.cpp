@@ -116,7 +116,7 @@ void AngularUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& 
 
     float recoJetPt    = recoJet.Pt()/1000.;
     float recoJetEta   = recoJet.Eta();
-    float recoJetYstar = GetYstar( recoJet );
+    //    float recoJetYstar = GetYstar( recoJet );
     float recoJetPhi   = recoJet.Phi();
     float recoJetM     = recoJet.M();
   
@@ -194,7 +194,7 @@ void JERUncertaintyTool::ApplyUncertainties( std::vector< TLorentzVector >& reco
   
     float recoJetPt    = recoJet.Pt()/1000.;
     float recoJetEta   = recoJet.Eta();
-    float recoJetYstar = GetYstar( recoJet );
+    //    float recoJetYstar = GetYstar( recoJet );
     float recoJetPhi   = recoJet.Phi();
     float recoJetM     = recoJet.M();
   
