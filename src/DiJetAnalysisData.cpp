@@ -1477,7 +1477,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
   std::string yTitle = isYield ? m_sYieldTitle : m_sWidthTitle;
   std::string gTitle = ";" + xTitle + ";" + yTitle;
   
-  std::string yTitleUncert = "#delta " + yTitle + " %";
+  std::string yTitleUncert = "#delta " + yTitle + " [%]";
 
   std::string sRatio       = isYield ? m_sYieldRatioTitle : m_sWidthRatioTitle;
   std::string gTitleRatio  = ";" + xTitle + ";Data/MC";
@@ -1804,7 +1804,7 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	    double uncertaintySq = std::pow( ( yNominal - yShifted ) / yNominal, 2 );
 	    double uncertainty   = std::sqrt( uncertaintySq ); 
 
-	    if( !m_is_pPb && !isYield && ( axis2Bin == 1 || axis2Bin == 2 ) &&
+	    if( !isYield && ( axis2Bin == 1 || axis2Bin == 2 ) &&
 		axis0Bin == 1 && axis1Bin == 3 && axis3Bin == 1 ){
 	      uncertaintySq = 0;
 	      uncertainty   = 0;
@@ -1912,10 +1912,14 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  
 	  hPJESpPb->SetBinContent( axis3Bin, uncertFinYPJESpPb * 100 );
 	  hNJESpPb->SetBinContent( axis3Bin, uncertFinYNJESpPb * 100 );
-	  
+
+	  /*
 	  std::cout << hNominalName << " " << uncertFinNoJesYP << " " << uncertFinYP << " "
 		    << uncertFinNoJesYN << " " << uncertFinYN << std::endl;
-	  
+	  */
+
+	  std::cout << hNominalName << " " << uncertFinYP << " " << uncertFinYN << std::endl;
+
 	  pY .push_back( yNominal );
 	  eYP.push_back( yNominal * uncertFinYP );
 	  eYN.push_back( yNominal * uncertFinYN );
@@ -2452,10 +2456,10 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  hNTOTNOJES->SetLineStyle(7);
 	  	  
 	  hPTOT->SetYTitle( yTitleUncert.c_str() );
-	  hPTOT->Draw( "histo same" );
-	  hNTOT->Draw( "histo same" );
-	  hPTOTNOJES->Draw( "histo same" );
-	  hNTOTNOJES->Draw( "histo same" );
+	  hPTOT->Draw( "histo L same" );
+	  hNTOT->Draw( "histo L same" );
+	  hPTOTNOJES->Draw( "histo L same" );
+	  hNTOTNOJES->Draw( "histo L same" );
 
 	  drawTool->DrawLeftLatex
 	    ( 0.46, 0.866, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), 0.85 );
@@ -2464,11 +2468,11 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	  drawTool->DrawLeftLatex
 	    ( 0.18 , 0.795, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), 0.85 );
 
-	  DrawAtlasRightBoth( CT::DrawTools::drawX0, CT::DrawTools::drawY0, 0.9, true );
+	  DrawAtlasRight();
 
 	  line0.Draw();
 
-	  TLegend legCompR( 0.2, 0.2, 0.45, 0.35 );
+	  TLegend legCompR( 0.4, 0.22, 0.8, 0.37 );
 	  styleTool->SetLegendStyle( &legCompR );
 
 	  legCompR.AddEntry( hPTOTNOJES, Form( "%s - NO new JES", yTitleUncert.c_str() ) );
@@ -2567,8 +2571,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   TAxis* axis3 = m_dPP->GetTAxis(3); int nAxis3Bins = axis3->GetNbins();
 
   // for canvas, since its tgraphasymmerrors.
-  double x0 = axis3->GetXmin();
-  double x1 = axis3->GetXmax(); 
+  double x0 = axis3->GetXmin() + 0.01;
+  double x1 = axis3->GetXmax() - 0.01; 
 
   double y0 = isYield ? m_dPhiYieldMin : 0.0;
   double y1 = isYield ? m_dPhiYieldMax : 0.9;
@@ -2621,6 +2625,12 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   std::string xTitle = m_dPP->GetAxisLabel(3);
   std::string gTitle = ";" + xTitle + ";" + yTitle;
 
+  if( isYield ){
+    gTitle += " [GeV^{-2}]";
+  } else {
+    gTitle += " [rad]";
+  }
+  
   std::string sRatio       = isYield ? m_sYieldRatioTitle : m_sWidthRatioTitle;
   std::string gTitleRatio  = ";" + xTitle + "; " + sRatio;
 
@@ -2636,24 +2646,21 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   hDef->SetMinimum( y0 );
   hDef->GetXaxis()->SetTitle("");
   
-  TH1* hDefF1  = new TH1D( "hDefF1", gTitle.c_str(), 1,
-			   m_varYstarBinning.front() + 0.1, m_varYstarBinning.back() - 0.1 );
+  TH1* hDefF1  = new TH1D( "hDefF1", gTitle.c_str(), 1, x0, x1 );
   styleTool->SetHStyle( hDefF1, 0 );
   hDefF1->SetMaximum( y1 );
   hDefF1->SetMinimum( y0 );
   styleTool->HideAxis( hDefF1, "x" );
   hDefF1->GetXaxis()->SetTitle("");
  
-  TH1* hDefF2  = new TH1D( "hDefF2", gTitle.c_str(), 1,
-			   m_varYstarBinning.front() + 0.1, m_varYstarBinning.back() - 0.1 );
+  TH1* hDefF2  = new TH1D( "hDefF2", gTitle.c_str(), 1, x0, x1 );
   styleTool->SetHStyle( hDefF2, 0 );
   hDefF2->SetMaximum( y1 );
   hDefF2->SetMinimum( y0 );
   styleTool->HideAxis( hDefF2, "x" );
   hDefF2->GetXaxis()->SetTitle("");
  
-  TH1* hDefF3  = new TH1D( "hDefF3", gTitle.c_str(), 1,
-			   m_varYstarBinning.front() + 0.1, m_varYstarBinning.back() - 0.1 );
+  TH1* hDefF3  = new TH1D( "hDefF3", gTitle.c_str(), 1, x0, x1 );
   styleTool->SetHStyle( hDefF3, 0 );
   hDefF3->SetMaximum( y1 );
   hDefF3->SetMinimum( y0 );
@@ -2676,10 +2683,10 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
     hDefF2->GetYaxis()->SetNdivisions( 504 );
     hDefF3->GetYaxis()->SetNdivisions( 504 );
   } else {
-    hDef  ->GetYaxis()->SetNdivisions( 502 );
-    hDefF1->GetYaxis()->SetNdivisions( 502 );
-    hDefF2->GetYaxis()->SetNdivisions( 502 );
-    hDefF3->GetYaxis()->SetNdivisions( 502 );
+    hDef  ->GetYaxis()->SetNdivisions( 505 );
+    hDefF1->GetYaxis()->SetNdivisions( 505 );
+    hDefF2->GetYaxis()->SetNdivisions( 505 );
+    hDefF3->GetYaxis()->SetNdivisions( 505 );
   }
 
   TH1* hDefR = new TH1D( "hDefR", gTitleRatio.c_str(), nAxis3Bins, x0, x1 );
@@ -2687,47 +2694,48 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   hDefR->SetMaximum( ratioMax );
   hDefR->SetMinimum( ratioMin );
   
-  TH1* hDefFR1  = new TH1D( "hDefFR1", gTitleRatio.c_str(), 1,
-			   m_varYstarBinning.front(), m_varYstarBinning.back() );
+  TH1* hDefFR1  = new TH1D( "hDefFR1", gTitleRatio.c_str(), 1, x0, x1 );
   styleTool->SetHStyleRatio( hDefFR1, 0 );
   hDefFR1->SetMaximum( ratioMaxF );
   hDefFR1->SetMinimum( ratioMinF );
   styleTool->HideAxis( hDefFR1, "x" );
   hDefFR1->GetXaxis()->SetTitle("");
  
-  TH1* hDefFR2  = new TH1D( "hDefFR2", gTitleRatio.c_str(), 1,
-			   m_varYstarBinning.front() , m_varYstarBinning.back() );
+  TH1* hDefFR2  = new TH1D( "hDefFR2", gTitleRatio.c_str(), 1, x0, x1 );
   styleTool->SetHStyleRatio( hDefFR2, 0 );
   hDefFR2->SetMaximum( ratioMaxF );
   hDefFR2->SetMinimum( ratioMinF );
 
   double ratioMaxFF = isYield ? 1.75 : 2.8;
-  double ratioMinFF = isYield ? 0.60 : 0.4;
+  double ratioMinFF = isYield ? 0.61 : 0.4;
 
-  TH1* hDefFR3  = new TH1D( "hDefFR3", gTitleRatio.c_str(), 1,
-			    m_varYstarBinning.front() , m_varYstarBinning.back() );
+  TH1* hDefFR3  = new TH1D( "hDefFR3", gTitleRatio.c_str(), 1, x0, x1 );
   styleTool->SetHStyleRatio( hDefFR3, 0 );
   hDefFR3->SetMaximum( ratioMaxFF );
   hDefFR3->SetMinimum( ratioMinFF );
-  hDefFR3->GetXaxis()->SetTitleOffset( 1.5 );
-  hDefFR3->GetYaxis()->SetTitleOffset( 0.5 );
+  hDefFR3->GetXaxis()->SetTitleOffset( 1.20 );
+  hDefFR3->GetYaxis()->SetTitleOffset( 0.55 );
+  hDefFR3->GetYaxis()->SetNdivisions(510);
+  hDefFR3->GetXaxis()->SetNdivisions(510);
   
-  TH1* hDefFR4  = new TH1D( "hDefFR4", gTitleRatio.c_str(), 1,
-			    m_varYstarBinning.front() + 0.05 , m_varYstarBinning.back() - 0.05 );
-  styleTool->SetHStyleRatio( hDefFR4, 0, 1.8 );
+  TH1* hDefFR4  = new TH1D( "hDefFR4", gTitleRatio.c_str(), 1, x0, x1 );
+  styleTool->SetHStyleRatio( hDefFR4, 0, 2.2 );
   hDefFR4->SetMaximum( ratioMaxFF );
   hDefFR4->SetMinimum( ratioMinFF );
   hDefFR4->GetXaxis()->SetTitleOffset( 1.3 );
   hDefFR4->GetYaxis()->SetTitleOffset( 1.5 );
-  hDefFR4->SetTitleSize( 50, "xyz" );
-  hDefFR4->SetLabelSize( 48, "xyz" );
+  hDefFR4->SetTitleSize( 54, "xyz" );
+  hDefFR4->SetLabelSize( 52, "xyz" );
+  hDefFR4->GetYaxis()->SetNdivisions( 504 );
   
-  std::string gTitleDphi = ";" + m_sDphi + ";" + m_sDphiTitle ; 
+  std::string gTitleDphi = ";" + m_sDphi + " [rad]" + ";" + m_sDphiTitle + " [rad^{-1}]"; 
   
   TH1* hDefDphi =
     new TH1D( "hDefDphi", gTitleDphi.c_str(), m_nVarDphiBins, &m_varDphiBinning[0] );
   styleTool->SetHStyle( hDefDphi, 0 );
-  hDefDphi->GetYaxis()->SetNdivisions( 502 );
+  hDefDphi->GetYaxis()->SetNdivisions( 504 );
+  hDefDphi->GetXaxis()->SetTitleOffset(1.1);
+  hDefDphi->GetYaxis()->SetTitleOffset(1.3);
   
   for( int axis0Bin = 1; axis0Bin <= nAxis0Bins; axis0Bin++ ){
     double axis0Low, axis0Up;
@@ -2779,6 +2787,10 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
     TLegend legSpp3 ( legSX0pp,  legSY0 + 0.07,  legSX1pp, legSY1 + 0.07);
     styleTool->SetLegendStyle( &legSpp3, 0.85 );
 
+    hDefF1->GetYaxis()->SetTitleOffset( 3.5 );
+    hDefF2->GetYaxis()->SetTitleOffset( 3.5 );
+    hDefF3->GetYaxis()->SetTitleOffset( 3.5 );
+    
     padFinalDist1.SetBottomMargin( 0.022 );
     padFinalDist2.SetTopMargin   ( 0.00 );
     padFinalDist2.SetBottomMargin( 0.022 );
@@ -2831,14 +2843,20 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
     hDefFR3->Draw();
     line.Draw();
 
+    /*
     double lxf1 = isYield ? 0.47 : 0.52;
     double lyf1 = isYield ? 0.14 : 0.14;
     double lxf2 = isYield ? 0.60 : 0.64;
     double lyf2 = isYield ? 0.52 : 0.35;
+    */
+    double lxf1 = isYield ? 0.20 : 0.52;
+    double lyf1 = isYield ? 0.15 : 0.14;
+    double lxf2 = isYield ? 0.45 : 0.64;
+    double lyf2 = isYield ? 0.52 : 0.35;
     
     TCanvas cFinalRatioTg2( "cFinalRatioTg2", "cFinalRatioTg2", 1600, 1600 );
     TLegend legFinalRatio2( lxf1, lyf1, lxf2, lyf2 );
-    styleTool->SetLegendStyle( &legFinalRatio2, 1.3 );
+    styleTool->SetLegendStyle( &legFinalRatio2, 1.5 );
     if( !isYield ){
       styleTool->SetLegendStyle( &legFinalRatio2, 1.2 );
     }
@@ -2882,6 +2900,17 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	hDefF3->SetMaximum( 9E-4 );
 	hDefF3->SetMinimum( 4E-7 );
       } 
+
+      /*
+      hDefF1->SetMaximum( 1.5E-3 );
+      hDefF1->SetMinimum( 4.0E-7 );
+
+      hDefF2->SetMaximum( 1.5E-3 );
+      hDefF2->SetMinimum( 4.0E-7 );
+
+      hDefF3->SetMaximum( 1.5E-3 );
+      hDefF3->SetMinimum( 4.0E-7 );
+      */
       
       double axis1Low, axis1Up;
       anaTool->GetBinRange
@@ -3421,21 +3450,31 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	    dPhiMaximum = topOfPoint > dPhiMaximum ? topOfPoint : dPhiMaximum;
 	  }
 
-	  TLegend legDphi( 0.56, 0.48, 0.72, 0.63 );
+	  TLegend legDphi( 0.51, 0.46, 0.67, 0.61 );
 	  styleTool->SetLegendStyle( &legDphi, 1.0 );
 
 	  legDphi.AddEntry( gSystematicsDphiA, label_a.c_str(), "lpf" );
 	  legDphi.AddEntry( gSystematicsDphiB, label_b.c_str(), "lpf" );
   
 	  TCanvas cDphi( "cDphi", "cDphi", 700, 550 );
-	  cDphi.SetRightMargin ( 0.02 );
-	  cDphi.SetLeftMargin  ( 0.14 );
-	  cDphi.SetTopMargin   ( 0.02 );
+	  cDphi.SetRightMargin ( 0.01 );
+	  cDphi.SetLeftMargin  ( 0.16 );
+	  cDphi.SetTopMargin   ( 0.01 );
 	  cDphi.SetBottomMargin( 0.14 );
 	  hDefDphi->SetMaximum( dPhiMaximum * 1.3 );
 	  hDefDphi->GetXaxis()->SetRange( m_dPhiZoomLowBin, m_dPhiZoomHighBin );
  	  hDefDphi->Draw();
 
+	  if( axis1Bin == 2 && axis2Bin == 1 && axis3Bin == 3 ){
+	    hDefDphi->SetMaximum( 0.5 );
+	  }
+	  if( axis1Bin == 2 && axis2Bin == 1 && axis3Bin == 5 ){
+	    hDefDphi->SetMaximum( 0.05 );
+	  }
+	  if( axis1Bin == 3 && axis2Bin == 3 && axis3Bin == 5 ){
+	    hDefDphi->SetMaximum( 0.05 );
+	  }
+	  	  
 	  gSystematicsDphiBuncorr->Draw("2");
 	  gSystematicsDphiAuncorr->Draw("2");
 	  
@@ -3451,20 +3490,20 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  double scale = 0.90;
 	  
 	  if( finalPlots ){
-	    drawTool->DrawAtlasInternal( 0.47, 0.92, 1.0 );
-	    drawTool->DrawRightLatex( CT::DrawTools::drawX0 + 0.08, 0.915, drawTool->GetLumipPb(), scale );
-	    drawTool->DrawRightLatex( CT::DrawTools::drawX0 + 0.08, 0.84, drawTool->GetLumipp(), scale );
+	    drawTool->DrawAtlasInternal( 0.485, 0.92, 1.0 );
+	    drawTool->DrawRightLatex( CT::DrawTools::drawX0 + 0.09, 0.915, drawTool->GetLumipPb(), scale );
+	    drawTool->DrawRightLatex( CT::DrawTools::drawX0 + 0.09, 0.84, drawTool->GetLumipp(), scale );
 
 	    drawTool->DrawLeftLatex
-	      ( 0.18, 0.64, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale );
+	      ( 0.19, 0.64, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale );
 	    drawTool->DrawLeftLatex
-	      ( 0.17, 0.56, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), scale );
+	      ( 0.18, 0.56, anaTool->GetLabel( axis1Low, axis1Up, m_dPP->GetAxisLabel(1) ), scale );
 	    drawTool->DrawLeftLatex
-	      ( 0.17, 0.48, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), scale );
+	      ( 0.18, 0.48, anaTool->GetLabel( axis2Low, axis2Up, m_dPP->GetAxisLabel(2) ), scale );
 	    drawTool->DrawLeftLatex
-	      ( 0.18, 0.40, anaTool->GetLabel( axis3Low, axis3Up, m_dPP->GetAxisLabel(3) ), scale );
+	      ( 0.19, 0.40, anaTool->GetLabel( axis3Low, axis3Up, m_dPP->GetAxisLabel(3) ), scale );
 
-	    drawTool->DrawAtlasJetInfo( 0.46, 0.84, 2, scale);
+	    drawTool->DrawAtlasJetInfo( 0.473, 0.84, 2, scale);
 	    drawTool->DrawAtlasEnergy ( 0.46, 0.77, true, scale );
 	 
 	  } else {
@@ -3764,7 +3803,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	  newSystMin -= 15;
 	}
 	
-	std::string yTitleUncert = "#delta " + sRatio + " %";
+	std::string yTitleUncert = "#delta " + sRatio + " [%]";
  
 	hPJES->SetYTitle( yTitleUncert.c_str() );
 	hPJES->SetNdivisions( 505 );
@@ -3856,7 +3895,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	line0.Draw();
 
-	TLegend legCompR( 0.2, 0.2, 0.45, 0.35 );
+	TLegend legCompR( 0.4, 0.22, 0.8, 0.37 );
 	styleTool->SetLegendStyle( &legCompR );
 
 	legCompR.AddEntry( hPTOTNOJES, Form( "#delta %s %% - NO new JES", sRatio.c_str() ) );
@@ -4046,39 +4085,38 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
       ( 0.39, 0.71, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale );
     legFinalRatio.Draw();
 
-    double scale2 = 1.3;
+    double scale2 = 1.4;
     
     cFinalRatioTg2.cd();
 
     if( isYield ){
-      hDefFR4->SetMaximum(1.3);
+      hDefFR4->SetMaximum(1.4);
       hDefFR4->SetMinimum(0.0);
       // drawTool->DrawAtlasInternal( 0.35, 0.49, 1.5 );
-      drawTool->DrawLeftLatex( 0.16, 0.49, "#bf{#font[72]{ATLAS}} Internal", 1.5 );
-      drawTool->DrawLeftLatex( 0.16, 0.425, drawTool->GetLumipp(), scale2 );
-      drawTool->DrawLeftLatex( 0.16, 0.365, drawTool->GetLumipPb(), scale2 );
+      // drawTool->DrawLeftLatex( 0.16, 0.49, "#bf{#font[72]{ATLAS}} Internal", 1.5 );
+      // drawTool->DrawLeftLatex( 0.16, 0.425, drawTool->GetLumipp(), scale2 );
+      // drawTool->DrawLeftLatex( 0.16, 0.365, drawTool->GetLumipPb(), scale2 );
       // drawTool->DrawAtlasEnergy ( 0.32, 0.30, true, scale2 );
       // drawTool->DrawAtlasJetInfo( 0.33, 0.235, 2, scale2 );
-      drawTool->DrawLeftLatex( 0.16, 0.30, "#sqrt{#it{s}_{NN}} = 5.02 TeV", scale2 );
-      drawTool->DrawLeftLatex( 0.16, 0.235, "anti-#it{k}_{t} #it{R}=0.4 jets", scale2 );  
-      drawTool->DrawLeftLatex
-	( 0.16, 0.17, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale2 );
+      // drawTool->DrawLeftLatex( 0.16, 0.30, "#sqrt{#it{s}_{NN}} = 5.02 TeV", scale2 );
+      // drawTool->DrawLeftLatex( 0.16, 0.235, "anti-#it{k}_{t} #it{R}=0.4 jets", scale2 );  
+      // drawTool->DrawLeftLatex
+      // ( 0.16, 0.17, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale2 );
+      legFinalRatio2.Draw();
     } else {
-      hDefFR4->SetMaximum(2.0);
+      hDefFR4->SetMaximum(2.2);
       hDefFR4->SetMinimum(0.0);
-      drawTool->DrawLeftLatex( 0.14, 0.87, "#bf{#font[72]{ATLAS}} Internal", 1.5 );
+      drawTool->DrawLeftLatex( 0.14, 0.87, "#bf{#font[72]{ATLAS}} Internal", scale2 + 0.2 );
       drawTool->DrawLeftLatex( 0.14, 0.82, "#sqrt{#it{s}_{NN}} = 5.02 TeV", scale2 );
-      drawTool->DrawRightLatex( 0.87, 0.87, drawTool->GetLumipp(), scale2 );
-      drawTool->DrawRightLatex( 0.87, 0.83, drawTool->GetLumipPb(), scale2 );
+      drawTool->DrawRightLatex( 0.87, 0.865, drawTool->GetLumipp(), scale2 );
+      drawTool->DrawRightLatex( 0.87, 0.820, drawTool->GetLumipPb(), scale2 );
       // drawTool->DrawAtlasEnergy ( 0.32, 0.30, true, scale2 );
       // drawTool->DrawAtlasJetInfo( 0.33, 0.235, 2, scale2 );
-      drawTool->DrawLeftLatex( 0.40, 0.87, "anti-#it{k}_{t} #it{R}=0.4 jets", scale2 );  
+      drawTool->DrawLeftLatex( 0.38, 0.865, "anti-#it{k}_{t} #it{R}=0.4 jets", scale2 );  
       drawTool->DrawLeftLatex
-	( 0.40, 0.82, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale2 );
+	( 0.38, 0.815, anaTool->GetLabel( axis0Low, axis0Up, m_dPP->GetAxisLabel(0) ), scale2 );
     }
     
-    legFinalRatio2.Draw();
-
     SaveAsPdfPng( cFinalRatioTg, hNameRatioFinalFtg, true );
     SaveAsROOT  ( cFinalRatioTg, hNameRatioFinalFtg );
 

@@ -144,7 +144,7 @@ std::pair< double, double > CT::AnalysisTools::GetRMS
   // rmsError is yi * xi ^ 2 * dyi 
   double yixi2         = 0;
   double yixi2Error    = 0;
-  
+
   for ( int xBin = 1; xBin <= h->GetNbinsX(); xBin++ ){
 
     double xBinCenter = h->GetBinCenter( xBin );
@@ -173,6 +173,8 @@ std::pair< double, double > CT::AnalysisTools::GetRMS
   integral = h->IntegralAndError
     ( xBinLow, xBinUp, integralError );
 
+  std::cout << "     Integral from " << xBinLow << " " << xBinUp << std::endl;
+  
   double rms      = 0;
   double rmsError = 0;
 
@@ -181,7 +183,7 @@ std::pair< double, double > CT::AnalysisTools::GetRMS
     rmsError = std::sqrt( std::pow( rmsError / integral, 2 ) +
 			  std::pow( rms * integralError / integral , 2 ) );
       
-    std::cout << " ---- " << integral << " " << integralError
+    std::cout << " -- rms -- " << integral << " " << integralError
 	      << " " << rms << " " << rmsError << std::endl;
   } else {
     rms      = 0;
@@ -697,6 +699,10 @@ std::string CT::AnalysisTools::GetName( double v1, double v2,
       % var ;
   }
   return ss.str();
+}
+
+double CT::AnalysisTools::GetXprobed( double y1, double y2, double pt1, double pt2 ){
+  return ( pt1 * std::exp( -y1 ) + pt2 * std::exp( -y2 ) ) / 5.02E3; // 5.02 TeV
 }
 
 std::string CT::AnalysisTools::GetEtaLabel( double etaMin,

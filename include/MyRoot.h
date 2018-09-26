@@ -82,6 +82,7 @@ namespace CT{
     double DeltaR( const TLorentzVector& jet1,
 		   const TLorentzVector& jet2 );
 
+    
     static bool sortByDecendingPt
       ( const TLorentzVector& jet1,
 	const TLorentzVector& jet2 );
@@ -148,6 +149,8 @@ namespace CT{
     
     void GetBinRange( TAxis*, int, int, double&, double& );
 
+    double GetXprobed( double, double, double, double );
+    
     std::string GetName( double, double, const std::string& );
 
     static std::string GetEtaLabel  ( double, double,

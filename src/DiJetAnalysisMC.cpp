@@ -1063,8 +1063,7 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
       // last parameter is mode, we use 2 to get dphi weight.
       int mode = 2;
       AnalyzeDeltaPhiWithWeight( m_vHjznDphiReco [iG], vTR_paired_jets, vTT_paired_jets, mode );
-      AnalyzeDeltaPhiWithWeight( m_vHjznDphiTruth[iG], vTT_paired_jets,
-				 vTT_paired_jets, mode, false );
+      AnalyzeDeltaPhiWithWeight( m_vHjznDphiTruth[iG], vTT_paired_jets, vTT_paired_jets, mode, false );
       
       AnalyzeDphiRespMat
         ( m_vHjznDphiRespMat[iG], m_vHjznDphiRespMatReb[iG], vTR_paired_jets, vTT_paired_jets );
@@ -1162,6 +1161,7 @@ double DiJetAnalysisMC::AnalyzeDeltaPhiWithWeight
   double jetYstar2 = GetYstar( *jet2 );
 
   double dPhi      = anaTool->DeltaPhi(  *jet2,  *jet1 );
+  // double jetWeight = GetJetWeight( *jet1 ) * GetSpectWeight( *wJet1 );
   double jetWeight = GetJetWeight( *jet1 ) * GetSpectWeight( *wJet1 );
   if( mode == 2 ){
     jetWeight *= GetDphiWeight( *wJet1, *wJet2 );
@@ -1195,14 +1195,16 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
     double    jetEtaReco  = rJet.Eta();
     double    jetPhiReco  = rJet.Phi();
     double     jetPtReco  = rJet.Pt()/1000.;
-    double jetWeightReco  = GetJetWeight( rJet );
+    //  double jetWeightReco  = GetJetWeight( rJet );
+    double jetWeightReco  = 1;
 
     // truth jet
     double    jetEtaTruth = tJet.Eta();
     double    jetPhiTruth = tJet.Phi();
     double     jetPtTruth = tJet.Pt()/1000.;
     double  jetYstarTruth = GetYstar( tJet );
-    double jetWeightTruth = GetJetWeight( tJet );
+    // double jetWeightTruth = GetJetWeight( tJet );
+    double jetWeightTruth = 1;
 
     if( jetPtReco > 28 && jetPtReco < 35 ){
       // fill negative because the coordinate system is
@@ -1347,7 +1349,7 @@ void DiJetAnalysisMC::AnalyzeDphiRespMat( THnSparse* hnDphi,
   double truthDphi   = anaTool->DeltaPhi( *tJet2, *tJet1 );
   
   std::vector< double > xDphi( hnDphi->GetNdimensions(), 0 );
-    
+  
   double jetWeight = GetJetWeight( *tJet1 ) *
     GetSpectWeight( *tJet1 ) * GetDphiWeight( *tJet1, *tJet2 );
  
@@ -2596,6 +2598,12 @@ TH3* DiJetAnalysisMC::MakeDphiWeights( TFile* fOut ){
     cAll.cd();
     styleTool->SetHStyle( hR, y2Bin - 1 );
     hR->Draw( "ep X0 same" );
+    hR->GetXaxis()->SetRangeUser( m_dPhiZoomLow, m_dPhiZoomHigh );
+    if( m_is_pPb ){
+      hR->SetMinimum( 0.77 );
+    } else {
+      hR->SetMinimum( 0.79 );
+    }
     legAll.AddEntry( hR, anaTool->GetLabel
 		  ( y2Low, y2Up, m_dPP->GetDefaultAxisLabel(1) ).c_str() ); 
 
@@ -3345,6 +3353,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 
 	    // TRUNCATE HISTOGRAMS
 	    for( int i = 0; i <= hT->GetNbinsX(); i++ ){
+
 	      if( hT->GetBinContent(i) <= 2 ){
 		hT->SetBinContent( i, 0 );
 	      }
@@ -3423,8 +3432,7 @@ void DiJetAnalysisMC::MakeDphiCFactorsRespMat( std::vector< THnSparse* >& vHnT,
 	      vNentTJzn   [ iG ].push_back( hTreb );
 	      vNentRJzn   [ iG ].push_back( hRreb );
 	      vRespMatJzn [ iG ].push_back( hDphiRespMat );
-
-	     } else {
+	    } else {
 	      vCfactorsAll.push_back( hC );
 	    }
 	  } // end loop over axis4
@@ -3854,7 +3862,7 @@ void DiJetAnalysisMC::CompareAngularRes( TFile* fOut ){
     hProjAngResEta->SetTitleOffset( 2.0, "y" );
       
     SetMinMax( hProjAngResEta, "Deta", "sigma" );
-
+    
     hProjAngResEta->GetXaxis()->SetRangeUser( m_varPtBinning.front(), m_varPtBinning.back() );
 
     hProjAngResEta   ->Draw("ep same");
@@ -3996,6 +4004,20 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
 
   vH.push_back( hSigma_pPb_sig );
   vH.push_back( hMean_pPb_sig );
+
+  // get the pPb_signal only mean/res file
+  TFile* f_pPb_sig_new = new TFile( Form( "data/pPb_new_signal/%s_pPb_mc_pythia8.root", type.c_str() ), "read" );
+  TH2D* hSigma_pPb_sig_new = static_cast< TH2D* >( f_pPb_sig_new->Get( Form( "h_%s_sigma", type.c_str() ) ) );
+  hSigma_pPb_sig_new->SetName( "hSigma_pPb_sig_new" );
+  hSigma_pPb_sig_new->SetDirectory(0);
+  TH2D* hMean_pPb_sig_new = static_cast< TH2D* >( f_pPb_sig_new->Get( Form( "h_%s_mean", type.c_str() ) ) );
+  hMean_pPb_sig_new->SetName( "hMean_pPb_sig_new" );
+  hMean_pPb_sig_new->SetDirectory(0);
+  f_pPb_sig_new->Close();
+  delete f_pPb_sig_new;
+
+  vH.push_back( hSigma_pPb_sig_new );
+  vH.push_back( hMean_pPb_sig_new );
   
   // get the pp mean/res file
   TFile* f_pp = new TFile( Form( "data/%s_pp_mc_pythia8.root", type.c_str() ), "read" );
@@ -4039,8 +4061,8 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
   hDeltaMeanAll1->SetDirectory(0);
   
   for( auto& xBin: vXbins ){
-    TLegend leg( 0.5, 0.60, 0.85, 0.75 );
-    styleTool->SetLegendStyle( &leg );
+    TLegend leg( 0.5, 0.58, 0.85, 0.75 );
+    styleTool->SetLegendStyle( &leg, 0.9 );
 
     TCanvas cMean( "cMean", "cMean", 800, 800 );
     TPad padMean1("padMean1", "", 0.0, 0.35, 1.0, 1.0 );
@@ -4064,19 +4086,24 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
       ( hMean_pPb->ProjectionY( Form( "hMean_pPb_%d", xBin ), xBin, xBin ) );
     TH1* hProjMean_pPb_sig = static_cast< TH1D* >
       ( hMean_pPb_sig->ProjectionY( Form( "hMean_pPb_sig_%d", xBin ), xBin, xBin ) );
+    TH1* hProjMean_pPb_sig_new = static_cast< TH1D* >
+      ( hMean_pPb_sig_new->ProjectionY( Form( "hMean_pPb_sig_new_%d", xBin ), xBin, xBin ) );
     TH1* hProjMean_pp = static_cast< TH1D* >
       ( hMean_pp->ProjectionY ( Form( "hMean_pp_%d" , xBin ), xBin, xBin ) );
 
     vH.push_back( hProjMean_pPb );
     vH.push_back( hProjMean_pPb_sig );
+    vH.push_back( hProjMean_pPb_sig_new );
     vH.push_back( hProjMean_pp  );
     
     styleTool->SetHStyle( hProjMean_pPb, 0 );
     styleTool->SetHStyle( hProjMean_pPb_sig, 1 );
+    styleTool->SetHStyle( hProjMean_pPb_sig_new, 3 );
     styleTool->SetHStyle( hProjMean_pp , 2 );
 
     leg.AddEntry( hProjMean_pPb, "#it{p}+Pb w/Overlay" );
-    leg.AddEntry( hProjMean_pPb_sig, "#it{p}+Pb Signal" );
+    leg.AddEntry( hProjMean_pPb_sig, "#it{p}+Pb Signal Old" );
+    leg.AddEntry( hProjMean_pPb_sig_new, "#it{p}+Pb Signal New" );
     leg.AddEntry( hProjMean_pp, "#it{pp}" );
 
     padMean1.cd();
@@ -4085,11 +4112,15 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
       
     SetMinMax( hProjMean_pPb, type, "mean" );
 
+    hProjMean_pPb->SetMaximum( 1.07 );
+    hProjMean_pPb->SetMinimum( 0.96 );
+    
     hProjMean_pPb->GetXaxis()->
       SetRangeUser( m_varPtBinning.front(), m_varPtBinning.back() );
     
     hProjMean_pPb->Draw("ep same");
     hProjMean_pPb_sig->Draw("ep same");
+    hProjMean_pPb_sig_new->Draw("ep same");
     hProjMean_pp ->Draw("ep same");
 
     drawTool->DrawLeftLatex( 0.18, 0.85, anaTool->GetLabel( xMin, xMax, label ) );
@@ -4111,9 +4142,9 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
     hD1->Add( hProjMean_pp, -1);
     
     TH1* hD2 = static_cast< TH1D* >
-      ( hProjMean_pPb->Clone( Form( "hMeanRatio2_%d", xBin ) ) );
+      ( hProjMean_pPb_sig->Clone( Form( "hMeanRatio2_%d", xBin ) ) );
     styleTool->SetHStyleRatio( hD2, 6 );
-    hD2->Add( hProjMean_pp, -1);
+    hD2->Add( hProjMean_pPb_sig_new, -1);
 
     TH1* hD3 = static_cast< TH1D* >
       ( hProjMean_pPb->Clone( Form( "hMeanRatio3_%d", xBin ) ) );
@@ -4129,8 +4160,8 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
     std::string yTitle = hMean_pPb->GetZaxis()->GetTitle();
 
     hD1->SetYTitle( "Difference" );
-    hD1->SetMaximum( 0.05 );
-    hD1->SetMinimum( -0.05 );
+    hD1->SetMaximum( 0.065 );
+    hD1->SetMinimum( -0.06 );
 
     // for the angles, Deta Dphi, set different range
     if( type.find("Rpt") == std::string::npos ){
@@ -4140,14 +4171,14 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
 
     hD1->SetTitleOffset( 2.0, "y" );
     hD1->Draw( "ep same" );
-    // hD2->Draw( "ep same" );
+    hD2->Draw( "ep same" );
     hD3->Draw( "ep same" );
 
-    TLegend legR( 0.4, 0.85, 0.9, 0.95 );
-    styleTool->SetLegendStyle( &legR );
+    TLegend legR( 0.2, 0.85, 0.85, 0.95 );
+    styleTool->SetLegendStyle( &legR, 0.75 );
     legR.SetNColumns(3);
     legR.AddEntry( hD3, "#color[4]{overlay - signal}" );
-    // legR.AddEntry( hD2, "ov - pp" );
+    legR.AddEntry( hD2, "signal_{old} - signal_{new}" );
     legR.AddEntry( hD1, "signal - pp" );
  
     legR.Draw();
@@ -4748,11 +4779,17 @@ SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
     if( !type2.compare("mean") ){ // mean
       h1->SetMaximum(0.030);      
       h1->SetMinimum(-0.020);
+      if( m_is_pPb && type1.find("Deta") != std::string::npos){
+	h1->SetMinimum(-0.010);
+      }
     } else if( !type2.compare("sigma") ){ // sigma
       h1->SetMaximum(0.07);
-      if( finalPlots ){ h1->SetMaximum( 0.055 ); }
+      if( finalPlots ){ h1->SetMaximum( 0.050 ); }
       h1->SetMinimum(0.);
       if( finalPlots ){ h1->SetMinimum( 0.005 ); }
+      if( m_is_pPb && type1.find("Deta") != std::string::npos){
+	h1->SetMaximum( 0.065 );
+      }
     } 
   } 
 }

@@ -26,7 +26,7 @@ class DeltaPhiProj;
 // overall systematics, and final plots.
 static const bool finalPlots = true;
 
-static const bool doRtrk = true;
+static const bool doRtrk = false;
 
 class DiJetAnalysis{
   

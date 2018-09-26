@@ -2097,12 +2097,6 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	      v_listBadFits.push_back( fit  ->GetName() );
 	    }
 
-	    /*
-	    drawTool->DrawLeftLatex
-	      ( 0.71, 0.31, Form( "Prob = %4.2f", prob ), 0.85 );
-	    drawTool->DrawLeftLatex
-	      ( 0.67, 0.25, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ), 0.85 );
-	    */
 	    drawTool->DrawLeftLatex
 	      ( 0.53, 0.60, Form( "#Chi^{2}/NDF = %4.2f", chi2NDF ), 0.7 );
 	    drawTool->DrawLeftLatex
@@ -2123,6 +2117,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    
 	    hDphi->Write();
 	    hDphiCounts->Write();
+
+	    hYields->Write();
 	    
 	    // draw onto common canvas
 	    cAll.cd( cAllPadI + 1 );
@@ -2223,15 +2219,16 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    double width4      = std::sqrt( 2 * tau4 * tau4 + sigma4 * sigma4 ); 
 	    double widthError4 = std::sqrt( std::pow( 4 * tau4   * tauError4  , 2 ) +
 					    std::pow( 2 * sigma4 * sigmaError4, 2 ) );
-	   
-	    
+
 	    // Now, put results on histogram
 	    std::pair< double, double > rmsAndError =
-	      anaTool->GetRMS( hDphi, m_dPhiFittingMin, m_dPhiFittingMax, constants::PI );
-
+	      anaTool->GetRMS( hDphi, 0., constants::PI, constants::PI );
 	    double widthStat      = rmsAndError.first;
 	    double widthStatError = rmsAndError.second;
 
+	    widthStat      = hDphiCounts->GetRMS();
+	    widthStatError = hDphiCounts->GetRMSError();
+	    
 	    std::cout << hDphi->GetName() << std::endl;
 	    std::cout << "Tau   = " << tau   << " TauError   = " << tauError   << std::endl;
 	    std::cout << "Sigma = " << sigma << " SigmaError = " << sigmaError << std::endl;
@@ -2305,8 +2302,9 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	  styleTool->SetHStyle( hDphiWidths4   , 3 );
 	  styleTool->SetHStyle( hDphiWidthsStat, 5 );
 	   
-	  hDphiWidthsCmp->Draw("epsame X0");
-	  hDphiWidths2  ->Draw("epsame X0");
+	  hDphiWidthsCmp ->Draw("epsame X0");
+	  hDphiWidths2   ->Draw("epsame X0");
+	  hDphiWidthsStat->Draw("epsame X0");
 	  // hDphiWidths3  ->Draw("epsame X0");
 	  // hDphiWidths4  ->Draw("epsame X0");
 	
@@ -2314,6 +2312,8 @@ void DiJetAnalysis::MakeDeltaPhi( std::vector< THnSparse* >& vhn,
 	    ( hDphiWidthsCmp,Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMin  ) );
 	  legWAll.AddEntry
 	    ( hDphiWidths2,  Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinB ) );
+	  legWAll.AddEntry( hDphiWidthsStat, "Statistical RMS" );
+
 	  /*
 	  legWAll.AddEntry
 	    ( hDphiWidths3,  Form( "Fit %2.1f<#Delta#phi<#pi", m_dPhiFittingMinC ) );
