@@ -2145,13 +2145,10 @@ void DiJetAnalysisData::MakeSystematicsGraphs( TFile* fOut, const std::string& n
 	double* eXDefLowMC  = gMCp8->GetEXlow();
 	double* eXDefHighMC = gMCp8->GetEXhigh();
 	for( int iX = 0; iX < nAxis3Bins; iX++ ){
-	  // *(      xDef + iX ) -= style * pDx1;
 	  *(  eXDefLow + iX ) = 0;
 	  *( eXDefHigh + iX ) = 0;
-	  // *(    xDefMC + iX ) -= style * pDx1;
 	  *(  eXDefLowMC + iX ) = 0;
 	  *( eXDefHighMC + iX ) = 0;
-	  // *(      xSys + iX ) -= style * pDx1;
 	}
 	
 	gSystematics->SetTitle("");
@@ -2577,8 +2574,8 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
   double y0 = isYield ? m_dPhiYieldMin : 0.0;
   double y1 = isYield ? m_dPhiYieldMax : 0.9;
 
-  double pDx1 = 0.16;
-  double pDx2 = 0.23;
+  double pDx1 = 0.13;
+  double pDx2 = 0.16;
 
   double pDxF1 = 0.10;
   double pDxF2 = 0.14;
@@ -2765,7 +2762,7 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
     //  Been written to avoid changing those
     //  histograms and their options.
     // ----------------------------------------
-    TCanvas cFinalDist( "cFinalDist", "cFinalDist", 800, 1600 );
+    TCanvas cFinalDist( "cFinalDist", "cFinalDist", 900, 1600 );
 
     TPad padFinalDist1( "padFinalDist1", "padFinalDist1", 0.0, 0.66, 1.0, 1.00 );
     TLegend legSpPb1( legSX0pPb, legSY0, legSX1pPb, legSY1 );
@@ -2787,15 +2784,21 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
     TLegend legSpp3 ( legSX0pp,  legSY0 + 0.07,  legSX1pp, legSY1 + 0.07);
     styleTool->SetLegendStyle( &legSpp3, 0.85 );
 
-    hDefF1->GetYaxis()->SetTitleOffset( 3.5 );
-    hDefF2->GetYaxis()->SetTitleOffset( 3.5 );
-    hDefF3->GetYaxis()->SetTitleOffset( 3.5 );
+    hDefF1->GetYaxis()->SetTitleOffset( 3.0 );
+    hDefF2->GetYaxis()->SetTitleOffset( 3.0 );
+    hDefF3->GetYaxis()->SetTitleOffset( 3.0 );
     
     padFinalDist1.SetBottomMargin( 0.022 );
+    padFinalDist1.SetRightMargin ( 0.02 );
+    padFinalDist1.SetLeftMargin  ( 0.12 );
     padFinalDist2.SetTopMargin   ( 0.00 );
     padFinalDist2.SetBottomMargin( 0.022 );
+    padFinalDist2.SetRightMargin ( 0.02 );
+    padFinalDist2.SetLeftMargin  ( 0.12 );
     padFinalDist3.SetTopMargin   ( 0.00 );
     padFinalDist3.SetBottomMargin( 0.1 );
+    padFinalDist3.SetRightMargin ( 0.02 );
+    padFinalDist3.SetLeftMargin  ( 0.12 );
     padFinalDist1.Draw();
     padFinalDist2.Draw();
     padFinalDist3.Draw();
@@ -2993,6 +2996,9 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	vG.push_back( gNominalA );
 	vG.push_back( gNominalB );
 
+	gNominalA->SetMarkerSize( gNominalA->GetMarkerSize() * 1.2 );
+	gNominalB->SetMarkerSize( gNominalB->GetMarkerSize() * 1.2 );
+	
 	legAll.AddEntry( gNominalA, label_a.c_str(), "lp" );
 	legAll.AddEntry( gNominalB, label_b.c_str(), "lp" );
 
@@ -3601,47 +3607,61 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 	// offset the graph points
 	for( int i = 0; i < gSystematicsB->GetN(); i++ ){
 	  double x0, y0;
+
+	  double xOffset = 3.7;
+	  
+	  // Distributions
 	  x0 = hNominalB->GetBinCenter ( i + 1 );
 	  y0 = hNominalB->GetBinContent( i + 1 );
-	  gNominalB    ->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
-	  gSystematicsB->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
+	  gNominalB    ->SetPoint( i, x0 + ( axis2Bin * 2 - xOffset ) * pDx2, y0 );
+	  gSystematicsB->SetPoint( i, x0 + ( axis2Bin * 2 - xOffset ) * pDx2, y0 );
+	  gSystematicsB->SetPointEXlow ( i, pDx1 * 0.5 );
+	  gSystematicsB->SetPointEXhigh( i, pDx1 * 0.5 );
 	  x0 = hNominalA->GetBinCenter ( i + 1 );
 	  y0 = hNominalA->GetBinContent( i + 1 );
-	  gNominalA    ->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
-	  gSystematicsA->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
+	  gNominalA    ->SetPoint( i, x0 + ( axis2Bin * 2 - 1 - xOffset ) * pDx2, y0 );
+	  gSystematicsA->SetPoint( i, x0 + ( axis2Bin * 2 - 1 - xOffset ) * pDx2, y0 );
+	  gSystematicsA->SetPointEXlow ( i, pDx1 * 0.5 );
+	  gSystematicsA->SetPointEXhigh( i, pDx1 * 0.5 );
+
+	  // Ratios
 	  x0 = hNominalR->GetBinCenter ( i + 1 );
 	  y0 = hNominalR->GetBinContent( i + 1 );
 	  gNominalR    ->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
 	  gSystematicsR->SetPoint( i, x0 + ( axis2Bin - 2 ) * pDx2, y0 );
 
-	  double xOffset = 3.0;
-	  
+	  double xOffsetF = 3.0;
+
+	  // For Final Calculation
 	  x0 = hNominalB  ->GetBinCenter ( i + 1 );
 	  y0 = hNominalB  ->GetBinContent( i + 1 );
-	  gNominalBfin    ->SetPoint( i, x0 + ( iFin - xOffset ) * pDxF2, y0 );
-	  gSystematicsBfin->SetPoint( i, x0 + ( iFin - xOffset ) * pDxF2, y0 );
+	  gNominalBfin    ->SetPoint( i, x0 + ( iFin - xOffsetF ) * pDxF2, y0 );
+	  gSystematicsBfin->SetPoint( i, x0 + ( iFin - xOffsetF ) * pDxF2, y0 );
 	  gNominalBfin    ->SetPointEXlow ( i, 0 );
 	  gNominalBfin    ->SetPointEXhigh( i, 0 );
 	  gSystematicsBfin->SetPointEXlow ( i, pDxF1 * 0.5 );
 	  gSystematicsBfin->SetPointEXhigh( i, pDxF1 * 0.5 );
 	  x0 = hNominalA  ->GetBinCenter ( i + 1 );
 	  y0 = hNominalA  ->GetBinContent( i + 1 );
-	  gNominalAfin    ->SetPoint( i, x0 + ( iFin - xOffset ) * pDxF2, y0 );
-	  gSystematicsAfin->SetPoint( i, x0 + ( iFin - xOffset ) * pDxF2, y0 );
+	  gNominalAfin    ->SetPoint( i, x0 + ( iFin - xOffsetF ) * pDxF2, y0 );
+	  gSystematicsAfin->SetPoint( i, x0 + ( iFin - xOffsetF ) * pDxF2, y0 );
 	  gNominalAfin    ->SetPointEXlow ( i, 0 );
 	  gNominalAfin    ->SetPointEXhigh( i, 0 );
 	  gSystematicsAfin->SetPointEXlow ( i, pDxF1 * 0.5 );
 	  gSystematicsAfin->SetPointEXhigh( i, pDxF1 * 0.5 );
+
+	  // Ratios
 	  x0 = hNominalR  ->GetBinCenter ( i + 1 );
 	  y0 = hNominalR  ->GetBinContent( i + 1 );
-	  gNominalRfin    ->SetPoint( i, x0 + ( iFin - xOffset ) * pDxF2, y0 );
-	  gSystematicsRfin->SetPoint( i, x0 + ( iFin - xOffset ) * pDxF2, y0 );
+	  gNominalRfin    ->SetPoint( i, x0 + ( iFin - xOffsetF ) * pDxF2, y0 );
+	  gSystematicsRfin->SetPoint( i, x0 + ( iFin - xOffsetF ) * pDxF2, y0 );
 	  gNominalRfin    ->SetPointEXlow ( i, 0 );
 	  gNominalRfin    ->SetPointEXhigh( i, 0 );
 	  gSystematicsRfin->SetPointEXlow ( i, pDxF1 * 0.5 );
 	  gSystematicsRfin->SetPointEXhigh( i, pDxF1 * 0.5 );
 
-	  pXfinal.push_back( x0 + ( iFin - xOffset ) * pDxF2 );
+	  // for overall significance
+	  pXfinal.push_back( x0 + ( iFin - xOffsetF ) * pDxF2 );
 	  pYfinal.push_back( y0 );
 	  eXfinal.push_back( 0 );
 	  eYfinalNegNom.push_back( gNominalR->GetErrorYlow(i)  );
@@ -3655,11 +3675,14 @@ void DiJetAnalysisData::MakeFinalPlotsTogether( TFile* fOut, const std::string& 
 
 	    double x, y;
 	    gNominalA->GetPoint( i, x, y );
-	   
+
+	    // Distributions
 	    gNominalA    ->SetPoint( i, -10, y0 );
 	    gSystematicsA->SetPoint( i, -10, y0 );
 	    gNominalB    ->SetPoint( i, -10, y0 );
 	    gSystematicsB->SetPoint( i, -10, y0 );
+
+	    // Ratios
 	    gNominalR    ->SetPoint( i, -10, y0 );
 	    gSystematicsR->SetPoint( i, -10, y0 );
 

@@ -4174,8 +4174,8 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
     hD2->Draw( "ep same" );
     hD3->Draw( "ep same" );
 
-    TLegend legR( 0.2, 0.85, 0.85, 0.95 );
-    styleTool->SetLegendStyle( &legR, 0.75 );
+    TLegend legR( 0.2, 0.85, 0.9, 0.95 );
+    styleTool->SetLegendStyle( &legR, 0.7 );
     legR.SetNColumns(3);
     legR.AddEntry( hD3, "#color[4]{overlay - signal}" );
     legR.AddEntry( hD2, "signal_{old} - signal_{new}" );
@@ -4257,24 +4257,25 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
     leg.Draw();
 
     padSigma2.cd();
-   
+ 
     TH1* hD1 = static_cast< TH1D* >
       ( hProjSigma_pPb_sig->Clone( Form( "hSigmaRatio1_%d", xBin ) ) );
     styleTool->SetHStyleRatio( hD1, 5 );
     hD1->Add( hProjSigma_pp, -1);
-    
+
     TH1* hD2 = static_cast< TH1D* >
       ( hProjSigma_pPb->Clone( Form( "hSigmaRatio2_%d", xBin ) ) );
     styleTool->SetHStyleRatio( hD2, 6 );
     hD2->Add( hProjSigma_pp, -1);
-
+    
     TH1* hD3 = static_cast< TH1D* >
       ( hProjSigma_pPb->Clone( Form( "hSigmaRatio3_%d", xBin ) ) );
     styleTool->SetHStyleRatio( hD3, 7 );
     hD3->Add( hProjSigma_pPb_sig, -1 );
 
+
     vH.push_back( hD1 );
-    vH.push_back( hD2 );
+    // vH.push_back( hD2 );
     vH.push_back( hD3 );
 
     hD1->GetXaxis()->SetRangeUser( m_varPtBinning.front(), m_varPtBinning.back() );    
@@ -4283,7 +4284,7 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
 
     hD1->SetYTitle( "Difference" );
     hD1->SetMaximum( 0.05 );
-    hD1->SetMinimum( -0.05 );
+    hD1->SetMinimum( -0.026 );
 
     // for the angles, Deta Dphi, set different range
     if( type.find("Rpt") == std::string::npos ){
@@ -4296,13 +4297,13 @@ void DiJetAnalysisMC::CompareScaleRes( TFile* fOut, const std::string& type ){
     hD2->Draw( "ep same" );
     hD3->Draw( "ep same" );
 
-    TLegend legR( 0.4, 0.85, 0.9, 0.95 );
-    styleTool->SetLegendStyle( &legR );
+    TLegend legR( 0.2, 0.85, 0.9, 0.95 );
+    styleTool->SetLegendStyle( &legR, 0.7 );
     legR.SetNColumns(3);
-    legR.AddEntry( hD3, "ov - sig" );
-    legR.AddEntry( hD1, "sig - pp" );
-    legR.AddEntry( hD2, "ov - pp" );
 
+    legR.AddEntry( hD3, "#color[4]{overlay - signal}" );
+    legR.AddEntry( hD2, "#color[2]{overlay - signal}" );
+    legR.AddEntry( hD1, "signal - pp" );
 
     legR.Draw();
     
@@ -4770,7 +4771,7 @@ SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
       h1->SetMaximum(0.34);
       if( finalPlots ){ h1->SetMaximum( 0.20 ); }
       h1->SetMinimum(0.);
-      if( finalPlots ){ h1->SetMinimum( 0.05 ); }
+      if( finalPlots ){ h1->SetMinimum( 0.051 ); }
     }
   }
   // ANGLES
