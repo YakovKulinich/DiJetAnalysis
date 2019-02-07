@@ -24,6 +24,9 @@
 #include "DeltaPhiProj.h"
 #include "UncertaintyProvider.h"
 
+static int edboardJets = 0;
+static int totalJets   = 0;
+
 static const bool compToPythia = true;
 
 DiJetAnalysisMC::DiJetAnalysisMC()
@@ -153,10 +156,26 @@ void DiJetAnalysisMC::Initialize()
   std::cout << "SumSigmaEff = " << m_sumSigmaEff << std::endl;
 
   for( uint iG = 0; iG < m_nJzn; iG++ ){
-    TFile* fIn  = TFile::Open( m_vJznFnameIn[iG].c_str() );
-    TTree* tree = static_cast< TTree* >( fIn->Get( "tree" ) );
+    //TFile* fIn  = TFile::Open( m_vJznFnameIn[iG].c_str() );
+    //TTree* tree = static_cast< TTree* >( fIn->Get( "tree" ) );
 
-    int nEventsTotal = tree->GetEntries();
+    int nEventsTotal = 0;
+    
+    if( m_is_pPb ){
+      if( iG == 0 ){
+	nEventsTotal = 5.88E5;
+      } else if( iG == 1 ){
+	nEventsTotal = 5.84E5;
+      }
+    } else {
+      if( iG == 0 ){
+	nEventsTotal = 1.98E5;	
+      } else if( iG == 1 ){
+	nEventsTotal = 1.00E5;
+      }
+    }
+
+    // int nEventsTotal = tree->GetEntries();
     double     sigma = m_vJznSigma[iG];      
     double       eff = m_vJznEff  [iG];
   
@@ -167,7 +186,7 @@ void DiJetAnalysisMC::Initialize()
     std::cout << iG << "   weight = "
 	      << m_vJznWeights.back() << std::endl;
     
-    fIn->Close();
+    //fIn->Close();
   }
 
   std::string system = m_is_pPb ? m_s_pPb : m_s_pp;
@@ -1054,7 +1073,6 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 	}
       }
     
-      
       std::sort( vTR_paired_jets.begin(), vTR_paired_jets.end(),
 		 anaTool->sortByDecendingPt );
       std::sort( vTT_paired_jets.begin(), vTT_paired_jets.end(),
@@ -1089,11 +1107,10 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
 	  m_vHjznYstarSpectTruth[iG]->Fill
 	    ( -GetYstar( tJetFront ), tJetFront.Pt()/1000., truthJetWeight );
 	}
-      }
+      } // done fill single jet spectra
 
       // fill single speectra response matrix
-      AnalyzeSpectRespMat( m_vHjznYstarSpectRespMat[iG],
-			   vTR_paired_jets, vTT_paired_jets );
+      AnalyzeSpectRespMat( m_vHjznYstarSpectRespMat[iG], vTR_paired_jets, vTT_paired_jets );
 
       // make spectra
       AnalyzeSpectra( m_vHjznYstarSpectFineTruth[iG], vTT_paired_jets );
@@ -1124,7 +1141,9 @@ void DiJetAnalysisMC::ProcessEvents( int nEventsIn, int startEventIn ){
     } // -------- END EVENT LOOP ---------
    
     std::cout << "DONE WITH " << m_vJznLabels[iG] << std::endl;
-
+    std::cout << "BAD JETS: " << edboardJets << std::endl;
+    std::cout << "TOTAL JETS: " << totalJets << std::endl;
+    
     fIn->Close(); delete fIn;
   } // end loop over a JZ sample
   TFile* f = new TFile("myOut.root", "RECREATE" );
@@ -1182,7 +1201,6 @@ double DiJetAnalysisMC::AnalyzeDeltaPhiWithWeight
   return dPhi;
 }
 
-
 void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector >& vR_jets,
 					      const std::vector< TLorentzVector >& vT_jets,
 					      const int iG ){
@@ -1233,32 +1251,13 @@ void DiJetAnalysisMC::AnalyzeScaleResolution( const std::vector< TLorentzVector 
 	Fill( angle, jetPtTruth  );
     }
 
-    /*
-    // for pp, fill both
-    if( m_is_pPb ){ continue; }
-
-    if( jetEtaReco > 28 && jetEtaReco < 35 ){
-      m_vHjznEtaPhiMap[iG]->Fill( -jetEtaReco, jetPhiReco, jetWeightReco );
+    if( ( iJet == 0 || iJet == 1 ) && ( jetPtTruth < 12 && jetPtReco > 28 ) ){
+      edboardJets++;
+      std::cout << iJet << " " << jetPtTruth << " " << jetPtReco << " " 
+		<< jetEtaTruth << " " << jetEtaReco << std::endl;
+    } else if( ( iJet == 0 || iJet == 1 ) && ( jetPtTruth > 12 && jetPtReco > 28 ) ){
+      totalJets++;
     }
-    m_vHjznEtaPtMap [iG]->Fill( -jetEtaReco, jetPtReco , jetWeightReco );
-
-    if( PassHECCuts( rJet) ){
-      m_vHjznRecoTruthRpt       [iG]->
-	Fill( -angle, jetPtTruth, jetPtReco/jetPtTruth, jetWeightTruth );
-      m_vHjznRecoTruthRptNent   [iG]->
-	Fill( -angle, jetPtTruth );
-
-      m_vHjznRecoTruthDeta      [iG]->
-	Fill( -angle, jetPtTruth, jetEtaReco - jetEtaTruth, jetWeightTruth );
-      m_vHjznRecoTruthDetaNent  [iG]->
-	Fill( -angle, jetPtTruth );
-
-      m_vHjznRecoTruthDphi      [iG]->
-	Fill( -angle, jetPtTruth, jetPhiReco - jetPhiTruth, jetWeightTruth );
-      m_vHjznRecoTruthDphiNent  [iG]->
-	Fill( -angle, jetPtTruth  );
-    }
-    */
   } // end loop over pairs
 }
 
@@ -4662,7 +4661,11 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
 				  const std::string& type1,
 				  const std::string& type2 ){
   TCanvas c("c","c",800,600);
-
+  c.SetRightMargin ( 0.02 );
+  //c.SetLeftMargin  ( 0.11 );
+  c.SetTopMargin   ( 0.02 );
+  //c.SetBottomMargin( 0.11 );
+  
   double lx0 = 0.20;
   double ly0 = 0.65;
   double lx1 = 0.40;
@@ -4685,20 +4688,30 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   // just hard code this part.
   // final paper only has 4 MC plots
   if( finalPlots  && type2.find("sigma") != std::string::npos ){
-    lx0 = 0.64;
-    ly0 = 0.575;
-    lx1 = 0.84;
-    ly1 = 0.885;
+    lx0 = 0.63;
+    ly0 = 0.60;
+    lx1 = 0.88;
+    ly1 = 0.94;
   } else if( finalPlots  && type2.find("mean") != std::string::npos ){
-    lx0 = 0.19;
-    ly0 = 0.575;
-    lx1 = 0.39;
-    ly1 = 0.885;
+    lx0 = 0.23;
+    ly0 = 0.50;
+    lx1 = 0.43;
+    ly1 = 0.81;
+    if( type1.find("Rpt") != std::string::npos ){
+      lx0 = 0.22;
+      ly0 = 0.23;
+      lx1 = 0.89;
+      ly1 = 0.41;
+    }
   }
-  
+
   TLegend leg( lx0, ly0, lx1, ly1 );
   styleTool->SetLegendStyle( &leg );
-
+  if( finalPlots  && type2.find("mean") != std::string::npos
+      && type1.find("Rpt") != std::string::npos ){
+    leg.SetNColumns(2);
+    leg.SetColumnSeparation(0.125);
+  }
   int style = 0;
 
   // for situations where dont want to
@@ -4706,7 +4719,8 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   // plot every n on canvas
   for( uint xRange = 0; xRange < vHIN.size(); xRange++ ){
     TH1* h = vHIN[ xRange ];
-    styleTool->SetHStyle( h, style++ );
+    styleTool->SetHStyle( h, style );
+    style++;
     // hardcoded shit
     if( xRange <= 2){
       leg.AddEntry( h, h->GetTitle() );
@@ -4714,8 +4728,10 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
       leg.AddEntry( h, Form( " %s", h->GetTitle() ) );
     }
     h->SetTitle("");
-    // h->SetMarkerSize( h->GetMarkerSize() * 1.3 );
-    h->Draw("epsame");
+    h->GetYaxis()->SetTitleOffset( 1.3 );
+    h->GetXaxis()->SetTitleOffset( 1.3 );
+    gStyle->SetErrorX(0.5);
+    h->Draw("ep same");
     SetMinMax( h, type1, type2 );
     h->Write();
   }
@@ -4731,25 +4747,39 @@ void DiJetAnalysisMC::DrawCanvas( std::vector< TH1* >& vHIN,
   double scale = 0.9;
   
   if( finalPlots && type2.find("sigma") != std::string::npos ){
-    drawTool->DrawAtlasSimulationInternal( 0.64, 0.27, 1.0 );
+    drawTool->DrawAtlasSimulationInternal( 0.51, 0.27, 1.0 );
+    // drawTool->DrawAtlasSimulationPreliminary( 0.71, 0.27 );
     if( m_is_pPb ){
-      drawTool->DrawAtlasJetInfo     ( 0.60, 0.85, m_is_pPb, scale );
-      drawTool->DrawAtlasOverlayInfo ( 0.60, 0.785, scale );
+      drawTool->DrawAtlasJetInfo     ( 0.55, 0.905, m_is_pPb, scale );
+      drawTool->DrawAtlasOverlayInfo ( 0.55, 0.84, scale );
       drawTool->DrawAtlasEnergy      ( 0.43, 0.36, m_is_pPb, scale );
     } else {
-      drawTool->DrawAtlasJetInfo     ( 0.60, 0.85, m_is_pPb, scale );
-      drawTool->DrawAtlasEnergy      ( 0.43, 0.36, m_is_pPb,  scale );
+      drawTool->DrawAtlasJetInfo     ( 0.55, 0.905, m_is_pPb, scale );
+      drawTool->DrawAtlasEnergy      ( 0.55, 0.84, m_is_pPb,  scale );
     }
   } else if( finalPlots && type2.find("mean") != std::string::npos ){
-    if( m_is_pPb ){
+    if( type1.find("Rpt") != std::string::npos ){
+      // drawTool->DrawLeftLatex( 0.190, 0.91, "#bf{#font[72]{ATLAS}} Simulation Preliminary" );
+      // drawTool->DrawLeftLatex( 0.190, 0.91, "#bf{#font[72]{ATLAS}} Simulation Internal" );
+      drawTool->DrawLeftLatex( 0.192, 0.91, "#bf{#font[72]{ATLAS}} Simulation" );
+      if( m_is_pPb ){
+	drawTool->DrawAtlasEnergy     ( 0.942, 0.91,  m_is_pPb, scale );
+	drawTool->DrawAtlasOverlayInfo( 0.942, 0.837, scale );
+	drawTool->DrawAtlasJetInfo    ( 0.551, 0.834, m_is_pPb, scale );
+      } else {
+	drawTool->DrawAtlasEnergy     ( 0.945, 0.91,  m_is_pPb, scale );
+	drawTool->DrawAtlasJetInfo    ( 0.508, 0.834, m_is_pPb, scale );
+      }
+    } else{ 
       drawTool->DrawAtlasSimulationInternal( 0.875, 0.855 );
-      drawTool->DrawAtlasJetInfo     ( 0.875, 0.78, m_is_pPb, scale );
-      drawTool->DrawAtlasOverlayInfo ( 0.875, 0.71, scale );
-      drawTool->DrawAtlasEnergy      ( 0.875, 0.64, m_is_pPb, scale );
-    } else {
-      drawTool->DrawAtlasSimulationInternal( 0.875, 0.855 );
-      drawTool->DrawAtlasJetInfo     ( 0.875, 0.78, m_is_pPb, scale );
-      drawTool->DrawAtlasEnergy      ( 0.875, 0.71, m_is_pPb, scale );
+      if( m_is_pPb ){
+	drawTool->DrawAtlasJetInfo     ( 0.875, 0.78, m_is_pPb, scale );
+	drawTool->DrawAtlasOverlayInfo ( 0.875, 0.71, scale );
+	drawTool->DrawAtlasEnergy      ( 0.875, 0.64, m_is_pPb, scale );
+      } else {
+	drawTool->DrawAtlasJetInfo     ( 0.875, 0.78, m_is_pPb, scale );
+	drawTool->DrawAtlasEnergy      ( 0.875, 0.71, m_is_pPb, scale );
+      }
     }
   } else {
     DrawAtlasRight();
@@ -4765,8 +4795,8 @@ SetMinMax( TH1* h1, const std::string& type1, const std::string& type2 ){
   // JES JER
   if( type1.find("Rpt") != std::string::npos ){ 
     if( type2.find("mean") != std::string::npos ){ // sigma
-      h1->SetMaximum(1.10);
-      h1->SetMinimum(0.97);
+      h1->SetMaximum(1.07);
+      h1->SetMinimum(0.93);
     } else if( !type2.compare("sigma") ){ // sigma
       h1->SetMaximum(0.34);
       if( finalPlots ){ h1->SetMaximum( 0.20 ); }

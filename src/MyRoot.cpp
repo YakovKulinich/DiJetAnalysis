@@ -710,13 +710,13 @@ std::string CT::AnalysisTools::GetEtaLabel( double etaMin,
 					    bool is_pPb){
   std::stringstream ss;
   if( is_pPb )
-    { ss << boost::format("%3.1f<#eta<%3.1f") % etaMin % etaMax;}
+    { ss << boost::format("%3.1f < #it{#eta}_{truth} < %3.1f") % etaMin % etaMax;}
   else {
     if( std::abs(etaMin) > std::abs(etaMax) )
-      { ss << boost::format("%3.1f<|#eta|<%3.1f")
+      { ss << boost::format("%3.1f < |#eta| < %3.1f")
 	  % std::abs(etaMax) % std::abs(etaMin); }
     else
-      { ss << boost::format("%3.1f<|#eta|<%3.1f")
+      { ss << boost::format("%3.1f < |#eta| < %3.1f")
 	  % std::abs(etaMin) % std::abs(etaMax); }
   }
   return ss.str();
@@ -741,29 +741,29 @@ std::string CT::AnalysisTools::GetYstarLabel( double ystarMin,
   if( is_pPb ){
     if( ( ystarMax >= 3.9  && ystarMax <= 4.1 ) ||
 	( ystarMax >= -0.1 && ystarMax <= 0.1 ) ){
-      ss << boost::format("%3.2g<%s<%2.1g")
+      ss << boost::format("%3.2g < %s < %2.1g")
 	% ystarMin % label % ystarMax;
     } else {
-      ss << boost::format("%3.2g<%s<%3.2g")
+      ss << boost::format("%3.2g < %s < %3.2g")
 	% ystarMin % label % ystarMax;
     }
   } else {
     if( std::abs(ystarMin) > std::abs(ystarMax) ){
       if( ( ystarMax >= 3.9  && ystarMax <= 4.1 ) ||
 	  ( ystarMax >= -0.1 && ystarMax <= 0.1 ) ){
-	ss << boost::format("%3.2g<|%s|<%2.1g")
+	ss << boost::format("%3.2g < |%s| < %2.1g")
 	  % std::abs(ystarMax) % label % std::abs(ystarMin);
       } else {
-	ss << boost::format("%3.2g<|%s|<%3.2g")
+	ss << boost::format("%3.2g < |%s| < %3.2g")
 	  % std::abs(ystarMax) % label % std::abs(ystarMin);
       }
     } else {
       if( ( ystarMax >= 3.9  && ystarMax <= 4.1 ) ||
 	  ( ystarMax >= -0.1 && ystarMax <= 0.1 ) ){
-      ss << boost::format("%3.2g<|%s|<%2.1g")
+      ss << boost::format("%3.2g < |%s| < %2.1g")
 	  % std::abs(ystarMin) % label % std::abs(ystarMax);
       }  else {
-      ss << boost::format("%3.2g<|%s|<%3.2g")
+      ss << boost::format("%3.2g < |%s| < %3.2g")
 	% std::abs(ystarMin) % label % std::abs(ystarMax); }
     }
   }
@@ -797,10 +797,16 @@ std::string CT::AnalysisTools::GetLabel
   if( vMin != vMax ){
     if( ( vMax >= 3.9  && vMax <= 4.1 ) ||
 	( vMax >= -0.1 && vMax <= 0.1 ) ){
-      ss << boost::format("%3.2g<%s<%2.1g")
+      ss << boost::format("%3.2g < %s <%2.1g")
+	% vMin % var % vMax;
+    } else if( vMax < 0 ){
+      ss << boost::format("%3.2g < %s < %3.2g")
+	% vMin % var % vMax;
+    } else if( vMax > 0.1 && vMax < 3.9 ){
+      ss << boost::format("%3.2g < %s < %3.2g")
 	% vMin % var % vMax;
     } else {
-      ss << boost::format("%3.2g<%s<%3.2g")
+      ss << boost::format("%3.2g < %s <%3.2g")
 	% vMin % var % vMax;
     }
   } else {
@@ -880,6 +886,60 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
     his->SetLineColor(kBlack);
     his->SetMarkerColor(kBlack);
     his->SetMarkerStyle(20);
+    his->SetMarkerSize(1.4);
+  } else if(iflag == 1 ){
+    his->SetLineColor(kRed);
+    his->SetMarkerColor(kRed);
+    his->SetMarkerStyle(21);
+    his->SetMarkerSize(1.3);
+  } else if(iflag == 2 ){
+    his->SetLineColor( kAzure - 3 );
+    his->SetMarkerColor( kAzure - 3 );
+    his->SetMarkerStyle(33);
+    his->SetMarkerSize(2.1);
+  } else if(iflag == 3 ){
+    his->SetLineColor( kSpring - 6 );
+    his->SetMarkerColor( kSpring - 6 );
+    his->SetMarkerStyle(34);
+    his->SetMarkerSize(1.8);
+  } else if(iflag == 5 ){
+    his->SetLineColor( kMagenta + 1 );
+    his->SetMarkerColor( kMagenta + 1);
+    his->SetMarkerStyle(20);
+    his->SetMarkerSize(1.4);
+  } else if(iflag == 4 ){
+    his->SetLineColor(kOrange+1);
+    his->SetMarkerColor(kOrange+1);
+    his->SetMarkerStyle(29);
+    his->SetMarkerSize(2.1);
+  } else if(iflag == 6 ){
+    his->SetLineColor(kBlack);
+    his->SetMarkerColor(kBlack);
+    his->SetMarkerStyle(24);
+    his->SetMarkerSize(1.5);
+  } else if(iflag == 7 ){
+    his->SetLineColor(kRed);
+    his->SetMarkerColor(kRed);
+    his->SetMarkerStyle(25);
+    his->SetMarkerSize(1.4);
+  } else if(iflag == 8 ){
+    his->SetLineColor( kAzure - 3 );
+    his->SetMarkerColor( kAzure - 3 );
+    his->SetMarkerStyle(27);
+    his->SetMarkerSize(2.1);
+  } else if(iflag == 9 ){
+    his->SetLineColor( kSpring - 6 );
+    his->SetMarkerColor( kSpring - 6 );
+    his->SetMarkerStyle(28);
+    his->SetMarkerSize(1.8);
+  }
+
+  
+  /*
+  if( iflag == 0 ){
+    his->SetLineColor(kBlack);
+    his->SetMarkerColor(kBlack);
+    his->SetMarkerStyle(20);
     his->SetMarkerSize(1.5);
   } else if(iflag == 1 ){
     his->SetLineColor(kRed);
@@ -944,6 +1004,7 @@ void CT::StyleTools::SetCustomMarkerStyle( TH1* his , int iflag ){
     his->SetMarkerStyle(27);
     his->SetMarkerSize(2.1);
   } 
+  */
 }
 
 void CT::StyleTools::SetCustomMarkerStyle( TGraph* graph , int iflag ){
@@ -1185,11 +1246,11 @@ void CT::DrawTools::DrawAtlasEnergy( double x0, double y0, int mode, double scal
 void CT::DrawTools::DrawAtlasJetInfo( double x0, double y0, int mode , double scale ){
 
   if( mode == 0 ){
-    DrawRightLatex( x0, y0, "#it{pp} anti-#it{k}_{t} #it{R}=0.4 jets", scale );  
+    DrawRightLatex( x0, y0, "#it{pp} anti-#it{k}_{t} #it{R} = 0.4 jets", scale );  
   } else if ( mode == 1 ){
-    DrawRightLatex( x0, y0, "#it{p}+Pb anti-#it{k}_{t} #it{R}=0.4 jets", scale );  
+    DrawRightLatex( x0, y0, "#it{p}+Pb anti-#it{k}_{t} #it{R} = 0.4 jets", scale );  
   } else if ( mode == 2 ){
-    DrawRightLatex( x0, y0, "anti-#it{k}_{t} #it{R}=0.4 jets", scale );  
+    DrawRightLatex( x0, y0, "anti-#it{k}_{t} #it{R} = 0.4 jets", scale );  
   }
 }
 
@@ -1198,7 +1259,15 @@ void CT::DrawTools::DrawAtlasJetInfo( double x0, double y0, int mode , double sc
 
 void CT::DrawTools::DrawAtlasInternal( double x0, double y0, double scale ){
   
-  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Internal", scale );
+  //  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Internal", scale );
+  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}}", scale );
+}
+
+
+void CT::DrawTools::DrawAtlasPreliminary( double x0, double y0, double scale ){
+  
+  // DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Internal", scale );
+  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}}", scale );
 }
 
 
@@ -1231,7 +1300,13 @@ void CT::DrawTools::DrawAtlasInternalDataRight
 
 void CT::DrawTools::DrawAtlasSimulationInternal( double x0, double y0, double scale ){
 
-  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Simulation Internal", 1.0 );
+  // DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Simulation Internal", 1.0 );
+  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Simulation", 1.0 );
+}
+
+void CT::DrawTools::DrawAtlasSimulationPreliminary( double x0, double y0, double scale ){
+
+  DrawRightLatex( x0, y0, "#bf{#font[72]{ATLAS}} Simulation Preliminary", 1.0 );
 }
 
 void CT::DrawTools::DrawAtlasOverlayInfo( double x0, double y0, double scale ){ 

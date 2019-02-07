@@ -233,9 +233,13 @@ namespace CT{
     
     // ============ DATA ================
     
-    void DrawAtlasInternal(  double = CT::DrawTools::drawX0,
-			     double = CT::DrawTools::drawY0,
-			     double = 1.0 );
+    void DrawAtlasInternal( double = CT::DrawTools::drawX0,
+			    double = CT::DrawTools::drawY0,
+			    double = 1.0 );
+
+    void DrawAtlasPreliminary( double = CT::DrawTools::drawX0,
+			       double = CT::DrawTools::drawY0,
+			       double = 1.0 );
 
     std::string GetLumipPb();
 
@@ -247,7 +251,11 @@ namespace CT{
     void DrawAtlasSimulationInternal( double = CT::DrawTools::drawX0,
 				      double = CT::DrawTools::drawY0,
 				      double = CT::StyleTools::lSS );
-    
+
+    void DrawAtlasSimulationPreliminary( double = CT::DrawTools::drawX0,
+					 double = CT::DrawTools::drawY0,
+					 double = CT::StyleTools::lSS );
+
     void DrawAtlasOverlayInfo( double = 0., double = 0.,
 			       double = StyleTools::lSS );
 

@@ -1509,13 +1509,13 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     hTruth   ->SetTitle( "" );
     hUnfolded->SetTitle( "" );    
     
-    TLegend leg( 0.71, 0.50, 0.90, 0.70 );
+    TLegend leg( 0.71, 0.48, 0.90, 0.68 );
     styleTool->SetLegendStyle( &leg );
 
     leg.AddEntry( hMeasured, Form( "%s_{Reco}" , typeMeasured.c_str() ) );
     leg.AddEntry( hUnfolded, Form( "%s_{UF}", typeMeasured.c_str() ) );
 
-    TH1* hRdataMC = NULL;
+    //TH1* hRdataMC = NULL;
     
     // only draw truth when there is MC
     // otherwise, draw reco unfolded MC
@@ -1532,7 +1532,7 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
       hReco->Scale( scalingFactor );
       hReco->SetFillColor( kAzure - 9 );
       
-      leg.AddEntry( hReco, "MC_{UF}", "f" );
+      leg.AddEntry( hReco, "MC_{Truth}", "f" );
       hReco->Draw ( "hist" );
     }
 
@@ -1575,7 +1575,7 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     
     DrawAtlasRight();    
     drawTool->DrawRightLatex
-      ( 0.615, 0.78, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
+      ( 0.615, 0.715, anaTool->GetLabel( xLow, xUp, axisLabelTex ) );
 
     // make ratios and draw cfactors
     pad2.cd();
@@ -1590,7 +1590,7 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
     // make sure to set range to rebinned.
     // the c-factors are from rebinned distributions.
     styleTool->SetHStyleRatio( hCfactors );
-    hCfactors->SetYTitle( "Ratio" );
+    hCfactors->SetYTitle( "Corr. Factor" );
     hCfactors->SetXTitle( "#it{p}_{T} [GeV]" );
     hCfactors->SetTitleOffset( 2.3, "x" );
 
@@ -1611,13 +1611,15 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
 
     hR->GetXaxis()->SetRangeUser
       ( m_varPtBinning.front(), m_varPtBinning.back() );
-    hR->Draw( "ep same" );
+    // hR->Draw( "ep same" );
 
     hCfactors->GetXaxis()->SetRangeUser
       ( m_varPtBinning.front(), m_varPtBinning.back() );
     hCfactors->Draw("ep same");
     
-    legR.AddEntry( hCfactors, "CF" );
+    legR.AddEntry( hCfactors, "Correction Factor (from MC)" );
+
+    /*
     legR.AddEntry( hR , Form( "%s_{UF}/%s_{Reco}",
 			      typeMeasured.c_str(), typeMeasured.c_str() ) );
 
@@ -1633,6 +1635,7 @@ TH2* DiJetAnalysis::UnfoldSpectra( TFile* fInData, TFile* fInMC,
       hRdataMC->Draw( "ep same" );
       legR.AddEntry( hRdataMC, "Data_{UF}/MC_{UF}" );
     }
+    */
     
     legR.Draw();
 
@@ -2823,6 +2826,9 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 
 	  hMeasured->SetMinimum( m_dPhiLogMin );
 	  hMeasured->SetMaximum( m_dPhiLogMax );
+	  hTruth->SetMinimum( m_dPhiLogMin );
+	  hTruth->SetMaximum( m_dPhiLogMax );
+
 	  
        	  TF1* fitMeasured = static_cast<TF1*>
 	    ( fInData->Get( Form( "f_h_%s_%s_%s", measuredName.c_str(),
@@ -2887,7 +2893,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 	  // make sure to set range to rebinned.
 	  // the c-factors are from rebinned distributions.
 	  styleTool->SetHStyleRatio( hCfactors );
-	  hCfactors->SetYTitle( "Ratio" );
+	  hCfactors->SetYTitle( "Corr. Factor" );
 	  hCfactors->GetXaxis()->SetRange
 	    ( m_dPhiRebinnedZoomLowBin, m_dPhiRebinnedZoomHighBin );
 	  hCfactors->SetMaximum( 1.5 );
@@ -2931,7 +2937,7 @@ THnSparse* DiJetAnalysis::UnfoldDeltaPhi( TFile* fInData, TFile* fInMC,
 
 	  // hRfit->Draw( "ep same" );
 	  
-	  legR.AddEntry( hCfactors, "Correction Factors" );
+	  legR.AddEntry( hCfactors, "Correction Factors (from MC)" );
 	  // legR.AddEntry( hR    , "UF/Truth" );
 	  // legR.AddEntry( hRfit    , "Fit/UF" );
 	  
@@ -3361,7 +3367,7 @@ void DiJetAnalysis::CompareWeightIsoPtCuts( TFile* fOut ){
 
     // compare spectra
     std::string hTagSpect =
-      Form (anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str() );
+      Form ( anaTool->GetName( axis0Low, axis0Up, m_dPP->GetAxisName(0) ).c_str() );
 
     // Now Draw everything.
     TCanvas ccSpectMC( "ccSpectMC", "ccSpectMC", 800, 700 );
